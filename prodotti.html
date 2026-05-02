@@ -19,7 +19,9 @@
       padding: 20px;
     }
 
-    h1 { text-align: center; }
+    h1 {
+      text-align: center;
+    }
 
     .card {
       background: white;
@@ -28,33 +30,31 @@
       margin-bottom: 15px;
     }
 
-    /* input e bottone stessa larghezza */
-    .input-btn {
+    input {
       width: 100%;
-      box-sizing: border-box;
       padding: 12px;
       border-radius: 12px;
-      font-size: 14px;
-    }
-
-    input.input-btn {
       border: 1px solid #ddd;
       margin-bottom: 10px;
+      box-sizing: border-box;
     }
 
-    button.input-btn {
+    .btn {
+      width: 100%;
+      padding: 12px;
+      border-radius: 12px;
       border: none;
+      cursor: pointer;
       background: #5ac8fa;
       color: white;
-      cursor: pointer;
     }
 
     .item {
       display: flex;
       justify-content: space-between;
+      align-items: center;
       padding: 10px 0;
       border-bottom: 1px solid #eee;
-      align-items: center;
     }
 
     .btn-small {
@@ -68,6 +68,7 @@
     .plus { background: #5ac8fa; color: white; }
     .edit { background: #ffeaa7; }
     .delete { background: #a7e3ff; }
+
   </style>
 </head>
 
@@ -77,14 +78,21 @@
 
   <h1>📦 Prodotti</h1>
 
+  <!-- AGGIUNTA PRODOTTO -->
   <div class="card">
-    <input id="nomeProdotto" class="input-btn" placeholder="Nuovo prodotto">
-    <button class="input-btn" onclick="aggiungi()">Aggiungi</button>
+    <input id="nomeProdotto" placeholder="Nuovo prodotto">
+    <button class="btn" onclick="aggiungi()">Aggiungi</button>
   </div>
 
+  <!-- LISTA -->
   <div class="card">
     <div id="listaProdotti"></div>
   </div>
+
+  <!-- VAI ALLA LISTA -->
+  <button class="btn" onclick="vaiLista()" style="margin-top:10px;">
+    Vai alla lista
+  </button>
 
 </div>
 
@@ -99,6 +107,7 @@ function ordina(data) {
   );
 }
 
+/* CARICA */
 async function carica() {
   const res = await fetch(SUPABASE_URL + "/rest/v1/prodotti?select=*", {
     headers: {
@@ -131,6 +140,7 @@ async function carica() {
   });
 }
 
+/* AGGIUNGI PRODOTTO */
 async function aggiungi() {
   const nome = document.getElementById("nomeProdotto").value.trim();
   if (!nome) return;
@@ -149,6 +159,7 @@ async function aggiungi() {
   carica();
 }
 
+/* ELIMINA */
 async function elimina(id) {
   await fetch(SUPABASE_URL + "/rest/v1/prodotti?id=eq." + id, {
     method: "DELETE",
@@ -161,6 +172,7 @@ async function elimina(id) {
   carica();
 }
 
+/* MODIFICA */
 function modifica(id) {
   const nuovo = prompt("Nuovo nome prodotto:");
   if (!nuovo) return;
@@ -176,7 +188,7 @@ function modifica(id) {
   }).then(carica);
 }
 
-/* aggiunta alla lista spesa */
+/* AGGIUNGI ALLA LISTA */
 async function aggiungiLista(id) {
   await fetch(SUPABASE_URL + "/rest/v1/lista_spesa", {
     method: "POST",
@@ -192,6 +204,12 @@ async function aggiungiLista(id) {
   });
 }
 
+/* NAVIGAZIONE LISTA */
+function vaiLista() {
+  window.location.href = "/index.html";
+}
+
+/* INIT */
 carica();
 </script>
 
