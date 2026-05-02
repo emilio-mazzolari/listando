@@ -1,116 +1,323 @@
 <!DOCTYPE html>
-<html lang="it">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Lista Spesa</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <!-- PWA -->
   <link rel="manifest" href="/manifest.json">
-  <meta name="theme-color" content="#000000" />
+  <meta name="theme-color" content="#f2f2f7">
 
   <style>
     body {
-      font-family: Arial, sans-serif;
       margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #f2f2f7;
+      display: flex;
+      justify-content: center;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 400px;
       padding: 20px;
-      background: #f5f5f5;
     }
 
     h1 {
       text-align: center;
     }
 
-    .container {
-      max-width: 500px;
-      margin: auto;
+    .card {
       background: white;
-      padding: 20px;
-      border-radius: 12px;
+      border-radius: 16px;
+      padding: 15px;
+      margin-bottom: 15px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.05);
     }
 
     input {
-      width: 70%;
-      padding: 10px;
+      width: 100%;
+      padding: 14px;
+      border-radius: 12px;
+      border: 1px solid #ddd;
+      font-size: 16px;
+      margin-bottom: 10px;
+      box-sizing: border-box;
     }
 
     button {
-      padding: 10px;
+      border: none;
+      border-radius: 12px;
+      padding: 12px;
+      font-size: 14px;
       cursor: pointer;
     }
 
-    ul {
-      list-style: none;
-      padding: 0;
+    .primary {
+      width: 100%;
+      background: #5ac8fa;
+      color: white;
+      font-size: 16px;
     }
 
-    li {
+    .item {
       display: flex;
       justify-content: space-between;
-      padding: 8px;
-      border-bottom: 1px solid #ddd;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid #eee;
     }
 
-    .delete {
-      color: red;
-      cursor: pointer;
+    .item:last-child {
+      border-bottom: none;
     }
+
+    .actions button {
+      margin-left: 5px;
+      padding: 6px 10px;
+      font-size: 13px;
+    }
+
+    .add { background: #a8e6cf; }
+    .edit { background: #fff3b0; }
+    .delete-product { background: #d6ecff; color: #007aff; }
+
+    .check { background: #4caf82; color: white; }
+    .restore { background: #d1d1d6; }
+    .delete-list { background: #8b0000; color: white; }
+
+    .clear {
+      width: 100%;
+      margin-top: 10px;
+      background: #e0e0e0;
+    }
+
+    .completed {
+      color: #aaa;
+      text-decoration: line-through;
+      opacity: 0.7;
+    }
+
   </style>
 </head>
 
 <body>
 
-  <div class="container">
-    <h1>🛒 Lista Spesa</h1>
+<div class="app">
 
-    <input id="itemInput" placeholder="Aggiungi elemento..." />
-    <button onclick="addItem()">Aggiungi</button>
+  <h1>🛒 Lista Spesa</h1>
 
-    <ul id="list"></ul>
+  <div class="card">
+    <input id="nomeProdotto" placeholder="Nuovo prodotto">
+    <button class="primary" onclick="aggiungiProdotto()">Aggiungi</button>
   </div>
 
-  <script>
-    let list = JSON.parse(localStorage.getItem("lista")) || [];
+  <div class="card">
+    <h3>Prodotti</h3>
+    <div id="prodotti"></div>
+  </div>
 
-    function render() {
-      const ul = document.getElementById("list");
-      ul.innerHTML = "";
+  <div class="card">
+    <h3>Lista di oggi</h3>
+    <div id="lista"></div>
+    <button class="clear" onclick="svuotaLista()">Elimina tutta lista</button>
+  </div>
 
-      list.forEach((item, index) => {
-        const li = document.createElement("li");
-        li.innerHTML = `
-          ${item}
-          <span class="delete" onclick="removeItem(${index})">❌</span>
-        `;
-        ul.appendChild(li);
-      });
+</div>
 
-      localStorage.setItem("lista", JSON.stringify(list));
+<script>
+const SUPABASE_URL = "https://eejdpophfxsrqdvsucye.supabase.co";
+const SUPABASE_KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
+
+/* ========== PRODOTTI ========== */
+
+async function aggiungiProdotto() {
+  const input = document.getElementById("nomeProdotto");
+  const nome = input.value;
+  if (!nome) return;
+
+  await fetch(SUPABASE_URL + "/rest/v1/prodotti", {
+    method: "POST",
+    headers: {
+      "apikey": SUPABASE_KEY,
+      "Authorization": "Bearer " + SUPABASE_KEY,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ nome })
+  });
+
+  input.value = "";
+  caricaProdotti();
+}
+
+async function caricaProdotti() {
+  const res = await fetch(SUPABASE_URL + "/rest/v1/prodotti?order=nome.asc", {
+    headers: {
+      "apikey": SUPABASE_KEY,
+      "Authorization": "Bearer " + SUPABASE_KEY
     }
+  });
 
-    function addItem() {
-      const input = document.getElementById("itemInput");
-      if (input.value.trim() === "") return;
+  const data = await res.json();
+  const div = document.getElementById("prodotti");
+  div.innerHTML = "";
 
-      list.push(input.value.trim());
-      input.value = "";
-      render();
+  data.forEach(p => {
+    const item = document.createElement("div");
+    item.className = "item";
+
+    item.innerHTML = `
+      <span>${p.nome}</span>
+      <div class="actions">
+        <button class="add" onclick="aggiungiAllaLista(${p.id})">+</button>
+        <button class="edit" onclick="modificaProdotto(${p.id}, '${p.nome}')">✏️</button>
+        <button class="delete-product" onclick="eliminaProdotto(${p.id})">🗑</button>
+      </div>
+    `;
+
+    div.appendChild(item);
+  });
+}
+
+async function modificaProdotto(id, nomeAttuale) {
+  const nuovoNome = prompt("Modifica prodotto:", nomeAttuale);
+  if (!nuovoNome) return;
+
+  await fetch(SUPABASE_URL + "/rest/v1/prodotti?id=eq." + id, {
+    method: "PATCH",
+    headers: {
+      "apikey": SUPABASE_KEY,
+      "Authorization": "Bearer " + SUPABASE_KEY,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ nome: nuovoNome })
+  });
+
+  caricaProdotti();
+}
+
+async function eliminaProdotto(id) {
+  if (!confirm("Eliminare prodotto?")) return;
+
+  await fetch(SUPABASE_URL + "/rest/v1/prodotti?id=eq." + id, {
+    method: "DELETE",
+    headers: {
+      "apikey": SUPABASE_KEY,
+      "Authorization": "Bearer " + SUPABASE_KEY
     }
+  });
 
-    function removeItem(index) {
-      list.splice(index, 1);
-      render();
+  caricaProdotti();
+}
+
+/* ========== LISTA ========== */
+
+async function aggiungiAllaLista(id) {
+  await fetch(SUPABASE_URL + "/rest/v1/lista_spesa", {
+    method: "POST",
+    headers: {
+      "apikey": SUPABASE_KEY,
+      "Authorization": "Bearer " + SUPABASE_KEY,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ prodotto_id: id, completato: false })
+  });
+
+  caricaLista();
+}
+
+async function caricaLista() {
+  const res = await fetch(SUPABASE_URL + "/rest/v1/lista_spesa?select=*,prodotti(nome)", {
+    headers: {
+      "apikey": SUPABASE_KEY,
+      "Authorization": "Bearer " + SUPABASE_KEY
     }
+  });
 
-    render();
-  </script>
+  const data = await res.json();
+  const div = document.getElementById("lista");
+  div.innerHTML = "";
 
-  <!-- Service Worker (OFFLINE) -->
-  <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/service-worker.js');
+  data.forEach(item => {
+    const el = document.createElement("div");
+    el.className = "item";
+
+    const classe = item.completato ? "completed" : "";
+
+    el.innerHTML = `
+      <span class="${classe}">${item.prodotti.nome}</span>
+      <div class="actions">
+        ${
+          item.completato
+          ? `<button class="restore" onclick="ripristina(${item.id})">↩</button>`
+          : `<button class="check" onclick="completa(${item.id})">✔</button>`
+        }
+        <button class="delete-list" onclick="rimuoviDallaLista(${item.id})">✖</button>
+      </div>
+    `;
+
+    div.appendChild(el);
+  });
+}
+
+async function completa(id) {
+  await fetch(SUPABASE_URL + "/rest/v1/lista_spesa?id=eq." + id, {
+    method: "PATCH",
+    headers: {
+      "apikey": SUPABASE_KEY,
+      "Authorization": "Bearer " + SUPABASE_KEY,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ completato: true })
+  });
+
+  caricaLista();
+}
+
+async function ripristina(id) {
+  await fetch(SUPABASE_URL + "/rest/v1/lista_spesa?id=eq." + id, {
+    method: "PATCH",
+    headers: {
+      "apikey": SUPABASE_KEY,
+      "Authorization": "Bearer " + SUPABASE_KEY,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ completato: false })
+  });
+
+  caricaLista();
+}
+
+async function rimuoviDallaLista(id) {
+  await fetch(SUPABASE_URL + "/rest/v1/lista_spesa?id=eq." + id, {
+    method: "DELETE",
+    headers: {
+      "apikey": SUPABASE_KEY,
+      "Authorization": "Bearer " + SUPABASE_KEY
     }
-  </script>
+  });
+
+  caricaLista();
+}
+
+async function svuotaLista() {
+  if (!confirm("Eliminare tutta la lista?")) return;
+
+  await fetch(SUPABASE_URL + "/rest/v1/lista_spesa?id=gt.0", {
+    method: "DELETE",
+    headers: {
+      "apikey": SUPABASE_KEY,
+      "Authorization": "Bearer " + SUPABASE_KEY
+    }
+  });
+
+  caricaLista();
+}
+
+/* INIT */
+caricaProdotti();
+caricaLista();
+</script>
 
 </body>
 </html>
