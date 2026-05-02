@@ -1,12 +1,10 @@
 {
   "name": "Lista Spesa",
-  "short_name": "Lista",
-  "start_url": "/",
+  "short_name": "Spesa",
+  "start_url": "/index.html",
   "display": "standalone",
-  "display_override": ["standalone", "minimal-ui"],
   "background_color": "#f2f2f7",
-  "theme_color": "#f2f2f7",
-  "orientation": "portrait",
+  "theme_color": "#5ac8fa",
   "icons": [
     {
       "src": "/icon-192.png",
