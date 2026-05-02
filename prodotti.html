@@ -10,18 +10,14 @@
     .card { background: white; border-radius: 16px; padding: 15px; margin-bottom: 15px; }
     .header-box { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
     .btn-logout { background: #d1d1d6; color: #3a3a3c; border: none; padding: 6px 12px; border-radius: 8px; font-size: 12px; cursor: pointer; }
-    
     input { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #ddd; margin-bottom: 10px; box-sizing: border-box; font-size: 16px; }
     .btn-main { width: 100%; padding: 12px; border-radius: 12px; border: none; cursor: pointer; background: #aec6cf; color: white; font-weight: 600; font-size: 16px; }
-    
     .item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #eee; gap: 5px; }
     .item span { flex-grow: 1; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
-    
     .btn-small { flex-shrink: 0; border: none; border-radius: 8px; width: 32px; height: 32px; cursor: pointer; margin-left: 4px; display: inline-flex; align-items: center; justify-content: center; }
     .plus { background-color: #779ecb; color: white; } 
     .edit { background-color: #fdfd96; color: #3a3a3c; } 
     .delete { background-color: #add8e6; color: #1c1c1e; }
-
     .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 65px; background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); border-top: 1px solid #ddd; display: flex; justify-content: space-around; align-items: center; }
     .tab-item { flex: 1; text-align: center; font-size: 12px; color: #8e8e93; text-decoration: none; }
   </style>
@@ -32,34 +28,28 @@
     <h1 style="margin:0; font-size: 24px;">📦 Prodotti</h1>
     <button class="btn-logout" onclick="logout()">Esci</button>
   </div>
-  
   <div class="card">
     <input id="nomeProdotto" placeholder="Esempio: Pasta">
-    <button class="btn-main" onclick="aggiungi()">Salva Prodotto</button>
+    <button class="btn-main" onclick="aggiungi()">Salva Nuovo Prodotto</button>
   </div>
-
-  <div class="card">
-    <div id="listaProdotti">Caricamento...</div>
-  </div>
+  <div class="card"><div id="listaProdotti">Caricamento...</div></div>
 </div>
-
 <div class="tab-bar">
   <a href="index.html" class="tab-item">🛒 Lista</a>
   <a href="prodotti.html" class="tab-item" style="color:#5ac8fa; font-weight:bold;">📦 Prodotti</a>
 </div>
-
 <script>
 const URL = "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1";
 const KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
 const headers = { "apikey": KEY, "Content-Type": "application/json" };
 const userEmail = localStorage.getItem('userEmail');
-
 if (!userEmail) { window.location.href = 'index.html'; }
 
 function logout() { localStorage.removeItem('userEmail'); window.location.href = 'index.html'; }
 
 async function carica() {
   try {
+    // LOGICA DI DEFAULT: Carica prodotti dell'utente OPPURE quelli dove email è null (default)
     const res = await fetch(`${URL}/prodotti?select=*&or=(email.eq.${userEmail},email.is.null)`, { headers });
     let data = await res.json();
     data.sort((a, b) => a.nome.localeCompare(b.nome));
@@ -79,28 +69,28 @@ async function carica() {
 
 async function aggiungi() {
   const nome = document.getElementById("nomeProdotto").value.trim(); if (!nome) return;
-  const res = await fetch(URL + "/prodotti", { method: "POST", headers, body: JSON.stringify({ nome, email: userEmail }) });
-  if (res.ok) { document.getElementById("nomeProdotto").value = ""; carica(); }
+  // I nuovi prodotti creati dall'utente avranno la sua email
+  await fetch(URL + "/prodotti", { method: "POST", headers, body: JSON.stringify({ nome, email: userEmail }) });
+  document.getElementById("nomeProdotto").value = ""; carica();
 }
 
 async function elimina(id) { if(!confirm("Eliminare?")) return; await fetch(URL + "/prodotti?id=eq." + id, { method: "DELETE", headers }); carica(); }
-
 async function modifica(id) { 
   const nuovo = prompt("Nuovo nome:"); if (!nuovo) return; 
-  await fetch(URL + "/prodotti?id=eq." + id, { method: "PATCH", headers, body: JSON.stringify({ nome: nuovo, email: userEmail }) }); 
+  await fetch(URL + "/prodotti?id=eq." + id, { method: "PATCH", headers, body: JSON.stringify({ nome: nuovo }) }); 
   carica(); 
 }
 
 async function aggiungiLista(id) {
-  // Controllo se è già in lista
-  const check = await fetch(`${URL}/lista_spesa?prodotto_id=eq.${id}`, { headers });
+  // Verifichiamo se quel prodotto è già nella lista spesa di QUESTA email
+  const check = await fetch(`${URL}/lista_spesa?prodotto_id=eq.${id}&email_utente=eq.${userEmail}`, { headers });
   const esistenti = await check.json();
-  if (esistenti.length > 0) { alert("Già presente!"); return; }
+  if (esistenti.length > 0) { alert("Già in lista!"); return; }
   
-  await fetch(URL + "/lista_spesa", { method: "POST", headers, body: JSON.stringify({ prodotto_id: id, completato: false }) });
-  alert("Aggiunto alla lista!");
+  // Salviamo l'associazione indicando l'email di chi lo ha aggiunto
+  await fetch(URL + "/lista_spesa", { method: "POST", headers, body: JSON.stringify({ prodotto_id: id, completato: false, email_utente: userEmail }) });
+  alert("Aggiunto!");
 }
-
 carica();
 </script>
 </body>
