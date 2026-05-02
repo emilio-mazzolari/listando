@@ -4,11 +4,9 @@
   <title>Lista Spesa</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- PWA -->
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#5ac8fa">
 
-  <!-- iOS -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <link rel="apple-touch-icon" href="/icon-192.png">
@@ -26,6 +24,7 @@
       width: 100%;
       max-width: 420px;
       padding: 20px;
+      padding-bottom: 90px;
     }
 
     h1 {
@@ -64,15 +63,39 @@
       opacity: 0.5;
     }
 
-    .footer-btn {
-      width: 100%;
-      background: #5ac8fa;
-      color: white;
-      border: none;
-      border-radius: 12px;
-      padding: 12px;
-      margin-top: 10px;
-      cursor: pointer;
+    /* TAB BAR */
+    .tab-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 65px;
+      background: rgba(255,255,255,0.9);
+      backdrop-filter: blur(10px);
+      border-top: 1px solid #ddd;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      z-index: 999;
+    }
+
+    .tab-item {
+      flex: 1;
+      text-align: center;
+      font-size: 12px;
+      color: #8e8e93;
+      text-decoration: none;
+    }
+
+    .tab-item.active {
+      color: #5ac8fa;
+      font-weight: 600;
+    }
+
+    .tab-icon {
+      display: block;
+      font-size: 20px;
+      margin-bottom: 3px;
     }
   </style>
 </head>
@@ -87,49 +110,44 @@
     <div id="lista"></div>
   </div>
 
-  <button class="footer-btn" onclick="vaiProdotti()">
-    Vai ai prodotti
-  </button>
+</div>
+
+<!-- TAB BAR -->
+<div class="tab-bar">
+
+  <a href="/index.html" class="tab-item active">
+    <span class="tab-icon">🛒</span>
+    Lista
+  </a>
+
+  <a href="/prodotti.html" class="tab-item">
+    <span class="tab-icon">📦</span>
+    Prodotti
+  </a>
 
 </div>
 
-<!-- SUPABASE SDK -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-<!-- DB + SYNC (tuoi file locali) -->
-<script src="/db.js"></script>
-<script src="/sync.js"></script>
-
 <script>
-/* =========================
-   INIT SUPABASE REALTIME
-========================= */
-const supabaseClient = supabase.createClient(
-  "https://eejdpophfxsrqdvsucye.supabase.co",
-  "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v"
-);
+const SUPABASE_URL = "https://eejdpophfxsrqdvsucye.supabase.co";
+const SUPABASE_KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
 
-/* =========================
-   NAV
-========================= */
-function vaiProdotti() {
-  window.location.href = "/prodotti.html";
-}
-
-/* =========================
-   ORDINE ALFABETICO
-========================= */
+/* ORDINE ALFABETICO */
 function ordina(data) {
   return data.sort((a, b) =>
-    (a.nome || "").localeCompare(b.nome || "")
+    (a.prodotti?.nome || "").localeCompare(b.prodotti?.nome || "")
   );
 }
 
-/* =========================
-   RENDER LISTA
-========================= */
+/* LISTA */
 async function caricaLista() {
-  let data = await getItems();
+  const res = await fetch(SUPABASE_URL + "/rest/v1/lista_spesa?select=*,prodotti(nome)", {
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: "Bearer " + SUPABASE_KEY
+    }
+  });
+
+  let data = await res.json();
   data = ordina(data);
 
   const div = document.getElementById("lista");
@@ -141,7 +159,7 @@ async function caricaLista() {
 
     el.innerHTML = `
       <span class="${item.completato ? "completed" : ""}">
-        ${item.nome}
+        ${item.prodotti.nome}
       </span>
 
       <div>
@@ -160,62 +178,47 @@ async function caricaLista() {
   });
 }
 
-/* =========================
-   OFFLINE ACTIONS
-========================= */
 async function completa(id) {
-  const items = await getItems();
-  const item = items.find(i => i.id === id);
+  await fetch(SUPABASE_URL + "/rest/v1/lista_spesa?id=eq." + id, {
+    method: "PATCH",
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: "Bearer " + SUPABASE_KEY,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ completato: true })
+  });
 
-  item.completato = true;
-  item.synced = false;
-
-  await updateItem(item);
   caricaLista();
 }
 
 async function ripristina(id) {
-  const items = await getItems();
-  const item = items.find(i => i.id === id);
+  await fetch(SUPABASE_URL + "/rest/v1/lista_spesa?id=eq." + id, {
+    method: "PATCH",
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: "Bearer " + SUPABASE_KEY,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ completato: false })
+  });
 
-  item.completato = false;
-  item.synced = false;
-
-  await updateItem(item);
   caricaLista();
 }
 
 async function rimuovi(id) {
-  await deleteItem(id);
+  await fetch(SUPABASE_URL + "/rest/v1/lista_spesa?id=eq." + id, {
+    method: "DELETE",
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: "Bearer " + SUPABASE_KEY
+    }
+  });
+
   caricaLista();
 }
 
-/* =========================
-   REALTIME SYNC
-========================= */
-function attivaRealtime() {
-  supabaseClient
-    .channel('lista-spesa')
-    .on(
-      'postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: 'lista_spesa'
-      },
-      () => {
-        caricaLista(); // aggiornamento automatico
-      }
-    )
-    .subscribe();
-}
-
-/* =========================
-   INIT
-========================= */
 caricaLista();
-syncToCloud();
-attivaRealtime();
 </script>
 
 </body>

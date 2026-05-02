@@ -17,6 +17,7 @@
       width: 100%;
       max-width: 420px;
       padding: 20px;
+      padding-bottom: 90px;
     }
 
     h1 {
@@ -69,6 +70,40 @@
     .edit { background: #ffeaa7; }
     .delete { background: #a7e3ff; }
 
+    /* TAB BAR */
+    .tab-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 65px;
+      background: rgba(255,255,255,0.9);
+      backdrop-filter: blur(10px);
+      border-top: 1px solid #ddd;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      z-index: 999;
+    }
+
+    .tab-item {
+      flex: 1;
+      text-align: center;
+      font-size: 12px;
+      color: #8e8e93;
+      text-decoration: none;
+    }
+
+    .tab-item.active {
+      color: #5ac8fa;
+      font-weight: 600;
+    }
+
+    .tab-icon {
+      display: block;
+      font-size: 20px;
+      margin-bottom: 3px;
+    }
   </style>
 </head>
 
@@ -78,22 +113,29 @@
 
   <h1>📦 Prodotti</h1>
 
-  <!-- AGGIUNTA PRODOTTO -->
   <div class="card">
     <input id="nomeProdotto" placeholder="Nuovo prodotto">
     <button class="btn" onclick="aggiungi()">Aggiungi</button>
   </div>
 
-  <!-- LISTA -->
   <div class="card">
     <div id="listaProdotti"></div>
   </div>
 
-<div class="card">
-  <button class="btn" onclick="vaiLista()">
-    Vai alla lista
-  </button>
 </div>
+
+<!-- TAB BAR -->
+<div class="tab-bar">
+
+  <a href="/index.html" class="tab-item">
+    <span class="tab-icon">🛒</span>
+    Lista
+  </a>
+
+  <a href="/prodotti.html" class="tab-item active">
+    <span class="tab-icon">📦</span>
+    Prodotti
+  </a>
 
 </div>
 
@@ -141,7 +183,7 @@ async function carica() {
   });
 }
 
-/* AGGIUNGI PRODOTTO */
+/* AGGIUNGI */
 async function aggiungi() {
   const nome = document.getElementById("nomeProdotto").value.trim();
   if (!nome) return;
@@ -160,7 +202,7 @@ async function aggiungi() {
   carica();
 }
 
-/* ELIMINA */
+/* DELETE */
 async function elimina(id) {
   await fetch(SUPABASE_URL + "/rest/v1/prodotti?id=eq." + id, {
     method: "DELETE",
@@ -189,7 +231,7 @@ function modifica(id) {
   }).then(carica);
 }
 
-/* AGGIUNGI ALLA LISTA */
+/* AGGIUNGI LISTA */
 async function aggiungiLista(id) {
   await fetch(SUPABASE_URL + "/rest/v1/lista_spesa", {
     method: "POST",
@@ -205,12 +247,6 @@ async function aggiungiLista(id) {
   });
 }
 
-/* NAVIGAZIONE LISTA */
-function vaiLista() {
-  window.location.href = "/index.html";
-}
-
-/* INIT */
 carica();
 </script>
 
