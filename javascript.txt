@@ -1,0 +1,3 @@
+function vaiProdotti() {
+  window.location.href = "/prodotti.html";
+}
