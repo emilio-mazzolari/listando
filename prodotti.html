@@ -17,7 +17,7 @@
       width: 100%;
       max-width: 420px;
       padding: 20px;
-      padding-bottom: 100px;
+      padding-bottom: 120px;
     }
 
     h1 {
@@ -105,8 +105,20 @@
       margin-bottom: 3px;
     }
 
-    .app {
-      padding-bottom: 90px;
+    /* 🔥 BOTTONE FLOATING */
+    .fab {
+      position: fixed;
+      bottom: 90px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #5ac8fa;
+      color: white;
+      padding: 12px 18px;
+      border-radius: 14px;
+      font-size: 14px;
+      text-decoration: none;
+      box-shadow: 0 6px 15px rgba(0,0,0,0.15);
+      z-index: 1000;
     }
   </style>
 </head>
@@ -117,18 +129,21 @@
 
   <h1>📦 Prodotti</h1>
 
-  <!-- AGGIUNTA -->
   <div class="card">
     <input id="nomeProdotto" placeholder="Nuovo prodotto">
     <button class="btn" onclick="aggiungi()">Aggiungi</button>
   </div>
 
-  <!-- LISTA -->
   <div class="card">
     <div id="listaProdotti"></div>
   </div>
 
 </div>
+
+<!-- 🔥 BOTTONE VERO SEMPRE VISIBILE -->
+<a href="/index.html" class="fab">
+  ↩ Vai alla lista
+</a>
 
 <!-- TAB BAR -->
 <div class="tab-bar">
@@ -141,12 +156,6 @@
   <a href="/prodotti.html" class="tab-item active">
     <span class="tab-icon">📦</span>
     Prodotti
-  </a>
-
-  <!-- 🔥 BOTTONE EVIDENTE VERO -->
-  <a href="/index.html" class="tab-item" style="color:#5ac8fa;font-weight:600;">
-    <span class="tab-icon">↩</span>
-    Vai lista
   </a>
 
 </div>
