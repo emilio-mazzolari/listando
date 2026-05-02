@@ -93,24 +93,41 @@
 
 </div>
 
-<!-- DB + SYNC -->
+<!-- SUPABASE SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<!-- DB + SYNC (tuoi file locali) -->
 <script src="/db.js"></script>
 <script src="/sync.js"></script>
 
 <script>
-/* ===== NAV ===== */
+/* =========================
+   INIT SUPABASE REALTIME
+========================= */
+const supabaseClient = supabase.createClient(
+  "https://eejdpophfxsrqdvsucye.supabase.co",
+  "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v"
+);
+
+/* =========================
+   NAV
+========================= */
 function vaiProdotti() {
   window.location.href = "/prodotti.html";
 }
 
-/* ===== ORDINA ===== */
+/* =========================
+   ORDINE ALFABETICO
+========================= */
 function ordina(data) {
   return data.sort((a, b) =>
     (a.nome || "").localeCompare(b.nome || "")
   );
 }
 
-/* ===== RENDER LISTA ===== */
+/* =========================
+   RENDER LISTA
+========================= */
 async function caricaLista() {
   let data = await getItems();
   data = ordina(data);
@@ -143,18 +160,9 @@ async function caricaLista() {
   });
 }
 
-/* ===== AGGIUNGI ===== */
-async function aggiungi(nome) {
-  await addItem({
-    nome,
-    completato: false,
-    synced: false
-  });
-
-  caricaLista();
-}
-
-/* ===== COMPLETE ===== */
+/* =========================
+   OFFLINE ACTIONS
+========================= */
 async function completa(id) {
   const items = await getItems();
   const item = items.find(i => i.id === id);
@@ -166,7 +174,6 @@ async function completa(id) {
   caricaLista();
 }
 
-/* ===== RIPRISTINA ===== */
 async function ripristina(id) {
   const items = await getItems();
   const item = items.find(i => i.id === id);
@@ -178,15 +185,37 @@ async function ripristina(id) {
   caricaLista();
 }
 
-/* ===== RIMUOVI ===== */
 async function rimuovi(id) {
   await deleteItem(id);
   caricaLista();
 }
 
-/* ===== INIT ===== */
+/* =========================
+   REALTIME SYNC
+========================= */
+function attivaRealtime() {
+  supabaseClient
+    .channel('lista-spesa')
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'lista_spesa'
+      },
+      () => {
+        caricaLista(); // aggiornamento automatico
+      }
+    )
+    .subscribe();
+}
+
+/* =========================
+   INIT
+========================= */
 caricaLista();
 syncToCloud();
+attivaRealtime();
 </script>
 
 </body>
