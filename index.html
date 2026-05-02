@@ -4,13 +4,6 @@
   <title>Lista Spesa</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <link rel="manifest" href="/manifest.json">
-  <meta name="theme-color" content="#5ac8fa">
-
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <link rel="apple-touch-icon" href="/icon-192.png">
-
   <style>
     body {
       margin: 0;
@@ -38,6 +31,25 @@
       margin-bottom: 15px;
     }
 
+    input {
+      width: 100%;
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid #ddd;
+      margin-bottom: 10px;
+      box-sizing: border-box;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 12px;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      background: #5ac8fa;
+      color: white;
+    }
+
     .item {
       display: flex;
       justify-content: space-between;
@@ -46,7 +58,7 @@
       border-bottom: 1px solid #eee;
     }
 
-    .btn {
+    .btn-small {
       border: none;
       border-radius: 10px;
       padding: 6px 10px;
@@ -54,16 +66,10 @@
       margin-left: 5px;
     }
 
-    .green { background: #34c759; color: white; }
-    .red { background: #8b0000; color: white; }
-    .grey { background: #d1d1d6; }
+    .check { background: #4caf82; color: white; }
+    .restore { background: #d1d1d6; }
+    .delete { background: #ff6b6b; color:white; }
 
-    .completed {
-      text-decoration: line-through;
-      opacity: 0.5;
-    }
-
-    /* TAB BAR */
     .tab-bar {
       position: fixed;
       bottom: 0;
@@ -76,7 +82,6 @@
       display: flex;
       justify-content: space-around;
       align-items: center;
-      z-index: 999;
     }
 
     .tab-item {
@@ -95,8 +100,10 @@
     .tab-icon {
       display: block;
       font-size: 20px;
-      margin-bottom: 3px;
     }
+
+    #appBox { display:none; }
+
   </style>
 </head>
 
@@ -104,10 +111,23 @@
 
 <div class="app">
 
-  <h1>🛒 Lista Spesa</h1>
+  <!-- 🔐 LOGIN -->
+  <div id="loginBox" class="card">
+    <h2>Accedi</h2>
+    <input id="email" placeholder="La tua email">
+    <button class="btn" onclick="login()">Entra subito</button>
+  </div>
 
-  <div class="card">
-    <div id="lista"></div>
+  <!-- 📋 APP -->
+  <div id="appBox">
+
+    <h1>🛒 Lista Spesa</h1>
+
+    <div class="card">
+      <div id="lista"></div>
+      <button class="btn" onclick="svuotaLista()">Svuota lista</button>
+    </div>
+
   </div>
 
 </div>
@@ -121,7 +141,7 @@
   </a>
 
   <a href="/prodotti.html" class="tab-item">
-    <span class="tab-icon">📦</span>
+    <span class="tab-icon">🧾</span>
     Prodotti
   </a>
 
@@ -131,25 +151,60 @@
 const SUPABASE_URL = "https://eejdpophfxsrqdvsucye.supabase.co";
 const SUPABASE_KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
 
-/* ORDINE ALFABETICO */
-function ordina(data) {
-  return data.sort((a, b) =>
-    (a.prodotti?.nome || "").localeCompare(b.prodotti?.nome || "")
-  );
-}
+let userId = null;
 
-/* LISTA */
-async function caricaLista() {
-  const res = await fetch(SUPABASE_URL + "/rest/v1/lista_spesa?select=*,prodotti(nome)", {
+/* 🔐 LOGIN ZERO STRESS */
+async function login() {
+  const email = document.getElementById("email").value;
+
+  const res = await fetch(SUPABASE_URL + "/auth/v1/otp", {
+    method: "POST",
     headers: {
       apikey: SUPABASE_KEY,
-      Authorization: "Bearer " + SUPABASE_KEY
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      email: email,
+      create_user: true
+    })
+  });
+
+  alert("Controlla la tua email 🚀");
+}
+
+/* 🔎 CHECK SESSIONE */
+async function checkUser() {
+  const res = await fetch(SUPABASE_URL + "/auth/v1/user", {
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: "Bearer " + localStorage.getItem("sb-token")
     }
   });
 
-  let data = await res.json();
-  data = ordina(data);
+  if (res.ok) {
+    const user = await res.json();
+    userId = user.id;
 
+    document.getElementById("loginBox").style.display = "none";
+    document.getElementById("appBox").style.display = "block";
+
+    caricaLista();
+  }
+}
+
+/* 📋 LISTA */
+async function caricaLista() {
+  const res = await fetch(
+    SUPABASE_URL + "/rest/v1/lista_spesa?select=*&user_id=eq." + userId,
+    {
+      headers: {
+        apikey: SUPABASE_KEY,
+        Authorization: "Bearer " + SUPABASE_KEY
+      }
+    }
+  );
+
+  const data = await res.json();
   const div = document.getElementById("lista");
   div.innerHTML = "";
 
@@ -158,19 +213,10 @@ async function caricaLista() {
     el.className = "item";
 
     el.innerHTML = `
-      <span class="${item.completato ? "completed" : ""}">
-        ${item.prodotti.nome}
-      </span>
-
+      <span>${item.nome || "prodotto"}</span>
       <div>
-        ${
-          item.completato
-          ? `<button class="btn grey" onclick="ripristina(${item.id})">↩</button>`
-          : `
-            <button class="btn green" onclick="completa(${item.id})">✔</button>
-            <button class="btn red" onclick="rimuovi(${item.id})">✖</button>
-          `
-        }
+        <button class="btn-small check">✔</button>
+        <button class="btn-small delete">✖</button>
       </div>
     `;
 
@@ -178,36 +224,9 @@ async function caricaLista() {
   });
 }
 
-async function completa(id) {
-  await fetch(SUPABASE_URL + "/rest/v1/lista_spesa?id=eq." + id, {
-    method: "PATCH",
-    headers: {
-      apikey: SUPABASE_KEY,
-      Authorization: "Bearer " + SUPABASE_KEY,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ completato: true })
-  });
-
-  caricaLista();
-}
-
-async function ripristina(id) {
-  await fetch(SUPABASE_URL + "/rest/v1/lista_spesa?id=eq." + id, {
-    method: "PATCH",
-    headers: {
-      apikey: SUPABASE_KEY,
-      Authorization: "Bearer " + SUPABASE_KEY,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ completato: false })
-  });
-
-  caricaLista();
-}
-
-async function rimuovi(id) {
-  await fetch(SUPABASE_URL + "/rest/v1/lista_spesa?id=eq." + id, {
+/* 🧹 SVUOTA */
+async function svuotaLista() {
+  await fetch(SUPABASE_URL + "/rest/v1/lista_spesa?user_id=eq." + userId, {
     method: "DELETE",
     headers: {
       apikey: SUPABASE_KEY,
@@ -218,7 +237,7 @@ async function rimuovi(id) {
   caricaLista();
 }
 
-caricaLista();
+checkUser();
 </script>
 
 </body>
