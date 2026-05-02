@@ -20,9 +20,7 @@
       padding-bottom: 90px;
     }
 
-    h1 {
-      text-align: center;
-    }
+    h1 { text-align: center; }
 
     .card {
       background: white;
@@ -48,6 +46,7 @@
       cursor: pointer;
       background: #5ac8fa;
       color: white;
+      font-weight: 600;
     }
 
     .item {
@@ -66,102 +65,80 @@
       margin-left: 5px;
     }
 
-    .plus { background: #5ac8fa; color: white; }
+    .plus { background: #32d74b; color: white; }
     .edit { background: #ffeaa7; }
-    .delete { background: #a7e3ff; }
+    .delete { background: #ff6b6b; color: white; }
 
-    /* TAB BAR iOS */
+    /* NOTIFICA FLASH */
+    #toast {
+      position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+      padding: 12px 20px; border-radius: 25px; color: white; font-weight: bold;
+      display: none; z-index: 1000;
+    }
+    .toast-success { background: #32d74b; }
+    .toast-error { background: #ff3b30; }
+
     .tab-bar {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 65px;
-      background: rgba(255,255,255,0.9);
-      backdrop-filter: blur(10px);
-      border-top: 1px solid #ddd;
-      display: flex;
-      justify-content: space-around;
-      align-items: center;
-      z-index: 999;
+      position: fixed; bottom: 0; left: 0; right: 0; height: 65px;
+      background: rgba(255,255,255,0.9); backdrop-filter: blur(10px);
+      border-top: 1px solid #ddd; display: flex; justify-content: space-around;
+      align-items: center; z-index: 999;
     }
 
-    .tab-item {
-      flex: 1;
-      text-align: center;
-      font-size: 12px;
-      color: #8e8e93;
-      text-decoration: none;
-    }
-
-    .tab-item.active {
-      color: #5ac8fa;
-      font-weight: 600;
-    }
-
-    .tab-icon {
-      display: block;
-      font-size: 20px;
-      margin-bottom: 3px;
-    }
+    .tab-item { flex: 1; text-align: center; font-size: 12px; color: #8e8e93; text-decoration: none; }
+    .tab-item.active { color: #5ac8fa; font-weight: 600; }
+    .tab-icon { display: block; font-size: 20px; margin-bottom: 3px; }
   </style>
 </head>
 
 <body>
 
-<div class="app">
+<div id="toast"></div>
 
+<div class="app">
   <h1>📦 Prodotti</h1>
 
   <div class="card">
     <input id="nomeProdotto" placeholder="Nuovo prodotto">
-    <button class="btn" onclick="aggiungi()">Aggiungi</button>
+    <button class="btn" onclick="aggiungi()">Aggiungi al database</button>
   </div>
 
   <div class="card">
-    <div id="listaProdotti"></div>
+    <div id="listaProdotti">Caricamento...</div>
   </div>
-
 </div>
 
-<!-- 🔥 SOLO TAB BAR (NESSUN ALTRO BOTTONE) -->
 <div class="tab-bar">
-
-  <a href="/index.html" class="tab-item">
-    <span class="tab-icon">🛒</span>
-    Lista
+  <a href="index.html" class="tab-item">
+    <span class="tab-icon">🛒</span> Lista
   </a>
-
-  <a href="/prodotti.html" class="tab-item active">
-    <span class="tab-icon">📦</span>
-    Prodotti
+  <a href="prodotti.html" class="tab-item active">
+    <span class="tab-icon">📦</span> Prodotti
   </a>
-
 </div>
 
 <script>
 const SUPABASE_URL = "https://eejdpophfxsrqdvsucye.supabase.co";
 const SUPABASE_KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
 
-/* ORDINE ALFABETICO */
-function ordina(data) {
-  return data.sort((a, b) =>
-    (a.nome || "").localeCompare(b.nome || "")
-  );
+function showToast(text, type = 'success') {
+  const t = document.getElementById("toast");
+  t.innerText = text;
+  t.className = type === 'success' ? 'toast-success' : 'toast-error';
+  t.style.display = "block";
+  setTimeout(() => { t.style.display = "none"; }, 1500);
 }
 
 /* CARICA */
 async function carica() {
   const res = await fetch(SUPABASE_URL + "/rest/v1/prodotti?select=*", {
-    cache: "no-store",
-    headers: {
-      apikey: SUPABASE_KEY,
-      Authorization: "Bearer " + SUPABASE_KEY
-    }
+    headers: { "apikey": SUPABASE_KEY }
   });
 
   let data = await res.json();
-  data = ordina(data);
+  
+  // Ordine alfabetico
+  data.sort((a, b) => (a.nome || "").localeCompare(b.nome || ""));
 
   const div = document.getElementById("listaProdotti");
   div.innerHTML = "";
@@ -169,7 +146,6 @@ async function carica() {
   data.forEach(p => {
     const el = document.createElement("div");
     el.className = "item";
-
     el.innerHTML = `
       <span>${p.nome}</span>
       <div>
@@ -178,80 +154,86 @@ async function carica() {
         <button class="btn-small delete" onclick="elimina(${p.id})">🗑</button>
       </div>
     `;
-
     div.appendChild(el);
   });
 }
 
-/* AGGIUNGI */
+/* AGGIUNGI AL DATABASE */
 async function aggiungi() {
   const nome = document.getElementById("nomeProdotto").value.trim();
   if (!nome) return;
 
-  await fetch(SUPABASE_URL + "/rest/v1/prodotti", {
+  const res = await fetch(SUPABASE_URL + "/rest/v1/prodotti", {
     method: "POST",
-    cache: "no-store",
     headers: {
-      apikey: SUPABASE_KEY,
-      Authorization: "Bearer " + SUPABASE_KEY,
+      "apikey": SUPABASE_KEY,
       "Content-Type": "application/json"
     },
     body: JSON.stringify({ nome })
   });
 
-  document.getElementById("nomeProdotto").value = "";
-  carica();
+  if (res.ok) {
+    showToast("Salvato!");
+    document.getElementById("nomeProdotto").value = "";
+    carica();
+  }
 }
 
-/* DELETE */
+/* ELIMINA DAL DATABASE */
 async function elimina(id) {
-  await fetch(SUPABASE_URL + "/rest/v1/prodotti?id=eq." + id, {
+  if(!confirm("Eliminare definitivamente il prodotto?")) return;
+  const res = await fetch(SUPABASE_URL + "/rest/v1/prodotti?id=eq." + id, {
     method: "DELETE",
-    cache: "no-store",
-    headers: {
-      apikey: SUPABASE_KEY,
-      Authorization: "Bearer " + SUPABASE_KEY
-    }
+    headers: { "apikey": SUPABASE_KEY }
   });
-
-  carica();
+  if(res.ok) carica();
 }
 
-/* MODIFICA */
+/* MODIFICA NOME */
 function modifica(id) {
   const nuovo = prompt("Nuovo nome prodotto:");
   if (!nuovo) return;
 
   fetch(SUPABASE_URL + "/rest/v1/prodotti?id=eq." + id, {
     method: "PATCH",
-    cache: "no-store",
     headers: {
-      apikey: SUPABASE_KEY,
-      Authorization: "Bearer " + SUPABASE_KEY,
+      "apikey": SUPABASE_KEY,
       "Content-Type": "application/json"
     },
     body: JSON.stringify({ nome: nuovo })
   }).then(carica);
 }
 
-/* AGGIUNGI LISTA */
+/* AGGIUNGI ALLA LISTA SPESA (CON CONTROLLO DUPLICATI) */
 async function aggiungiLista(id) {
-  await fetch(SUPABASE_URL + "/rest/v1/lista_spesa", {
+  // 1. Controllo se è già in lista
+  const check = await fetch(SUPABASE_URL + "/rest/v1/lista_spesa?prodotto_id=eq." + id, {
+    headers: { "apikey": SUPABASE_KEY }
+  });
+  const esistenti = await check.json();
+
+  if (esistenti.length > 0) {
+    showToast("Prodotto già in lista!", "error");
+    return;
+  }
+
+  // 2. Aggiunta effettiva
+  const res = await fetch(SUPABASE_URL + "/rest/v1/lista_spesa", {
     method: "POST",
-    cache: "no-store",
     headers: {
-      apikey: SUPABASE_KEY,
-      Authorization: "Bearer " + SUPABASE_KEY,
+      "apikey": SUPABASE_KEY,
       "Content-Type": "application/json"
     },
-    body: JSON.stringify({
-      prodotto_id: id,
-      completato: false
-    })
+    body: JSON.stringify({ prodotto_id: id, completato: false })
   });
+
+  if (res.ok) {
+    showToast("Prodotto inserito!", "success");
+  } else {
+    showToast("Errore permessi!", "error");
+  }
 }
 
-/* INIT */
 carica();
 </script>
 
