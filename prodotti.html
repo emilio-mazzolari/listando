@@ -28,24 +28,26 @@
       margin-bottom: 15px;
     }
 
-    input {
+    /* input e bottone stessa larghezza */
+    .input-btn {
       width: 100%;
+      box-sizing: border-box;
       padding: 12px;
       border-radius: 12px;
-      border: 1px solid #ddd;
-      margin-bottom: 10px;
       font-size: 14px;
     }
 
-    .btn {
-      width: 100%;
-      padding: 12px;
-      border-radius: 12px;
-      border: none;
-      cursor: pointer;
+    input.input-btn {
+      border: 1px solid #ddd;
+      margin-bottom: 10px;
     }
 
-    .add { background: #5ac8fa; color: white; }
+    button.input-btn {
+      border: none;
+      background: #5ac8fa;
+      color: white;
+      cursor: pointer;
+    }
 
     .item {
       display: flex;
@@ -76,8 +78,8 @@
   <h1>📦 Prodotti</h1>
 
   <div class="card">
-    <input id="nomeProdotto" placeholder="Nuovo prodotto">
-    <button class="btn add" onclick="aggiungi()">➕ Aggiungi</button>
+    <input id="nomeProdotto" class="input-btn" placeholder="Nuovo prodotto">
+    <button class="input-btn" onclick="aggiungi()">Aggiungi</button>
   </div>
 
   <div class="card">
@@ -90,6 +92,13 @@
 const SUPABASE_URL = "https://eejdpophfxsrqdvsucye.supabase.co";
 const SUPABASE_KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
 
+/* ORDINE ALFABETICO */
+function ordina(data) {
+  return data.sort((a, b) =>
+    (a.nome || "").localeCompare(b.nome || "")
+  );
+}
+
 async function carica() {
   const res = await fetch(SUPABASE_URL + "/rest/v1/prodotti?select=*", {
     headers: {
@@ -98,7 +107,9 @@ async function carica() {
     }
   });
 
-  const data = await res.json();
+  let data = await res.json();
+  data = ordina(data);
+
   const div = document.getElementById("listaProdotti");
   div.innerHTML = "";
 
@@ -121,7 +132,8 @@ async function carica() {
 }
 
 async function aggiungi() {
-  const nome = document.getElementById("nomeProdotto").value;
+  const nome = document.getElementById("nomeProdotto").value.trim();
+  if (!nome) return;
 
   await fetch(SUPABASE_URL + "/rest/v1/prodotti", {
     method: "POST",
