@@ -17,7 +17,7 @@
       width: 100%;
       max-width: 420px;
       padding: 20px;
-      padding-bottom: 90px;
+      padding-bottom: 100px;
     }
 
     h1 {
@@ -70,7 +70,7 @@
     .edit { background: #ffeaa7; }
     .delete { background: #a7e3ff; }
 
-    /* TAB BAR */
+    /* TAB BAR iOS */
     .tab-bar {
       position: fixed;
       bottom: 0;
@@ -104,6 +104,10 @@
       font-size: 20px;
       margin-bottom: 3px;
     }
+
+    .app {
+      padding-bottom: 90px;
+    }
   </style>
 </head>
 
@@ -113,11 +117,13 @@
 
   <h1>📦 Prodotti</h1>
 
+  <!-- AGGIUNTA -->
   <div class="card">
     <input id="nomeProdotto" placeholder="Nuovo prodotto">
     <button class="btn" onclick="aggiungi()">Aggiungi</button>
   </div>
 
+  <!-- LISTA -->
   <div class="card">
     <div id="listaProdotti"></div>
   </div>
@@ -135,6 +141,12 @@
   <a href="/prodotti.html" class="tab-item active">
     <span class="tab-icon">📦</span>
     Prodotti
+  </a>
+
+  <!-- 🔥 BOTTONE EVIDENTE VERO -->
+  <a href="/index.html" class="tab-item" style="color:#5ac8fa;font-weight:600;">
+    <span class="tab-icon">↩</span>
+    Vai lista
   </a>
 
 </div>
@@ -247,6 +259,7 @@ async function aggiungiLista(id) {
   });
 }
 
+/* INIT */
 carica();
 </script>
 
