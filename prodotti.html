@@ -16,14 +16,14 @@
         .btn-small { flex-shrink: 0; border: none; border-radius: 8px; width: 32px; height: 32px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; font-size: 14px; }
         .plus { background-color: #779ecb; color: white; margin-right: 2px; }
         .edit { background-color: #fdfd96; color: #3a3a3c; margin-right: 2px; } 
-        .delete { background-color: #ff6961; color: white; }
+        .delete { background-color: #add8e6; color: #1c1c1e; }
         
-        /* Stile per i Toast Notification */
+        /* Toast Notification puliti senza icone */
         #toast {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            padding: 15px 25px; border-radius: 12px; color: white; font-weight: bold;
-            display: none; z-index: 2000; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-            min-width: 180px;
+            padding: 15px 30px; border-radius: 12px; color: white; font-weight: bold;
+            display: none; z-index: 2000; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            min-width: 150px; font-size: 16px;
         }
         .toast-success { background-color: #77dd77; }
         .toast-error { background-color: #ff6961; }
@@ -39,15 +39,11 @@
 
 <div class="app">
     <div class="header-box"><h1>📦 Prodotti</h1></div>
-    
     <div class="card">
-        <input id="nomeProdotto" placeholder="Aggiungi nuovo prodotto...">
+        <input id="nomeProdotto" placeholder="Nome nuovo prodotto...">
         <button class="btn-main" onclick="aggiungiNuovoProdotto()">SALVA NEL CATALOGO</button>
     </div>
-
-    <div class="card">
-        <div id="listaProdotti">Caricamento prodotti...</div>
-    </div>
+    <div class="card"><div id="listaProdotti">Caricamento...</div></div>
 </div>
 
 <div class="tab-bar">
@@ -58,20 +54,15 @@
 <script>
     const URL_BASE = "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1";
     const API_KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
-    const HEADERS = { "apikey": API_KEY, "Content-Type": "application/json", "Prefer": "return=representation" };
+    const HEADERS = { "apikey": API_KEY, "Content-Type": "application/json" };
     const userEmail = localStorage.getItem('userEmail');
 
-    // Funzione per mostrare i messaggi al centro
     function showToast(text, type) {
         const t = document.getElementById("toast");
         t.innerText = text;
         t.className = type === 'success' ? 'toast-success' : 'toast-error';
         t.style.display = 'block';
-        t.style.opacity = '1';
-        
-        setTimeout(() => {
-            t.style.display = 'none';
-        }, 1500);
+        setTimeout(() => { t.style.display = 'none'; }, 1200);
     }
 
     async function caricaProdotti() {
@@ -84,14 +75,12 @@
             data.forEach(p => {
                 const riga = document.createElement("div");
                 riga.className = "item";
-                riga.innerHTML = `
-                    <span>${p.nome}</span>
+                riga.innerHTML = `<span>${p.nome}</span>
                     <div style="display:flex;">
                         <button class="btn-small plus" onclick="mettiInListaSpesa(${p.id})">+</button>
                         <button class="btn-small edit" onclick="modificaProdotto(${p.id}, '${p.nome.replace(/'/g, "\\'")}')">✏️</button>
                         <button class="btn-small delete" onclick="eliminaDalCatalogo(${p.id})">🗑</button>
-                    </div>
-                `;
+                    </div>`;
                 div.appendChild(riga);
             });
         } catch(e) { console.error(e); }
@@ -101,21 +90,23 @@
         const input = document.getElementById("nomeProdotto");
         const nome = input.value.trim();
         if (!nome) return;
-        try {
-            const res = await fetch(`${URL_BASE}/prodotti`, {
-                method: "POST",
-                headers: HEADERS,
-                body: JSON.stringify({ nome: nome, email: userEmail })
-            });
-            if (res.ok) {
-                input.value = "";
-                await caricaProdotti();
-            }
-        } catch(e) { console.error(e); }
+        
+        const res = await fetch(`${URL_BASE}/prodotti`, {
+            method: "POST",
+            headers: HEADERS,
+            body: JSON.stringify({ nome: nome, email: userEmail })
+        });
+        
+        if (res.ok || res.status === 201) {
+            input.value = "";
+            caricaProdotti();
+        } else {
+            console.error("Errore durante l'aggiunta");
+        }
     }
 
     async function modificaProdotto(id, vecchioNome) {
-        const nuovoNome = prompt("Modifica nome prodotto:", vecchioNome);
+        const nuovoNome = prompt("Modifica nome:", vecchioNome);
         if (!nuovoNome || nuovoNome === vecchioNome) return;
         await fetch(`${URL_BASE}/prodotti?id=eq.${id}`, {
             method: "PATCH", headers: HEADERS,
@@ -125,7 +116,7 @@
     }
 
     async function eliminaDalCatalogo(id) {
-        if (!confirm("Eliminare dal catalogo?")) return;
+        if (!confirm("Eliminare?")) return;
         await fetch(`${URL_BASE}/prodotti?id=eq.${id}`, { method: "DELETE", headers: HEADERS });
         caricaProdotti();
     }
@@ -133,20 +124,15 @@
     async function mettiInListaSpesa(prodottoId) {
         const check = await fetch(`${URL_BASE}/lista_spesa?prodotto_id=eq.${prodottoId}&email_utente=eq.${userEmail}`, { headers: HEADERS });
         const esistenti = await check.json();
-
         if (esistenti && esistenti.length > 0) {
-            showToast("⚠️ Già in lista!", "error");
+            showToast("Già aggiunto", "error");
             return;
         }
-
         const res = await fetch(`${URL_BASE}/lista_spesa`, {
             method: "POST", headers: HEADERS,
             body: JSON.stringify({ prodotto_id: prodottoId, email_utente: userEmail, completato: false })
         });
-
-        if (res.ok) {
-            showToast("✅ Aggiunto!", "success");
-        }
+        if (res.ok || res.status === 201) { showToast("Aggiunto", "success"); }
     }
 
     caricaProdotti();
