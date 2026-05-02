@@ -68,7 +68,7 @@
 
     .check { background: #4caf82; color: white; }
     .restore { background: #d1d1d6; }
-    .delete { background: #ff6b6b; color:white; }
+    .delete { background: #ff6b6b; color: white; }
 
     .tab-bar {
       position: fixed;
@@ -153,18 +153,18 @@ const SUPABASE_KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
 
 let userId = null;
 
-/* 🔐 LOGIN ZERO STRESS */
+/* 🔐 LOGIN */
 async function login() {
   const email = document.getElementById("email").value;
 
-  const res = await fetch(SUPABASE_URL + "/auth/v1/otp", {
+  await fetch(SUPABASE_URL + "/auth/v1/otp", {
     method: "POST",
     headers: {
       apikey: SUPABASE_KEY,
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      email: email,
+      email,
       create_user: true
     })
   });
@@ -172,7 +172,7 @@ async function login() {
   alert("Controlla la tua email 🚀");
 }
 
-/* 🔎 CHECK SESSIONE */
+/* 🔎 USER */
 async function checkUser() {
   const res = await fetch(SUPABASE_URL + "/auth/v1/user", {
     headers: {
@@ -204,24 +204,76 @@ async function caricaLista() {
     }
   );
 
-  const data = await res.json();
+  const lista = await res.json();
+
+  const resProd = await fetch(
+    SUPABASE_URL + "/rest/v1/prodotti?select=*&user_id=eq." + userId,
+    {
+      headers: {
+        apikey: SUPABASE_KEY,
+        Authorization: "Bearer " + SUPABASE_KEY
+      }
+    }
+  );
+
+  const prodotti = await resProd.json();
+
   const div = document.getElementById("lista");
   div.innerHTML = "";
 
-  data.forEach(item => {
+  lista.forEach(item => {
+
+    const prod = prodotti.find(p => p.id === item.prodotto_id);
+    const nome = prod ? prod.nome : "Prodotto eliminato";
+
     const el = document.createElement("div");
     el.className = "item";
 
     el.innerHTML = `
-      <span>${item.nome || "prodotto"}</span>
+      <span style="${item.completato ? 'text-decoration:line-through;opacity:0.5' : ''}">
+        ${nome}
+      </span>
+
       <div>
-        <button class="btn-small check">✔</button>
-        <button class="btn-small delete">✖</button>
+        ${
+          item.completato
+            ? `<button class="btn-small restore" onclick="toggle(${item.id}, false)">↩</button>`
+            : `<button class="btn-small check" onclick="toggle(${item.id}, true)">✔</button>`
+        }
+        <button class="btn-small delete" onclick="removeItem(${item.id})">✖</button>
       </div>
     `;
 
     div.appendChild(el);
   });
+}
+
+/* ✔ TOGGLE */
+async function toggle(id, value) {
+  await fetch(SUPABASE_URL + "/rest/v1/lista_spesa?id=eq." + id, {
+    method: "PATCH",
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: "Bearer " + SUPABASE_KEY,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ completato: value })
+  });
+
+  caricaLista();
+}
+
+/* ✖ DELETE */
+async function removeItem(id) {
+  await fetch(SUPABASE_URL + "/rest/v1/lista_spesa?id=eq." + id, {
+    method: "DELETE",
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: "Bearer " + SUPABASE_KEY
+    }
+  });
+
+  caricaLista();
 }
 
 /* 🧹 SVUOTA */
