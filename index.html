@@ -4,154 +4,74 @@
     <meta charset="UTF-8">
     <title>Lista Spesa</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- PWA Config -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
     <style>
         body { margin: 0; font-family: -apple-system, sans-serif; background: #f2f2f7; display: flex; justify-content: center; }
         .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 90px; }
-        .card { background: white; border-radius: 16px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        #loginScreen { text-align: center; margin-top: 50px; }
-        input { width: 100%; padding: 12px; margin: 15px 0; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; font-size: 16px; }
-        .btn-login { width: 100%; padding: 12px; background: #5ac8fa; color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
-        #mainScreen { display: none; }
-        .header-box { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .btn-logout { background: #d1d1d6; color: #3a3a3c; border: none; padding: 6px 12px; border-radius: 8px; font-size: 12px; }
-        .item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee; }
-        .testo-prodotto { flex-grow: 1; font-size: 16px; }
-        .testo-prodotto.barrato { text-decoration: line-through; color: #8e8e93; }
-        .btn-small { border: none; border-radius: 8px; width: 35px; height: 35px; cursor: pointer; margin-left: 5px; display: inline-flex; align-items: center; justify-content: center; font-size: 16px; }
-        .check { background-color: #77dd77; color: white; }
-        .delete { background-color: #ff6961; color: white; }
-        .btn-orange { width: 100%; padding: 15px; border-radius: 12px; border: none; background: #ffb347; color: white; font-weight: bold; margin-top: 15px; cursor: pointer; }
+        .header-box { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .card { background: white; border-radius: 16px; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .item { display: flex; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee; cursor: pointer; }
+        .item:last-child { border-bottom: none; }
+        .checkbox { width: 22px; height: 22px; border-radius: 50%; border: 2px solid #ddd; margin-right: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .done .checkbox { background: #77dd77; border-color: #77dd77; }
+        .done .checkbox::after { content: '✓'; color: white; font-size: 14px; }
+        .done span { text-decoration: line-through; color: #8e8e93; }
         .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 65px; background: white; border-top: 1px solid #ddd; display: flex; justify-content: space-around; align-items: center; }
-        .tab-item { flex: 1; text-align: center; font-size: 12px; color: #8e8e93; text-decoration: none; padding: 10px; }
+        .tab-item { flex: 1; text-align: center; font-size: 12px; color: #8e8e93; text-decoration: none; }
         .tab-active { color: #5ac8fa; font-weight: bold; }
     </style>
 </head>
 <body>
-
-<div class="app">
-    <!-- SCHERMATA LOGIN -->
-    <div id="loginScreen" class="card">
-        <h2>Accedi</h2>
-        <p>Inserisci l'email per vedere la tua lista</p>
-        <input type="email" id="emailInput" placeholder="esempio@email.it">
-        <button class="btn-login" onclick="login()">ENTRA</button>
+    <div class="app">
+        <div class="header-box"><h1>🛒 Lista Spesa</h1></div>
+        <div class="card" id="listaSpesa">Caricamento...</div>
     </div>
 
-    <!-- SCHERMATA PRINCIPALE -->
-    <div id="mainScreen">
-        <div class="header-box">
-            <h1 style="margin:0;">🛒 La mia Lista</h1>
-            <button class="btn-logout" onclick="logout()">Esci</button>
-        </div>
-        <div class="card">
-            <div id="contenitoreLista">Caricamento...</div>
-            <button class="btn-orange" onclick="svuotaLista()">SVUOTA TUTTA LA LISTA</button>
-        </div>
+    <div class="tab-bar">
+        <a href="index.html" class="tab-item tab-active">🛒 Lista</a>
+        <a href="prodotti.html" class="tab-item">📦 Prodotti</a>
     </div>
-</div>
 
-<!-- NAVIGAZIONE -->
-<div id="navBar" class="tab-bar" style="display:none;">
-    <a href="index.html" class="tab-item tab-active">🛒 Lista</a>
-    <a href="prodotti.html" class="tab-item">📦 Prodotti</a>
-</div>
-
-<script>
-    const URL_BASE = "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1";
-    const API_KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
-    const HEADERS = { "apikey": API_KEY, "Content-Type": "application/json" };
-    
-    let emailUtente = localStorage.getItem('userEmail');
-
-    // Funzione Avvio
-    function inizializza() {
-        if (!emailUtente) {
-            document.getElementById('loginScreen').style.display = 'block';
-            document.getElementById('mainScreen').style.display = 'none';
-            document.getElementById('navBar').style.display = 'none';
-        } else {
-            document.getElementById('loginScreen').style.display = 'none';
-            document.getElementById('mainScreen').style.display = 'block';
-            document.getElementById('navBar').style.display = 'flex';
-            caricaDatiLista();
+    <script>
+        // Registrazione Service Worker per installazione PWA
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js');
         }
-    }
 
-    function login() {
-        const input = document.getElementById('emailInput').value.trim().toLowerCase();
-        if (input) {
-            localStorage.setItem('userEmail', input);
-            emailUtente = input;
-            inizializza();
+        const URL_BASE = "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1";
+        const API_KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
+        const HEADERS = { "apikey": API_KEY, "Content-Type": "application/json" };
+        const userEmail = localStorage.getItem('userEmail');
+
+        async function caricaLista() {
+            try {
+                const res = await fetch(`${URL_BASE}/lista_spesa?select=*,prodotti(nome)&email_utente=eq.${userEmail}`, { headers: HEADERS });
+                const data = await res.json();
+                const div = document.getElementById("listaSpesa");
+                div.innerHTML = data.length === 0 ? "La lista è vuota" : "";
+                data.forEach(item => {
+                    const riga = document.createElement("div");
+                    riga.className = `item ${item.completato ? 'done' : ''}`;
+                    riga.onclick = () => toggleItem(item.id, item.completato);
+                    riga.innerHTML = `<div class="checkbox"></div><span>${item.prodotti.nome}</span>`;
+                    div.appendChild(riga);
+                });
+            } catch(e) { console.error(e); }
         }
-    }
 
-    function logout() {
-        localStorage.removeItem('userEmail');
-        location.reload();
-    }
-
-    async function caricaDatiLista() {
-        try {
-            // Prendiamo i dati e uniamo con la tabella prodotti (inner join)
-            const risposta = await fetch(`${URL_BASE}/lista_spesa?select=*,prodotti!inner(nome)&email_utente=eq.${emailUtente}`, { headers: HEADERS });
-            const dati = await risposta.json();
-            
-            const div = document.getElementById("contenitoreLista");
-            if (!dati || dati.length === 0) {
-                div.innerHTML = "<p style='text-align:center; color:#8e8e93;'>Nessun prodotto in lista.</p>";
-                return;
-            }
-
-            // ORDINE ALFABETICO SUL NOME DEL PRODOTTO
-            dati.sort((a, b) => a.prodotti.nome.localeCompare(b.prodotti.nome));
-
-            div.innerHTML = "";
-            dati.forEach(item => {
-                const riga = document.createElement("div");
-                riga.className = "item";
-                riga.innerHTML = `
-                    <span class="testo-prodotto ${item.completato ? 'barrato' : ''}">${item.prodotti.nome}</span>
-                    <div>
-                        <button class="btn-small check" onclick="aggiornaStato(${item.id}, ${!item.completato})">✔</button>
-                        <button class="btn-small delete" onclick="rimuoviDallaLista(${item.id})">✖</button>
-                    </div>
-                `;
-                div.appendChild(riga);
+        async function toggleItem(id, stato) {
+            await fetch(`${URL_BASE}/lista_spesa?id=eq.${id}`, {
+                method: "PATCH", headers: HEADERS,
+                body: JSON.stringify({ completato: !stato })
             });
-        } catch (errore) {
-            console.error("Errore:", errore);
+            caricaLista();
         }
-    }
 
-    async function aggiornaStato(id, nuovoStato) {
-        await fetch(`${URL_BASE}/lista_spesa?id=eq.${id}`, {
-            method: "PATCH",
-            headers: HEADERS,
-            body: JSON.stringify({ completato: nuovoStato })
-        });
-        caricaDatiLista();
-    }
-
-    async function rimuoviDallaLista(id) {
-        await fetch(`${URL_BASE}/lista_spesa?id=eq.${id}`, {
-            method: "DELETE",
-            headers: HEADERS
-        });
-        caricaDatiLista();
-    }
-
-    async function svuotaLista() {
-        if (confirm("Vuoi svuotare la tua lista?")) {
-            await fetch(`${URL_BASE}/lista_spesa?email_utente=eq.${emailUtente}`, {
-                method: "DELETE",
-                headers: HEADERS
-            });
-            caricaDatiLista();
-        }
-    }
-
-    inizializza();
-</script>
+        caricaLista();
+    </script>
 </body>
 </html>
