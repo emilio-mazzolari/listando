@@ -4,6 +4,11 @@
   <title>Prodotti</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+  <!-- 🔥 FORZA NO CACHE (IMPORTANTE PER MOBILE / APP / PWA) -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+
   <style>
     body {
       margin: 0;
@@ -70,7 +75,7 @@
     .edit { background: #ffeaa7; }
     .delete { background: #a7e3ff; }
 
-    /* TAB BAR iOS */
+    /* TAB BAR */
     .tab-bar {
       position: fixed;
       bottom: 0;
@@ -105,19 +110,18 @@
       margin-bottom: 3px;
     }
 
-    /* BOTTONE VAI ALLA LISTA (FIX DEFINITIVO) */
     .fab-back {
       position: fixed;
       bottom: 85px;
-      left: 50%;
-      transform: translateX(-50%);
+      left: 20px;
+      right: 20px;
       background: #5ac8fa;
       color: white;
-      padding: 12px 18px;
+      padding: 14px;
       border-radius: 14px;
-      font-size: 14px;
+      text-align: center;
       text-decoration: none;
-      box-shadow: 0 6px 15px rgba(0,0,0,0.15);
+      font-weight: 600;
       z-index: 1000;
     }
 
@@ -175,6 +179,7 @@ function ordina(data) {
 /* CARICA */
 async function carica() {
   const res = await fetch(SUPABASE_URL + "/rest/v1/prodotti?select=*", {
+    cache: "no-store", // 🔥 FORZA NO CACHE FETCH
     headers: {
       apikey: SUPABASE_KEY,
       Authorization: "Bearer " + SUPABASE_KEY
@@ -212,6 +217,7 @@ async function aggiungi() {
 
   await fetch(SUPABASE_URL + "/rest/v1/prodotti", {
     method: "POST",
+    cache: "no-store", // 🔥
     headers: {
       apikey: SUPABASE_KEY,
       Authorization: "Bearer " + SUPABASE_KEY,
@@ -228,6 +234,7 @@ async function aggiungi() {
 async function elimina(id) {
   await fetch(SUPABASE_URL + "/rest/v1/prodotti?id=eq." + id, {
     method: "DELETE",
+    cache: "no-store",
     headers: {
       apikey: SUPABASE_KEY,
       Authorization: "Bearer " + SUPABASE_KEY
@@ -244,6 +251,7 @@ function modifica(id) {
 
   fetch(SUPABASE_URL + "/rest/v1/prodotti?id=eq." + id, {
     method: "PATCH",
+    cache: "no-store",
     headers: {
       apikey: SUPABASE_KEY,
       Authorization: "Bearer " + SUPABASE_KEY,
@@ -253,10 +261,11 @@ function modifica(id) {
   }).then(carica);
 }
 
-/* AGGIUNGI LISTA */
+/* LISTA */
 async function aggiungiLista(id) {
   await fetch(SUPABASE_URL + "/rest/v1/lista_spesa", {
     method: "POST",
+    cache: "no-store",
     headers: {
       apikey: SUPABASE_KEY,
       Authorization: "Bearer " + SUPABASE_KEY,
