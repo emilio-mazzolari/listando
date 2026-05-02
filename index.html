@@ -4,22 +4,21 @@
     <meta charset="UTF-8">
     <title>Lista Spesa</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- PWA Config -->
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    
     <style>
         body { margin: 0; font-family: -apple-system, sans-serif; background: #f2f2f7; display: flex; justify-content: center; }
         .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 90px; }
         .header-box { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .card { background: white; border-radius: 16px; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        .item { display: flex; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee; cursor: pointer; }
+        .item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee; }
         .item:last-child { border-bottom: none; }
-        .checkbox { width: 22px; height: 22px; border-radius: 50%; border: 2px solid #ddd; margin-right: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-        .done .checkbox { background: #77dd77; border-color: #77dd77; }
-        .done .checkbox::after { content: '✓'; color: white; font-size: 14px; }
-        .done span { text-decoration: line-through; color: #8e8e93; }
+        .item-info { display: flex; align-items: center; gap: 10px; cursor: pointer; flex-grow: 1; }
+        .status-icon { font-weight: bold; font-size: 18px; width: 25px; text-align: center; }
+        .todo { color: #ff3b30; } /* La X rossa */
+        .done { color: #4cd964; text-decoration: line-through; opacity: 0.6; } /* La V verde */
+        .btn-del { background: #add8e6; border: none; border-radius: 8px; width: 32px; height: 32px; cursor: pointer; }
         .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 65px; background: white; border-top: 1px solid #ddd; display: flex; justify-content: space-around; align-items: center; }
         .tab-item { flex: 1; text-align: center; font-size: 12px; color: #8e8e93; text-decoration: none; }
         .tab-active { color: #5ac8fa; font-weight: bold; }
@@ -37,10 +36,7 @@
     </div>
 
     <script>
-        // Registrazione Service Worker per installazione PWA
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js');
-        }
+        if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
 
         const URL_BASE = "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1";
         const API_KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
@@ -50,23 +46,44 @@
         async function caricaLista() {
             try {
                 const res = await fetch(`${URL_BASE}/lista_spesa?select=*,prodotti(nome)&email_utente=eq.${userEmail}`, { headers: HEADERS });
-                const data = await res.json();
+                let data = await res.json();
+                
+                // Ordine alfabetico per nome prodotto
+                data.sort((a, b) => a.prodotti.nome.localeCompare(b.prodotti.nome));
+
                 const div = document.getElementById("listaSpesa");
                 div.innerHTML = data.length === 0 ? "La lista è vuota" : "";
+                
                 data.forEach(item => {
                     const riga = document.createElement("div");
-                    riga.className = `item ${item.completato ? 'done' : ''}`;
-                    riga.onclick = () => toggleItem(item.id, item.completato);
-                    riga.innerHTML = `<div class="checkbox"></div><span>${item.prodotti.nome}</span>`;
+                    riga.className = "item";
+                    
+                    const statusClass = item.completato ? 'done' : 'todo';
+                    const statusIcon = item.completato ? 'V' : 'X';
+
+                    riga.innerHTML = `
+                        <div class="item-info ${statusClass}" onclick="toggleItem(${item.id}, ${item.completato})">
+                            <span class="status-icon">${statusIcon}</span>
+                            <span>${item.prodotti.nome}</span>
+                        </div>
+                        <button class="btn-del" onclick="eliminaDallaLista(${item.id})">🗑</button>
+                    `;
                     div.appendChild(riga);
                 });
             } catch(e) { console.error(e); }
         }
 
-        async function toggleItem(id, stato) {
+        async function toggleItem(id, statocorrente) {
             await fetch(`${URL_BASE}/lista_spesa?id=eq.${id}`, {
                 method: "PATCH", headers: HEADERS,
-                body: JSON.stringify({ completato: !stato })
+                body: JSON.stringify({ completato: !statocorrente })
+            });
+            caricaLista();
+        }
+
+        async function eliminaDallaLista(id) {
+            await fetch(`${URL_BASE}/lista_spesa?id=eq.${id}`, {
+                method: "DELETE", headers: HEADERS
             });
             caricaLista();
         }
