@@ -15,52 +15,57 @@
 
     .app {
       width: 100%;
-      max-width: 400px;
+      max-width: 420px;
       padding: 20px;
     }
+
+    h1 { text-align: center; }
 
     .card {
       background: white;
       border-radius: 16px;
       padding: 15px;
       margin-bottom: 15px;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.05);
     }
 
     input {
       width: 100%;
-      padding: 14px;
+      padding: 12px;
       border-radius: 12px;
       border: 1px solid #ddd;
-      font-size: 16px;
       margin-bottom: 10px;
+      font-size: 14px;
     }
 
-    button {
-      border: none;
-      border-radius: 12px;
+    .btn {
+      width: 100%;
       padding: 12px;
+      border-radius: 12px;
+      border: none;
       cursor: pointer;
     }
 
-    .primary {
-      width: 100%;
-      background: #5ac8fa;
-      color: white;
-    }
-
-    .back {
-      width: 100%;
-      background: #ccc;
-      margin-top: 10px;
-    }
+    .add { background: #5ac8fa; color: white; }
 
     .item {
       display: flex;
       justify-content: space-between;
       padding: 10px 0;
       border-bottom: 1px solid #eee;
+      align-items: center;
     }
+
+    .btn-small {
+      border: none;
+      border-radius: 10px;
+      padding: 6px 10px;
+      cursor: pointer;
+      margin-left: 5px;
+    }
+
+    .plus { background: #5ac8fa; color: white; }
+    .edit { background: #ffeaa7; }
+    .delete { background: #a7e3ff; }
   </style>
 </head>
 
@@ -68,18 +73,15 @@
 
 <div class="app">
 
+  <h1>📦 Prodotti</h1>
+
   <div class="card">
     <input id="nomeProdotto" placeholder="Nuovo prodotto">
-    <button class="primary" onclick="aggiungiProdotto()">Aggiungi</button>
+    <button class="btn add" onclick="aggiungi()">➕ Aggiungi</button>
   </div>
 
   <div class="card">
-    <h3>Prodotti</h3>
-    <div id="prodotti"></div>
-  </div>
-
-  <div class="card">
-    <button class="back" onclick="vaiLista()">⬅ Torna alla lista</button>
+    <div id="listaProdotti"></div>
   </div>
 
 </div>
@@ -88,67 +90,97 @@
 const SUPABASE_URL = "https://eejdpophfxsrqdvsucye.supabase.co";
 const SUPABASE_KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
 
-function vaiLista() {
-  window.location.href = "/";
+async function carica() {
+  const res = await fetch(SUPABASE_URL + "/rest/v1/prodotti?select=*", {
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: "Bearer " + SUPABASE_KEY
+    }
+  });
+
+  const data = await res.json();
+  const div = document.getElementById("listaProdotti");
+  div.innerHTML = "";
+
+  data.forEach(p => {
+    const el = document.createElement("div");
+    el.className = "item";
+
+    el.innerHTML = `
+      <span>${p.nome}</span>
+
+      <div>
+        <button class="btn-small plus" onclick="aggiungiLista(${p.id})">+</button>
+        <button class="btn-small edit" onclick="modifica(${p.id})">✏️</button>
+        <button class="btn-small delete" onclick="elimina(${p.id})">🗑</button>
+      </div>
+    `;
+
+    div.appendChild(el);
+  });
 }
 
-async function aggiungiProdotto() {
-  const input = document.getElementById("nomeProdotto");
-  const nome = input.value;
-  if (!nome) return;
+async function aggiungi() {
+  const nome = document.getElementById("nomeProdotto").value;
 
   await fetch(SUPABASE_URL + "/rest/v1/prodotti", {
     method: "POST",
     headers: {
-      "apikey": SUPABASE_KEY,
-      "Authorization": "Bearer " + SUPABASE_KEY,
+      apikey: SUPABASE_KEY,
+      Authorization: "Bearer " + SUPABASE_KEY,
       "Content-Type": "application/json"
     },
     body: JSON.stringify({ nome })
   });
 
-  input.value = "";
-  caricaProdotti();
+  document.getElementById("nomeProdotto").value = "";
+  carica();
 }
 
-async function caricaProdotti() {
-  const res = await fetch(SUPABASE_URL + "/rest/v1/prodotti?order=nome.asc", {
+async function elimina(id) {
+  await fetch(SUPABASE_URL + "/rest/v1/prodotti?id=eq." + id, {
+    method: "DELETE",
     headers: {
-      "apikey": SUPABASE_KEY,
-      "Authorization": "Bearer " + SUPABASE_KEY
+      apikey: SUPABASE_KEY,
+      Authorization: "Bearer " + SUPABASE_KEY
     }
   });
 
-  const data = await res.json();
-  const div = document.getElementById("prodotti");
-  div.innerHTML = "";
-
-  data.forEach(p => {
-    const item = document.createElement("div");
-    item.className = "item";
-
-    item.innerHTML = `
-      <span>${p.nome}</span>
-      <button onclick="aggiungiAllaLista(${p.id})">+</button>
-    `;
-
-    div.appendChild(item);
-  });
+  carica();
 }
 
-async function aggiungiAllaLista(id) {
+function modifica(id) {
+  const nuovo = prompt("Nuovo nome prodotto:");
+  if (!nuovo) return;
+
+  fetch(SUPABASE_URL + "/rest/v1/prodotti?id=eq." + id, {
+    method: "PATCH",
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: "Bearer " + SUPABASE_KEY,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ nome: nuovo })
+  }).then(carica);
+}
+
+/* aggiunta alla lista spesa */
+async function aggiungiLista(id) {
   await fetch(SUPABASE_URL + "/rest/v1/lista_spesa", {
     method: "POST",
     headers: {
-      "apikey": SUPABASE_KEY,
-      "Authorization": "Bearer " + SUPABASE_KEY,
+      apikey: SUPABASE_KEY,
+      Authorization: "Bearer " + SUPABASE_KEY,
       "Content-Type": "application/json"
     },
-    body: JSON.stringify({ prodotto_id: id, completato: false })
+    body: JSON.stringify({
+      prodotto_id: id,
+      completato: false
+    })
   });
 }
 
-caricaProdotti();
+carica();
 </script>
 
 </body>

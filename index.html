@@ -28,31 +28,6 @@
       border-radius: 16px;
       padding: 15px;
       margin-bottom: 15px;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-    }
-
-    .primary {
-      width: 100%;
-      background: #5ac8fa;
-      color: white;
-      font-size: 16px;
-      border: none;
-      border-radius: 12px;
-      padding: 12px;
-      cursor: pointer;
-    }
-
-    .input-row {
-      display: flex;
-      gap: 10px;
-    }
-
-    input {
-      flex: 1;
-      padding: 12px;
-      border-radius: 12px;
-      border: 1px solid #ddd;
-      font-size: 14px;
     }
 
     .item {
@@ -60,24 +35,35 @@
       justify-content: space-between;
       padding: 10px 0;
       border-bottom: 1px solid #eee;
+      align-items: center;
     }
 
-    .actions button {
-      margin-left: 5px;
+    .btn {
       border: none;
       border-radius: 10px;
       padding: 6px 10px;
       cursor: pointer;
+      margin-left: 5px;
     }
 
-    .blue { background: #5ac8fa; color: white; }
-    .green { background: #4caf82; color: white; }
+    .green { background: #34c759; color: white; }
+    .red { background: #8b0000; color: white; }
     .grey { background: #d1d1d6; }
-    .red { background: #ff3b30; color: white; }
 
     .completed {
       text-decoration: line-through;
       opacity: 0.5;
+    }
+
+    .footer-btn {
+      width: 100%;
+      background: #5ac8fa;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 12px;
+      margin-top: 10px;
+      cursor: pointer;
     }
   </style>
 </head>
@@ -89,18 +75,10 @@
   <h1>🛒 Lista Spesa</h1>
 
   <div class="card">
-    <div class="input-row">
-      <input id="nuovoProdotto" placeholder="Nuovo prodotto">
-    </div>
-    <br>
-    <button class="primary" onclick="aggiungi()">Aggiungi</button>
-  </div>
-
-  <div class="card">
     <div id="lista"></div>
   </div>
 
-  <button class="primary" onclick="vaiProdotti()">Vai ai prodotti</button>
+  <button class="footer-btn" onclick="vaiProdotti()">Vai ai prodotti</button>
 
 </div>
 
@@ -112,8 +90,14 @@ function vaiProdotti() {
   window.location.href = "/prodotti.html";
 }
 
-/* LISTA */
+/* ===== ORDINE ALFABETICO ===== */
+function ordina(data) {
+  return data.sort((a, b) =>
+    (a.prodotti?.nome || "").localeCompare(b.prodotti?.nome || "")
+  );
+}
 
+/* ===== LISTA ===== */
 async function caricaLista() {
   const res = await fetch(SUPABASE_URL + "/rest/v1/lista_spesa?select=*,prodotti(nome)", {
     headers: {
@@ -122,7 +106,9 @@ async function caricaLista() {
     }
   });
 
-  const data = await res.json();
+  let data = await res.json();
+  data = ordina(data);
+
   const div = document.getElementById("lista");
   div.innerHTML = "";
 
@@ -135,12 +121,15 @@ async function caricaLista() {
         ${item.prodotti.nome}
       </span>
 
-      <div class="actions">
-        ${item.completato
-          ? `<button class="grey" onclick="ripristina(${item.id})">↩</button>`
-          : `<button class="green" onclick="completa(${item.id})">✔</button>`
+      <div>
+        ${
+          item.completato
+          ? `<button class="btn grey" onclick="ripristina(${item.id})">↩</button>`
+          : `
+            <button class="btn green" onclick="completa(${item.id})">✔</button>
+            <button class="btn red" onclick="rimuovi(${item.id})">✖</button>
+          `
         }
-        <button class="red" onclick="rimuovi(${item.id})">🗑</button>
       </div>
     `;
 
@@ -158,6 +147,7 @@ async function completa(id) {
     },
     body: JSON.stringify({ completato: true })
   });
+
   caricaLista();
 }
 
@@ -171,7 +161,8 @@ async function ripristina(id) {
     },
     body: JSON.stringify({ completato: false })
   });
-  caricaLista();
+
+  caricaLista(); // riordina alfabeticamente automaticamente
 }
 
 async function rimuovi(id) {
@@ -182,26 +173,7 @@ async function rimuovi(id) {
       Authorization: "Bearer " + SUPABASE_KEY
     }
   });
-  caricaLista();
-}
 
-async function aggiungi() {
-  const nome = document.getElementById("nuovoProdotto").value;
-
-  await fetch(SUPABASE_URL + "/rest/v1/lista_spesa", {
-    method: "POST",
-    headers: {
-      apikey: SUPABASE_KEY,
-      Authorization: "Bearer " + SUPABASE_KEY,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      prodotto_nome: nome,
-      completato: false
-    })
-  });
-
-  document.getElementById("nuovoProdotto").value = "";
   caricaLista();
 }
 
