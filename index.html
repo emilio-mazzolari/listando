@@ -85,7 +85,7 @@
         const check = await fetch(`${URL}/lista_spesa?prodotto_id=eq.${id}&email_utente=eq.${userEmail}`, { headers });
         const esistenti = await check.json();
         if (esistenti && esistenti.length > 0) { 
-            alert("Già in lista!"); 
+            alert("⚠️ Già in lista!"); 
             return; 
         }
 
@@ -94,7 +94,7 @@
             headers, 
             body: JSON.stringify({ prodotto_id: id, completato: false, email_utente: userEmail }) 
         });
-        if(res.ok) alert("Aggiunto!");
+        if(res.ok) alert("✅ Aggiunto!");
     }
     carica();
 </script>
