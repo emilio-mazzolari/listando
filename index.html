@@ -4,10 +4,6 @@
   <title>Lista Spesa</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- PWA -->
-  <link rel="manifest" href="/manifest.json">
-  <meta name="theme-color" content="#f2f2f7">
-
   <style>
     body {
       margin: 0;
@@ -19,7 +15,7 @@
 
     .app {
       width: 100%;
-      max-width: 400px;
+      max-width: 420px;
       padding: 20px;
     }
 
@@ -35,55 +31,54 @@
       box-shadow: 0 5px 15px rgba(0,0,0,0.05);
     }
 
-    button {
-      border: none;
-      border-radius: 12px;
-      padding: 12px;
-      font-size: 14px;
-      cursor: pointer;
-    }
-
     .primary {
       width: 100%;
       background: #5ac8fa;
       color: white;
       font-size: 16px;
+      border: none;
+      border-radius: 12px;
+      padding: 12px;
+      cursor: pointer;
     }
 
-    .clear {
-      width: 100%;
-      margin-top: 10px;
-      background: #e0e0e0;
+    .input-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    input {
+      flex: 1;
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid #ddd;
+      font-size: 14px;
     }
 
     .item {
       display: flex;
       justify-content: space-between;
-      align-items: center;
       padding: 10px 0;
       border-bottom: 1px solid #eee;
     }
 
-    .item:last-child {
-      border-bottom: none;
-    }
-
     .actions button {
       margin-left: 5px;
+      border: none;
+      border-radius: 10px;
       padding: 6px 10px;
-      font-size: 13px;
+      cursor: pointer;
     }
 
-    .check { background: #4caf82; color: white; }
-    .restore { background: #d1d1d6; }
-    .delete-list { background: #8b0000; color: white; }
+    .blue { background: #5ac8fa; color: white; }
+    .green { background: #4caf82; color: white; }
+    .grey { background: #d1d1d6; }
+    .red { background: #ff3b30; color: white; }
 
     .completed {
-      color: #aaa;
       text-decoration: line-through;
-      opacity: 0.7;
+      opacity: 0.5;
     }
-
   </style>
 </head>
 
@@ -94,14 +89,18 @@
   <h1>🛒 Lista Spesa</h1>
 
   <div class="card">
-    <h3>Lista di oggi</h3>
-    <div id="lista"></div>
-    <button class="clear" onclick="svuotaLista()">Elimina tutta lista</button>
+    <div class="input-row">
+      <input id="nuovoProdotto" placeholder="Nuovo prodotto">
+    </div>
+    <br>
+    <button class="primary" onclick="aggiungi()">Aggiungi</button>
   </div>
 
   <div class="card">
-    <button class="primary" onclick="vaiProdotti()">Vai ai prodotti</button>
+    <div id="lista"></div>
   </div>
+
+  <button class="primary" onclick="vaiProdotti()">Vai ai prodotti</button>
 
 </div>
 
@@ -113,13 +112,13 @@ function vaiProdotti() {
   window.location.href = "/prodotti.html";
 }
 
-/* ========== LISTA ========== */
+/* LISTA */
 
 async function caricaLista() {
   const res = await fetch(SUPABASE_URL + "/rest/v1/lista_spesa?select=*,prodotti(nome)", {
     headers: {
-      "apikey": SUPABASE_KEY,
-      "Authorization": "Bearer " + SUPABASE_KEY
+      apikey: SUPABASE_KEY,
+      Authorization: "Bearer " + SUPABASE_KEY
     }
   });
 
@@ -131,17 +130,17 @@ async function caricaLista() {
     const el = document.createElement("div");
     el.className = "item";
 
-    const classe = item.completato ? "completed" : "";
-
     el.innerHTML = `
-      <span class="${classe}">${item.prodotti.nome}</span>
+      <span class="${item.completato ? "completed" : ""}">
+        ${item.prodotti.nome}
+      </span>
+
       <div class="actions">
-        ${
-          item.completato
-          ? `<button class="restore" onclick="ripristina(${item.id})">↩</button>`
-          : `<button class="check" onclick="completa(${item.id})">✔</button>`
+        ${item.completato
+          ? `<button class="grey" onclick="ripristina(${item.id})">↩</button>`
+          : `<button class="green" onclick="completa(${item.id})">✔</button>`
         }
-        <button class="delete-list" onclick="rimuoviDallaLista(${item.id})">✖</button>
+        <button class="red" onclick="rimuovi(${item.id})">🗑</button>
       </div>
     `;
 
@@ -153,13 +152,12 @@ async function completa(id) {
   await fetch(SUPABASE_URL + "/rest/v1/lista_spesa?id=eq." + id, {
     method: "PATCH",
     headers: {
-      "apikey": SUPABASE_KEY,
-      "Authorization": "Bearer " + SUPABASE_KEY,
+      apikey: SUPABASE_KEY,
+      Authorization: "Bearer " + SUPABASE_KEY,
       "Content-Type": "application/json"
     },
     body: JSON.stringify({ completato: true })
   });
-
   caricaLista();
 }
 
@@ -167,43 +165,46 @@ async function ripristina(id) {
   await fetch(SUPABASE_URL + "/rest/v1/lista_spesa?id=eq." + id, {
     method: "PATCH",
     headers: {
-      "apikey": SUPABASE_KEY,
-      "Authorization": "Bearer " + SUPABASE_KEY,
+      apikey: SUPABASE_KEY,
+      Authorization: "Bearer " + SUPABASE_KEY,
       "Content-Type": "application/json"
     },
     body: JSON.stringify({ completato: false })
   });
-
   caricaLista();
 }
 
-async function rimuoviDallaLista(id) {
+async function rimuovi(id) {
   await fetch(SUPABASE_URL + "/rest/v1/lista_spesa?id=eq." + id, {
     method: "DELETE",
     headers: {
-      "apikey": SUPABASE_KEY,
-      "Authorization": "Bearer " + SUPABASE_KEY
+      apikey: SUPABASE_KEY,
+      Authorization: "Bearer " + SUPABASE_KEY
     }
   });
-
   caricaLista();
 }
 
-async function svuotaLista() {
-  if (!confirm("Eliminare tutta la lista?")) return;
+async function aggiungi() {
+  const nome = document.getElementById("nuovoProdotto").value;
 
-  await fetch(SUPABASE_URL + "/rest/v1/lista_spesa?id=gt.0", {
-    method: "DELETE",
+  await fetch(SUPABASE_URL + "/rest/v1/lista_spesa", {
+    method: "POST",
     headers: {
-      "apikey": SUPABASE_KEY,
-      "Authorization": "Bearer " + SUPABASE_KEY
-    }
+      apikey: SUPABASE_KEY,
+      Authorization: "Bearer " + SUPABASE_KEY,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      prodotto_nome: nome,
+      completato: false
+    })
   });
 
+  document.getElementById("nuovoProdotto").value = "";
   caricaLista();
 }
 
-/* INIT */
 caricaLista();
 </script>
 
