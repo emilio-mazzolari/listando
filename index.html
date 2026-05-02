@@ -2,95 +2,101 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Lista Spesa</title>
+    <title>Prodotti</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         body { margin: 0; font-family: -apple-system, sans-serif; background: #f2f2f7; display: flex; justify-content: center; }
         .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 90px; }
-        .card { background: white; border-radius: 16px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        #loginScreen { text-align: center; margin-top: 50px; }
-        #loginScreen input { width: 100%; padding: 12px; margin: 15px 0; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; font-size: 16px; }
-        #loginScreen button { width: 100%; padding: 12px; background: #5ac8fa; color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
-        #mainScreen { display: none; }
+        .card { background: white; border-radius: 16px; padding: 15px; margin-bottom: 15px; }
         .header-box { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .btn-logout { background: #d1d1d6; color: #3a3a3c; border: none; padding: 6px 12px; border-radius: 8px; font-size: 12px; cursor: pointer; }
-        .item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; gap: 8px; }
-        .testo-prodotto { flex-grow: 1; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .testo-prodotto.barrato { text-decoration: line-through; color: #8e8e93; opacity: 0.5; }
+        input { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #ddd; margin-bottom: 10px; box-sizing: border-box; font-size: 16px; }
+        .btn-main { width: 100%; padding: 12px; border-radius: 12px; border: none; background: #aec6cf; color: white; font-weight: 600; cursor: pointer; }
+        .item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #eee; gap: 4px; }
+        .item span { flex-grow: 1; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .btn-small { flex-shrink: 0; border: none; border-radius: 8px; width: 32px; height: 32px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
-        .check { background-color: #77dd77; color: white; }
-        .delete { background-color: #ff6961; color: white; }
-        .btn-orange { width: 100%; padding: 12px; border-radius: 12px; border: none; background: #ffb347; color: white; font-weight: 600; margin-top: 10px; cursor: pointer; }
+        .plus { background-color: #779ecb; color: white; }
+        .edit { background-color: #fdfd96; color: #3a3a3c; } 
+        .delete { background-color: #add8e6; color: #1c1c1e; }
         .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 65px; background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); border-top: 1px solid #ddd; display: flex; justify-content: space-around; align-items: center; }
         .tab-item { flex: 1; text-align: center; font-size: 12px; color: #8e8e93; text-decoration: none; }
     </style>
 </head>
 <body>
 <div class="app">
-    <div id="loginScreen" class="card">
-        <h2>Bentornato</h2>
-        <input type="email" id="emailInput" placeholder="tua@email.com">
-        <button onclick="login()">Entra</button>
+    <div class="header-box"><h1>📦 Prodotti</h1></div>
+    <div class="card">
+        <input id="nomeProdotto" placeholder="Aggiungi prodotto...">
+        <button class="btn-main" onclick="aggiungi()">Salva Nuovo</button>
     </div>
-    <div id="mainScreen">
-        <div class="header-box">
-            <h1 style="margin:0; font-size: 24px;">🛒 Lista</h1>
-            <button class="btn-logout" onclick="logout()">Esci</button>
-        </div>
-        <div class="card">
-            <div id="lista">Caricamento...</div>
-            <button class="btn-orange" onclick="svuotaLista()">Svuota Lista</button>
-        </div>
-    </div>
+    <div class="card"><div id="listaProdotti">Caricamento...</div></div>
 </div>
-<div class="tab-bar" id="tabBar" style="display:none;">
-    <a href="index.html" class="tab-item" style="color:#5ac8fa; font-weight:bold;">🛒 Lista</a>
-    <a href="prodotti.html" class="tab-item">📦 Prodotti</a>
+<div class="tab-bar">
+    <a href="index.html" class="tab-item">🛒 Lista</a>
+    <a href="prodotti.html" class="tab-item" style="color:#5ac8fa; font-weight:bold;">📦 Prodotti</a>
 </div>
 <script>
     const URL = "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1";
     const KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
     const headers = { "apikey": KEY, "Content-Type": "application/json" };
-    let userEmail = localStorage.getItem('userEmail');
+    const userEmail = localStorage.getItem('userEmail');
 
-    function checkAuth() {
-        if (!userEmail) {
-            document.getElementById('loginScreen').style.display = 'block';
-            document.getElementById('mainScreen').style.display = 'none';
-            document.getElementById('tabBar').style.display = 'none';
-        } else {
-            document.getElementById('loginScreen').style.display = 'none';
-            document.getElementById('mainScreen').style.display = 'block';
-            document.getElementById('tabBar').style.display = 'flex';
-            caricaLista();
-        }
-    }
-    function login() { 
-        const mail = document.getElementById('emailInput').value.toLowerCase().trim(); 
-        if (mail) { localStorage.setItem('userEmail', mail); userEmail = mail; checkAuth(); } 
-    }
-    function logout() { localStorage.removeItem('userEmail'); location.reload(); }
-
-    async function caricaLista() {
+    async function carica() {
         try {
-            // Nota: Filtriamo solo per la tua email
-            const res = await fetch(`${URL}/lista_spesa?select=*,prodotti!inner(*)&email_utente=eq.${userEmail}`, { headers });
+            const res = await fetch(`${URL}/prodotti?select=*&or=(email.is.null,email.eq.${userEmail})`, { headers });
             const data = await res.json();
-            const div = document.getElementById("lista"); div.innerHTML = "";
-            if (!data || data.length === 0) { div.innerHTML = "<p style='text-align:center;'>Lista vuota.</p>"; return; }
-            data.forEach(item => {
-                const riga = document.createElement("div"); riga.className = "item";
-                riga.innerHTML = `<span class="testo-prodotto ${item.completato ? 'barrato' : ''}">${item.prodotti.nome}</span>
-                    <div><button class="btn-small check" onclick="cambiaStato(${item.id}, ${!item.completato})">✔</button>
-                    <button class="btn-small delete" onclick="eliminaItem(${item.id})">✖</button></div>`;
-                div.appendChild(riga);
+            data.sort((a, b) => a.nome.localeCompare(b.nome));
+            const div = document.getElementById("listaProdotti"); div.innerHTML = "";
+            data.forEach(p => {
+                const el = document.createElement("div"); el.className = "item";
+                el.innerHTML = `<span>${p.nome}</span>
+                <div>
+                    <button class="btn-small plus" onclick="aggiungiLista(${p.id})">+</button>
+                    <button class="btn-small edit" onclick="modifica(${p.id})">✏️</button>
+                    <button class="btn-small delete" onclick="elimina(${p.id})">🗑</button>
+                </div>`;
+                div.appendChild(el);
             });
-        } catch (e) { console.error(e); }
+        } catch(e) { console.error(e); }
     }
-    async function cambiaStato(id, stato) { await fetch(`${URL}/lista_spesa?id=eq.${id}`, { method: "PATCH", headers, body: JSON.stringify({ completato: stato }) }); caricaLista(); }
-    async function eliminaItem(id) { await fetch(`${URL}/lista_spesa?id=eq.${id}`, { method: "DELETE", headers }); caricaLista(); }
-    async function svuotaLista() { if (confirm("Svuoto la tua lista?")) { await fetch(`${URL}/lista_spesa?email_utente=eq.${userEmail}`, { method: "DELETE", headers }); caricaLista(); } }
-    checkAuth();
+
+    async function aggiungi() {
+        const nome = document.getElementById("nomeProdotto").value.trim(); 
+        if (!nome) return;
+        await fetch(URL + "/prodotti", { method: "POST", headers, body: JSON.stringify({ nome, email: userEmail }) });
+        document.getElementById("nomeProdotto").value = ""; 
+        carica();
+    }
+
+    async function modifica(id) { 
+        const nuovo = prompt("Nuovo nome prodotto:"); 
+        if (!nuovo) return; 
+        await fetch(URL + "/prodotti?id=eq." + id, { method: "PATCH", headers, body: JSON.stringify({ nome: nuovo }) }); 
+        carica(); 
+    }
+
+    async function elimina(id) { 
+        if(!confirm("Eliminare definitivamente questo prodotto dal catalogo?")) return; 
+        await fetch(URL + "/prodotti?id=eq." + id, { method: "DELETE", headers }); 
+        carica(); 
+    }
+
+    async function aggiungiLista(id) {
+        // CONTROLLO SE GIÀ IN LISTA
+        const check = await fetch(`${URL}/lista_spesa?prodotto_id=eq.${id}&email_utente=eq.${userEmail}`, { headers });
+        const esistenti = await check.json();
+        if (esistenti && esistenti.length > 0) { 
+            alert("Già in lista!"); 
+            return; 
+        }
+
+        const res = await fetch(URL + "/lista_spesa", { 
+            method: "POST", 
+            headers, 
+            body: JSON.stringify({ prodotto_id: id, completato: false, email_utente: userEmail }) 
+        });
+        if(res.ok) alert("Aggiunto!");
+    }
+    carica();
 </script>
 </body>
 </html>
