@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Prodotti</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #f2f2f7;
+      display: flex;
+      justify-content: center;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 400px;
+      padding: 20px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 15px;
+      margin-bottom: 15px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    }
+
+    input {
+      width: 100%;
+      padding: 14px;
+      border-radius: 12px;
+      border: 1px solid #ddd;
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+
+    button {
+      border: none;
+      border-radius: 12px;
+      padding: 12px;
+      cursor: pointer;
+    }
+
+    .primary {
+      width: 100%;
+      background: #5ac8fa;
+      color: white;
+    }
+
+    .back {
+      width: 100%;
+      background: #ccc;
+      margin-top: 10px;
+    }
+
+    .item {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid #eee;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="app">
+
+  <div class="card">
+    <input id="nomeProdotto" placeholder="Nuovo prodotto">
+    <button class="primary" onclick="aggiungiProdotto()">Aggiungi</button>
+  </div>
+
+  <div class="card">
+    <h3>Prodotti</h3>
+    <div id="prodotti"></div>
+  </div>
+
+  <div class="card">
+    <button class="back" onclick="vaiLista()">⬅ Torna alla lista</button>
+  </div>
+
+</div>
+
+<script>
+const SUPABASE_URL = "https://eejdpophfxsrqdvsucye.supabase.co";
+const SUPABASE_KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
+
+function vaiLista() {
+  window.location.href = "/";
+}
+
+async function aggiungiProdotto() {
+  const input = document.getElementById("nomeProdotto");
+  const nome = input.value;
+  if (!nome) return;
+
+  await fetch(SUPABASE_URL + "/rest/v1/prodotti", {
+    method: "POST",
+    headers: {
+      "apikey": SUPABASE_KEY,
+      "Authorization": "Bearer " + SUPABASE_KEY,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ nome })
+  });
+
+  input.value = "";
+  caricaProdotti();
+}
+
+async function caricaProdotti() {
+  const res = await fetch(SUPABASE_URL + "/rest/v1/prodotti?order=nome.asc", {
+    headers: {
+      "apikey": SUPABASE_KEY,
+      "Authorization": "Bearer " + SUPABASE_KEY
+    }
+  });
+
+  const data = await res.json();
+  const div = document.getElementById("prodotti");
+  div.innerHTML = "";
+
+  data.forEach(p => {
+    const item = document.createElement("div");
+    item.className = "item";
+
+    item.innerHTML = `
+      <span>${p.nome}</span>
+      <button onclick="aggiungiAllaLista(${p.id})">+</button>
+    `;
+
+    div.appendChild(item);
+  });
+}
+
+async function aggiungiAllaLista(id) {
+  await fetch(SUPABASE_URL + "/rest/v1/lista_spesa", {
+    method: "POST",
+    headers: {
+      "apikey": SUPABASE_KEY,
+      "Authorization": "Bearer " + SUPABASE_KEY,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ prodotto_id: id, completato: false })
+  });
+}
+
+caricaProdotti();
+</script>
+
+</body>
+</html>
