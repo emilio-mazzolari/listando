@@ -11,15 +11,16 @@
     h1 { text-align: center; }
     .btn { width: 100%; padding: 12px; border-radius: 12px; border: none; cursor: pointer; background: #5ac8fa; color: white; font-weight: 600; }
     .item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee; }
-    .btn-small { border: none; border-radius: 10px; padding: 8px 12px; cursor: pointer; margin-left: 5px; font-size: 16px; }
+    .btn-small { border: none; border-radius: 10px; padding: 8px 12px; cursor: pointer; margin-left: 5px; font-size: 18px; line-height: 1; }
     
-    /* Stato bottoni e testo */
-    .check { background: #32d74b; color: white; } /* Verde V */
-    .restore { background: #d1d1d6; color: #3a3a3c; } /* Grigio Freccia */
-    .delete { background: #ff3b30; color: white; } /* Rosso X */
-    .nome-prodotto.completato { text-decoration: line-through; color: #8e8e93; opacity: 0.6; }
+    /* Stati grafici */
+    .check { background: #32d74b; color: white; } 
+    .restore { background: #d1d1d6; color: #3a3a3c; } 
+    .delete { background: #ff3b30; color: white; } 
+    .testo-prodotto { flex-grow: 1; font-size: 16px; transition: all 0.2s; }
+    .testo-prodotto.barrato { text-decoration: line-through; color: #8e8e93; opacity: 0.5; }
 
-    .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 65px; background: rgba(255,255,255,0.8); backdrop-filter: blur(10px); border-top: 1px solid #ddd; display: flex; justify-content: space-around; align-items: center; }
+    .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 65px; background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); border-top: 1px solid #ddd; display: flex; justify-content: space-around; align-items: center; }
     .tab-item { flex: 1; text-align: center; font-size: 12px; color: #8e8e93; text-decoration: none; }
     
     #toast {
@@ -27,8 +28,6 @@
       padding: 12px 20px; border-radius: 25px; color: white; font-weight: bold;
       display: none; z-index: 1000;
     }
-    .toast-success { background: #32d74b; }
-    .toast-error { background: #ff3b30; }
   </style>
 </head>
 <body>
@@ -36,17 +35,11 @@
 <div id="toast"></div>
 
 <div class="app">
-  <div id="loginBox" class="card" style="display:none;">
-    <h2>Accedi</h2>
-    <input id="emailField" type="email" placeholder="La tua email" style="width:100%; padding:10px; margin-bottom:10px; border-radius:8px; border:1px solid #ccc;">
-    <button class="btn" onclick="login()">Entra</button>
-  </div>
-
   <div id="appBox">
     <h1>🛒 Lista Spesa</h1>
     <div class="card">
       <div id="lista">Caricamento...</div>
-      <button class="btn" style="background: #ff9500; margin-top:15px;" onclick="svuotaLista()">Svuota tutto</button>
+      <button class="btn" style="background: #ff9500; margin-top:20px;" onclick="svuotaLista()">Svuota tutta la lista</button>
     </div>
   </div>
 </div>
@@ -57,128 +50,93 @@
 </div>
 
 <script>
-const SUPABASE_URL = "https://eejdpophfxsrqdvsucye.supabase.co";
-const SUPABASE_KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
-const headers = { "apikey": SUPABASE_KEY, "Content-Type": "application/json" };
+const URL = "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1";
+const KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
+const headers = { "apikey": KEY, "Content-Type": "application/json", "Prefer": "return=minimal" };
 
-let userEmail = localStorage.getItem("user-email");
-
-function showToast(text, type = 'success') {
+function showToast(txt, color) {
   const t = document.getElementById("toast");
-  t.innerText = text;
-  t.className = type === 'success' ? 'toast-success' : 'toast-error';
+  t.innerText = txt;
+  t.style.background = color === 'red' ? '#ff3b30' : '#32d74b';
   t.style.display = "block";
-  setTimeout(() => { t.style.display = "none"; }, 1500);
+  setTimeout(() => t.style.display = "none", 1500);
 }
 
-// CARICA E PULISCE DUPLICATI NEL DATABASE
 async function caricaLista() {
   try {
+    // Carico prodotti e lista contemporaneamente
     const [resP, resL] = await Promise.all([
-      fetch(`${SUPABASE_URL}/rest/v1/prodotti?select=*`, { headers }),
-      fetch(`${SUPABASE_URL}/rest/v1/lista_spesa?select=*`, { headers })
+      fetch(`${URL}/prodotti?select=*`, { headers: { "apikey": KEY } }),
+      fetch(`${URL}/lista_spesa?select=*`, { headers: { "apikey": KEY } })
     ]);
 
     const prodotti = await resP.json();
-    let listaRaw = await resL.json();
+    const listaRaw = await resL.json();
 
-    // --- LOGICA ANTI-DUPLICATI REALE ---
+    // Pulizia duplicati automatica mentre carico
     const visti = new Set();
-    const puliti = [];
-    const daEliminare = [];
-
-    listaRaw.forEach(item => {
-      if (visti.has(item.prodotto_id)) {
-        daEliminare.push(item.id); // Segna l'ID del duplicato per la cancellazione
-      } else {
+    const listaUnica = [];
+    for (const item of listaRaw) {
+      if (!visti.has(item.prodotto_id)) {
         visti.add(item.prodotto_id);
-        puliti.push(item);
+        const info = prodotti.find(p => p.id === item.prodotto_id);
+        listaUnica.push({ ...item, nome: info ? info.nome : "Sconosciuto" });
+      } else {
+        // Elimino il duplicato dal DB in background
+        fetch(`${URL}/lista_spesa?id=eq.${item.id}`, { method: "DELETE", headers: { "apikey": KEY } });
       }
-    });
-
-    // Cancella i duplicati dal database in background
-    if (daEliminare.length > 0) {
-      daEliminare.forEach(id => {
-        fetch(`${SUPABASE_URL}/rest/v1/lista_spesa?id=eq.${id}`, { method: "DELETE", headers });
-      });
     }
+
+    // Ordino A-Z
+    listaUnica.sort((a, b) => a.nome.localeCompare(b.nome));
 
     const div = document.getElementById("lista");
-    div.innerHTML = "";
+    div.innerHTML = listaUnica.length ? "" : "<p style='text-align:center;'>Nessun prodotto.</p>";
 
-    let listaOrdinata = puliti.map(item => {
-      const p = prodotti.find(prod => prod.id === item.prodotto_id);
-      return { ...item, nome: p ? p.nome : "Sconosciuto" };
-    }).sort((a, b) => a.nome.localeCompare(b.nome));
-
-    if (listaOrdinata.length === 0) {
-      div.innerHTML = "<p style='text-align:center; color:#8e8e93;'>Lista vuota</p>";
-      return;
-    }
-
-    listaOrdinata.forEach(item => {
-      const el = document.createElement("div");
-      el.className = "item";
-      el.innerHTML = `
-        <span class="nome-prodotto ${item.completato ? 'completato' : ''}">${item.nome}</span>
+    listaUnica.forEach(item => {
+      const riga = document.createElement("div");
+      riga.className = "item";
+      riga.innerHTML = `
+        <span class="testo-prodotto ${item.completato ? 'barrato' : ''}">${item.nome}</span>
         <div>
           ${item.completato 
-            ? `<button class="btn-small restore" onclick="toggle(${item.id}, false)">↩</button>` 
-            : `<button class="btn-small check" onclick="toggle(${item.id}, true)">✔</button>`
+            ? `<button class="btn-small restore" onclick="cambiaStato(${item.id}, false)">↩</button>`
+            : `<button class="btn-small check" onclick="cambiaStato(${item.id}, true)">✔</button>`
           }
-          <button class="btn-small delete" onclick="removeItem(${item.id})">✖</button>
+          <button class="btn-small delete" onclick="eliminaItem(${item.id})">✖</button>
         </div>
       `;
-      div.appendChild(el);
+      div.appendChild(riga);
     });
   } catch (e) { console.error(e); }
 }
 
-async function toggle(id, nuovoStato) {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/lista_spesa?id=eq.${id}`, {
+async function cambiaStato(id, stato) {
+  await fetch(`${URL}/lista_spesa?id=eq.${id}`, {
     method: "PATCH",
     headers,
-    body: JSON.stringify({ completato: nuovoStato })
+    body: JSON.stringify({ completato: stato })
   });
-  if (res.ok) caricaLista();
+  caricaLista(); // Ricarica subito
 }
 
-async function removeItem(id) {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/lista_spesa?id=eq.${id}`, {
+async function eliminaItem(id) {
+  const res = await fetch(`${URL}/prodotti.html` ? `${URL}/lista_spesa?id=eq.${id}` : `${URL}/lista_spesa?id=eq.${id}`, {
     method: "DELETE",
-    headers
+    headers: { "apikey": KEY }
   });
-  if (res.ok) {
-    showToast("Rimosso!");
-    caricaLista();
-  } else {
-    showToast("Errore cancellazione", "error");
-  }
+  showToast("Rimosso!", "red");
+  caricaLista();
 }
 
 async function svuotaLista() {
-  if (!confirm("Vuoi svuotare tutto?")) return;
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/lista_spesa?select=*`, {
-    method: "DELETE",
-    headers
-  });
-  if (res.ok) caricaLista();
-}
-
-if (userEmail) {
-  document.getElementById("appBox").style.display = "block";
+  if (!confirm("Vuoi cancellare tutto?")) return;
+  await fetch(`${URL}/lista_spesa?select=*`, { method: "DELETE", headers: { "apikey": KEY } });
   caricaLista();
-} else {
-  document.getElementById("loginBox").style.display = "block";
 }
 
-function login() {
-  const email = document.getElementById("emailField").value.trim();
-  if (email.includes("@")) {
-    localStorage.setItem("user-email", email);
-    location.reload();
-  }
-}
+// Avvio
+caricaLista();
 </script>
 </body>
 </html>
