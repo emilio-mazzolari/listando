@@ -11,19 +11,21 @@
     h1 { text-align: center; }
     .btn { width: 100%; padding: 12px; border-radius: 12px; border: none; cursor: pointer; background: #5ac8fa; color: white; font-weight: 600; }
     .item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee; }
-    .btn-small { border: none; border-radius: 10px; padding: 8px 12px; cursor: pointer; margin-left: 5px; }
-    .check { background: #4caf82; color: white; }
-    .restore { background: #d1d1d6; color: #3a3a3c; }
-    .delete { background: #ff6b6b; color: white; }
+    .btn-small { border: none; border-radius: 10px; padding: 8px 12px; cursor: pointer; margin-left: 5px; font-size: 16px; }
+    
+    /* Stato bottoni e testo */
+    .check { background: #32d74b; color: white; } /* Verde V */
+    .restore { background: #d1d1d6; color: #3a3a3c; } /* Grigio Freccia */
+    .delete { background: #ff3b30; color: white; } /* Rosso X */
+    .nome-prodotto.completato { text-decoration: line-through; color: #8e8e93; opacity: 0.6; }
+
     .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 65px; background: rgba(255,255,255,0.8); backdrop-filter: blur(10px); border-top: 1px solid #ddd; display: flex; justify-content: space-around; align-items: center; }
     .tab-item { flex: 1; text-align: center; font-size: 12px; color: #8e8e93; text-decoration: none; }
-    #appBox { display:none; }
     
-    /* NOTIFICA FLASH */
     #toast {
       position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
       padding: 12px 20px; border-radius: 25px; color: white; font-weight: bold;
-      display: none; z-index: 1000; transition: all 0.3s;
+      display: none; z-index: 1000;
     }
     .toast-success { background: #32d74b; }
     .toast-error { background: #ff3b30; }
@@ -34,7 +36,7 @@
 <div id="toast"></div>
 
 <div class="app">
-  <div id="loginBox" class="card">
+  <div id="loginBox" class="card" style="display:none;">
     <h2>Accedi</h2>
     <input id="emailField" type="email" placeholder="La tua email" style="width:100%; padding:10px; margin-bottom:10px; border-radius:8px; border:1px solid #ccc;">
     <button class="btn" onclick="login()">Entra</button>
@@ -51,62 +53,79 @@
 
 <div class="tab-bar">
   <a href="index.html" class="tab-item" style="color:#5ac8fa; font-weight:bold;">🛒 Lista</a>
-  <a href="prodotti.html" class="tab-item">🧾 Prodotti</a>
+  <a href="prodotti.html" class="tab-item">📦 Prodotti</a>
 </div>
 
 <script>
 const SUPABASE_URL = "https://eejdpophfxsrqdvsucye.supabase.co";
 const SUPABASE_KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
-let userEmail = localStorage.getItem("user-email");
+const headers = { "apikey": SUPABASE_KEY, "Content-Type": "application/json" };
 
-function login() {
-  const email = document.getElementById("emailField").value.trim();
-  if (email.includes("@")) {
-    localStorage.setItem("user-email", email);
-    location.reload();
-  }
-}
+let userEmail = localStorage.getItem("user-email");
 
 function showToast(text, type = 'success') {
   const t = document.getElementById("toast");
   t.innerText = text;
   t.className = type === 'success' ? 'toast-success' : 'toast-error';
   t.style.display = "block";
-  setTimeout(() => { t.style.display = "none"; }, 2000);
+  setTimeout(() => { t.style.display = "none"; }, 1500);
 }
 
+// CARICA E PULISCE DUPLICATI NEL DATABASE
 async function caricaLista() {
   try {
-    const headers = { "apikey": SUPABASE_KEY };
     const [resP, resL] = await Promise.all([
       fetch(`${SUPABASE_URL}/rest/v1/prodotti?select=*`, { headers }),
       fetch(`${SUPABASE_URL}/rest/v1/lista_spesa?select=*`, { headers })
     ]);
 
     const prodotti = await resP.json();
-    const listaRaw = await resL.json();
+    let listaRaw = await resL.json();
+
+    // --- LOGICA ANTI-DUPLICATI REALE ---
+    const visti = new Set();
+    const puliti = [];
+    const daEliminare = [];
+
+    listaRaw.forEach(item => {
+      if (visti.has(item.prodotto_id)) {
+        daEliminare.push(item.id); // Segna l'ID del duplicato per la cancellazione
+      } else {
+        visti.add(item.prodotto_id);
+        puliti.push(item);
+      }
+    });
+
+    // Cancella i duplicati dal database in background
+    if (daEliminare.length > 0) {
+      daEliminare.forEach(id => {
+        fetch(`${SUPABASE_URL}/rest/v1/lista_spesa?id=eq.${id}`, { method: "DELETE", headers });
+      });
+    }
 
     const div = document.getElementById("lista");
     div.innerHTML = "";
 
-    // Trasformiamo i dati e ordiniamo
-    let lista = listaRaw.map(item => {
+    let listaOrdinata = puliti.map(item => {
       const p = prodotti.find(prod => prod.id === item.prodotto_id);
       return { ...item, nome: p ? p.nome : "Sconosciuto" };
     }).sort((a, b) => a.nome.localeCompare(b.nome));
 
-    if (lista.length === 0) {
+    if (listaOrdinata.length === 0) {
       div.innerHTML = "<p style='text-align:center; color:#8e8e93;'>Lista vuota</p>";
       return;
     }
 
-    lista.forEach(item => {
+    listaOrdinata.forEach(item => {
       const el = document.createElement("div");
       el.className = "item";
       el.innerHTML = `
-        <span style="${item.completato ? 'text-decoration:line-through; opacity:0.5' : ''}">${item.nome}</span>
+        <span class="nome-prodotto ${item.completato ? 'completato' : ''}">${item.nome}</span>
         <div>
-          <button class="btn-small ${item.completato ? 'restore' : 'check'}" onclick="toggle(${item.id}, ${!item.completato})">${item.completato ? '↩' : '✔'}</button>
+          ${item.completato 
+            ? `<button class="btn-small restore" onclick="toggle(${item.id}, false)">↩</button>` 
+            : `<button class="btn-small check" onclick="toggle(${item.id}, true)">✔</button>`
+          }
           <button class="btn-small delete" onclick="removeItem(${item.id})">✖</button>
         </div>
       `;
@@ -115,39 +134,50 @@ async function caricaLista() {
   } catch (e) { console.error(e); }
 }
 
-async function toggle(id, value) {
+async function toggle(id, nuovoStato) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/lista_spesa?id=eq.${id}`, {
     method: "PATCH",
-    headers: { "apikey": SUPABASE_KEY, "Content-Type": "application/json" },
-    body: JSON.stringify({ completato: value })
+    headers,
+    body: JSON.stringify({ completato: nuovoStato })
   });
-  if(res.ok) caricaLista();
+  if (res.ok) caricaLista();
 }
 
 async function removeItem(id) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/lista_spesa?id=eq.${id}`, {
     method: "DELETE",
-    headers: { "apikey": SUPABASE_KEY }
+    headers
   });
-  if(res.ok) {
-    showToast("Rimosso!", "success");
+  if (res.ok) {
+    showToast("Rimosso!");
     caricaLista();
+  } else {
+    showToast("Errore cancellazione", "error");
   }
 }
 
 async function svuotaLista() {
   if (!confirm("Vuoi svuotare tutto?")) return;
-  await fetch(`${SUPABASE_URL}/rest/v1/lista_spesa?select=*`, {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/lista_spesa?select=*`, {
     method: "DELETE",
-    headers: { "apikey": SUPABASE_KEY }
+    headers
   });
-  caricaLista();
+  if (res.ok) caricaLista();
 }
 
 if (userEmail) {
-  document.getElementById("loginBox").style.display = "none";
   document.getElementById("appBox").style.display = "block";
   caricaLista();
+} else {
+  document.getElementById("loginBox").style.display = "block";
+}
+
+function login() {
+  const email = document.getElementById("emailField").value.trim();
+  if (email.includes("@")) {
+    localStorage.setItem("user-email", email);
+    location.reload();
+  }
 }
 </script>
 </body>
