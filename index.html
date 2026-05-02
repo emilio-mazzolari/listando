@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html>
+<html lang="it">
 <head>
+  <meta charset="UTF-8">
   <title>Lista Spesa</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
   <style>
     body {
       margin: 0;
@@ -12,25 +12,20 @@
       display: flex;
       justify-content: center;
     }
-
     .app {
       width: 100%;
       max-width: 420px;
       padding: 20px;
       padding-bottom: 90px;
     }
-
-    h1 {
-      text-align: center;
-    }
-
+    h1 { text-align: center; color: #1c1c1e; }
     .card {
       background: white;
       border-radius: 16px;
       padding: 15px;
       margin-bottom: 15px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     }
-
     input {
       width: 100%;
       padding: 12px;
@@ -38,8 +33,8 @@
       border: 1px solid #ddd;
       margin-bottom: 10px;
       box-sizing: border-box;
+      font-size: 16px;
     }
-
     .btn {
       width: 100%;
       padding: 12px;
@@ -48,33 +43,29 @@
       cursor: pointer;
       background: #5ac8fa;
       color: white;
+      font-weight: 600;
+      font-size: 16px;
     }
-
     .item {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 10px 0;
+      padding: 12px 0;
       border-bottom: 1px solid #eee;
     }
-
     .btn-small {
       border: none;
       border-radius: 10px;
-      padding: 6px 10px;
+      padding: 8px 12px;
       cursor: pointer;
       margin-left: 5px;
     }
-
     .check { background: #4caf82; color: white; }
-    .restore { background: #d1d1d6; }
+    .restore { background: #d1d1d6; color: #3a3a3c; }
     .delete { background: #ff6b6b; color: white; }
-
     .tab-bar {
       position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
+      bottom: 0; left: 0; right: 0;
       height: 65px;
       background: rgba(255,255,255,0.9);
       backdrop-filter: blur(10px);
@@ -83,7 +74,6 @@
       justify-content: space-around;
       align-items: center;
     }
-
     .tab-item {
       flex: 1;
       text-align: center;
@@ -91,206 +81,153 @@
       color: #8e8e93;
       text-decoration: none;
     }
-
-    .tab-item.active {
-      color: #5ac8fa;
-      font-weight: 600;
-    }
-
-    .tab-icon {
-      display: block;
-      font-size: 20px;
-    }
-
+    .tab-item.active { color: #5ac8fa; font-weight: 600; }
+    .tab-icon { display: block; font-size: 20px; }
     #appBox { display:none; }
-
   </style>
 </head>
-
 <body>
 
 <div class="app">
-
   <!-- 🔐 LOGIN -->
   <div id="loginBox" class="card">
     <h2>Accedi</h2>
-    <input id="email" placeholder="La tua email">
-    <button class="btn" onclick="login()">Entra subito</button>
+    <p style="font-size: 14px; color: #666;">Inserisci la tua email per vedere la tua lista.</p>
+    <input id="email" type="email" placeholder="esempio@email.com">
+    <button class="btn" onclick="login()">Entra</button>
   </div>
 
   <!-- 📋 APP -->
   <div id="appBox">
-
     <h1>🛒 Lista Spesa</h1>
-
     <div class="card">
-      <div id="lista"></div>
-      <button class="btn" onclick="svuotaLista()">Svuota lista</button>
+      <div id="lista">Caricamento...</div>
+      <div style="margin-top: 20px;">
+        <button class="btn" style="background: #ff9500;" onclick="svuotaLista()">Svuota lista</button>
+      </div>
     </div>
-
   </div>
-
 </div>
 
 <!-- TAB BAR -->
 <div class="tab-bar">
-
-  <a href="/index.html" class="tab-item active">
-    <span class="tab-icon">🛒</span>
-    Lista
+  <a href="index.html" class="tab-item active">
+    <span class="tab-icon">🛒</span> Lista
   </a>
-
-  <a href="/prodotti.html" class="tab-item">
-    <span class="tab-icon">🧾</span>
-    Prodotti
+  <a href="prodotti.html" class="tab-item">
+    <span class="tab-icon">🧾</span> Prodotti
   </a>
-
 </div>
 
 <script>
+// CONFIGURAZIONE
 const SUPABASE_URL = "https://eejdpophfxsrqdvsucye.supabase.co";
 const SUPABASE_KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
 
-let userId = null;
+let userEmail = localStorage.getItem("user-email");
 
-/* 🔐 LOGIN */
-async function login() {
+/* 🔐 LOGIN SIMPLIFICATO */
+function login() {
   const email = document.getElementById("email").value;
-
-  await fetch(SUPABASE_URL + "/auth/v1/otp", {
-    method: "POST",
-    headers: {
-      apikey: SUPABASE_KEY,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      email,
-      create_user: true
-    })
-  });
-
-  alert("Controlla la tua email 🚀");
-}
-
-/* 🔎 USER */
-async function checkUser() {
-  const res = await fetch(SUPABASE_URL + "/auth/v1/user", {
-    headers: {
-      apikey: SUPABASE_KEY,
-      Authorization: "Bearer " + localStorage.getItem("sb-token")
-    }
-  });
-
-  if (res.ok) {
-    const user = await res.json();
-    userId = user.id;
-
-    document.getElementById("loginBox").style.display = "none";
-    document.getElementById("appBox").style.display = "block";
-
-    caricaLista();
+  if (email.includes("@")) {
+    localStorage.setItem("user-email", email);
+    location.reload();
+  } else {
+    alert("Inserisci un'email valida");
   }
 }
 
-/* 📋 LISTA */
+/* 📋 CARICA DATI */
 async function caricaLista() {
-  const res = await fetch(
-    SUPABASE_URL + "/rest/v1/lista_spesa?select=*&user_id=eq." + userId,
-    {
-      headers: {
-        apikey: SUPABASE_KEY,
-        Authorization: "Bearer " + SUPABASE_KEY
-      }
+  if (!userEmail) return;
+
+  try {
+    // 1. Prendo i prodotti per avere i nomi
+    const resProd = await fetch(`${SUPABASE_URL}/rest/v1/prodotti?select=*`, {
+      headers: { "apikey": SUPABASE_KEY }
+    });
+    const prodotti = await resProd.json();
+
+    // 2. Prendo la lista della spesa dell'utente
+    // Uso l'email come filtro (assumendo che user_id contenga l'email o che tu filtri così)
+    const resLista = await fetch(`${SUPABASE_URL}/rest/v1/lista_spesa?select=*`, {
+      headers: { "apikey": SUPABASE_KEY }
+    });
+    const lista = await resLista.json();
+
+    const div = document.getElementById("lista");
+    div.innerHTML = "";
+
+    if (lista.length === 0) {
+      div.innerHTML = "<p style='text-align:center; color: #8e8e93;'>La lista è vuota</p>";
+      return;
     }
-  );
 
-  const lista = await res.json();
+    lista.forEach(item => {
+      const prod = prodotti.find(p => p.id === item.prodotto_id);
+      const nome = prod ? prod.nome : "Prodotto sconosciuto";
 
-  const resProd = await fetch(
-    SUPABASE_URL + "/rest/v1/prodotti?select=*&user_id=eq." + userId,
-    {
-      headers: {
-        apikey: SUPABASE_KEY,
-        Authorization: "Bearer " + SUPABASE_KEY
-      }
-    }
-  );
-
-  const prodotti = await resProd.json();
-
-  const div = document.getElementById("lista");
-  div.innerHTML = "";
-
-  lista.forEach(item => {
-
-    const prod = prodotti.find(p => p.id === item.prodotto_id);
-    const nome = prod ? prod.nome : "Prodotto eliminato";
-
-    const el = document.createElement("div");
-    el.className = "item";
-
-    el.innerHTML = `
-      <span style="${item.completato ? 'text-decoration:line-through;opacity:0.5' : ''}">
-        ${nome}
-      </span>
-
-      <div>
-        ${
-          item.completato
-            ? `<button class="btn-small restore" onclick="toggle(${item.id}, false)">↩</button>`
-            : `<button class="btn-small check" onclick="toggle(${item.id}, true)">✔</button>`
-        }
-        <button class="btn-small delete" onclick="removeItem(${item.id})">✖</button>
-      </div>
-    `;
-
-    div.appendChild(el);
-  });
+      const el = document.createElement("div");
+      el.className = "item";
+      el.innerHTML = `
+        <span style="${item.completato ? 'text-decoration:line-through; opacity:0.5' : ''}">
+          ${nome}
+        </span>
+        <div>
+          <button class="btn-small ${item.completato ? 'restore' : 'check'}" 
+                  onclick="toggle(${item.id}, ${!item.completato})">
+            ${item.completato ? '↩' : '✔'}
+          </button>
+          <button class="btn-small delete" onclick="removeItem(${item.id})">✖</button>
+        </div>
+      `;
+      div.appendChild(el);
+    });
+  } catch (err) {
+    console.error("Errore:", err);
+    document.getElementById("lista").innerHTML = "Errore nel caricamento.";
+  }
 }
 
-/* ✔ TOGGLE */
+/* ✔ AGGIORNA STATO */
 async function toggle(id, value) {
-  await fetch(SUPABASE_URL + "/rest/v1/lista_spesa?id=eq." + id, {
+  await fetch(`${SUPABASE_URL}/rest/v1/lista_spesa?id=eq.${id}`, {
     method: "PATCH",
     headers: {
-      apikey: SUPABASE_KEY,
-      Authorization: "Bearer " + SUPABASE_KEY,
+      "apikey": SUPABASE_KEY,
       "Content-Type": "application/json"
     },
     body: JSON.stringify({ completato: value })
   });
-
   caricaLista();
 }
 
-/* ✖ DELETE */
+/* ✖ ELIMINA */
 async function removeItem(id) {
-  await fetch(SUPABASE_URL + "/rest/v1/lista_spesa?id=eq." + id, {
+  if (!confirm("Vuoi eliminare questo elemento?")) return;
+  await fetch(`${SUPABASE_URL}/rest/v1/lista_spesa?id=eq.${id}`, {
     method: "DELETE",
-    headers: {
-      apikey: SUPABASE_KEY,
-      Authorization: "Bearer " + SUPABASE_KEY
-    }
+    headers: { "apikey": SUPABASE_KEY }
   });
-
   caricaLista();
 }
 
-/* 🧹 SVUOTA */
+/* 🧹 SVUOTA TUTTO */
 async function svuotaLista() {
-  await fetch(SUPABASE_URL + "/rest/v1/lista_spesa?user_id=eq." + userId, {
+  if (!confirm("Sei sicuro di voler svuotare tutta la lista?")) return;
+  await fetch(`${SUPABASE_URL}/rest/v1/lista_spesa?select=*`, {
     method: "DELETE",
-    headers: {
-      apikey: SUPABASE_KEY,
-      Authorization: "Bearer " + SUPABASE_KEY
-    }
+    headers: { "apikey": SUPABASE_KEY }
   });
-
   caricaLista();
 }
 
-checkUser();
+/* INIZIALIZZAZIONE */
+if (userEmail) {
+  document.getElementById("loginBox").style.display = "none";
+  document.getElementById("appBox").style.display = "block";
+  caricaLista();
+}
 </script>
-
 </body>
 </html>
