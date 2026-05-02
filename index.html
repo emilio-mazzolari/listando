@@ -2,25 +2,32 @@
 <html lang="it">
 <head>
   <meta charset="UTF-8">
-  <title>Lista Spesa</title>
+  <title>Lista Spesa - Personale</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body { margin: 0; font-family: -apple-system, sans-serif; background: #f2f2f7; display: flex; justify-content: center; }
     .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 90px; }
     .card { background: white; border-radius: 16px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+    
+    /* Login */
     #loginScreen { text-align: center; margin-top: 50px; }
     #loginScreen input { width: 100%; padding: 12px; margin: 15px 0; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; font-size: 16px; }
     #loginScreen button { width: 100%; padding: 12px; background: #5ac8fa; color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
+
+    /* Main */
     #mainScreen { display: none; }
     .header-box { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-    .btn-logout { background: #d1d1d6; color: #3a3a3c; border: none; padding: 6px 12px; border-radius: 8px; font-size: 12px; cursor: pointer; font-weight: 600; }
+    .btn-logout { background: #d1d1d6; color: #3a3a3c; border: none; padding: 6px 12px; border-radius: 8px; font-size: 12px; cursor: pointer; }
+    
     .item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; gap: 8px; }
     .testo-prodotto { flex-grow: 1; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
     .testo-prodotto.barrato { text-decoration: line-through; color: #8e8e93; opacity: 0.5; }
-    .btn-small { flex-shrink: 0; border: none; border-radius: 8px; width: 32px; height: 32px; cursor: pointer; margin-left: 4px; display: inline-flex; align-items: center; justify-content: center; }
+
+    .btn-small { flex-shrink: 0; border: none; border-radius: 8px; width: 32px; height: 32px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
     .check { background-color: #77dd77; color: white; }
     .delete { background-color: #ff6961; color: white; }
     .btn-orange { width: 100%; padding: 12px; border-radius: 12px; border: none; background: #ffb347; color: white; font-weight: 600; margin-top: 10px; cursor: pointer; }
+
     .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 65px; background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); border-top: 1px solid #ddd; display: flex; justify-content: space-around; align-items: center; }
     .tab-item { flex: 1; text-align: center; font-size: 12px; color: #8e8e93; text-decoration: none; }
   </style>
@@ -28,11 +35,12 @@
 <body>
 <div class="app">
   <div id="loginScreen" class="card">
-    <h2>Bentornato</h2>
-    <p>Accedi per vedere la tua lista</p>
-    <input type="email" id="emailInput" placeholder="tua@email.com">
-    <button onclick="login()">Entra</button>
+    <h2>Benvenuto</h2>
+    <p>Inserisci la tua email per accedere</p>
+    <input type="email" id="emailInput" placeholder="esempio@mail.it">
+    <button onclick="login()">Accedi</button>
   </div>
+
   <div id="mainScreen">
     <div class="header-box">
       <h1 style="margin:0; font-size: 24px;">🛒 Lista</h1>
@@ -40,14 +48,16 @@
     </div>
     <div class="card">
       <div id="lista">Caricamento...</div>
-      <button class="btn-orange" onclick="svuotaLista()">Svuota Lista</button>
+      <button class="btn-orange" onclick="svuotaLista()">Svuota la mia lista</button>
     </div>
   </div>
 </div>
+
 <div class="tab-bar" id="tabBar" style="display:none;">
   <a href="index.html" class="tab-item" style="color:#5ac8fa; font-weight:bold;">🛒 Lista</a>
   <a href="prodotti.html" class="tab-item">📦 Prodotti</a>
 </div>
+
 <script>
 const URL = "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1";
 const KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
@@ -66,16 +76,21 @@ function checkAuth() {
     caricaLista();
   }
 }
-function login() { const mail = document.getElementById('emailInput').value.toLowerCase().trim(); if (mail) { localStorage.setItem('userEmail', mail); userEmail = mail; checkAuth(); } }
+
+function login() {
+  const mail = document.getElementById('emailInput').value.toLowerCase().trim();
+  if (mail) { localStorage.setItem('userEmail', mail); userEmail = mail; checkAuth(); }
+}
 function logout() { localStorage.removeItem('userEmail'); location.reload(); }
 
 async function caricaLista() {
   try {
-    // FILTRO CRUCIALE: Carichiamo solo gli item della lista spesa associati a questa specifica email
-    const res = await fetch(`${URL}/lista_spesa?select=*,prodotti!inner(*)&email_utente=eq.${userEmail}`, { headers });
+    // FILTRO IBRIDO: Carica prodotti della tua email OPPURE quelli che hanno email vuota (i vecchi dati)
+    const res = await fetch(`${URL}/lista_spesa?select=*,prodotti!inner(*)&or=(email_utente.eq.${userEmail},email_utente.is.null)`, { headers });
     const data = await res.json();
     const div = document.getElementById("lista"); div.innerHTML = "";
     if (data.length === 0) { div.innerHTML = "<p style='text-align:center;'>Lista vuota.</p>"; return; }
+    
     data.sort((a,b) => a.prodotti.nome.localeCompare(b.prodotti.nome));
     data.forEach(item => {
       const riga = document.createElement("div"); riga.className = "item";
@@ -86,9 +101,11 @@ async function caricaLista() {
     });
   } catch (e) { console.error(e); }
 }
+
 async function cambiaStato(id, stato) { await fetch(`${URL}/lista_spesa?id=eq.${id}`, { method: "PATCH", headers, body: JSON.stringify({ completato: stato }) }); caricaLista(); }
 async function eliminaItem(id) { await fetch(`${URL}/lista_spesa?id=eq.${id}`, { method: "DELETE", headers }); caricaLista(); }
-async function svuotaLista() { if (confirm("Svuoto la tua lista?")) { await fetch(`${URL}/lista_spesa?email_utente=eq.${userEmail}`, { method: "DELETE", headers }); caricaLista(); } }
+async function svuotaLista() { if (confirm("Svuoto?")) { await fetch(`${URL}/lista_spesa?email_utente=eq.${userEmail}`, { method: "DELETE", headers }); caricaLista(); } }
+
 checkAuth();
 </script>
 </body>
