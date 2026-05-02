@@ -40,7 +40,7 @@
     <div class="header-box"><h1>📦 Prodotti</h1></div>
     <div class="card">
         <input id="nomeProdotto" placeholder="Nome nuovo prodotto...">
-        <button class="btn-main" onclick="aggiungiNuovoProdotto()">SALVA NEL CATALOGO</button>
+        <button class="btn-main" onclick="aggiungiNuovoProdotto()">SALVA NELL'ELENCO</button>
     </div>
     <div class="card"><div id="listaProdotti">Caricamento...</div></div>
 </div>
@@ -55,7 +55,6 @@
     const API_KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
     const HEADERS = { 
         "apikey": API_KEY, 
-        "Authorization": `Bearer ${API_KEY}`,
         "Content-Type": "application/json",
         "Prefer": "return=minimal" 
     };
@@ -99,25 +98,14 @@
             const res = await fetch(`${URL_BASE}/prodotti`, {
                 method: "POST",
                 headers: HEADERS,
-                body: JSON.stringify({ 
-                    nome: nome, 
-                    email: userEmail 
-                })
+                body: JSON.stringify({ nome: nome, email: userEmail })
             });
             
-            // Accettiamo sia 201 (Created) che 204 (No Content con Prefer:minimal)
             if (res.status === 201 || res.status === 204) {
                 input.value = "";
-                // Aspettiamo un attimo per dare tempo al DB di aggiornarsi prima di ricaricare
-                setTimeout(caricaProdotti, 300);
-            } else {
-                const errore = await res.json();
-                alert("Errore dal database: " + errore.message);
+                setTimeout(caricaProdotti, 200);
             }
-        } catch(e) { 
-            console.error(e);
-            alert("Errore di connessione durante il salvataggio.");
-        }
+        } catch(e) { console.error(e); }
     }
 
     async function modificaProdotto(id, vecchioNome) {
@@ -131,23 +119,32 @@
     }
 
     async function eliminaDalCatalogo(id) {
-        if (!confirm("Eliminare dal catalogo?")) return;
-        await fetch(`${URL_BASE}/prodotti?id=eq.${id}`, { method: "DELETE", headers: HEADERS });
+        // Cancellazione immediata senza confirm
+        await fetch(`${URL_BASE}/prodotti?id=eq.${id}`, { 
+            method: "DELETE", 
+            headers: HEADERS 
+        });
         caricaProdotti();
     }
 
     async function mettiInListaSpesa(prodottoId) {
         const check = await fetch(`${URL_BASE}/lista_spesa?prodotto_id=eq.${prodottoId}&email_utente=eq.${userEmail}`, { headers: HEADERS });
         const esistenti = await check.json();
+        
         if (esistenti && esistenti.length > 0) {
             showToast("Già aggiunto", "error");
             return;
         }
+
         const res = await fetch(`${URL_BASE}/lista_spesa`, {
-            method: "POST", headers: HEADERS,
+            method: "POST", 
+            headers: HEADERS,
             body: JSON.stringify({ prodotto_id: prodottoId, email_utente: userEmail, completato: false })
         });
-        if (res.ok || res.status === 201 || res.status === 204) { showToast("Aggiunto", "success"); }
+        
+        if (res.ok || res.status === 201 || res.status === 204) { 
+            showToast("Aggiunto", "success"); 
+        }
     }
 
     caricaProdotti();
