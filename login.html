@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login</title>
+  <style>
+    body { font-family: sans-serif; background: #f2f2f7; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+    .card { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 80%; max-width: 300px; text-align: center; }
+    input { width: 100%; padding: 12px; margin: 15px 0; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; }
+    button { width: 100%; padding: 12px; background: #5ac8fa; color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Benvenuto</h2>
+    <p>Inserisci la tua email per accedere alla tua lista</p>
+    <input type="email" id="email" placeholder="Email">
+    <button onclick="login()">Entra</button>
+  </div>
+  <script>
+    function login() {
+      const email = document.getElementById('email').value.toLowerCase().trim();
+      if (email) {
+        localStorage.setItem('userEmail', email);
+        window.location.href = 'index.html';
+      }
+    }
+  </script>
+</body>
+</html>
