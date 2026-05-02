@@ -4,6 +4,15 @@
   <title>Lista Spesa</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+  <!-- PWA -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#5ac8fa">
+
+  <!-- iOS support -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="apple-touch-icon" href="/icon-192.png">
+
   <style>
     body {
       margin: 0;
@@ -33,9 +42,9 @@
     .item {
       display: flex;
       justify-content: space-between;
+      align-items: center;
       padding: 10px 0;
       border-bottom: 1px solid #eee;
-      align-items: center;
     }
 
     .btn {
@@ -86,6 +95,14 @@
 const SUPABASE_URL = "https://eejdpophfxsrqdvsucye.supabase.co";
 const SUPABASE_KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
 
+/* ===== SERVICE WORKER (PWA INSTALLAZIONE) ===== */
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("/sw.js")
+    .then(() => console.log("Service Worker registrato"))
+    .catch(err => console.log("SW error:", err));
+}
+
+/* ===== NAV ===== */
 function vaiProdotti() {
   window.location.href = "/prodotti.html";
 }
@@ -162,7 +179,7 @@ async function ripristina(id) {
     body: JSON.stringify({ completato: false })
   });
 
-  caricaLista(); // riordina alfabeticamente automaticamente
+  caricaLista();
 }
 
 async function rimuovi(id) {
