@@ -5,7 +5,7 @@
   <title>Lista Spesa</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    /* ... (Il CSS rimane lo stesso del precedente, è già ottimizzato) ... */
+    /* ... (Manteniamo lo stile precedente) ... */
     body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #f2f2f7; display: flex; justify-content: center; }
     .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 90px; }
     .card { background: white; border-radius: 16px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
@@ -19,110 +19,100 @@
     .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 65px; background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); border-top: 1px solid #ddd; display: flex; justify-content: space-around; align-items: center; }
     .tab-item { flex: 1; text-align: center; font-size: 12px; color: #8e8e93; text-decoration: none; }
     .tab-item.active { color: #5ac8fa; font-weight: 600; }
-    .tab-icon { display: block; font-size: 20px; }
     #appBox { display:none; }
     h1 { text-align: center; }
+
+    /* Notifica flash */
+    #toast {
+      position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+      background: #32d74b; color: white; padding: 10px 20px;
+      border-radius: 20px; font-size: 14px; font-weight: bold;
+      display: none; z-index: 1000;
+    }
   </style>
 </head>
 <body>
 
+<div id="toast">Prodotto inserito!</div>
+
 <div class="app">
-  <!-- 🔐 LOGIN (Niente invio email ora) -->
   <div id="loginBox" class="card">
     <h2>Benvenuto</h2>
-    <p style="font-size: 14px; color: #666;">Inserisci la tua email per accedere alla tua lista personalizzata.</p>
-    <input id="emailField" type="email" placeholder="esempio@email.com">
-    <button class="btn" onclick="login()">Entra nella Lista</button>
+    <input id="emailField" type="email" placeholder="La tua email">
+    <button class="btn" onclick="login()">Entra</button>
   </div>
 
-  <!-- 📋 APP -->
   <div id="appBox">
     <h1>🛒 Lista Spesa</h1>
     <div class="card">
-      <div id="lista">Caricamento in corso...</div>
+      <div id="lista">Caricamento...</div>
       <div style="margin-top: 20px;">
-        <button class="btn" style="background: #ff9500;" onclick="svuotaLista()">Svuota tutta la lista</button>
+        <button class="btn" style="background: #ff9500;" onclick="svuotaLista()">Svuota tutto</button>
       </div>
     </div>
-    <button class="btn" style="background: #8e8e93; margin-top: 10px; font-size: 12px;" onclick="logout()">Esci (cambia email)</button>
   </div>
 </div>
 
-<!-- TAB BAR -->
 <div class="tab-bar">
-  <a href="index.html" class="tab-item active"><span class="tab-icon">🛒</span>Lista</a>
-  <a href="prodotti.html" class="tab-item"><span class="tab-icon">🧾</span>Prodotti</a>
+  <a href="index.html" class="tab-item active">🛒 Lista</a>
+  <a href="prodotti.html" class="tab-item">🧾 Prodotti</a>
 </div>
 
 <script>
 const SUPABASE_URL = "https://eejdpophfxsrqdvsucye.supabase.co";
 const SUPABASE_KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
-
-// Recuperiamo l'email salvata localmente
 let userEmail = localStorage.getItem("user-email");
 
-/* 🔐 LOGIN: Salva solo localmente, non invia email */
 function login() {
   const email = document.getElementById("emailField").value.trim();
   if (email.includes("@")) {
     localStorage.setItem("user-email", email);
     userEmail = email;
-    mostraApp();
-  } else {
-    alert("Inserisci un indirizzo email valido.");
+    location.reload();
   }
 }
 
-function logout() {
-  localStorage.removeItem("user-email");
-  location.reload();
+function showToast(text) {
+  const t = document.getElementById("toast");
+  t.innerText = text;
+  t.style.display = "block";
+  setTimeout(() => { t.style.display = "none"; }, 1500);
 }
 
-function mostraApp() {
-  document.getElementById("loginBox").style.display = "none";
-  document.getElementById("appBox").style.display = "block";
-  caricaLista();
-}
-
-/* 📋 CARICA E ORDINA ALFABETICAMENTE */
 async function caricaLista() {
   try {
-    // 1. Prendi i nomi dei prodotti
-    const resProd = await fetch(`${SUPABASE_URL}/rest/v1/prodotti?select=*`, {
-      headers: { "apikey": SUPABASE_KEY }
-    });
+    const [resProd, resLista] = await Promise.all([
+      fetch(`${SUPABASE_URL}/rest/v1/prodotti?select=*`, { headers: { "apikey": SUPABASE_KEY } }),
+      fetch(`${SUPABASE_URL}/rest/v1/lista_spesa?select=*`, { headers: { "apikey": SUPABASE_KEY } })
+    ]);
+
     const prodotti = await resProd.json();
+    let listaRaw = await resLista.json();
 
-    // 2. Prendi gli elementi della lista spesa
-    const resLista = await fetch(`${SUPABASE_URL}/rest/v1/lista_spesa?select=*`, {
-      headers: { "apikey": SUPABASE_KEY }
+    // Rimuoviamo duplicati (se per errore ci sono due ID uguali nel DB)
+    const uniqueIds = new Set();
+    let lista = listaRaw.filter(item => {
+      if (uniqueIds.has(item.prodotto_id)) return false;
+      uniqueIds.add(item.prodotto_id);
+      return true;
     });
-    let lista = await resLista.json();
 
-    const div = document.getElementById("lista");
-    div.innerHTML = "";
-
-    // Arricchiamo l'array lista con il nome del prodotto per poterlo ordinare
     lista = lista.map(item => {
       const p = prodotti.find(prod => prod.id === item.prodotto_id);
       return { ...item, nomeProdotto: p ? p.nome : "Sconosciuto" };
     });
 
-    // --- ORDINAMENTO ALFABETICO ---
+    // Ordine alfabetico
     lista.sort((a, b) => a.nomeProdotto.localeCompare(b.nomeProdotto));
 
-    if (lista.length === 0) {
-      div.innerHTML = "<p style='text-align:center; color: #8e8e93;'>Nessun elemento in lista.</p>";
-      return;
-    }
+    const div = document.getElementById("lista");
+    div.innerHTML = lista.length ? "" : "<p style='text-align:center;'>Lista vuota</p>";
 
     lista.forEach(item => {
       const el = document.createElement("div");
       el.className = "item";
       el.innerHTML = `
-        <span style="${item.completato ? 'text-decoration:line-through; opacity:0.5' : ''}">
-          ${item.nomeProdotto}
-        </span>
+        <span style="${item.completato ? 'text-decoration:line-through; opacity:0.5' : ''}">${item.nomeProdotto}</span>
         <div>
           <button class="btn-small ${item.completato ? 'restore' : 'check'}" onclick="toggle(${item.id}, ${!item.completato})">
             ${item.completato ? '↩' : '✔'}
@@ -132,42 +122,39 @@ async function caricaLista() {
       `;
       div.appendChild(el);
     });
-  } catch (err) {
-    div.innerHTML = "Errore di connessione.";
-  }
+  } catch (e) { console.error(e); }
 }
 
-/* Operazioni DB (Toggle, Remove, Svuota) */
 async function toggle(id, value) {
-  await fetch(`${SUPABASE_URL}/rest/v1/lista_spesa?id=eq.${id}`, {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/lista_spesa?id=eq.${id}`, {
     method: "PATCH",
-    headers: { "apikey": SUPABASE_KEY, "Content-Type": "application/json" },
+    headers: { "apikey": SUPABASE_KEY, "Content-Type": "application/json", "Prefer": "return=minimal" },
     body: JSON.stringify({ completato: value })
   });
-  caricaLista();
+  if(res.ok) caricaLista();
 }
 
 async function removeItem(id) {
-  await fetch(`${SUPABASE_URL}/rest/v1/lista_spesa?id=eq.${id}`, {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/lista_spesa?id=eq.${id}`, {
+    method: "DELETE",
+    headers: { "apikey": SUPABASE_KEY }
+  });
+  if(res.ok) caricaLista();
+}
+
+async function svuotaLista() {
+  if (!confirm("Cancello tutto?")) return;
+  await fetch(`${SUPABASE_URL}/rest/v1/lista_spesa?select=*`, {
     method: "DELETE",
     headers: { "apikey": SUPABASE_KEY }
   });
   caricaLista();
 }
 
-async function svuotaLista() {
-  if (confirm("Vuoi cancellare tutto?")) {
-    await fetch(`${SUPABASE_URL}/rest/v1/lista_spesa?select=*`, {
-      method: "DELETE",
-      headers: { "apikey": SUPABASE_KEY }
-    });
-    caricaLista();
-  }
-}
-
-// Controllo iniziale
 if (userEmail) {
-  mostraApp();
+  document.getElementById("loginBox").style.display = "none";
+  document.getElementById("appBox").style.display = "block";
+  caricaLista();
 }
 </script>
 </body>
