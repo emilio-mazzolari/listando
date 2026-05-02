@@ -7,25 +7,19 @@
   <style>
     body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #f2f2f7; display: flex; justify-content: center; }
     .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 90px; }
+    .header-box { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .btn-logout { background: #d1d1d6; color: #3a3a3c; border: none; padding: 6px 12px; border-radius: 8px; font-size: 12px; cursor: pointer; font-weight: 600; }
     .card { background: white; border-radius: 16px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-    h1 { text-align: center; color: #1c1c1e; }
+    h1 { margin: 0; color: #1c1c1e; font-size: 24px; }
     .btn { width: 100%; padding: 12px; border-radius: 12px; border: none; cursor: pointer; color: white; font-weight: 600; font-size: 16px; }
     .btn-orange { background-color: #ffb347; }
-    
     .item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; gap: 8px; }
-    
     .testo-prodotto { flex-grow: 1; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
     .testo-prodotto.barrato { text-decoration: line-through; color: #8e8e93; opacity: 0.5; }
-
-    .btn-small { 
-      flex-shrink: 0; border: none; border-radius: 8px; width: 32px; height: 32px; 
-      cursor: pointer; margin-left: 4px; font-size: 14px; 
-      display: inline-flex; align-items: center; justify-content: center;
-    }
+    .btn-small { flex-shrink: 0; border: none; border-radius: 8px; width: 32px; height: 32px; cursor: pointer; margin-left: 4px; font-size: 14px; display: inline-flex; align-items: center; justify-content: center; }
     .check { background-color: #77dd77; color: white; }
     .restore { background-color: #d1d1d6; color: #3a3a3c; } 
     .delete { background-color: #ff6961; color: white; }
-    
     #toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); padding: 12px 25px; border-radius: 25px; color: white; font-weight: bold; display: none; z-index: 1000; }
     .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 65px; background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); border-top: 1px solid #ddd; display: flex; justify-content: space-around; align-items: center; }
     .tab-item { flex: 1; text-align: center; font-size: 12px; color: #8e8e93; text-decoration: none; }
@@ -34,7 +28,10 @@
 <body>
 <div id="toast"></div>
 <div class="app">
-  <h1>🛒 Lista Spesa</h1>
+  <div class="header-box">
+    <h1>🛒 Lista</h1>
+    <button class="btn-logout" onclick="logout()">Esci</button>
+  </div>
   <div class="card">
     <div id="lista">Caricamento...</div>
     <button class="btn btn-orange" style="margin-top:20px;" onclick="svuotaLista()">Svuota tutto</button>
@@ -48,30 +45,40 @@
 const URL = "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1";
 const KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
 const headers = { "apikey": KEY, "Content-Type": "application/json" };
+
+// Controllo Accesso
+const userEmail = localStorage.getItem('userEmail');
+if (!userEmail) { window.location.href = 'login.html'; } // Reindirizza se non loggato
+
+function logout() {
+  localStorage.removeItem('userEmail');
+  window.location.href = 'login.html';
+}
+
 function showToast(txt, color) { const t = document.getElementById("toast"); t.innerText = txt; t.style.background = color; t.style.display = "block"; setTimeout(() => t.style.display = "none", 1500); }
+
 async function caricaLista() {
   try {
-    const [resP, resL] = await Promise.all([fetch(`${URL}/prodotti?select=*`, { headers: { "apikey": KEY } }), fetch(`${URL}/lista_spesa?select=*`, { headers: { "apikey": KEY } })]);
-    const prodotti = await resP.json(); const listaRaw = await resL.json();
+    const [resP, resL] = await Promise.all([
+      fetch(`${URL}/prodotti?select=*&email=eq.${userEmail}`, { headers: { "apikey": KEY } }),
+      fetch(`${URL}/lista_spesa?select=*,prodotti!inner(*)&prodotti.email=eq.${userEmail}`, { headers: { "apikey": KEY } })
+    ]);
+    const prodotti = await resP.json();
+    const listaRaw = await resL.json();
+
     const div = document.getElementById("lista"); div.innerHTML = "";
-    const visti = new Set(); let listaUnica = [];
+    if (listaRaw.length === 0) { div.innerHTML = "<p style='text-align:center;'>Vuota.</p>"; return; }
+
     listaRaw.forEach(item => {
-      if (!visti.has(item.prodotto_id)) {
-        visti.add(item.prodotto_id); const p = prodotti.find(prod => prod.id === item.prodotto_id);
-        listaUnica.push({ ...item, nome: p ? p.nome : "Sconosciuto" });
-      } else { fetch(`${URL}/lista_spesa?id=eq.${item.id}`, { method: "DELETE", headers: { "apikey": KEY } }); }
-    });
-    listaUnica.sort((a, b) => a.nome.localeCompare(b.nome));
-    if (listaUnica.length === 0) { div.innerHTML = "<p style='text-align:center;'>Vuota.</p>"; return; }
-    listaUnica.forEach(item => {
       const riga = document.createElement("div"); riga.className = "item";
-      riga.innerHTML = `<span class="testo-prodotto ${item.completato ? 'barrato' : ''}">${item.nome}</span>
+      riga.innerHTML = `<span class="testo-prodotto ${item.completato ? 'barrato' : ''}">${item.prodotti.nome}</span>
         <div>${item.completato ? `<button class="btn-small restore" onclick="cambiaStato(${item.id}, false)">↩</button>` : `<button class="btn-small check" onclick="cambiaStato(${item.id}, true)">✔</button>`}
         <button class="btn-small delete" onclick="eliminaItem(${item.id})">✖</button></div>`;
       div.appendChild(riga);
     });
   } catch (e) { console.error(e); }
 }
+
 async function cambiaStato(id, stato) { await fetch(`${URL}/lista_spesa?id=eq.${id}`, { method: "PATCH", headers, body: JSON.stringify({ completato: stato }) }); caricaLista(); }
 async function eliminaItem(id) { const res = await fetch(`${URL}/lista_spesa?id=eq.${id}`, { method: "DELETE", headers: { "apikey": KEY } }); if (res.ok) { showToast("Rimosso", "#ff6961"); caricaLista(); } }
 async function svuotaLista() { if (!confirm("Svuotare tutto?")) return; await fetch(`${URL}/lista_spesa?id=gt.0`, { method: "DELETE", headers: { "apikey": KEY } }); showToast("Svuotata", "#ffb347"); caricaLista(); }

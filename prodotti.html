@@ -7,23 +7,19 @@
   <style>
     body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #f2f2f7; display: flex; justify-content: center; }
     .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 90px; }
+    .header-box { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .btn-logout { background: #d1d1d6; color: #3a3a3c; border: none; padding: 6px 12px; border-radius: 8px; font-size: 12px; cursor: pointer; font-weight: 600; }
     .card { background: white; border-radius: 16px; padding: 15px; margin-bottom: 15px; }
+    h1 { margin: 0; font-size: 24px; }
     input { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #ddd; margin-bottom: 10px; box-sizing: border-box; font-size: 16px; }
     .btn-main { width: 100%; padding: 12px; border-radius: 12px; border: none; cursor: pointer; background: #aec6cf; color: white; font-weight: 600; }
-    
     .item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #eee; gap: 5px; }
     .item span { flex-grow: 1; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
     .item div { display: flex; flex-shrink: 0; }
-
-    .btn-small { 
-      flex-shrink: 0; border: none; border-radius: 8px; width: 32px; height: 32px; 
-      cursor: pointer; margin-left: 4px; font-size: 14px; 
-      display: inline-flex; align-items: center; justify-content: center;
-    }
+    .btn-small { flex-shrink: 0; border: none; border-radius: 8px; width: 32px; height: 32px; cursor: pointer; margin-left: 4px; font-size: 14px; display: inline-flex; align-items: center; justify-content: center; }
     .plus { background-color: #779ecb; color: white; } 
     .edit { background-color: #fdfd96; color: #3a3a3c; } 
     .delete { background-color: #add8e6; color: #1c1c1e; }
-
     #toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); padding: 12px 25px; border-radius: 25px; color: white; font-weight: bold; display: none; z-index: 1000; }
     .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 65px; background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); border-top: 1px solid #ddd; display: flex; justify-content: space-around; align-items: center; }
     .tab-item { flex: 1; text-align: center; font-size: 12px; color: #8e8e93; text-decoration: none; }
@@ -32,7 +28,10 @@
 <body>
 <div id="toast"></div>
 <div class="app">
-  <h1>📦 Prodotti</h1>
+  <div class="header-box">
+    <h1>📦 Prodotti</h1>
+    <button class="btn-logout" onclick="logout()">Esci</button>
+  </div>
   <div class="card">
     <input id="nomeProdotto" placeholder="Nuovo prodotto">
     <button class="btn-main" onclick="aggiungi()">Salva Prodotto</button>
@@ -46,10 +45,20 @@
 <script>
 const URL = "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1";
 const KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
+const userEmail = localStorage.getItem('userEmail');
+
+if (!userEmail) { window.location.href = 'login.html'; }
+
+function logout() {
+  localStorage.removeItem('userEmail');
+  window.location.href = 'login.html';
+}
+
 function showToast(txt, color) { const t = document.getElementById("toast"); t.innerText = txt; t.style.background = color; t.style.display = "block"; setTimeout(() => t.style.display = "none", 1500); }
+
 async function carica() {
   try {
-    const res = await fetch(URL + "/prodotti?select=*", { headers: { "apikey": KEY } });
+    const res = await fetch(`${URL}/prodotti?select=*&email=eq.${userEmail}`, { headers: { "apikey": KEY } });
     let data = await res.json(); data.sort((a, b) => a.nome.localeCompare(b.nome));
     const div = document.getElementById("listaProdotti"); div.innerHTML = "";
     data.forEach(p => {
@@ -59,16 +68,16 @@ async function carica() {
     });
   } catch(e) { console.error(e); }
 }
+
 async function aggiungi() {
   const nome = document.getElementById("nomeProdotto").value.trim(); if (!nome) return;
-  const res = await fetch(URL + "/prodotti", { method: "POST", headers: { "apikey": KEY, "Content-Type": "application/json" }, body: JSON.stringify({ nome }) });
+  const res = await fetch(URL + "/prodotti", { method: "POST", headers: { "apikey": KEY, "Content-Type": "application/json" }, body: JSON.stringify({ nome, email: userEmail }) });
   if (res.ok) { showToast("Salvato!", "#aec6cf"); document.getElementById("nomeProdotto").value = ""; carica(); }
 }
+
 async function elimina(id) { if(!confirm("Eliminare?")) return; await fetch(URL + "/prodotti?id=eq." + id, { method: "DELETE", headers: { "apikey": KEY } }); carica(); }
 async function modifica(id) { const nuovo = prompt("Nuovo nome:"); if (!nuovo) return; await fetch(URL + "/prodotti?id=eq." + id, { method: "PATCH", headers: { "apikey": KEY, "Content-Type": "application/json" }, body: JSON.stringify({ nome: nuovo }) }); carica(); }
 async function aggiungiLista(id) {
-  const check = await fetch(URL + "/lista_spesa?prodotto_id=eq." + id, { headers: { "apikey": KEY } }); const esistenti = await check.json();
-  if (esistenti.length > 0) { showToast("Già in lista!", "#ff6961"); return; }
   const res = await fetch(URL + "/lista_spesa", { method: "POST", headers: { "apikey": KEY, "Content-Type": "application/json" }, body: JSON.stringify({ prodotto_id: id, completato: false }) });
   if (res.ok) showToast("Inserito!", "#77dd77");
 }
