@@ -9,7 +9,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <style>
         body { margin: 0; font-family: -apple-system, sans-serif; background: #f2f2f7; display: flex; justify-content: center; }
-        .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 90px; }
+        .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 120px; }
         .card { background: white; border-radius: 16px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         .header-box { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
         input { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #ddd; margin-bottom: 10px; box-sizing: border-box; font-size: 16px; }
@@ -19,6 +19,13 @@
         .plus { background-color: #779ecb; color: white; }
         .edit { background-color: #fdfd96; color: #3a3a3c; } 
         .delete { background-color: #add8e6; color: #1c1c1e; }
+        
+        /* Nuovi stili per il ripristino */
+        .hidden-section { margin-top: 30px; border-top: 2px dashed #ccc; padding-top: 15px; }
+        .hidden-title { font-size: 14px; color: #8e8e93; text-transform: uppercase; margin-bottom: 10px; }
+        .hidden-item { opacity: 0.6; }
+        .btn-restore { background-color: #77dd77; color: white; border: none; border-radius: 8px; padding: 6px 12px; cursor: pointer; font-size: 12px; font-weight: bold; }
+
         #toast { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 15px 30px; border-radius: 12px; color: white; font-weight: bold; display: none; z-index: 2000; text-align: center; min-width: 200px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
         .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 65px; background: white; border-top: 1px solid #ddd; display: flex; justify-content: space-around; align-items: center; }
         .tab-item { flex: 1; text-align: center; font-size: 12px; color: #8e8e93; text-decoration: none; }
@@ -33,7 +40,16 @@
             <input id="nomeProdotto" placeholder="Nome nuovo prodotto...">
             <button class="btn-main" onclick="aggiungi()">SALVA NELL'ELENCO</button>
         </div>
-        <div class="card"><div id="listaProdotti">Caricamento...</div></div>
+        
+        <div class="card">
+            <div id="listaProdotti">Caricamento...</div>
+        </div>
+
+        <!-- Sezione per recuperare i prodotti rimossi -->
+        <div id="sezioneNascosti" class="hidden-section" style="display:none;">
+            <div class="hidden-title">Prodotti rimossi (Predefiniti)</div>
+            <div id="listaNascosti"></div>
+        </div>
     </div>
 
     <div class="tab-bar">
@@ -58,28 +74,28 @@
 
         async function carica() {
             try {
-                // 1. Carico prodotti nascosti (con gestione errore se tabella vuota)
+                // 1. Carico ID dei prodotti nascosti
                 const resNascosti = await fetch(`${URL}/prodotti_nascosti?email_utente=eq.${userEmail}`, { headers });
                 const nascosti = await resNascosti.json() || [];
                 const idsNascosti = nascosti.map(n => n.prodotto_id);
 
-                // 2. Carico i prodotti
+                // 2. Carico tutti i prodotti (Personali + Default)
                 const res = await fetch(`${URL}/prodotti?select=*&or=(email.is.null,email.eq.${userEmail})`, { headers });
-                let data = await res.json();
-                
-                if (!Array.isArray(data)) {
-                    document.getElementById("listaProdotti").innerHTML = "Errore caricamento dati.";
-                    return;
-                }
+                let allData = await res.json();
+                if (!Array.isArray(allData)) return;
 
-                // 3. Filtro i prodotti
-                data = data.filter(p => !idsNascosti.includes(p.id));
+                // Divido i prodotti
+                const visibili = allData.filter(p => !idsNascosti.includes(p.id));
+                const daRipristinare = allData.filter(p => idsNascosti.includes(p.id));
 
-                data.sort((a, b) => a.nome.localeCompare(b.nome));
+                // Ordine alfabetico
+                visibili.sort((a, b) => a.nome.localeCompare(b.nome));
+                daRipristinare.sort((a, b) => a.nome.localeCompare(b.nome));
+
+                // Render Visibili
                 const div = document.getElementById("listaProdotti");
-                div.innerHTML = data.length ? "" : "Nessun prodotto trovato.";
-                
-                data.forEach(p => {
+                div.innerHTML = visibili.length ? "" : "Nessun prodotto trovato.";
+                visibili.forEach(p => {
                     const riga = document.createElement("div"); 
                     riga.className = "item";
                     riga.innerHTML = `<span>${p.nome}</span>
@@ -90,9 +106,28 @@
                         </div>`;
                     div.appendChild(riga);
                 });
+
+                // Render Nascosti (per il ripristino)
+                const divNascosti = document.getElementById("listaNascosti");
+                const sezioneNascosti = document.getElementById("sezioneNascosti");
+                
+                if (daRipristinare.length > 0) {
+                    sezioneNascosti.style.display = "block";
+                    divNascosti.innerHTML = "";
+                    daRipristinare.forEach(p => {
+                        const riga = document.createElement("div");
+                        riga.className = "item hidden-item";
+                        riga.innerHTML = `<span>${p.nome}</span>
+                            <button class="btn-restore" onclick="ripristina(${p.id})">RIPRISTINA</button>`;
+                        divNascosti.appendChild(riga);
+                    });
+                } else {
+                    sezioneNascosti.style.display = "none";
+                }
+
             } catch(e) { 
                 console.error(e);
-                document.getElementById("listaProdotti").innerHTML = "Errore di connessione.";
+                document.getElementById("listaProdotti").innerHTML = "Errore di caricamento.";
             }
         }
 
@@ -101,10 +136,8 @@
             const nomeInserito = n.value.trim();
             if (!nomeInserito) return;
 
-            // Controllo Duplicati
             const check = await fetch(`${URL}/prodotti?nome=ilike.${nomeInserito}&or=(email.is.null,email.eq.${userEmail})`, { headers });
             const esistenti = await check.json();
-
             if (esistenti && esistenti.length > 0) {
                 showToast("Già presente in elenco", "#ffb347");
                 return;
@@ -124,9 +157,9 @@
                     method: "POST", headers,
                     body: JSON.stringify({ prodotto_id: id, email_utente: userEmail })
                 });
-                showToast("Nascosto dai predefiniti", "#aec6cf");
+                showToast("Nascosto!", "#aec6cf");
             } else {
-                if (confirm("Vuoi eliminare definitivamente questo prodotto?")) {
+                if (confirm("Eliminare definitivamente questo prodotto?")) {
                     await fetch(`${URL}/prodotti?id=eq.${id}`, { method: "DELETE", headers });
                     showToast("Eliminato", "#ff6961");
                 }
@@ -134,19 +167,26 @@
             carica();
         }
 
+        async function ripristina(id) {
+            await fetch(`${URL}/prodotti_nascosti?prodotto_id=eq.${id}&email_utente=eq.${userEmail}`, {
+                method: "DELETE", headers
+            });
+            showToast("Ripristinato!", "#77dd77");
+            carica();
+        }
+
         async function mettiInLista(id) {
             const check = await fetch(`${URL}/lista_spesa?prodotto_id=eq.${id}&email_utente=eq.${userEmail}`, { headers });
             const esistenti = await check.json();
             if (esistenti && esistenti.length > 0) { 
-                showToast("Già in lista spesa", "#ffb347"); 
+                showToast("Già in lista", "#ffb347"); 
                 return; 
             }
-            
             await fetch(`${URL}/lista_spesa`, { 
                 method: "POST", headers, 
                 body: JSON.stringify({ prodotto_id: id, email_utente: userEmail, completato: false }) 
             });
-            showToast("Aggiunto!", "#77dd77");
+            showToast("Aggiunto alla spesa!", "#77dd77");
         }
 
         async function modifica(id, vecchioNome) {
@@ -157,19 +197,10 @@
             const p = await res.json();
 
             if (p[0].email === null) {
-                await fetch(`${URL}/prodotti`, { 
-                    method: "POST", headers, 
-                    body: JSON.stringify({ nome: nuovoNome, email: userEmail }) 
-                });
-                await fetch(`${URL}/prodotti_nascosti`, {
-                    method: "POST", headers,
-                    body: JSON.stringify({ prodotto_id: id, email_utente: userEmail })
-                });
+                await fetch(`${URL}/prodotti`, { method: "POST", headers, body: JSON.stringify({ nome: nuovoNome, email: userEmail }) });
+                await fetch(`${URL}/prodotti_nascosti`, { method: "POST", headers, body: JSON.stringify({ prodotto_id: id, email_utente: userEmail }) });
             } else {
-                await fetch(`${URL}/prodotti?id=eq.${id}`, { 
-                    method: "PATCH", headers, 
-                    body: JSON.stringify({ nome: nuovoNome }) 
-                });
+                await fetch(`${URL}/prodotti?id=eq.${id}`, { method: "PATCH", headers, body: JSON.stringify({ nome: nuovoNome }) });
             }
             carica();
         }
