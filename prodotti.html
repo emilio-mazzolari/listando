@@ -25,16 +25,24 @@
         .hidden-item { opacity: 0.6; }
         .btn-restore { background-color: #77dd77; color: white; border: none; border-radius: 8px; padding: 6px 12px; cursor: pointer; font-size: 12px; font-weight: bold; }
 
-        #toast { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 15px 30px; border-radius: 12px; color: white; font-weight: bold; display: none; z-index: 2000; text-align: center; min-width: 200px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
-        .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 65px; background: white; border-top: 1px solid #ddd; display: flex; justify-content: space-around; align-items: center; }
-        .tab-item { flex: 1; text-align: center; font-size: 12px; color: #8e8e93; text-decoration: none; }
-        .tab-active { color: #5ac8fa; font-weight: bold; }
+        #toast { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 15px 30px; border-radius: 12px; color: white; font-weight: bold; display: none; z-index: 2000; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        
+        .tab-bar { 
+            position: fixed; bottom: 0; left: 0; right: 0; height: 70px; 
+            background: #aec6cf; border-top: 1px solid #99b3bc; 
+            display: flex; justify-content: space-around; align-items: center; 
+        }
+        .tab-item { 
+            flex: 1; text-align: center; font-size: 14px; color: black; 
+            text-decoration: none; text-transform: uppercase; font-weight: 500;
+        }
+        .tab-active { font-weight: 900; }
     </style>
 </head>
 <body>
     <div id="toast"></div>
     <div class="app">
-        <div class="header-box"><h1>📦 Prodotti</h1></div>
+        <div class="header-box"><h1>📦 PRODOTTI</h1></div>
         <div class="card">
             <input id="nomeProdotto" placeholder="Nome nuovo prodotto...">
             <button class="btn-main" onclick="aggiungi()">SALVA NELL'ELENCO</button>
@@ -51,9 +59,9 @@
     </div>
 
     <div class="tab-bar">
-        <a href="index.html" class="tab-item">🛒 Lista</a>
-        <a href="prodotti.html" class="tab-item tab-active">📦 Prodotti</a>
-        <a href="#" class="tab-item" onclick="logout()">🚪 Esci</a>
+        <a href="index.html" class="tab-item">🛒 LISTA</a>
+        <a href="prodotti.html" class="tab-item tab-active">📦 PRODOTTI</a>
+        <a href="#" class="tab-item" onclick="logout()">🚪 ESCI</a>
     </div>
 
     <script>
@@ -73,12 +81,10 @@
 
         async function carica() {
             try {
-                // 1. Carico prodotti nascosti dall'utente attuale
                 const resNascosti = await fetch(`${URL}/prodotti_nascosti?email_utente=eq.${userEmail}`, { headers });
                 const nascosti = await resNascosti.json() || [];
                 const idsNascosti = nascosti.map(n => n.prodotto_id);
 
-                // 2. Carico prodotti: Default (null) OR Emilio OR Utente attuale
                 const res = await fetch(`${URL}/prodotti?select=*&or=(email.is.null,email.eq.${adminEmail},email.eq.${userEmail})`, { headers });
                 let allData = await res.json();
                 if (!Array.isArray(allData)) return;
@@ -89,13 +95,11 @@
                 visibili.sort((a, b) => a.nome.localeCompare(b.nome));
                 daRipristinare.sort((a, b) => a.nome.localeCompare(b.nome));
 
-                // Render Visibili
                 const div = document.getElementById("listaProdotti");
                 div.innerHTML = visibili.length ? "" : "Nessun prodotto trovato.";
                 visibili.forEach(p => {
                     const riga = document.createElement("div"); 
                     riga.className = "item";
-                    // Passiamo l'email del proprietario alla funzione di rimozione
                     riga.innerHTML = `<span>${p.nome}</span>
                         <div style="display:flex;">
                             <button class="btn-small plus" onclick="mettiInLista(${p.id})">+</button>
@@ -105,7 +109,6 @@
                     div.appendChild(riga);
                 });
 
-                // Render Nascosti
                 const divNascosti = document.getElementById("listaNascosti");
                 const sezioneNascosti = document.getElementById("sezioneNascosti");
                 if (daRipristinare.length > 0) {
@@ -129,7 +132,6 @@
             const nomeInserito = n.value.trim();
             if (!nomeInserito) return;
 
-            // Cerco se esiste già tra i prodotti pubblici o dell'utente
             const check = await fetch(`${URL}/prodotti?nome=ilike.${nomeInserito}&or=(email.is.null,email.eq.${adminEmail},email.eq.${userEmail})`, { headers });
             const esistenti = await check.json();
 
@@ -158,12 +160,8 @@
         }
 
         async function gestisciRimozione(id, emailProprietario) {
-            // Un prodotto è "Pubblico" se email è null o è di Emilio
             const isPublic = (emailProprietario === 'null' || emailProprietario === adminEmail);
             
-            // Logica "Nascondi solo a me":
-            // Se il prodotto è pubblico (e io non sono Emilio) lo nascondo.
-            // Se sono Emilio, decido se nascondere o eliminare per tutti.
             if (isPublic && userEmail !== adminEmail) {
                 await fetch(`${URL}/prodotti_nascosti`, {
                     method: "POST", headers,
@@ -171,7 +169,6 @@
                 });
                 showToast("Nascosto dalla tua vista", "#aec6cf");
             } else {
-                // Se è un prodotto creato dall'utente o se Emilio sta gestendo i suoi
                 const scelta = confirm("Vuoi ELIMINARE PER TUTTI (OK) o solo NASCONDERE A TE (Annulla)?");
                 if (scelta) {
                     await fetch(`${URL}/prodotti?id=eq.${id}`, { method: "DELETE", headers });
@@ -214,7 +211,6 @@
             const p = await res.json();
             const emailProp = p[0].email;
 
-            // Se provo a modificare un prodotto pubblico non mio, ne creo una copia privata e nascondo l'originale
             if ((emailProp === null || emailProp === adminEmail) && userEmail !== adminEmail) {
                 await fetch(`${URL}/prodotti`, { method: "POST", headers, body: JSON.stringify({ nome: nuovoNome, email: userEmail }) });
                 await fetch(`${URL}/prodotti_nascosti`, { method: "POST", headers, body: JSON.stringify({ prodotto_id: id, email_utente: userEmail }) });
