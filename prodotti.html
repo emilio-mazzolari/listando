@@ -8,224 +8,176 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <style>
-        body { margin: 0; font-family: -apple-system, sans-serif; background: #f2f2f7; display: flex; justify-content: center; }
-        .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 120px; }
+        body { margin: 0; font-family: -apple-system, Helvetica, Arial, sans-serif; background: #f2f2f7; display: flex; justify-content: center; }
+        .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 90px; }
         .card { background: white; border-radius: 16px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         .header-box { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        input { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #ddd; margin-bottom: 10px; box-sizing: border-box; font-size: 16px; }
-        .btn-main { width: 100%; padding: 12px; border-radius: 12px; border: none; background: #aec6cf; color: white; font-weight: 600; cursor: pointer; }
-        .item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; }
-        .btn-small { border: none; border-radius: 8px; width: 32px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-left: 4px; font-size: 14px; }
-        .plus { background-color: #779ecb; color: white; }
-        .edit { background-color: #fdfd96; color: #3a3a3c; } 
-        .delete { background-color: #add8e6; color: #1c1c1e; }
         
-        .hidden-section { margin-top: 30px; border-top: 2px dashed #ccc; padding-top: 15px; }
-        .hidden-title { font-size: 14px; color: #8e8e93; text-transform: uppercase; margin-bottom: 10px; }
-        .hidden-item { opacity: 0.6; }
-        .btn-restore { background-color: #77dd77; color: white; border: none; border-radius: 8px; padding: 6px 12px; cursor: pointer; font-size: 12px; font-weight: bold; }
+        /* Lista Prodotti */
+        .item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee; }
+        .testo-prodotto { flex-grow: 1; font-size: 16px; color: #1c1c1e; font-weight: 600; }
+        
+        /* Bottoni Azione */
+        .btn-small { 
+            border: none; border-radius: 10px; width: 40px; height: 40px; 
+            cursor: pointer; margin-left: 8px; display: inline-flex; 
+            align-items: center; justify-content: center; 
+        }
+        .add { background-color: #aec6cf; } /* Grigio-azzurro */
+        .delete-btn { background-color: #ef4444; } /* Rosso pieno */
+        .icon { width: 20px; height: 20px; fill: none; stroke: white; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
 
-        #toast { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 15px 30px; border-radius: 12px; color: white; font-weight: bold; display: none; z-index: 2000; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
-        
+        /* Input Nuovo Prodotto */
+        .input-group { display: flex; gap: 10px; margin-bottom: 20px; }
+        input { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid #ddd; font-size: 16px; outline: none; }
+        .btn-main { padding: 12px 20px; border-radius: 12px; border: none; background: #aec6cf; color: white; font-weight: bold; cursor: pointer; }
+
+        /* Barra Navigazione */
         .tab-bar { 
             position: fixed; bottom: 0; left: 0; right: 0; height: 70px; 
             background: #aec6cf; border-top: 1px solid #99b3bc; 
-            display: flex; justify-content: space-around; align-items: center; 
+            display: flex; justify-content: space-around; align-items: center; z-index: 1000;
         }
-        .tab-item { 
-            flex: 1; text-align: center; font-size: 14px; color: black; 
-            text-decoration: none; text-transform: uppercase; font-weight: 500;
-        }
+        .tab-item { flex: 1; text-align: center; font-size: 14px; color: black; text-decoration: none; text-transform: uppercase; font-weight: 600; }
         .tab-active { font-weight: 900; }
+
+        /* POPUP PERSONALIZZATO (MODAL) */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 2000;
+        }
+        .modal-box {
+            background: white; padding: 25px; border-radius: 20px; width: 85%; max-width: 350px;
+            text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+        .modal-box h3 { margin-top: 0; color: #1c1c1e; font-size: 18px; margin-bottom: 20px; }
+        .btn-modal {
+            width: 100%; padding: 15px; margin-top: 10px; border-radius: 12px; border: none;
+            background: #aec6cf; color: white; font-weight: bold; cursor: pointer; font-size: 16px;
+        }
+        .btn-cancel { background: #e5e5ea; color: #8e8e93; margin-top: 15px; }
     </style>
 </head>
 <body>
-    <div id="toast"></div>
+
     <div class="app">
-        <div class="header-box"><h1>📦 Elenco prodotti</h1></div>
-        <div class="card">
-            <input id="nomeProdotto" placeholder="Nome nuovo prodotto...">
-            <button class="btn-main" onclick="aggiungi()">SALVA NELL'ELENCO</button>
-        </div>
+        <div class="header-box"><h1 style="margin:0;">📦 Prodotti</h1></div>
         
-        <div class="card">
-            <div id="listaProdotti">Caricamento...</div>
+        <div class="input-group">
+            <input type="text" id="nuovoProdotto" placeholder="Nome nuovo prodotto...">
+            <button class="btn-main" onclick="aggiungiProdotto()">AGGIUNGI</button>
         </div>
 
-        <div id="sezioneNascosti" class="hidden-section" style="display:none;">
-            <div class="hidden-title">Prodotti rimossi</div>
-            <div id="listaNascosti"></div>
-        </div>
+        <div class="card" id="listaProdotti">Caricamento...</div>
     </div>
 
+    <!-- Barra Navigazione -->
     <div class="tab-bar">
         <a href="index.html" class="tab-item">🛒 LISTA</a>
         <a href="prodotti.html" class="tab-item tab-active">📦 PRODOTTI</a>
         <a href="#" class="tab-item" onclick="logout()">🚪 ESCI</a>
     </div>
 
+    <!-- Popup Personalizzato -->
+    <div id="deleteModal" class="modal-overlay">
+        <div class="modal-box">
+            <h3>Cosa vuoi fare?</h3>
+            <button class="btn-modal" id="btnTutti">ELIMINA PER TUTTI</button>
+            <button class="btn-modal" id="btnSoloMe">NASCONDI SOLO A ME</button>
+            <button class="btn-modal btn-cancel" onclick="chiudiModal()">ANNULLA</button>
+        </div>
+    </div>
+
     <script>
         const URL = "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1";
         const KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
-        const headers = { "apikey": KEY, "Content-Type": "application/json", "Prefer": "return=representation" };
+        const headers = { "apikey": KEY, "Content-Type": "application/json" };
         const userEmail = localStorage.getItem('userEmail');
-        const adminEmail = "emilio.mazzolari.shop@gmail.com";
+
+        let idDaRimuovere = null;
 
         if (!userEmail) { window.location.href = 'login.html'; }
 
-        function showToast(text, color) {
-            const t = document.getElementById("toast");
-            t.innerText = text; t.style.backgroundColor = color; t.style.display = 'block';
-            setTimeout(() => { t.style.display = 'none'; }, 1500);
-        }
-
-        async function carica() {
+        async function caricaProdotti() {
             try {
-                const resNascosti = await fetch(`${URL}/prodotti_nascosti?email_utente=eq.${userEmail}`, { headers });
-                const nascosti = await resNascosti.json() || [];
-                const idsNascosti = nascosti.map(n => n.prodotto_id);
-
-                const res = await fetch(`${URL}/prodotti?select=*&or=(email.is.null,email.eq.${adminEmail},email.eq.${userEmail})`, { headers });
-                let allData = await res.json();
-                if (!Array.isArray(allData)) return;
-
-                const visibili = allData.filter(p => !idsNascosti.includes(p.id));
-                const daRipristinare = allData.filter(p => idsNascosti.includes(p.id));
-
-                visibili.sort((a, b) => a.nome.localeCompare(b.nome));
-                daRipristinare.sort((a, b) => a.nome.localeCompare(b.nome));
-
+                // Carica solo i prodotti che non sono stati nascosti dall'utente
+                const res = await fetch(`${URL}/prodotti?select=*&or=(visibile.eq.true,email_utente.neq.${userEmail})&order=nome.asc`, { headers });
+                const data = await res.json();
                 const div = document.getElementById("listaProdotti");
-                div.innerHTML = visibili.length ? "" : "Nessun prodotto trovato.";
-                visibili.forEach(p => {
-                    const riga = document.createElement("div"); 
+                div.innerHTML = "";
+                
+                data.forEach(p => {
+                    const riga = document.createElement("div");
                     riga.className = "item";
-                    riga.innerHTML = `<span>${p.nome}</span>
+                    riga.innerHTML = `
+                        <span class="testo-prodotto">${p.nome}</span>
                         <div style="display:flex;">
-                            <button class="btn-small plus" onclick="mettiInLista(${p.id})">+</button>
-                            <button class="btn-small edit" onclick="modifica(${p.id}, '${p.nome.replace(/'/g, "\\'")}')">✏️</button>
-                            <button class="btn-small delete" onclick="gestisciRimozione(${p.id}, '${p.email}')">🗑</button>
-                        </div>`;
+                            <button class="btn-small add" onclick="mettiInLista(${p.id})">
+                                <svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+                            </button>
+                            <button class="btn-small delete-btn" onclick="apriModalRimuovi(${p.id})">
+                                <svg class="icon" viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+                            </button>
+                        </div>
+                    `;
                     div.appendChild(riga);
                 });
-
-                const divNascosti = document.getElementById("listaNascosti");
-                const sezioneNascosti = document.getElementById("sezioneNascosti");
-                if (daRipristinare.length > 0) {
-                    sezioneNascosti.style.display = "block";
-                    divNascosti.innerHTML = "";
-                    daRipristinare.forEach(p => {
-                        const riga = document.createElement("div");
-                        riga.className = "item hidden-item";
-                        riga.innerHTML = `<span>${p.nome}</span>
-                            <button class="btn-restore" onclick="ripristina(${p.id})">RIPRISTINA</button>`;
-                        divNascosti.appendChild(riga);
-                    });
-                } else {
-                    sezioneNascosti.style.display = "none";
-                }
-            } catch(e) { console.error(e); }
+            } catch (e) { console.error(e); }
         }
 
-        async function aggiungi() {
-            const n = document.getElementById("nomeProdotto");
-            const nomeInserito = n.value.trim();
-            if (!nomeInserito) return;
-
-            const check = await fetch(`${URL}/prodotti?nome=ilike.${nomeInserito}&or=(email.is.null,email.eq.${adminEmail},email.eq.${userEmail})`, { headers });
-            const esistenti = await check.json();
-
-            if (esistenti && esistenti.length > 0) {
-                const prodId = esistenti[0].id;
-                const checkNascosto = await fetch(`${URL}/prodotti_nascosti?prodotto_id=eq.${prodId}&email_utente=eq.${userEmail}`, { headers });
-                const nascosto = await checkNascosto.json();
-
-                if (nascosto && nascosto.length > 0) {
-                    await ripristina(prodId, true);
-                    showToast("Prodotto ripristinato!", "#77dd77");
-                    n.value = "";
-                    return;
-                } else {
-                    showToast("Già presente in elenco", "#ffb347");
-                    return;
-                }
-            }
-
-            await fetch(`${URL}/prodotti`, { 
-                method: "POST", headers, 
-                body: JSON.stringify({ nome: nomeInserito, email: userEmail }) 
+        async function aggiungiProdotto() {
+            const nome = document.getElementById("nuovoProdotto").value.trim();
+            if (!nome) return;
+            await fetch(`${URL}/prodotti`, {
+                method: "POST", headers,
+                body: JSON.stringify({ nome: nome, email_utente: userEmail, visibile: true })
             });
-            n.value = ""; 
-            carica();
+            document.getElementById("nuovoProdotto").value = "";
+            caricaProdotti();
         }
 
-        async function gestisciRimozione(id, emailProprietario) {
-            const isPublic = (emailProprietario === 'null' || emailProprietario === adminEmail);
-            
-            if (isPublic && userEmail !== adminEmail) {
-                await fetch(`${URL}/prodotti_nascosti`, {
-                    method: "POST", headers,
-                    body: JSON.stringify({ prodotto_id: id, email_utente: userEmail })
-                });
-                showToast("Nascosto dalla tua vista", "#aec6cf");
-            } else {
-                const scelta = confirm("Vuoi ELIMINARE PER TUTTI (OK) o solo NASCONDERE A TE (Annulla)?");
-                if (scelta) {
-                    await fetch(`${URL}/prodotti?id=eq.${id}`, { method: "DELETE", headers });
-                    showToast("Eliminato definitivamente", "#ff6961");
-                } else {
-                    await fetch(`${URL}/prodotti_nascosti`, {
-                        method: "POST", headers,
-                        body: JSON.stringify({ prodotto_id: id, email_utente: userEmail })
-                    });
-                    showToast("Nascosto dalla tua vista", "#aec6cf");
-                }
-            }
-            carica();
-        }
-
-        async function ripristina(id, silent = false) {
-            await fetch(`${URL}/prodotti_nascosti?prodotto_id=eq.${id}&email_utente=eq.${userEmail}`, {
-                method: "DELETE", headers
+        async function mettiInLista(idProdotto) {
+            await fetch(`${URL}/lista_spesa`, {
+                method: "POST", headers,
+                body: JSON.stringify({ id_prodotto: idProdotto, email_utente: userEmail, completato: false })
             });
-            if (!silent) showToast("Ripristinato!", "#77dd77");
-            carica();
+            alert("Aggiunto alla lista!");
         }
 
-        async function mettiInLista(id) {
-            const check = await fetch(`${URL}/lista_spesa?prodotto_id=eq.${id}&email_utente=eq.${userEmail}`, { headers });
-            const esistenti = await check.json();
-            if (esistenti && esistenti.length > 0) { showToast("Già in lista", "#ffb347"); return; }
-            await fetch(`${URL}/lista_spesa`, { 
-                method: "POST", headers, 
-                body: JSON.stringify({ prodotto_id: id, email_utente: userEmail, completato: false }) 
+        // Gestione Modal
+        function apriModalRimuovi(id) {
+            idDaRimuovere = id;
+            document.getElementById('deleteModal').style.display = 'flex';
+        }
+
+        function chiudiModal() {
+            document.getElementById('deleteModal').style.display = 'none';
+            idDaRimuovere = null;
+        }
+
+        document.getElementById('btnTutti').onclick = async () => {
+            if (!idDaRimuovere) return;
+            await fetch(`${URL}/prodotti?id=eq.${idDaRimuovere}`, { method: "DELETE", headers });
+            chiudiModal();
+            caricaProdotti();
+        };
+
+        document.getElementById('btnSoloMe').onclick = async () => {
+            if (!idDaRimuovere) return;
+            await fetch(`${URL}/prodotti?id=eq.${idDaRimuovere}`, {
+                method: "PATCH", headers,
+                body: JSON.stringify({ visibile: false, email_utente: userEmail })
             });
-            showToast("Aggiunto!", "#77dd77");
-        }
-
-        async function modifica(id, vecchioNome) {
-            const nuovoNome = prompt("Modifica nome:", vecchioNome);
-            if (!nuovoNome || nuovoNome === vecchioNome) return;
-            
-            const res = await fetch(`${URL}/prodotti?id=eq.${id}&select=email`, { headers });
-            const p = await res.json();
-            const emailProp = p[0].email;
-
-            if ((emailProp === null || emailProp === adminEmail) && userEmail !== adminEmail) {
-                await fetch(`${URL}/prodotti`, { method: "POST", headers, body: JSON.stringify({ nome: nuovoNome, email: userEmail }) });
-                await fetch(`${URL}/prodotti_nascosti`, { method: "POST", headers, body: JSON.stringify({ prodotto_id: id, email_utente: userEmail }) });
-            } else {
-                await fetch(`${URL}/prodotti?id=eq.${id}`, { method: "PATCH", headers, body: JSON.stringify({ nome: nuovoNome }) });
-            }
-            carica();
-        }
+            chiudiModal();
+            caricaProdotti();
+        };
 
         function logout() {
             localStorage.removeItem('userEmail');
             window.location.href = 'login.html';
         }
 
-        carica();
+        caricaProdotti();
     </script>
 </body>
 </html>
