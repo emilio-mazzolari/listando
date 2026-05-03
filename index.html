@@ -8,20 +8,23 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <style>
-        /* Ripristino stile originale */
         body { margin: 0; font-family: -apple-system, sans-serif; background: #f2f2f7; display: flex; justify-content: center; }
-        .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 100px; }
-        h1 { font-size: 28px; font-weight: 800; margin-bottom: 20px; color: #1c1c1e; }
-        .card { background: white; border-radius: 20px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-        .item { display: flex; align-items: center; justify-content: space-between; padding: 15px 0; border-bottom: 1px solid #f2f2f7; }
-        .item:last-child { border-bottom: none; }
-        .check { width: 26px; height: 26px; border-radius: 50%; border: 2px solid #aec6cf; margin-right: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
-        .checked { background: #77dd77; border-color: #77dd77; color: white; }
-        .text-checked { text-decoration: line-through; color: #8e8e93; }
-        .item-text { font-size: 17px; color: #1c1c1e; font-weight: 500; }
-        .btn-clear { background: #aec6cf; color: white; border: none; padding: 15px; border-radius: 14px; font-weight: 700; cursor: pointer; width: 100%; margin-top: 20px; font-size: 16px; }
+        .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 90px; }
+        .card { background: white; border-radius: 16px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .header-box { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        
+        /* Stile prodotti e bottoni come li avevi prima */
+        .item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee; }
+        .testo-prodotto { flex-grow: 1; font-size: 16px; color: #1c1c1e; }
+        .testo-prodotto.barrato { text-decoration: line-through; color: #8e8e93; }
+        
+        .btn-small { border: none; border-radius: 8px; width: 35px; height: 35px; cursor: pointer; margin-left: 5px; display: inline-flex; align-items: center; justify-content: center; font-size: 16px; }
+        .check { background-color: #77dd77; color: white; } /* Verde */
+        .delete { background-color: #ff6961; color: white; } /* Rosso */
+        
+        .btn-orange { width: 100%; padding: 15px; border-radius: 12px; border: none; background: #aec6cf; color: white; font-weight: bold; margin-top: 15px; cursor: pointer; font-size: 16px; }
 
-        /* Nuova Barra Grigia Coordinata */
+        /* Nuova barra grigia coordinata */
         .tab-bar { 
             position: fixed; bottom: 0; left: 0; right: 0; height: 70px; 
             background: #aec6cf; border-top: 1px solid #99b3bc; 
@@ -40,13 +43,14 @@
 <body>
     <div id="toast"></div>
     <div class="app">
-        <h1>🛒 La lista della spesa</h1>
+        <div class="header-box"><h1 style="margin:0;">🛒 Lista della spesa</h1></div>
         <div class="card">
-            <div id="listaSpesa">Caricamento...</div>
-            <button class="btn-clear" onclick="svuota()">SVUOTA TUTTA LA LISTA</button>
+            <div id="contenitoreLista">Caricamento...</div>
+            <button class="btn-orange" onclick="svuotaLista()">SVUOTA TUTTA LA LISTA</button>
         </div>
     </div>
 
+    <!-- La tua nuova barra -->
     <div class="tab-bar">
         <a href="index.html" class="tab-item tab-active">🛒 LISTA</a>
         <a href="prodotti.html" class="tab-item">📦 PRODOTTI</a>
@@ -65,20 +69,19 @@
             try {
                 const res = await fetch(`${URL}/lista_spesa?select=*,prodotti(nome)&email_utente=eq.${userEmail}`, { headers });
                 const data = await res.json();
-                const div = document.getElementById("listaSpesa");
+                const div = document.getElementById("contenitoreLista");
                 div.innerHTML = data.length ? "" : "La lista è vuota.";
                 
+                // Ordina: prima quelli da comprare, poi quelli barrati
                 data.sort((a, b) => a.completato - b.completato).forEach(item => {
                     const riga = document.createElement("div");
                     riga.className = "item";
                     riga.innerHTML = `
-                        <div style="display:flex; align-items:center;">
-                            <div class="check ${item.completato ? 'checked' : ''}" onclick="toggle(${item.id}, ${item.completato})">
-                                ${item.completato ? '✓' : ''}
-                            </div>
-                            <span class="item-text ${item.completato ? 'text-checked' : ''}">${item.prodotti.nome}</span>
+                        <span class="testo-prodotto ${item.completato ? 'barrato' : ''}">${item.prodotti.nome}</span>
+                        <div style="display:flex;">
+                            <button class="btn-small check" onclick="toggle(${item.id}, ${item.completato})">✓</button>
+                            <button class="btn-small delete" onclick="elimina(${item.id})">✕</button>
                         </div>
-                        <button style="border:none; background:none; font-size:20px; cursor:pointer;" onclick="elimina(${item.id})">🗑</button>
                     `;
                     div.appendChild(riga);
                 });
@@ -98,7 +101,7 @@
             caricaLista();
         }
 
-        async function svuota() {
+        async function svuotaLista() {
             if (confirm("Vuoi svuotare tutta la lista?")) {
                 await fetch(`${URL}/lista_spesa?email_utente=eq.${userEmail}`, { method: "DELETE", headers });
                 caricaLista();
