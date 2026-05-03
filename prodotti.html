@@ -13,11 +13,11 @@
         .card { background: white; border-radius: 16px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         .header-box { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
         
-        /* Font Normale (non bold) */
+        /* Font Normale */
         .testo-prodotto { flex-grow: 1; font-size: 16px; color: #1c1c1e; font-weight: 400; }
         .item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee; }
         
-        /* Bottoni Quadrati Arrotondati */
+        /* Bottoni Quadrati Arrotondati in lista */
         .btn-small { 
             border: none; border-radius: 10px; width: 40px; height: 40px; 
             cursor: pointer; margin-left: 8px; display: inline-flex; 
@@ -25,16 +25,23 @@
         }
         .add { background-color: #aec6cf; } 
         .delete-btn { background-color: #ef4444; } 
-        
-        /* Icone sottili ed eleganti */
         .icon { width: 20px; height: 20px; fill: none; stroke: white; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
 
-        /* Gruppi Input */
+        /* Gruppi Input Uniformati */
         .input-group { display: flex; gap: 10px; margin-bottom: 12px; }
-        input { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid #ddd; font-size: 16px; outline: none; background: white; }
-        .btn-main { padding: 12px 20px; border-radius: 12px; border: none; background: #aec6cf; color: white; font-weight: bold; cursor: pointer; min-width: 90px; }
+        input { 
+            flex: 1; padding: 12px; border-radius: 12px; border: 1px solid #ddd; 
+            font-size: 16px; outline: none; height: 45px; box-sizing: border-box;
+            background: white;
+        }
+        .btn-main { 
+            width: 100px; height: 45px; border-radius: 12px; border: none; 
+            background: #aec6cf; color: white; font-weight: bold; cursor: pointer; 
+            font-size: 14px; display: flex; align-items: center; justify-content: center;
+            box-sizing: border-box;
+        }
 
-        /* Barra Navigazione */
+        /* Navigazione */
         .tab-bar { 
             position: fixed; bottom: 0; left: 0; right: 0; height: 70px; 
             background: #aec6cf; border-top: 1px solid #99b3bc; 
@@ -55,16 +62,16 @@
     <div class="app">
         <div class="header-box"><h1 style="margin:0;">📦 Prodotti</h1></div>
         
-        <!-- Aggiunta -->
+        <!-- Gruppo Aggiungi -->
         <div class="input-group">
-            <input type="text" id="nuovoProdotto" placeholder="Aggiungi nuovo prodotto...">
+            <input type="text" id="nuovoProdotto" placeholder="Aggiungi prodotto...">
             <button class="btn-main" onclick="aggiungiProdotto()">AGGIUNGI</button>
         </div>
 
-        <!-- Ricerca -->
+        <!-- Gruppo Cerca -->
         <div class="input-group">
-            <input type="text" id="cercaProdotto" placeholder="Cerca prodotto..." onkeyup="filtraLista()">
-            <button class="btn-main" onclick="filtraLista()">TROVA</button>
+            <input type="text" id="cercaProdotto" placeholder="Cerca prodotto..." onkeyup="filtraProdotti()">
+            <button class="btn-main" onclick="filtraProdotti()">TROVA</button>
         </div>
 
         <div class="card" id="listaProdotti">Caricamento...</div>
@@ -92,7 +99,7 @@
         const userEmail = localStorage.getItem('userEmail');
 
         let idDaRimuovere = null;
-        let prodottiLocali = []; // Per gestire la ricerca senza ricaricare dal DB
+        let tuttiIProdotti = []; // Cache locale per la ricerca fluida
 
         if (!userEmail) { window.location.href = 'login.html'; }
 
@@ -107,22 +114,17 @@
                 
                 if (!Array.isArray(data)) return;
 
-                // Filtriamo subito i nascosti e salviamo in locale
-                prodottiLocali = data.filter(p => !idsNascosti.includes(p.id));
-                renderizzaLista(prodottiLocali);
+                // Filtriamo i prodotti nascosti e salviamo in locale
+                tuttiIProdotti = data.filter(p => !idsNascosti.includes(p.id));
+                renderizzaProdotti(tuttiIProdotti);
             } catch (e) { console.error(e); }
         }
 
-        function renderizzaLista(lista) {
+        function renderizzaProdotti(prodotti) {
             const div = document.getElementById("listaProdotti");
             div.innerHTML = "";
             
-            if (lista.length === 0) {
-                div.innerHTML = "Nessun prodotto trovato.";
-                return;
-            }
-
-            lista.forEach(p => {
+            prodotti.forEach(p => {
                 const riga = document.createElement("div");
                 riga.className = "item";
                 riga.innerHTML = `
@@ -140,10 +142,10 @@
             });
         }
 
-        function filtraLista() {
-            const testo = document.getElementById("cercaProdotto").value.toLowerCase();
-            const filtrati = prodottiLocali.filter(p => p.nome.toLowerCase().includes(testo));
-            renderizzaLista(filtrati);
+        function filtraProdotti() {
+            const query = document.getElementById("cercaProdotto").value.toLowerCase();
+            const filtrati = tuttiIProdotti.filter(p => p.nome.toLowerCase().includes(query));
+            renderizzaProdotti(filtrati);
         }
 
         async function aggiungiProdotto() {
@@ -162,7 +164,7 @@
                 method: "POST", headers,
                 body: JSON.stringify({ id_prodotto: id, email_utente: userEmail, completato: false })
             });
-            alert("Aggiunto!");
+            alert("Aggiunto alla lista!");
         }
 
         function apriModalRimuovi(id) {
