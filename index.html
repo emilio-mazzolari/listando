@@ -9,101 +9,105 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <style>
         body { margin: 0; font-family: -apple-system, sans-serif; background: #f2f2f7; display: flex; justify-content: center; }
-        .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 90px; }
-        .card { background: white; border-radius: 16px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 120px; }
         .header-box { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee; }
-        .testo-prodotto { flex-grow: 1; font-size: 16px; }
-        .testo-prodotto.barrato { text-decoration: line-through; color: #8e8e93; }
-        .btn-small { border: none; border-radius: 8px; width: 35px; height: 35px; cursor: pointer; margin-left: 5px; display: inline-flex; align-items: center; justify-content: center; font-size: 16px; }
-        .check { background-color: #77dd77; color: white; }
-        .delete { background-color: #ff6961; color: white; }
-        .btn-orange { width: 100%; padding: 15px; border-radius: 12px; border: none; background: #aec6cf; color: white; font-weight: bold; margin-top: 15px; cursor: pointer; }
-        .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 65px; background: white; border-top: 1px solid #ddd; display: flex; justify-content: space-around; align-items: center; }
-        .tab-item { flex: 1; text-align: center; font-size: 12px; color: #8e8e93; text-decoration: none; padding: 10px; }
-        .tab-active { color: #5ac8fa; font-weight: bold; }
+        .card { background: white; border-radius: 16px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .item { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #eee; }
+        .item:last-child { border-bottom: none; }
+        .check { width: 24px; height: 24px; border-radius: 50%; border: 2px solid #aec6cf; margin-right: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+        .checked { background: #77dd77; border-color: #77dd77; color: white; }
+        .text-checked { text-decoration: line-through; color: #8e8e93; }
+        .btn-clear { background: #aec6cf; color: white; border: none; padding: 10px 20px; border-radius: 12px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; }
+        
+        /* Tab Bar Coordinata */
+        .tab-bar { 
+            position: fixed; bottom: 0; left: 0; right: 0; height: 70px; 
+            background: #aec6cf; border-top: 1px solid #99b3bc; 
+            display: flex; justify-content: space-around; align-items: center; 
+        }
+        .tab-item { 
+            flex: 1; text-align: center; font-size: 14px; color: black; 
+            text-decoration: none; text-transform: uppercase; font-weight: 500;
+        }
+        .tab-active { font-weight: 900; }
+        
+        #toast { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 15px 30px; border-radius: 12px; color: white; font-weight: bold; display: none; z-index: 2000; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
     </style>
 </head>
 <body>
-
-<div class="app">
-    <div class="header-box"><h1 style="margin:0;">🛒 Lista della spesa</h1></div>
-    <div class="card">
-        <div id="contenitoreLista">Caricamento...</div>
-        <button class="btn-orange" onclick="svuotaLista()">SVUOTA TUTTA LA LISTA</button>
+    <div id="toast"></div>
+    <div class="app">
+        <div class="header-box"><h1>🛒 LISTA</h1></div>
+        <div class="card">
+            <div id="listaSpesa">Caricamento...</div>
+            <button class="btn-clear" onclick="svuota()">SVUOTA TUTTA LA LISTA</button>
+        </div>
     </div>
-</div>
 
-<div class="tab-bar">
-    <a href="index.html" class="tab-item tab-active">🛒 Lista</a>
-    <a href="prodotti.html" class="tab-item">📦 Prodotti</a>
-    <a href="#" class="tab-item" onclick="logout()">🚪 Esci</a>
-</div>
+    <div class="tab-bar">
+        <a href="index.html" class="tab-item tab-active">🛒 LISTA</a>
+        <a href="prodotti.html" class="tab-item">📦 PRODOTTI</a>
+        <a href="#" class="tab-item" onclick="logout()">🚪 ESCI</a>
+    </div>
 
-<script>
-    const URL_BASE = "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1";
-    const API_KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
-    const HEADERS = { "apikey": API_KEY, "Content-Type": "application/json" };
-    const emailUtente = localStorage.getItem('userEmail');
+    <script>
+        const URL = "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1";
+        const KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
+        const headers = { "apikey": KEY, "Content-Type": "application/json" };
+        const userEmail = localStorage.getItem('userEmail');
 
-    if (!emailUtente) { window.location.href = 'login.html'; }
-    if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
+        if (!userEmail) { window.location.href = 'login.html'; }
 
-    async function caricaDatiLista() {
-        try {
-            const risposta = await fetch(`${URL_BASE}/lista_spesa?select=*,prodotti!inner(nome)&email_utente=eq.${emailUtente}`, { headers: HEADERS });
-            const dati = await risposta.json();
-            const div = document.getElementById("contenitoreLista");
-            
-            if (!dati || dati.length === 0) {
-                div.innerHTML = "<p style='text-align:center; color:#8e8e93;'>Nessun prodotto in lista.</p>";
-                return;
-            }
-
-            dati.sort((a, b) => a.prodotti.nome.localeCompare(b.prodotti.nome));
-            div.innerHTML = "";
-            dati.forEach(item => {
-                const riga = document.createElement("div");
-                riga.className = "item";
-                riga.innerHTML = `
-                    <span class="testo-prodotto ${item.completato ? 'barrato' : ''}">${item.prodotti.nome}</span>
-                    <div>
-                        <button class="btn-small check" onclick="aggiornaStato(${item.id}, ${!item.completato})">✔</button>
-                        <button class="btn-small delete" onclick="rimuoviDallaLista(${item.id})">✖</button>
-                    </div>`;
-                div.appendChild(riga);
-            });
-        } catch (errore) { console.error(errore); }
-    }
-
-    async function aggiornaStato(id, nuovoStato) {
-        await fetch(`${URL_BASE}/lista_spesa?id=eq.${id}`, {
-            method: "PATCH", headers: HEADERS,
-            body: JSON.stringify({ completato: nuovoStato })
-        });
-        caricaDatiLista();
-    }
-
-    async function rimuoviDallaLista(id) {
-        await fetch(`${URL_BASE}/lista_spesa?id=eq.${id}`, { method: "DELETE", headers: HEADERS });
-        caricaDatiLista();
-    }
-
-    async function svuotaLista() {
-        if (confirm("Vuoi svuotare la tua lista?")) {
-            await fetch(`${URL_BASE}/lista_spesa?email_utente=eq.${emailUtente}`, { method: "DELETE", headers: HEADERS });
-            caricaDatiLista();
+        async function caricaLista() {
+            try {
+                const res = await fetch(`${URL}/lista_spesa?select=*,prodotti(nome)&email_utente=eq.${userEmail}`, { headers });
+                const data = await res.json();
+                const div = document.getElementById("listaSpesa");
+                div.innerHTML = data.length ? "" : "La lista è vuota.";
+                
+                data.sort((a, b) => a.completato - b.completato).forEach(item => {
+                    const riga = document.createElement("div");
+                    riga.className = "item";
+                    riga.innerHTML = `
+                        <div style="display:flex; align-items:center;">
+                            <div class="check ${item.completato ? 'checked' : ''}" onclick="toggle(${item.id}, ${item.completato})">
+                                ${item.completato ? '✓' : ''}
+                            </div>
+                            <span class="${item.completato ? 'text-checked' : ''}">${item.prodotti.nome}</span>
+                        </div>
+                        <button style="border:none; background:none; font-size:18px;" onclick="elimina(${item.id})">🗑</button>
+                    `;
+                    div.appendChild(riga);
+                });
+            } catch (e) { console.error(e); }
         }
-    }
 
-    function logout() {
-        if (confirm("Vuoi uscire?")) {
+        async function toggle(id, stato) {
+            await fetch(`${URL}/lista_spesa?id=eq.${id}`, {
+                method: "PATCH", headers,
+                body: JSON.stringify({ completato: !stato })
+            });
+            caricaLista();
+        }
+
+        async function elimina(id) {
+            await fetch(`${URL}/lista_spesa?id=eq.${id}`, { method: "DELETE", headers });
+            caricaLista();
+        }
+
+        async function svuota() {
+            if (confirm("Vuoi svuotare tutta la lista?")) {
+                await fetch(`${URL}/lista_spesa?email_utente=eq.${userEmail}`, { method: "DELETE", headers });
+                caricaLista();
+            }
+        }
+
+        function logout() {
             localStorage.removeItem('userEmail');
             window.location.href = 'login.html';
         }
-    }
 
-    caricaDatiLista();
-</script>
+        caricaLista();
+    </script>
 </body>
 </html>
