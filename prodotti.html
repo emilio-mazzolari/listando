@@ -59,24 +59,31 @@
         }
 
         async function carica() {
-            try {
-                const res = await fetch(`${URL}/prodotti?select=*&or=(email.is.null,email.eq.${userEmail})`, { headers });
-                const data = await res.json();
-                data.sort((a, b) => a.nome.localeCompare(b.nome));
-                const div = document.getElementById("listaProdotti");
-                div.innerHTML = "";
-                data.forEach(p => {
-                    const riga = document.createElement("div"); riga.className = "item";
-                    riga.innerHTML = `<span>${p.nome}</span>
-                        <div style="display:flex;">
-                            <button class="btn-small plus" onclick="mettiInLista(${p.id})">+</button>
-                            <button class="btn-small edit" onclick="modifica(${p.id}, '${p.nome.replace(/'/g, "\\'")}')">✏️</button>
-                            <button class="btn-small delete" onclick="elimina(${p.id})">🗑</button>
-                        </div>`;
-                    div.appendChild(riga);
-                });
-            } catch(e) { console.error(e); }
-        }
+    const userEmail = localStorage.getItem('userEmail');
+    if (!userEmail) { window.location.href = 'login.html'; return; }
+
+    try {
+        // Questa query prende i prodotti comuni (null) O quelli dell'utente corrente
+        const res = await fetch(`${URL}/prodotti?select=*&or=(email.is.null,email.eq.${userEmail})`, { headers });
+        const data = await res.json();
+        
+        data.sort((a, b) => a.nome.localeCompare(b.nome));
+        const div = document.getElementById("listaProdotti");
+        div.innerHTML = "";
+        
+        data.forEach(p => {
+            const riga = document.createElement("div"); 
+            riga.className = "item";
+            riga.innerHTML = `<span>${p.nome}</span>
+                <div style="display:flex;">
+                    <button class="btn-small plus" onclick="mettiInLista(${p.id})">+</button>
+                    <button class="btn-small edit" onclick="modifica(${p.id}, '${p.nome.replace(/'/g, "\\'")}')">✏️</button>
+                    <button class="btn-small delete" onclick="elimina(${p.id})">🗑</button>
+                </div>`;
+            div.appendChild(riga);
+        });
+    } catch(e) { console.error(e); }
+}
 
         async function aggiungi() {
             const n = document.getElementById("nomeProdotto");
