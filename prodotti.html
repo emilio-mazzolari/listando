@@ -13,11 +13,10 @@
         .card { background: white; border-radius: 16px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         .header-box { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
         
-        /* Font Normale */
         .testo-prodotto { flex-grow: 1; font-size: 16px; color: #1c1c1e; font-weight: 400; }
         .item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee; }
         
-        /* Bottoni Quadrati Arrotondati in lista */
+        /* Bottoni come ieri: Arrotondati e Puliti */
         .btn-small { 
             border: none; border-radius: 10px; width: 40px; height: 40px; 
             cursor: pointer; margin-left: 8px; display: inline-flex; 
@@ -25,7 +24,9 @@
         }
         .add { background-color: #aec6cf; } 
         .delete-btn { background-color: #ef4444; } 
-        .icon { width: 20px; height: 20px; fill: none; stroke: white; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+        
+        /* Icone sottili come ieri (stroke-width: 2) */
+        .icon { width: 22px; height: 22px; fill: none; stroke: white; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
         /* Gruppi Input Uniformati */
         .input-group { display: flex; gap: 10px; margin-bottom: 12px; }
@@ -38,10 +39,8 @@
             width: 100px; height: 45px; border-radius: 12px; border: none; 
             background: #aec6cf; color: white; font-weight: bold; cursor: pointer; 
             font-size: 14px; display: flex; align-items: center; justify-content: center;
-            box-sizing: border-box;
         }
 
-        /* Navigazione */
         .tab-bar { 
             position: fixed; bottom: 0; left: 0; right: 0; height: 70px; 
             background: #aec6cf; border-top: 1px solid #99b3bc; 
@@ -99,7 +98,7 @@
         const userEmail = localStorage.getItem('userEmail');
 
         let idDaRimuovere = null;
-        let tuttiIProdotti = []; // Cache locale per la ricerca fluida
+        let tuttiIProdotti = [];
 
         if (!userEmail) { window.location.href = 'login.html'; }
 
@@ -114,7 +113,6 @@
                 
                 if (!Array.isArray(data)) return;
 
-                // Filtriamo i prodotti nascosti e salviamo in locale
                 tuttiIProdotti = data.filter(p => !idsNascosti.includes(p.id));
                 renderizzaProdotti(tuttiIProdotti);
             } catch (e) { console.error(e); }
@@ -134,7 +132,7 @@
                             <svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
                         </button>
                         <button class="btn-small delete-btn" onclick="apriModalRimuovi(${p.id})">
-                            <svg class="icon" viewBox="0 0 24 24"><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 6h18"/></svg>
+                            <svg class="icon" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
                         </button>
                     </div>
                 `;
@@ -164,7 +162,7 @@
                 method: "POST", headers,
                 body: JSON.stringify({ id_prodotto: id, email_utente: userEmail, completato: false })
             });
-            alert("Aggiunto alla lista!");
+            alert("Aggiunto!");
         }
 
         function apriModalRimuovi(id) {
@@ -197,4 +195,3 @@
         caricaProdotti();
     </script>
 </body>
-</html>
