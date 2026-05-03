@@ -100,6 +100,25 @@
     }
 
     caricaDatiLista();
+<script>
+    // 1. DEFINIZIONE DATI BASE
+    const URL_BASE = "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1";
+    const API_KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
+    const HEADERS = { "apikey": API_KEY, "Content-Type": "application/json" };
+
+    // 2. CONTROLLO ACCESSO (Aggiungi questo pezzo qui)
+    const emailUtente = localStorage.getItem('userEmail');
+    if (!emailUtente) {
+        window.location.href = 'login.html'; // Se non c'è la mail, rimanda al login
+    }
+
+    // 3. IL RESTO DELLE TUE FUNZIONI (caricaDatiLista, ecc...)
+    if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
+    
+    async function caricaDatiLista() {
+        // ... resto del codice invariato ...
+    }
+    // ...
 </script>
 </body>
 </html>
