@@ -4,11 +4,9 @@
     <meta charset="UTF-8">
     <title>Prodotti</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- PWA Config -->
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-
     <style>
         body { margin: 0; font-family: -apple-system, sans-serif; background: #f2f2f7; display: flex; justify-content: center; }
         .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 90px; }
@@ -43,14 +41,13 @@
     </div>
 
     <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js');
-        }
-
         const URL = "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1";
         const KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
         const headers = { "apikey": KEY, "Content-Type": "application/json" };
         const userEmail = localStorage.getItem('userEmail');
+
+        if (!userEmail) { window.location.href = 'login.html'; }
+        if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
 
         function showToast(text, color) {
             const t = document.getElementById("toast");
@@ -59,31 +56,25 @@
         }
 
         async function carica() {
-    const userEmail = localStorage.getItem('userEmail');
-    if (!userEmail) { window.location.href = 'login.html'; return; }
-
-    try {
-        // Questa query prende i prodotti comuni (null) O quelli dell'utente corrente
-        const res = await fetch(`${URL}/prodotti?select=*&or=(email.is.null,email.eq.${userEmail})`, { headers });
-        const data = await res.json();
-        
-        data.sort((a, b) => a.nome.localeCompare(b.nome));
-        const div = document.getElementById("listaProdotti");
-        div.innerHTML = "";
-        
-        data.forEach(p => {
-            const riga = document.createElement("div"); 
-            riga.className = "item";
-            riga.innerHTML = `<span>${p.nome}</span>
-                <div style="display:flex;">
-                    <button class="btn-small plus" onclick="mettiInLista(${p.id})">+</button>
-                    <button class="btn-small edit" onclick="modifica(${p.id}, '${p.nome.replace(/'/g, "\\'")}')">✏️</button>
-                    <button class="btn-small delete" onclick="elimina(${p.id})">🗑</button>
-                </div>`;
-            div.appendChild(riga);
-        });
-    } catch(e) { console.error(e); }
-}
+            try {
+                const res = await fetch(`${URL}/prodotti?select=*&or=(email.is.null,email.eq.${userEmail})`, { headers });
+                const data = await res.json();
+                data.sort((a, b) => a.nome.localeCompare(b.nome));
+                const div = document.getElementById("listaProdotti");
+                div.innerHTML = "";
+                data.forEach(p => {
+                    const riga = document.createElement("div"); 
+                    riga.className = "item";
+                    riga.innerHTML = `<span>${p.nome}</span>
+                        <div style="display:flex;">
+                            <button class="btn-small plus" onclick="mettiInLista(${p.id})">+</button>
+                            <button class="btn-small edit" onclick="modifica(${p.id}, '${p.nome.replace(/'/g, "\\'")}')">✏️</button>
+                            <button class="btn-small delete" onclick="elimina(${p.id})">🗑</button>
+                        </div>`;
+                    div.appendChild(riga);
+                });
+            } catch(e) { console.error(e); }
+        }
 
         async function aggiungi() {
             const n = document.getElementById("nomeProdotto");
@@ -92,37 +83,29 @@
             n.value = ""; carica();
         }
 
-       async function modifica(id, vecchioNome) {
-    const nuovoNome = prompt("Modifica nome:", vecchioNome);
-    if (!nuovoNome || nuovoNome === vecchioNome) return;
-
-    // Controlliamo se il prodotto è originale (email null)
-    const check = await fetch(`${URL}/prodotti?id=eq.${id}&select=email`, { headers });
-    const prodotto = await check.json();
-
-    if (prodotto[0].email === null) {
-        // È un prodotto predefinito: ne CREIAMO uno nuovo per l'utente
-        await fetch(`${URL}/prodotti`, {
-            method: "POST",
-            headers,
-            body: JSON.stringify({ nome: nuovoNome, email: userEmail })
-        });
-        alert("Prodotto predefinito personalizzato per te!");
-    } else {
-        // È già un tuo prodotto: lo MODIFICHIAMO normalmente
-        await fetch(`${URL}/prodotti?id=eq.${id}`, {
-            method: "PATCH",
-            headers,
-            body: JSON.stringify({ nome: nuovoNome })
-        });
-    }
-    carica();
-
+        async function modifica(id, vecchioNome) {
+            const nuovoNome = prompt("Modifica nome:", vecchioNome);
+            if (!nuovoNome || nuovoNome === vecchioNome) return;
+            const check = await fetch(`${URL}/prodotti?id=eq.${id}&select=email`, { headers });
+            const p = await check.json();
+            if (p[0].email === null) {
+                await fetch(`${URL}/prodotti`, { method: "POST", headers, body: JSON.stringify({ nome: nuovoNome, email: userEmail }) });
+                alert("Creato un tuo prodotto personalizzato.");
+            } else {
+                await fetch(`${URL}/prodotti?id=eq.${id}`, { method: "PATCH", headers, body: JSON.stringify({ nome: nuovoNome }) });
+            }
+            carica();
         }
 
         async function elimina(id) {
-            await fetch(`${URL}/prodotti?id=eq.${id}`, { method: "DELETE", headers });
-            carica();
+            const check = await fetch(`${URL}/prodotti?id=eq.${id}&select=email`, { headers });
+            const p = await check.json();
+            if (p[0].email === null) {
+                alert("Non puoi eliminare i prodotti predefiniti.");
+            } else {
+                await fetch(`${URL}/prodotti?id=eq.${id}`, { method: "DELETE", headers });
+                carica();
+            }
         }
 
         async function mettiInLista(id) {
@@ -133,29 +116,6 @@
             showToast("Aggiunto", "#77dd77");
         }
         carica();
-<script>
-    // 1. DEFINIZIONE DATI BASE
-    const URL = "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1";
-    const KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
-    const headers = { "apikey": KEY, "Content-Type": "application/json" };
-
-    // 2. CONTROLLO ACCESSO (Aggiungi questo pezzo qui)
-    const userEmail = localStorage.getItem('userEmail');
-    if (!userEmail) {
-        window.location.href = 'login.html';
-    }
-
-    // 3. LOGICA DI CARICAMENTO PRODOTTI (Modifica la query come segue)
-    async function carica() {
-        try {
-            // NOTA: Questa query ora scarica i prodotti comuni (email nulla) O i tuoi (email uguale alla tua)
-            const res = await fetch(`${URL}/prodotti?select=*&or=(email.is.null,email.eq.${userEmail})`, { headers });
-            const data = await res.json();
-            
-            // ... resto del codice per mostrare i prodotti ...
-        } catch(e) { console.error(e); }
-    }
-    // ...
-</script>
+    </script>
 </body>
 </html>
