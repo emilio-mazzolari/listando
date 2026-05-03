@@ -16,7 +16,6 @@
         .testo-prodotto { flex-grow: 1; font-size: 16px; color: #1c1c1e; font-weight: 400; }
         .item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; }
         
-        /* BOTTONI STILE ORIGINALE */
         .btn-small { border: none; border-radius: 8px; width: 32px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-left: 4px; font-size: 16px; transition: all 0.3s; }
         .plus { background-color: #779ecb; color: white; } 
         .edit { background-color: #fdfd96; color: #3a3a3c; } 
@@ -41,7 +40,6 @@
         .tab-item { flex: 1; text-align: center; font-size: 14px; color: black; text-decoration: none; text-transform: uppercase; font-weight: 600; }
         .tab-active { font-weight: 900; }
 
-        /* MODALI */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 2000; }
         .modal-box { background: white; padding: 25px; border-radius: 20px; width: 85%; max-width: 350px; text-align: center; }
         .btn-modal { width: 100%; padding: 15px; margin-top: 10px; border-radius: 12px; border: none; background: #aec6cf; color: white; font-weight: bold; cursor: pointer; font-size: 16px; }
@@ -94,12 +92,12 @@
         </div>
     </div>
 
-    <!-- MODAL ALERT DUPLICATO -->
+    <!-- MODAL ALERT -->
     <div id="alertModal" class="modal-overlay">
         <div class="modal-box">
             <span class="alert-icon">⚠️</span>
             <h3 style="margin-top:0;">Attenzione</h3>
-            <p id="alertMessage">Prodotto già presente in elenco!</p>
+            <p id="alertMessage">Messaggio di avviso</p>
             <button class="btn-modal" onclick="chiudiModal()">HO CAPITO</button>
         </div>
     </div>
@@ -113,6 +111,7 @@
             "Authorization": "Bearer " + KEY
         };
         const userEmail = localStorage.getItem('userEmail');
+        const adminEmail = "emilio.mazzolari.shop@gmail.com"; // Email autorizzata
 
         let idDaRimuovere = null;
         let idInModifica = null;
@@ -167,7 +166,7 @@
 
             const esisteGia = tuttiIProdotti.some(p => p.nome.toLowerCase() === nome.toLowerCase());
             if (esisteGia) {
-                document.getElementById("alertModal").style.display = "flex";
+                mostraAlert("Prodotto già presente in elenco!");
                 input.value = "";
                 return;
             }
@@ -190,8 +189,6 @@
                 btn.style.color = coloreTesto;
                 btn.style.width = "auto";
                 btn.style.padding = "0 10px";
-                btn.style.fontSize = "12px";
-                btn.style.fontWeight = "bold";
 
                 setTimeout(() => {
                     btn.innerText = originalText;
@@ -199,8 +196,6 @@
                     btn.style.color = "";
                     btn.style.width = "32px";
                     btn.style.padding = "0";
-                    btn.style.fontSize = "16px";
-                    btn.style.fontWeight = "normal";
                 }, 2000);
             };
 
@@ -222,7 +217,6 @@
             } catch (e) { console.error(e); }
         }
 
-        // --- GESTIONE MODALI ---
         function apriModalModifica(id, nomeVecchio) {
             idInModifica = id;
             document.getElementById("inputModifica").value = nomeVecchio;
@@ -243,7 +237,21 @@
 
         function apriModalRimuovi(id) {
             idDaRimuovere = id;
+            const btnTutti = document.getElementById('btnTutti');
+            
+            // SE NON SEI L'ADMIN, NASCONDI IL TASTO "ELIMINA PER TUTTI"
+            if (userEmail !== adminEmail) {
+                btnTutti.style.display = "none";
+            } else {
+                btnTutti.style.display = "block";
+            }
+
             document.getElementById('deleteModal').style.display = 'flex';
+        }
+
+        function mostraAlert(msg) {
+            document.getElementById("alertMessage").innerText = msg;
+            document.getElementById("alertModal").style.display = "flex";
         }
 
         function chiudiModal() {
@@ -253,6 +261,13 @@
         }
 
         document.getElementById('btnTutti').onclick = async () => {
+            // ULTERIORE BLOCCO DI SICUREZZA NEL CODICE
+            if (userEmail !== adminEmail) {
+                chiudiModal();
+                mostraAlert("Non hai i permessi per eliminare globalmente.");
+                return;
+            }
+
             await fetch(`${URL}/prodotti?id=eq.${idDaRimuovere}`, { method: "DELETE", headers });
             chiudiModal();
             caricaProdotti();
