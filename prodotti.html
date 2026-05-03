@@ -13,15 +13,14 @@
         .card { background: white; border-radius: 16px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         .header-box { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
         
-        /* Stile testo prodotto */
         .testo-prodotto { flex-grow: 1; font-size: 16px; color: #1c1c1e; font-weight: 400; }
         .item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; }
         
-        /* BOTTONI COME VECCHIO CODICE */
+        /* BOTTONI STILE ORIGINALE */
         .btn-small { border: none; border-radius: 8px; width: 32px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-left: 4px; font-size: 16px; }
-        .plus { background-color: #779ecb; color: white; } /* Blu pastello */
-        .edit { background-color: #fdfd96; color: #3a3a3c; } /* Giallo pastello */
-        .delete { background-color: #add8e6; color: #1c1c1e; } /* Azzurro pastello */
+        .plus { background-color: #779ecb; color: white; } 
+        .edit { background-color: #fdfd96; color: #3a3a3c; } 
+        .delete { background-color: #add8e6; color: #1c1c1e; }
 
         /* Gruppi Input Uniformati */
         .input-group { display: flex; gap: 10px; margin-bottom: 12px; }
@@ -35,7 +34,6 @@
             font-size: 14px; display: flex; align-items: center; justify-content: center;
         }
 
-        /* Navigazione */
         .tab-bar { 
             position: fixed; bottom: 0; left: 0; right: 0; height: 70px; 
             background: #aec6cf; border-top: 1px solid #99b3bc; 
@@ -44,7 +42,6 @@
         .tab-item { flex: 1; text-align: center; font-size: 14px; color: black; text-decoration: none; text-transform: uppercase; font-weight: 600; }
         .tab-active { font-weight: 900; }
 
-        /* Modal */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 2000; }
         .modal-box { background: white; padding: 25px; border-radius: 20px; width: 85%; max-width: 350px; text-align: center; }
         .btn-modal { width: 100%; padding: 15px; margin-top: 10px; border-radius: 12px; border: none; background: #aec6cf; color: white; font-weight: bold; cursor: pointer; font-size: 16px; }
@@ -56,13 +53,11 @@
     <div class="app">
         <div class="header-box"><h1 style="margin:0;">📦 Prodotti</h1></div>
         
-        <!-- Gruppo Aggiungi -->
         <div class="input-group">
             <input type="text" id="nuovoProdotto" placeholder="Aggiungi prodotto...">
             <button class="btn-main" onclick="aggiungiProdotto()">AGGIUNGI</button>
         </div>
 
-        <!-- Gruppo Cerca -->
         <div class="input-group">
             <input type="text" id="cercaProdotto" placeholder="Cerca prodotto..." onkeyup="filtraProdotti()">
             <button class="btn-main" onclick="filtraProdotti()">TROVA</button>
@@ -77,7 +72,6 @@
         <a href="#" class="tab-item" onclick="logout()">🚪 ESCI</a>
     </div>
 
-    <!-- Modal per la rimozione -->
     <div id="deleteModal" class="modal-overlay">
         <div class="modal-box">
             <h3>Cosa vuoi fare?</h3>
@@ -125,7 +119,7 @@
                     <span class="testo-prodotto">${p.nome}</span>
                     <div style="display:flex;">
                         <button class="btn-small plus" onclick="mettiInLista(${p.id})">+</button>
-                        <button class="btn-small edit" onclick="alert('Funzione modifica da implementare')">✏️</button>
+                        <button class="btn-small edit" onclick="modifica('${p.id}', '${p.nome.replace(/'/g, "\\'")}')">✏️</button>
                         <button class="btn-small delete" onclick="apriModalRimuovi(${p.id})">🗑</button>
                     </div>
                 `;
@@ -156,6 +150,18 @@
                 body: JSON.stringify({ id_prodotto: id, email_utente: userEmail, completato: false })
             });
             alert("Aggiunto!");
+        }
+
+        async function modifica(id, nomeVecchio) {
+            const nuovoNome = prompt("Modifica nome prodotto:", nomeVecchio);
+            if (nuovoNome && nuovoNome.trim() !== "" && nuovoNome !== nomeVecchio) {
+                await fetch(`${URL}/prodotti?id=eq.${id}`, {
+                    method: "PATCH",
+                    headers,
+                    body: JSON.stringify({ nome: nuovoNome.trim() })
+                });
+                caricaProdotti();
+            }
         }
 
         function apriModalRimuovi(id) {
