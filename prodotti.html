@@ -160,12 +160,23 @@
                 const checkRes = await fetch(`${URL}/lista_spesa?prodotto_id=eq.${idDelProdotto}&email_utente=eq.${userEmail}&completato=eq.false`, { headers });
                 const esistente = await checkRes.json();
 
-                if (esistente.length > 0) {
-                    // GIÀ AGGIUNTO
-                    btn.innerText = "GIÀ IN LISTA";
-                    btn.className = "btn-small btn-feedback edit"; // Uso il giallo dell'edit per richiamare attenzione
-                    setTimeout(() => { btn.innerText = originalText; btn.className = originalClass; }, 2000);
-                    return;
+              if (esistente.length > 0) {
+    // Feedback GIÀ AGGIUNTO con il tuo ROSSO #db5151
+    btn.innerText = "GIÀ IN LISTA";
+    btn.style.backgroundColor = "#db5151"; 
+    btn.style.color = "white"; // Testo bianco per leggere meglio sul rosso
+    btn.style.width = "auto";
+    btn.style.padding = "0 10px";
+
+    setTimeout(() => { 
+        btn.innerText = originalText; 
+        btn.style.backgroundColor = ""; 
+        btn.style.color = "";
+        btn.style.width = "32px";
+        btn.style.padding = "0";
+    }, 2000);
+    return;
+
                 }
 
                 // 2. Aggiungi il prodotto
