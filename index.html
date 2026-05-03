@@ -14,31 +14,30 @@
         .header-box { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
         
         .item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee; }
-        .testo-prodotto { flex-grow: 1; font-size: 16px; color: #1c1c1e; font-weight: 500; }
+        .testo-prodotto { flex-grow: 1; font-size: 16px; color: #1c1c1e; font-weight: 600; }
         .testo-prodotto.barrato { text-decoration: line-through; color: #8e8e93; opacity: 0.6; }
         
-        /* Bottoni con colori in Palette e Icone Arrotondate */
+        /* Bottoni Quadrati Arrotondati con Colori Solidi e Pieni */
         .btn-small { 
             border: none; 
-            border-radius: 10px; 
-            width: 40px; 
-            height: 40px; 
+            border-radius: 12px; 
+            width: 42px; 
+            height: 42px; 
             cursor: pointer; 
             margin-left: 8px; 
             display: inline-flex; 
             align-items: center; 
             justify-content: center; 
-            transition: transform 0.1s;
+            transition: filter 0.1s;
         }
-        .btn-small:active { transform: scale(0.9); }
+        .btn-small:active { filter: brightness(0.8); }
 
-        /* Verde Salvia Pastello */
-        .check { background-color: #b2d8b2; color: white; } 
-        /* Rosso Corallo/Rosa Pastello */
-        .delete { background-color: #ffb3b3; color: white; } 
+        /* Verde e Rosso pieni come da immagine */
+        .check { background-color: #22c55e; } /* Verde solido */
+        .delete { background-color: #ef4444; } /* Rosso solido */
         
-        /* Icone SVG per massima rotondità */
-        .icon { width: 20px; height: 20px; fill: white; stroke: white; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+        /* Icone Bianche, Spesse e Arrotondate */
+        .icon { width: 22px; height: 22px; fill: none; stroke: white; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
 
         .btn-orange { width: 100%; padding: 15px; border-radius: 12px; border: none; background: #aec6cf; color: white; font-weight: bold; margin-top: 15px; cursor: pointer; font-size: 16px; }
 
@@ -92,6 +91,7 @@
                     return;
                 }
 
+                // Ordine puramente alfabetico
                 data.sort((a, b) => (a.prodotti?.nome || "").localeCompare(b.prodotti?.nome || ""));
 
                 div.innerHTML = "";
@@ -102,7 +102,7 @@
                         <span class="testo-prodotto ${item.completato ? 'barrato' : ''}">${item.prodotti.nome}</span>
                         <div style="display:flex;">
                             <button class="btn-small check" onclick="toggle(${item.id}, ${item.completato})">
-                                <svg class="icon" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
+                                <svg class="icon" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>
                             </button>
                             <button class="btn-small delete" onclick="elimina(${item.id})">
                                 <svg class="icon" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
