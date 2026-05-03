@@ -20,7 +20,6 @@
         .edit { background-color: #fdfd96; color: #3a3a3c; } 
         .delete { background-color: #add8e6; color: #1c1c1e; }
         
-        /* Nuovi stili per il ripristino */
         .hidden-section { margin-top: 30px; border-top: 2px dashed #ccc; padding-top: 15px; }
         .hidden-title { font-size: 14px; color: #8e8e93; text-transform: uppercase; margin-bottom: 10px; }
         .hidden-item { opacity: 0.6; }
@@ -45,9 +44,8 @@
             <div id="listaProdotti">Caricamento...</div>
         </div>
 
-        <!-- Sezione per recuperare i prodotti rimossi -->
         <div id="sezioneNascosti" class="hidden-section" style="display:none;">
-            <div class="hidden-title">Prodotti rimossi (Predefiniti)</div>
+            <div class="hidden-title">Prodotti rimossi</div>
             <div id="listaNascosti"></div>
         </div>
     </div>
@@ -74,21 +72,19 @@
 
         async function carica() {
             try {
-                // 1. Carico ID dei prodotti nascosti
+                // 1. Carico prodotti nascosti
                 const resNascosti = await fetch(`${URL}/prodotti_nascosti?email_utente=eq.${userEmail}`, { headers });
                 const nascosti = await resNascosti.json() || [];
                 const idsNascosti = nascosti.map(n => n.prodotto_id);
 
-                // 2. Carico tutti i prodotti (Personali + Default)
+                // 2. Carico tutti i prodotti
                 const res = await fetch(`${URL}/prodotti?select=*&or=(email.is.null,email.eq.${userEmail})`, { headers });
                 let allData = await res.json();
                 if (!Array.isArray(allData)) return;
 
-                // Divido i prodotti
                 const visibili = allData.filter(p => !idsNascosti.includes(p.id));
                 const daRipristinare = allData.filter(p => idsNascosti.includes(p.id));
 
-                // Ordine alfabetico
                 visibili.sort((a, b) => a.nome.localeCompare(b.nome));
                 daRipristinare.sort((a, b) => a.nome.localeCompare(b.nome));
 
@@ -107,10 +103,9 @@
                     div.appendChild(riga);
                 });
 
-                // Render Nascosti (per il ripristino)
+                // Render Nascosti
                 const divNascosti = document.getElementById("listaNascosti");
                 const sezioneNascosti = document.getElementById("sezioneNascosti");
-                
                 if (daRipristinare.length > 0) {
                     sezioneNascosti.style.display = "block";
                     divNascosti.innerHTML = "";
@@ -124,11 +119,7 @@
                 } else {
                     sezioneNascosti.style.display = "none";
                 }
-
-            } catch(e) { 
-                console.error(e);
-                document.getElementById("listaProdotti").innerHTML = "Errore di caricamento.";
-            }
+            } catch(e) { console.error(e); }
         }
 
         async function aggiungi() {
@@ -136,13 +127,31 @@
             const nomeInserito = n.value.trim();
             if (!nomeInserito) return;
 
+            // 1. Cerchiamo se il prodotto esiste già (tra predefiniti o propri)
             const check = await fetch(`${URL}/prodotti?nome=ilike.${nomeInserito}&or=(email.is.null,email.eq.${userEmail})`, { headers });
             const esistenti = await check.json();
+
             if (esistenti && esistenti.length > 0) {
-                showToast("Già presente in elenco", "#ffb347");
-                return;
+                const prodId = esistenti[0].id;
+                
+                // 2. Controlliamo se è nella lista dei nascosti
+                const checkNascosto = await fetch(`${URL}/prodotti_nascosti?prodotto_id=eq.${prodId}&email_utente=eq.${userEmail}`, { headers });
+                const nascosto = await checkNascosto.json();
+
+                if (nascosto && nascosto.length > 0) {
+                    // SE È NASCOSTO: Lo ripristiniamo invece di dare errore
+                    await ripristina(prodId, false); // false per evitare il doppio toast
+                    showToast("Prodotto ripristinato!", "#77dd77");
+                    n.value = "";
+                    return;
+                } else {
+                    // SE È GIÀ VISIBILE: Diamo l'errore
+                    showToast("Già presente in elenco", "#ffb347");
+                    return;
+                }
             }
 
+            // 3. Se non esiste proprio, lo creiamo
             await fetch(`${URL}/prodotti`, { 
                 method: "POST", headers, 
                 body: JSON.stringify({ nome: nomeInserito, email: userEmail }) 
@@ -157,9 +166,9 @@
                     method: "POST", headers,
                     body: JSON.stringify({ prodotto_id: id, email_utente: userEmail })
                 });
-                showToast("Nascosto!", "#aec6cf");
+                showToast("Nascosto", "#aec6cf");
             } else {
-                if (confirm("Eliminare definitivamente questo prodotto?")) {
+                if (confirm("Eliminare definitivamente?")) {
                     await fetch(`${URL}/prodotti?id=eq.${id}`, { method: "DELETE", headers });
                     showToast("Eliminato", "#ff6961");
                 }
@@ -167,35 +176,30 @@
             carica();
         }
 
-        async function ripristina(id) {
+        async function ripristina(id, silent = false) {
             await fetch(`${URL}/prodotti_nascosti?prodotto_id=eq.${id}&email_utente=eq.${userEmail}`, {
                 method: "DELETE", headers
             });
-            showToast("Ripristinato!", "#77dd77");
+            if (!silent) showToast("Ripristinato!", "#77dd77");
             carica();
         }
 
         async function mettiInLista(id) {
             const check = await fetch(`${URL}/lista_spesa?prodotto_id=eq.${id}&email_utente=eq.${userEmail}`, { headers });
             const esistenti = await check.json();
-            if (esistenti && esistenti.length > 0) { 
-                showToast("Già in lista", "#ffb347"); 
-                return; 
-            }
+            if (esistenti && esistenti.length > 0) { showToast("Già in lista", "#ffb347"); return; }
             await fetch(`${URL}/lista_spesa`, { 
                 method: "POST", headers, 
                 body: JSON.stringify({ prodotto_id: id, email_utente: userEmail, completato: false }) 
             });
-            showToast("Aggiunto alla spesa!", "#77dd77");
+            showToast("Aggiunto!", "#77dd77");
         }
 
         async function modifica(id, vecchioNome) {
             const nuovoNome = prompt("Modifica nome:", vecchioNome);
             if (!nuovoNome || nuovoNome === vecchioNome) return;
-
             const res = await fetch(`${URL}/prodotti?id=eq.${id}&select=email`, { headers });
             const p = await res.json();
-
             if (p[0].email === null) {
                 await fetch(`${URL}/prodotti`, { method: "POST", headers, body: JSON.stringify({ nome: nuovoNome, email: userEmail }) });
                 await fetch(`${URL}/prodotti_nascosti`, { method: "POST", headers, body: JSON.stringify({ prodotto_id: id, email_utente: userEmail }) });
@@ -206,10 +210,8 @@
         }
 
         function logout() {
-            if (confirm("Vuoi uscire?")) {
-                localStorage.removeItem('userEmail');
-                window.location.href = 'login.html';
-            }
+            localStorage.removeItem('userEmail');
+            window.location.href = 'login.html';
         }
 
         carica();
