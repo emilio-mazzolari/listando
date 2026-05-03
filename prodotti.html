@@ -45,7 +45,7 @@
     <script>
         const URL = "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1";
         const KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
-        const headers = { "apikey": KEY, "Content-Type": "application/json" };
+        const headers = { "apikey": KEY, "Content-Type": "application/json", "Prefer": "return=representation" };
         const userEmail = localStorage.getItem('userEmail');
 
         if (!userEmail) { window.location.href = 'login.html'; }
@@ -58,34 +58,42 @@
 
         async function carica() {
             try {
-                // 1. Carico gli ID dei prodotti che l'utente ha nascosto
+                // 1. Carico prodotti nascosti (con gestione errore se tabella vuota)
                 const resNascosti = await fetch(`${URL}/prodotti_nascosti?email_utente=eq.${userEmail}`, { headers });
-                const nascosti = await resNascosti.json();
+                const nascosti = await resNascosti.json() || [];
                 const idsNascosti = nascosti.map(n => n.prodotto_id);
 
-                // 2. Carico i prodotti (default + personali)
+                // 2. Carico i prodotti
                 const res = await fetch(`${URL}/prodotti?select=*&or=(email.is.null,email.eq.${userEmail})`, { headers });
                 let data = await res.json();
                 
-                // 3. Filtro i prodotti eliminando quelli nella lista "nascosti"
+                if (!Array.isArray(data)) {
+                    document.getElementById("listaProdotti").innerHTML = "Errore caricamento dati.";
+                    return;
+                }
+
+                // 3. Filtro i prodotti
                 data = data.filter(p => !idsNascosti.includes(p.id));
 
                 data.sort((a, b) => a.nome.localeCompare(b.nome));
                 const div = document.getElementById("listaProdotti");
-                div.innerHTML = "";
+                div.innerHTML = data.length ? "" : "Nessun prodotto trovato.";
                 
                 data.forEach(p => {
                     const riga = document.createElement("div"); 
                     riga.className = "item";
                     riga.innerHTML = `<span>${p.nome}</span>
                         <div style="display:flex;">
-                            <button class="btn-small plus" title="Aggiungi alla spesa" onclick="mettiInLista(${p.id})">+</button>
-                            <button class="btn-small edit" title="Modifica" onclick="modifica(${p.id}, '${p.nome.replace(/'/g, "\\'")}')">✏️</button>
-                            <button class="btn-small delete" title="Rimuovi" onclick="gestisciRimozione(${p.id}, ${p.email === null})">🗑</button>
+                            <button class="btn-small plus" onclick="mettiInLista(${p.id})">+</button>
+                            <button class="btn-small edit" onclick="modifica(${p.id}, '${p.nome.replace(/'/g, "\\'")}')">✏️</button>
+                            <button class="btn-small delete" onclick="gestisciRimozione(${p.id}, ${p.email === null})">🗑</button>
                         </div>`;
                     div.appendChild(riga);
                 });
-            } catch(e) { console.error(e); }
+            } catch(e) { 
+                console.error(e);
+                document.getElementById("listaProdotti").innerHTML = "Errore di connessione.";
+            }
         }
 
         async function aggiungi() {
@@ -93,11 +101,11 @@
             const nomeInserito = n.value.trim();
             if (!nomeInserito) return;
 
-            // CONTROLLO DUPLICATI: Verifico se esiste già un prodotto con questo nome (ignorando maiuscole/minuscole)
+            // Controllo Duplicati
             const check = await fetch(`${URL}/prodotti?nome=ilike.${nomeInserito}&or=(email.is.null,email.eq.${userEmail})`, { headers });
             const esistenti = await check.json();
 
-            if (esistenti.length > 0) {
+            if (esistenti && esistenti.length > 0) {
                 showToast("Già presente in elenco", "#ffb347");
                 return;
             }
@@ -106,22 +114,21 @@
                 method: "POST", headers, 
                 body: JSON.stringify({ nome: nomeInserito, email: userEmail }) 
             });
-            n.value = ""; carica();
+            n.value = ""; 
+            carica();
         }
 
         async function gestisciRimozione(id, isDefault) {
             if (isDefault) {
-                // Se è un prodotto di default, lo nascondo solo per questo utente
                 await fetch(`${URL}/prodotti_nascosti`, {
                     method: "POST", headers,
                     body: JSON.stringify({ prodotto_id: id, email_utente: userEmail })
                 });
-                showToast("Prodotto rimosso", "#aec6cf");
+                showToast("Nascosto dai predefiniti", "#aec6cf");
             } else {
-                // Se è un prodotto creato dall'utente, lo elimino definitivamente
-                if (confirm("Vuoi eliminare definitivamente questo prodotto creato da te?")) {
+                if (confirm("Vuoi eliminare definitivamente questo prodotto?")) {
                     await fetch(`${URL}/prodotti?id=eq.${id}`, { method: "DELETE", headers });
-                    showToast("Prodotto eliminato", "#ff6961");
+                    showToast("Eliminato", "#ff6961");
                 }
             }
             carica();
@@ -130,40 +137,39 @@
         async function mettiInLista(id) {
             const check = await fetch(`${URL}/lista_spesa?prodotto_id=eq.${id}&email_utente=eq.${userEmail}`, { headers });
             const esistenti = await check.json();
-            if (esistenti.length > 0) { showToast("Già in lista spesa", "#ffb347"); return; }
+            if (esistenti && esistenti.length > 0) { 
+                showToast("Già in lista spesa", "#ffb347"); 
+                return; 
+            }
             
             await fetch(`${URL}/lista_spesa`, { 
                 method: "POST", headers, 
                 body: JSON.stringify({ prodotto_id: id, email_utente: userEmail, completato: false }) 
             });
-            showToast("Aggiunto alla lista", "#77dd77");
+            showToast("Aggiunto!", "#77dd77");
         }
 
         async function modifica(id, vecchioNome) {
             const nuovoNome = prompt("Modifica nome:", vecchioNome);
             if (!nuovoNome || nuovoNome === vecchioNome) return;
 
-            const check = await fetch(`${URL}/prodotti?id=eq.${id}&select=email`, { headers });
-            const p = await check.json();
+            const res = await fetch(`${URL}/prodotti?id=eq.${id}&select=email`, { headers });
+            const p = await res.json();
 
             if (p[0].email === null) {
-                // Se modifico un default, creo una copia personale
                 await fetch(`${URL}/prodotti`, { 
                     method: "POST", headers, 
                     body: JSON.stringify({ nome: nuovoNome, email: userEmail }) 
                 });
-                // Nascondo l'originale per non avere doppioni
                 await fetch(`${URL}/prodotti_nascosti`, {
                     method: "POST", headers,
                     body: JSON.stringify({ prodotto_id: id, email_utente: userEmail })
                 });
-                showToast("Personalizzato!", "#779ecb");
             } else {
                 await fetch(`${URL}/prodotti?id=eq.${id}`, { 
                     method: "PATCH", headers, 
                     body: JSON.stringify({ nome: nuovoNome }) 
                 });
-                showToast("Modificato", "#779ecb");
             }
             carica();
         }
