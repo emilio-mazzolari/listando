@@ -15,26 +15,31 @@
         
         .item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee; }
         .testo-prodotto { flex-grow: 1; font-size: 16px; color: #1c1c1e; font-weight: 500; }
-        .testo-prodotto.barrato { text-decoration: line-through; color: #8e8e93; opacity: 0.7; }
+        .testo-prodotto.barrato { text-decoration: line-through; color: #8e8e93; opacity: 0.6; }
         
+        /* Bottoni con colori in Palette e Icone Arrotondate */
         .btn-small { 
             border: none; 
-            border-radius: 8px; 
-            width: 38px; 
-            height: 38px; 
+            border-radius: 10px; 
+            width: 40px; 
+            height: 40px; 
             cursor: pointer; 
-            margin-left: 6px; 
+            margin-left: 8px; 
             display: inline-flex; 
             align-items: center; 
             justify-content: center; 
-            font-size: 20px; 
-            font-family: "Arial Black", sans-serif; 
-            font-weight: 900;
-            line-height: 1;
+            transition: transform 0.1s;
         }
-        .check { background-color: #77dd77; color: white; text-shadow: 0px 1px 2px rgba(0,0,0,0.1); } 
-        .delete { background-color: #ff6961; color: white; text-shadow: 0px 1px 2px rgba(0,0,0,0.1); } 
+        .btn-small:active { transform: scale(0.9); }
+
+        /* Verde Salvia Pastello */
+        .check { background-color: #b2d8b2; color: white; } 
+        /* Rosso Corallo/Rosa Pastello */
+        .delete { background-color: #ffb3b3; color: white; } 
         
+        /* Icone SVG per massima rotondità */
+        .icon { width: 20px; height: 20px; fill: white; stroke: white; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
         .btn-orange { width: 100%; padding: 15px; border-radius: 12px; border: none; background: #aec6cf; color: white; font-weight: bold; margin-top: 15px; cursor: pointer; font-size: 16px; }
 
         .tab-bar { 
@@ -47,7 +52,6 @@
             flex: 1; text-align: center; font-size: 14px; color: black; 
             text-decoration: none; text-transform: uppercase; font-weight: 600;
         }
-        /* Rimosso text-decoration: underline */
         .tab-active { font-weight: 900; }
 
         #toast { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 15px 30px; border-radius: 12px; color: white; font-weight: bold; display: none; z-index: 2000; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
@@ -88,11 +92,7 @@
                     return;
                 }
 
-                data.sort((a, b) => {
-                    const nomeA = a.prodotti?.nome || "";
-                    const nomeB = b.prodotti?.nome || "";
-                    return nomeA.localeCompare(nomeB);
-                });
+                data.sort((a, b) => (a.prodotti?.nome || "").localeCompare(b.prodotti?.nome || ""));
 
                 div.innerHTML = "";
                 data.forEach(item => {
@@ -101,8 +101,12 @@
                     riga.innerHTML = `
                         <span class="testo-prodotto ${item.completato ? 'barrato' : ''}">${item.prodotti.nome}</span>
                         <div style="display:flex;">
-                            <button class="btn-small check" onclick="toggle(${item.id}, ${item.completato})">v</button>
-                            <button class="btn-small delete" onclick="elimina(${item.id})">x</button>
+                            <button class="btn-small check" onclick="toggle(${item.id}, ${item.completato})">
+                                <svg class="icon" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
+                            </button>
+                            <button class="btn-small delete" onclick="elimina(${item.id})">
+                                <svg class="icon" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                            </button>
                         </div>
                     `;
                     div.appendChild(riga);
