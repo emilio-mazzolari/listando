@@ -92,11 +92,32 @@
             n.value = ""; carica();
         }
 
-        async function modifica(id, vecchio) {
-            const nuovo = prompt("Modifica nome:", vecchio);
-            if (!nuovo || nuovo === vecchio) return;
-            await fetch(`${URL}/prodotti?id=eq.${id}`, { method: "PATCH", headers, body: JSON.stringify({ nome: nuovo }) });
-            carica();
+       async function modifica(id, vecchioNome) {
+    const nuovoNome = prompt("Modifica nome:", vecchioNome);
+    if (!nuovoNome || nuovoNome === vecchioNome) return;
+
+    // Controlliamo se il prodotto è originale (email null)
+    const check = await fetch(`${URL}/prodotti?id=eq.${id}&select=email`, { headers });
+    const prodotto = await check.json();
+
+    if (prodotto[0].email === null) {
+        // È un prodotto predefinito: ne CREIAMO uno nuovo per l'utente
+        await fetch(`${URL}/prodotti`, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({ nome: nuovoNome, email: userEmail })
+        });
+        alert("Prodotto predefinito personalizzato per te!");
+    } else {
+        // È già un tuo prodotto: lo MODIFICHIAMO normalmente
+        await fetch(`${URL}/prodotti?id=eq.${id}`, {
+            method: "PATCH",
+            headers,
+            body: JSON.stringify({ nome: nuovoNome })
+        });
+    }
+    carica();
+
         }
 
         async function elimina(id) {
