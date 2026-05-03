@@ -61,6 +61,7 @@
         const KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
         const headers = { "apikey": KEY, "Content-Type": "application/json", "Prefer": "return=representation" };
         const userEmail = localStorage.getItem('userEmail');
+        const adminEmail = "emilio.mazzolari.shop@gmail.com";
 
         if (!userEmail) { window.location.href = 'login.html'; }
 
@@ -72,13 +73,13 @@
 
         async function carica() {
             try {
-                // 1. Carico prodotti nascosti
+                // 1. Carico prodotti nascosti dall'utente attuale
                 const resNascosti = await fetch(`${URL}/prodotti_nascosti?email_utente=eq.${userEmail}`, { headers });
                 const nascosti = await resNascosti.json() || [];
                 const idsNascosti = nascosti.map(n => n.prodotto_id);
 
-                // 2. Carico tutti i prodotti
-                const res = await fetch(`${URL}/prodotti?select=*&or=(email.is.null,email.eq.${userEmail})`, { headers });
+                // 2. Carico prodotti: Default (null) OR Emilio OR Utente attuale
+                const res = await fetch(`${URL}/prodotti?select=*&or=(email.is.null,email.eq.${adminEmail},email.eq.${userEmail})`, { headers });
                 let allData = await res.json();
                 if (!Array.isArray(allData)) return;
 
@@ -94,11 +95,12 @@
                 visibili.forEach(p => {
                     const riga = document.createElement("div"); 
                     riga.className = "item";
+                    // Passiamo l'email del proprietario alla funzione di rimozione
                     riga.innerHTML = `<span>${p.nome}</span>
                         <div style="display:flex;">
                             <button class="btn-small plus" onclick="mettiInLista(${p.id})">+</button>
                             <button class="btn-small edit" onclick="modifica(${p.id}, '${p.nome.replace(/'/g, "\\'")}')">✏️</button>
-                            <button class="btn-small delete" onclick="gestisciRimozione(${p.id}, ${p.email === null})">🗑</button>
+                            <button class="btn-small delete" onclick="gestisciRimozione(${p.id}, '${p.email}')">🗑</button>
                         </div>`;
                     div.appendChild(riga);
                 });
@@ -127,31 +129,26 @@
             const nomeInserito = n.value.trim();
             if (!nomeInserito) return;
 
-            // 1. Cerchiamo se il prodotto esiste già (tra predefiniti o propri)
-            const check = await fetch(`${URL}/prodotti?nome=ilike.${nomeInserito}&or=(email.is.null,email.eq.${userEmail})`, { headers });
+            // Cerco se esiste già tra i prodotti pubblici o dell'utente
+            const check = await fetch(`${URL}/prodotti?nome=ilike.${nomeInserito}&or=(email.is.null,email.eq.${adminEmail},email.eq.${userEmail})`, { headers });
             const esistenti = await check.json();
 
             if (esistenti && esistenti.length > 0) {
                 const prodId = esistenti[0].id;
-                
-                // 2. Controlliamo se è nella lista dei nascosti
                 const checkNascosto = await fetch(`${URL}/prodotti_nascosti?prodotto_id=eq.${prodId}&email_utente=eq.${userEmail}`, { headers });
                 const nascosto = await checkNascosto.json();
 
                 if (nascosto && nascosto.length > 0) {
-                    // SE È NASCOSTO: Lo ripristiniamo invece di dare errore
-                    await ripristina(prodId, false); // false per evitare il doppio toast
+                    await ripristina(prodId, true);
                     showToast("Prodotto ripristinato!", "#77dd77");
                     n.value = "";
                     return;
                 } else {
-                    // SE È GIÀ VISIBILE: Diamo l'errore
                     showToast("Già presente in elenco", "#ffb347");
                     return;
                 }
             }
 
-            // 3. Se non esiste proprio, lo creiamo
             await fetch(`${URL}/prodotti`, { 
                 method: "POST", headers, 
                 body: JSON.stringify({ nome: nomeInserito, email: userEmail }) 
@@ -160,17 +157,31 @@
             carica();
         }
 
-        async function gestisciRimozione(id, isDefault) {
-            if (isDefault) {
+        async function gestisciRimozione(id, emailProprietario) {
+            // Un prodotto è "Pubblico" se email è null o è di Emilio
+            const isPublic = (emailProprietario === 'null' || emailProprietario === adminEmail);
+            
+            // Logica "Nascondi solo a me":
+            // Se il prodotto è pubblico (e io non sono Emilio) lo nascondo.
+            // Se sono Emilio, decido se nascondere o eliminare per tutti.
+            if (isPublic && userEmail !== adminEmail) {
                 await fetch(`${URL}/prodotti_nascosti`, {
                     method: "POST", headers,
                     body: JSON.stringify({ prodotto_id: id, email_utente: userEmail })
                 });
-                showToast("Nascosto", "#aec6cf");
+                showToast("Nascosto dalla tua vista", "#aec6cf");
             } else {
-                if (confirm("Eliminare definitivamente?")) {
+                // Se è un prodotto creato dall'utente o se Emilio sta gestendo i suoi
+                const scelta = confirm("Vuoi ELIMINARE PER TUTTI (OK) o solo NASCONDERE A TE (Annulla)?");
+                if (scelta) {
                     await fetch(`${URL}/prodotti?id=eq.${id}`, { method: "DELETE", headers });
-                    showToast("Eliminato", "#ff6961");
+                    showToast("Eliminato definitivamente", "#ff6961");
+                } else {
+                    await fetch(`${URL}/prodotti_nascosti`, {
+                        method: "POST", headers,
+                        body: JSON.stringify({ prodotto_id: id, email_utente: userEmail })
+                    });
+                    showToast("Nascosto dalla tua vista", "#aec6cf");
                 }
             }
             carica();
@@ -198,9 +209,13 @@
         async function modifica(id, vecchioNome) {
             const nuovoNome = prompt("Modifica nome:", vecchioNome);
             if (!nuovoNome || nuovoNome === vecchioNome) return;
+            
             const res = await fetch(`${URL}/prodotti?id=eq.${id}&select=email`, { headers });
             const p = await res.json();
-            if (p[0].email === null) {
+            const emailProp = p[0].email;
+
+            // Se provo a modificare un prodotto pubblico non mio, ne creo una copia privata e nascondo l'originale
+            if ((emailProp === null || emailProp === adminEmail) && userEmail !== adminEmail) {
                 await fetch(`${URL}/prodotti`, { method: "POST", headers, body: JSON.stringify({ nome: nuovoNome, email: userEmail }) });
                 await fetch(`${URL}/prodotti_nascosti`, { method: "POST", headers, body: JSON.stringify({ prodotto_id: id, email_utente: userEmail }) });
             } else {
