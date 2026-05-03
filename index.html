@@ -32,11 +32,13 @@
         .btn-small:active { filter: brightness(0.8); }
 
         .check { background-color: #45a049; } 
+        .restore { background-color: #c7c7cc; } /* Grigio per ripristino */
         .delete { background-color: #db5151; } 
         
         .icon { width: 22px; height: 22px; fill: none; stroke: white; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
 
         .btn-orange { width: 100%; padding: 15px; border-radius: 12px; border: none; background: #aec6cf; color: white; font-weight: bold; margin-top: 15px; cursor: pointer; font-size: 16px; }
+        .btn-secondary { background: #99b3bc; } /* Un tono diverso per distinguere i due bottoni */
 
         .tab-bar { 
             position: fixed; bottom: 0; left: 0; right: 0; height: 70px; 
@@ -50,7 +52,6 @@
         }
         .tab-active { font-weight: 900; }
 
-        /* MODALI */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 2000; }
         .modal-box { background: white; padding: 25px; border-radius: 20px; width: 85%; max-width: 350px; text-align: center; }
         .btn-modal { width: 100%; padding: 15px; margin-top: 10px; border-radius: 12px; border: none; background: #aec6cf; color: white; font-weight: bold; cursor: pointer; font-size: 16px; }
@@ -62,6 +63,10 @@
         <div class="header-box"><h1 style="margin:0;">🛒 Lista della spesa</h1></div>
         <div class="card">
             <div id="contenitoreLista">Caricamento...</div>
+            
+            <!-- Pulsante per eliminare solo i completati -->
+            <button class="btn-orange btn-secondary" onclick="eliminaAcquistati()">ELIMINA PRODOTTI ACQUISTATI</button>
+            
             <button class="btn-orange" onclick="apriModalSvuota()">SVUOTA TUTTA LA LISTA</button>
         </div>
     </div>
@@ -72,7 +77,7 @@
         <a href="#" class="tab-item" onclick="logout()">🚪 ESCI</a>
     </div>
 
-    <!-- MODAL SVUOTA LISTA -->
+    <!-- MODALE SVUOTA TUTTO -->
     <div id="svuotaModal" class="modal-overlay">
         <div class="modal-box">
             <h3>Svuota Lista</h3>
@@ -82,7 +87,7 @@
         </div>
     </div>
 
-    <!-- MODAL ALERT (PER ADMIN) -->
+    <!-- MODAL ALERT -->
     <div id="alertModal" class="modal-overlay">
         <div class="modal-box">
             <h3 id="alertTitle">Attenzione</h3>
@@ -117,11 +122,18 @@
                 data.forEach(item => {
                     const riga = document.createElement("div");
                     riga.className = "item";
+                    
+                    // Logica icone dinamiche: spunta o freccia ripristino
+                    const iconaClasse = item.completato ? 'restore' : 'check';
+                    const svgIcona = item.completato 
+                        ? `<path d="M9 14l-4-4 4-4M5 10h11a4 4 0 110 8h-1"/>` // Freccia ↩️
+                        : `<path d="M5 12l5 5L20 7"/>`; // Spunta ✅
+
                     riga.innerHTML = `
                         <span class="testo-prodotto ${item.completato ? 'barrato' : ''}">${item.prodotti.nome}</span>
                         <div style="display:flex;">
-                            <button class="btn-small check" onclick="toggle(${item.id}, ${item.completato})">
-                                <svg class="icon" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>
+                            <button class="btn-small ${iconaClasse}" onclick="toggle(${item.id}, ${item.completato})">
+                                <svg class="icon" viewBox="0 0 24 24">${svgIcona}</svg>
                             </button>
                             <button class="btn-small delete" onclick="elimina(${item.id})">
                                 <svg class="icon" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
@@ -144,6 +156,17 @@
         async function elimina(id) {
             await fetch(`${URL}/lista_spesa?id=eq.${id}`, { method: "DELETE", headers });
             caricaLista();
+        }
+
+        // Funzione per eliminare solo i prodotti con completato = true
+        async function eliminaAcquistati() {
+            if (confirm("Vuoi rimuovere dalla lista tutti i prodotti già acquistati?")) {
+                await fetch(`${URL}/lista_spesa?email_utente=eq.${userEmail}&completato=eq.true`, { 
+                    method: "DELETE", 
+                    headers 
+                });
+                caricaLista();
+            }
         }
 
         function apriModalSvuota() {
