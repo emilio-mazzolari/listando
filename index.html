@@ -25,100 +25,73 @@
     </style>
 </head>
 <body>
-
-<div class="app">
-    <div class="header-box">
-        <h1 style="margin:0;">🛒 La mia Lista</h1>
+    <div class="app">
+        <div class="header-box"><h1 style="margin:0;">🛒 La mia Lista</h1></div>
+        <div class="card">
+            <div id="contenitoreLista">Caricamento...</div>
+            <button class="btn-orange" onclick="svuotaLista()">SVUOTA TUTTA LA LISTA</button>
+        </div>
     </div>
-    <div class="card">
-        <div id="contenitoreLista">Caricamento...</div>
-        <button class="btn-orange" onclick="svuotaLista()">SVUOTA TUTTA LA LISTA</button>
+
+    <div class="tab-bar">
+        <a href="index.html" class="tab-item tab-active">🛒 Lista</a>
+        <a href="prodotti.html" class="tab-item">📦 Prodotti</a>
     </div>
-</div>
 
-<div class="tab-bar">
-    <a href="index.html" class="tab-item tab-active">🛒 Lista</a>
-    <a href="prodotti.html" class="tab-item">📦 Prodotti</a>
-</div>
+    <script>
+        const URL_BASE = "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1";
+        const API_KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
+        const HEADERS = { "apikey": API_KEY, "Content-Type": "application/json" };
+        const emailUtente = localStorage.getItem('userEmail');
 
-<script>
-    if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
+        if (!emailUtente) { window.location.href = 'login.html'; }
+        if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
 
-    const URL_BASE = "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1";
-    const API_KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
-    const HEADERS = { "apikey": API_KEY, "Content-Type": "application/json" };
-    const emailUtente = localStorage.getItem('userEmail');
+        async function caricaDatiLista() {
+            try {
+                const risposta = await fetch(`${URL_BASE}/lista_spesa?select=*,prodotti!inner(nome)&email_utente=eq.${emailUtente}`, { headers: HEADERS });
+                const dati = await risposta.json();
+                const div = document.getElementById("contenitoreLista");
+                if (!dati || dati.length === 0) {
+                    div.innerHTML = "<p style='text-align:center; color:#8e8e93;'>Nessun prodotto in lista.</p>";
+                    return;
+                }
+                dati.sort((a, b) => a.prodotti.nome.localeCompare(b.prodotti.nome));
+                div.innerHTML = "";
+                dati.forEach(item => {
+                    const riga = document.createElement("div");
+                    riga.className = "item";
+                    riga.innerHTML = `
+                        <span class="testo-prodotto ${item.completato ? 'barrato' : ''}">${item.prodotti.nome}</span>
+                        <div>
+                            <button class="btn-small check" onclick="aggiornaStato(${item.id}, ${!item.completato})">✔</button>
+                            <button class="btn-small delete" onclick="rimuoviDallaLista(${item.id})">✖</button>
+                        </div>`;
+                    div.appendChild(riga);
+                });
+            } catch (errore) { console.error(errore); }
+        }
 
-    async function caricaDatiLista() {
-        try {
-            const risposta = await fetch(`${URL_BASE}/lista_spesa?select=*,prodotti!inner(nome)&email_utente=eq.${emailUtente}`, { headers: HEADERS });
-            const dati = await risposta.json();
-            
-            const div = document.getElementById("contenitoreLista");
-            if (!dati || dati.length === 0) {
-                div.innerHTML = "<p style='text-align:center; color:#8e8e93;'>Nessun prodotto in lista.</p>";
-                return;
-            }
-
-            // ORDINE ALFABETICO
-            dati.sort((a, b) => a.prodotti.nome.localeCompare(b.prodotti.nome));
-
-            div.innerHTML = "";
-            dati.forEach(item => {
-                const riga = document.createElement("div");
-                riga.className = "item";
-                riga.innerHTML = `
-                    <span class="testo-prodotto ${item.completato ? 'barrato' : ''}">${item.prodotti.nome}</span>
-                    <div>
-                        <button class="btn-small check" onclick="aggiornaStato(${item.id}, ${!item.completato})">✔</button>
-                        <button class="btn-small delete" onclick="rimuoviDallaLista(${item.id})">✖</button>
-                    </div>
-                `;
-                div.appendChild(riga);
+        async function aggiornaStato(id, nuovoStato) {
+            await fetch(`${URL_BASE}/lista_spesa?id=eq.${id}`, {
+                method: "PATCH", headers: HEADERS,
+                body: JSON.stringify({ completato: nuovoStato })
             });
-        } catch (errore) { console.error(errore); }
-    }
-
-    async function aggiornaStato(id, nuovoStato) {
-        await fetch(`${URL_BASE}/lista_spesa?id=eq.${id}`, {
-            method: "PATCH", headers: HEADERS,
-            body: JSON.stringify({ completato: nuovoStato })
-        });
-        caricaDatiLista();
-    }
-
-    async function rimuoviDallaLista(id) {
-        await fetch(`${URL_BASE}/lista_spesa?id=eq.${id}`, { method: "DELETE", headers: HEADERS });
-        caricaDatiLista();
-    }
-
-    async function svuotaLista() {
-        if (confirm("Vuoi svuotare la tua lista?")) {
-            await fetch(`${URL_BASE}/lista_spesa?email_utente=eq.${emailUtente}`, { method: "DELETE", headers: HEADERS });
             caricaDatiLista();
         }
-    }
 
-    caricaDatiLista();
-<script>
-    // 1. DEFINIZIONE DATI BASE
-    const URL_BASE = "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1";
-    const API_KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
-    const HEADERS = { "apikey": API_KEY, "Content-Type": "application/json" };
+        async function rimuoviDallaLista(id) {
+            await fetch(`${URL_BASE}/lista_spesa?id=eq.${id}`, { method: "DELETE", headers: HEADERS });
+            caricaDatiLista();
+        }
 
-    // 2. CONTROLLO ACCESSO (Aggiungi questo pezzo qui)
-    const emailUtente = localStorage.getItem('userEmail');
-    if (!emailUtente) {
-        window.location.href = 'login.html'; // Se non c'è la mail, rimanda al login
-    }
-
-    // 3. IL RESTO DELLE TUE FUNZIONI (caricaDatiLista, ecc...)
-    if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
-    
-    async function caricaDatiLista() {
-        // ... resto del codice invariato ...
-    }
-    // ...
-</script>
+        async function svuotaLista() {
+            if (confirm("Vuoi svuotare la tua lista?")) {
+                await fetch(`${URL_BASE}/lista_spesa?email_utente=eq.${emailUtente}`, { method: "DELETE", headers: HEADERS });
+                caricaDatiLista();
+            }
+        }
+        caricaDatiLista();
+    </script>
 </body>
 </html>
