@@ -12,56 +12,32 @@
         .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 90px; }
         .card { background: white; border-radius: 16px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         .header-box { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        
         .testo-prodotto { flex-grow: 1; font-size: 16px; color: #1c1c1e; font-weight: 400; }
         .item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; }
-        
-        .btn-small { border: none; border-radius: 8px; width: 32px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-left: 4px; font-size: 16px; transition: all 0.3s; }
+        .btn-small { border: none; border-radius: 8px; width: 32px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-left: 4px; font-size: 16px; }
         .plus { background-color: #779ecb; color: white; } 
         .edit { background-color: #fdfd96; color: #3a3a3c; } 
         .delete { background-color: #add8e6; color: #1c1c1e; }
-
         .input-group { display: flex; gap: 10px; margin-bottom: 12px; }
-        input { 
-            flex: 1; padding: 12px; border-radius: 12px; border: 1px solid #ddd; 
-            font-size: 16px; outline: none; height: 45px; box-sizing: border-box; background: white;
-        }
-        .btn-main { 
-            width: 100px; height: 45px; border-radius: 12px; border: none; 
-            background: #aec6cf; color: white; font-weight: bold; cursor: pointer; 
-            font-size: 14px; display: flex; align-items: center; justify-content: center;
-        }
-
-        .tab-bar { 
-            position: fixed; bottom: 0; left: 0; right: 0; height: 70px; 
-            background: #aec6cf; border-top: 1px solid #99b3bc; 
-            display: flex; justify-content: space-around; align-items: center; z-index: 1000;
-        }
+        input { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid #ddd; font-size: 16px; height: 45px; box-sizing: border-box; }
+        .btn-main { width: 100px; height: 45px; border-radius: 12px; border: none; background: #aec6cf; color: white; font-weight: bold; cursor: pointer; }
+        .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 70px; background: #aec6cf; border-top: 1px solid #99b3bc; display: flex; justify-content: space-around; align-items: center; }
         .tab-item { flex: 1; text-align: center; font-size: 14px; color: black; text-decoration: none; text-transform: uppercase; font-weight: 600; }
         .tab-active { font-weight: 900; }
-
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 2000; }
         .modal-box { background: white; padding: 25px; border-radius: 20px; width: 85%; max-width: 350px; text-align: center; }
-        .btn-modal { width: 100%; padding: 15px; margin-top: 10px; border-radius: 12px; border: none; background: #aec6cf; color: white; font-weight: bold; cursor: pointer; font-size: 16px; }
+        .btn-modal { width: 100%; padding: 15px; margin-top: 10px; border-radius: 12px; border: none; background: #aec6cf; color: white; font-weight: bold; cursor: pointer; }
         .btn-cancel { background: #e5e5ea; color: #8e8e93; margin-top: 15px; }
-        .modal-box input { width: 100%; margin-bottom: 15px; text-align: center; }
     </style>
 </head>
 <body>
 
     <div class="app">
         <div class="header-box"><h1 style="margin:0;">📦 Elenco prodotti</h1></div>
-        
         <div class="input-group">
             <input type="text" id="nuovoProdotto" placeholder="Inserisci nuovo prodotto...">
             <button class="btn-main" onclick="gestisciInserimento()">INSERISCI</button>
         </div>
-
-        <div class="input-group">
-            <input type="text" id="cercaProdotto" placeholder="Cerca prodotto..." onkeyup="filtraProdotti()">
-            <button class="btn-main" onclick="filtraProdotti()">TROVA</button>
-        </div>
-
         <div class="card" id="listaProdotti">Caricamento...</div>
     </div>
 
@@ -71,7 +47,7 @@
         <a href="#" class="tab-item" onclick="logout()">🚪 ESCI</a>
     </div>
 
-    <!-- MODAL INSERIMENTO (SOLO PER EMILIO) -->
+    <!-- MODAL INSERIMENTO ADMIN -->
     <div id="insertModal" class="modal-overlay">
         <div class="modal-box">
             <h3>Nuovo Prodotto</h3>
@@ -92,58 +68,42 @@
         </div>
     </div>
 
-    <!-- MODAL MODIFICA -->
-    <div id="editModal" class="modal-overlay">
-        <div class="modal-box">
-            <h3>Modifica Nome</h3>
-            <input type="text" id="inputModifica" placeholder="Nome prodotto">
-            <button class="btn-modal" onclick="salvaModifica()">SALVA MODIFICA</button>
-            <button class="btn-modal btn-cancel" onclick="chiudiModal()">ANNULLA</button>
-        </div>
-    </div>
-
     <script>
         const URL = "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1";
         const KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
-        const headers = { 
-            "apikey": KEY, 
-            "Content-Type": "application/json",
-            "Authorization": "Bearer " + KEY
-        };
+        const headers = { "apikey": KEY, "Content-Type": "application/json", "Authorization": "Bearer " + KEY };
         const userEmail = localStorage.getItem('userEmail');
         const adminEmail = "emilio.mazzolari.shop@gmail.com";
 
         let idDaRimuovere = null;
-        let idInModifica = null;
         let tuttiIProdotti = [];
-
-        if (!userEmail) { window.location.href = 'login.html'; }
 
         async function caricaProdotti() {
             try {
-                // 1. Prendo gli ID dei prodotti che l'utente ha scelto di nascondere
+                // 1. Carica ID prodotti nascosti dall'utente attuale
                 const resNascosti = await fetch(`${URL}/prodotti_nascosti?email_utente=eq.${userEmail}`, { headers });
                 const nascosti = await resNascosti.json();
                 const idsNascosti = nascosti.map(n => n.prodotto_id);
 
-                // 2. Prendo i prodotti
+                // 2. Carica tutti i prodotti
                 const res = await fetch(`${URL}/prodotti?select=*&order=nome.asc`, { headers });
                 const data = await res.json();
                 
-                if (!Array.isArray(data)) return;
-
-                // 3. LOGICA FILTRO CORRETTA:
-                // Mostro il prodotto se:
-                // - NON è nella lista dei miei nascosti
-                // - E (L'email è dell'admin/null -> prodotto globale O l'email è la mia -> prodotto privato)
+                // 3. LOGICA DI FILTRAGGIO CORRETTA
                 tuttiIProdotti = data.filter(p => {
-                    const nonNascosto = !idsNascosti.includes(p.id);
-                    const eGlobale = (p.email === adminEmail || !p.email);
-                    const eMioPrivato = (p.email === userEmail && userEmail !== adminEmail);
-                    
-                    // Se io sono l'admin, vedo i globali e i miei (che sono la stessa cosa)
-                    // Se sono utente X, vedo i globali + quelli creati da X
-                    return nonNascosto && (eGlobale || eMioPrivato);
+                    // a) Non deve essere nei miei nascosti
+                    if (idsNascosti.includes(p.id)) return false;
+
+                    // b) Se il prodotto non ha email (o email null), è un default visibile a tutti
+                    if (!p.email) return true;
+
+                    // c) Se il prodotto è marcato "per tutti" (associato a adminEmail)
+                    //    MA abbiamo bisogno di distinguere tra "admin pubblica per tutti" e "admin pubblica per sé".
+                    //    Useremo una convenzione: se il prodotto è stato creato con email 'admin_global', lo vedono tutti.
+                    if (p.email === 'admin_global') return true;
+
+                    // d) Altrimenti, lo vedo solo se l'email del prodotto coincide con la mia
+                    return p.email === userEmail;
                 });
 
                 renderizzaProdotti(tuttiIProdotti);
@@ -159,8 +119,7 @@
                 riga.innerHTML = `
                     <span class="testo-prodotto">${p.nome}</span>
                     <div style="display:flex;">
-                        <button class="btn-small plus" id="btn-add-${p.id}" onclick="mettiInLista(${p.id})">+</button>
-                        <button class="btn-small edit" onclick="apriModalModifica(${p.id}, '${p.nome.replace(/'/g, "\\'")}')">✏️</button>
+                        <button class="btn-small plus" onclick="mettiInLista(${p.id})">+</button>
                         <button class="btn-small delete" onclick="apriModalRimuovi(${p.id})">🗑</button>
                     </div>
                 `;
@@ -168,17 +127,9 @@
             });
         }
 
-        function filtraProdotti() {
-            const query = document.getElementById("cercaProdotto").value.toLowerCase();
-            const filtrati = tuttiIProdotti.filter(p => p.nome.toLowerCase().includes(query));
-            renderizzaProdotti(filtrati);
-        }
-
         function gestisciInserimento() {
             const nome = document.getElementById("nuovoProdotto").value.trim();
             if (!nome) return;
-
-            // Se sei tu, chiedi. Se è un altro, inserisce solo per sé.
             if (userEmail === adminEmail) {
                 document.getElementById('insertModal').style.display = 'flex';
             } else {
@@ -190,15 +141,20 @@
             const input = document.getElementById("nuovoProdotto");
             const nome = input.value.trim();
             
-            // Se scegli "Per tutti" l'email sarà adminEmail.
-            // Se scegli "Solo per me" (e non sei l'admin) l'email sarà la tua.
-            // Se sei l'admin e scegli "Solo per me", usiamo una stringa speciale o la logica dei nascosti.
-            // Per semplicità: "Per tutti" = adminEmail. "Solo per me" = userEmail.
-            const emailProprietario = perTutti ? adminEmail : userEmail;
+            // LOGICA SALVATAGGIO:
+            // Se Admin e sceglie "Per Tutti" -> usiamo un'etichetta speciale 'admin_global'
+            // Se Admin e sceglie "Solo per me" -> usiamo la sua email reale
+            // Se Utente normale -> usiamo la sua email reale
+            let emailSalvataggio;
+            if (userEmail === adminEmail) {
+                emailSalvataggio = perTutti ? 'admin_global' : adminEmail;
+            } else {
+                emailSalvataggio = userEmail;
+            }
 
             await fetch(`${URL}/prodotti`, {
                 method: "POST", headers,
-                body: JSON.stringify({ nome: nome, email: emailProprietario })
+                body: JSON.stringify({ nome: nome, email: emailSalvataggio })
             });
             
             input.value = "";
@@ -206,42 +162,23 @@
             caricaProdotti();
         }
 
-        // Funzioni di supporto (Modal, Logout, Modifica, ecc.) rimangono invariate...
-        function chiudiModal() {
-            document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none');
-        }
-
-        async function salvaModifica() {
-            const nuovoNome = document.getElementById("inputModifica").value.trim();
-            if (nuovoNome && idInModifica) {
-                await fetch(`${URL}/prodotti?id=eq.${idInModifica}`, {
-                    method: "PATCH", headers,
-                    body: JSON.stringify({ nome: nuovoNome })
-                });
-                chiudiModal();
-                caricaProdotti();
-            }
-        }
-
-        function apriModalModifica(id, nomeVecchio) {
-            idInModifica = id;
-            document.getElementById("inputModifica").value = nomeVecchio;
-            document.getElementById("editModal").style.display = "flex";
-        }
-
         function apriModalRimuovi(id) {
             idDaRimuovere = id;
             const btnTutti = document.getElementById('btnTutti');
-            if (userEmail !== adminEmail) {
-                btnTutti.style.display = "none";
-            } else {
+            
+            // Trovo il prodotto per capire se è un prodotto globale o privato
+            const prod = tuttiIProdotti.find(p => p.id === id);
+            
+            // Solo l'admin può "Eliminare per tutti" e solo se il prodotto è globale
+            if (userEmail === adminEmail && (prod.email === 'admin_global' || !prod.email)) {
                 btnTutti.style.display = "block";
+            } else {
+                btnTutti.style.display = "none";
             }
             document.getElementById('deleteModal').style.display = 'flex';
         }
 
         document.getElementById('btnTutti').onclick = async () => {
-            if (userEmail !== adminEmail) return;
             await fetch(`${URL}/prodotti?id=eq.${idDaRimuovere}`, { method: "DELETE", headers });
             chiudiModal();
             caricaProdotti();
@@ -256,14 +193,7 @@
             caricaProdotti();
         };
 
-        async function mettiInLista(id) {
-             const res = await fetch(`${URL}/lista_spesa`, {
-                method: "POST", headers,
-                body: JSON.stringify({ prodotto_id: id, email_utente: userEmail, completato: false })
-            });
-            if(res.ok) alert("Aggiunto!");
-        }
-
+        function chiudiModal() { document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none'); }
         function logout() { localStorage.removeItem('userEmail'); window.location.href = 'login.html'; }
         caricaProdotti();
     </script>
