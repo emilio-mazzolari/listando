@@ -13,24 +13,26 @@
         .card { background: white; border-radius: 16px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         .header-box { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
         
-        /* Lista Prodotti */
+        /* Font Normale (non bold) */
+        .testo-prodotto { flex-grow: 1; font-size: 16px; color: #1c1c1e; font-weight: 400; }
         .item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee; }
-        .testo-prodotto { flex-grow: 1; font-size: 16px; color: #1c1c1e; font-weight: 600; }
         
-        /* Bottoni Azione */
+        /* Bottoni Quadrati Arrotondati */
         .btn-small { 
             border: none; border-radius: 10px; width: 40px; height: 40px; 
             cursor: pointer; margin-left: 8px; display: inline-flex; 
             align-items: center; justify-content: center; 
         }
-        .add { background-color: #aec6cf; } /* Grigio-azzurro */
-        .delete-btn { background-color: #ef4444; } /* Rosso pieno */
-        .icon { width: 20px; height: 20px; fill: none; stroke: white; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+        .add { background-color: #aec6cf; } 
+        .delete-btn { background-color: #ef4444; } 
+        
+        /* Icone sottili ed eleganti */
+        .icon { width: 20px; height: 20px; fill: none; stroke: white; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
 
-        /* Input Nuovo Prodotto */
-        .input-group { display: flex; gap: 10px; margin-bottom: 20px; }
-        input { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid #ddd; font-size: 16px; outline: none; }
-        .btn-main { padding: 12px 20px; border-radius: 12px; border: none; background: #aec6cf; color: white; font-weight: bold; cursor: pointer; }
+        /* Gruppi Input */
+        .input-group { display: flex; gap: 10px; margin-bottom: 12px; }
+        input { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid #ddd; font-size: 16px; outline: none; background: white; }
+        .btn-main { padding: 12px 20px; border-radius: 12px; border: none; background: #aec6cf; color: white; font-weight: bold; cursor: pointer; min-width: 90px; }
 
         /* Barra Navigazione */
         .tab-bar { 
@@ -41,20 +43,10 @@
         .tab-item { flex: 1; text-align: center; font-size: 14px; color: black; text-decoration: none; text-transform: uppercase; font-weight: 600; }
         .tab-active { font-weight: 900; }
 
-        /* POPUP PERSONALIZZATO (MODAL) */
-        .modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 2000;
-        }
-        .modal-box {
-            background: white; padding: 25px; border-radius: 20px; width: 85%; max-width: 350px;
-            text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-        }
-        .modal-box h3 { margin-top: 0; color: #1c1c1e; font-size: 18px; margin-bottom: 20px; }
-        .btn-modal {
-            width: 100%; padding: 15px; margin-top: 10px; border-radius: 12px; border: none;
-            background: #aec6cf; color: white; font-weight: bold; cursor: pointer; font-size: 16px;
-        }
+        /* Modal */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 2000; }
+        .modal-box { background: white; padding: 25px; border-radius: 20px; width: 85%; max-width: 350px; text-align: center; }
+        .btn-modal { width: 100%; padding: 15px; margin-top: 10px; border-radius: 12px; border: none; background: #aec6cf; color: white; font-weight: bold; cursor: pointer; font-size: 16px; }
         .btn-cancel { background: #e5e5ea; color: #8e8e93; margin-top: 15px; }
     </style>
 </head>
@@ -63,22 +55,27 @@
     <div class="app">
         <div class="header-box"><h1 style="margin:0;">📦 Prodotti</h1></div>
         
+        <!-- Aggiunta -->
         <div class="input-group">
-            <input type="text" id="nuovoProdotto" placeholder="Nome nuovo prodotto...">
+            <input type="text" id="nuovoProdotto" placeholder="Aggiungi nuovo prodotto...">
             <button class="btn-main" onclick="aggiungiProdotto()">AGGIUNGI</button>
+        </div>
+
+        <!-- Ricerca -->
+        <div class="input-group">
+            <input type="text" id="cercaProdotto" placeholder="Cerca prodotto..." onkeyup="filtraLista()">
+            <button class="btn-main" onclick="filtraLista()">TROVA</button>
         </div>
 
         <div class="card" id="listaProdotti">Caricamento...</div>
     </div>
 
-    <!-- Barra Navigazione -->
     <div class="tab-bar">
         <a href="index.html" class="tab-item">🛒 LISTA</a>
         <a href="prodotti.html" class="tab-item tab-active">📦 PRODOTTI</a>
         <a href="#" class="tab-item" onclick="logout()">🚪 ESCI</a>
     </div>
 
-    <!-- Popup Personalizzato -->
     <div id="deleteModal" class="modal-overlay">
         <div class="modal-box">
             <h3>Cosa vuoi fare?</h3>
@@ -95,34 +92,58 @@
         const userEmail = localStorage.getItem('userEmail');
 
         let idDaRimuovere = null;
+        let prodottiLocali = []; // Per gestire la ricerca senza ricaricare dal DB
 
         if (!userEmail) { window.location.href = 'login.html'; }
 
         async function caricaProdotti() {
             try {
-                // Carica solo i prodotti che non sono stati nascosti dall'utente
-                const res = await fetch(`${URL}/prodotti?select=*&or=(visibile.eq.true,email_utente.neq.${userEmail})&order=nome.asc`, { headers });
+                const resNascosti = await fetch(`${URL}/prodotti_nascosti?email_utente=eq.${userEmail}`, { headers });
+                const nascosti = await resNascosti.json();
+                const idsNascosti = nascosti.map(n => n.prodotto_id);
+
+                const res = await fetch(`${URL}/prodotti?select=*&order=nome.asc`, { headers });
                 const data = await res.json();
-                const div = document.getElementById("listaProdotti");
-                div.innerHTML = "";
                 
-                data.forEach(p => {
-                    const riga = document.createElement("div");
-                    riga.className = "item";
-                    riga.innerHTML = `
-                        <span class="testo-prodotto">${p.nome}</span>
-                        <div style="display:flex;">
-                            <button class="btn-small add" onclick="mettiInLista(${p.id})">
-                                <svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
-                            </button>
-                            <button class="btn-small delete-btn" onclick="apriModalRimuovi(${p.id})">
-                                <svg class="icon" viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
-                            </button>
-                        </div>
-                    `;
-                    div.appendChild(riga);
-                });
+                if (!Array.isArray(data)) return;
+
+                // Filtriamo subito i nascosti e salviamo in locale
+                prodottiLocali = data.filter(p => !idsNascosti.includes(p.id));
+                renderizzaLista(prodottiLocali);
             } catch (e) { console.error(e); }
+        }
+
+        function renderizzaLista(lista) {
+            const div = document.getElementById("listaProdotti");
+            div.innerHTML = "";
+            
+            if (lista.length === 0) {
+                div.innerHTML = "Nessun prodotto trovato.";
+                return;
+            }
+
+            lista.forEach(p => {
+                const riga = document.createElement("div");
+                riga.className = "item";
+                riga.innerHTML = `
+                    <span class="testo-prodotto">${p.nome}</span>
+                    <div style="display:flex;">
+                        <button class="btn-small add" onclick="mettiInLista(${p.id})">
+                            <svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+                        </button>
+                        <button class="btn-small delete-btn" onclick="apriModalRimuovi(${p.id})">
+                            <svg class="icon" viewBox="0 0 24 24"><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 6h18"/></svg>
+                        </button>
+                    </div>
+                `;
+                div.appendChild(riga);
+            });
+        }
+
+        function filtraLista() {
+            const testo = document.getElementById("cercaProdotto").value.toLowerCase();
+            const filtrati = prodottiLocali.filter(p => p.nome.toLowerCase().includes(testo));
+            renderizzaLista(filtrati);
         }
 
         async function aggiungiProdotto() {
@@ -130,21 +151,20 @@
             if (!nome) return;
             await fetch(`${URL}/prodotti`, {
                 method: "POST", headers,
-                body: JSON.stringify({ nome: nome, email_utente: userEmail, visibile: true })
+                body: JSON.stringify({ nome: nome, email: userEmail })
             });
             document.getElementById("nuovoProdotto").value = "";
             caricaProdotti();
         }
 
-        async function mettiInLista(idProdotto) {
+        async function mettiInLista(id) {
             await fetch(`${URL}/lista_spesa`, {
                 method: "POST", headers,
-                body: JSON.stringify({ id_prodotto: idProdotto, email_utente: userEmail, completato: false })
+                body: JSON.stringify({ id_prodotto: id, email_utente: userEmail, completato: false })
             });
-            alert("Aggiunto alla lista!");
+            alert("Aggiunto!");
         }
 
-        // Gestione Modal
         function apriModalRimuovi(id) {
             idDaRimuovere = id;
             document.getElementById('deleteModal').style.display = 'flex';
@@ -156,26 +176,21 @@
         }
 
         document.getElementById('btnTutti').onclick = async () => {
-            if (!idDaRimuovere) return;
             await fetch(`${URL}/prodotti?id=eq.${idDaRimuovere}`, { method: "DELETE", headers });
             chiudiModal();
             caricaProdotti();
         };
 
         document.getElementById('btnSoloMe').onclick = async () => {
-            if (!idDaRimuovere) return;
-            await fetch(`${URL}/prodotti?id=eq.${idDaRimuovere}`, {
-                method: "PATCH", headers,
-                body: JSON.stringify({ visibile: false, email_utente: userEmail })
+            await fetch(`${URL}/prodotti_nascosti`, {
+                method: "POST", headers,
+                body: JSON.stringify({ prodotto_id: idDaRimuovere, email_utente: userEmail })
             });
             chiudiModal();
             caricaProdotti();
         };
 
-        function logout() {
-            localStorage.removeItem('userEmail');
-            window.location.href = 'login.html';
-        }
+        function logout() { localStorage.removeItem('userEmail'); window.location.href = 'login.html'; }
 
         caricaProdotti();
     </script>
