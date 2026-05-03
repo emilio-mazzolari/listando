@@ -17,10 +17,13 @@
         .item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; }
         
         /* BOTTONI STILE ORIGINALE */
-        .btn-small { border: none; border-radius: 8px; width: 32px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-left: 4px; font-size: 16px; }
+        .btn-small { border: none; border-radius: 8px; width: 32px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-left: 4px; font-size: 16px; transition: all 0.3s; }
         .plus { background-color: #779ecb; color: white; } 
         .edit { background-color: #fdfd96; color: #3a3a3c; } 
         .delete { background-color: #add8e6; color: #1c1c1e; }
+
+        /* Stato dinamico per il feedback del + */
+        .btn-feedback { width: auto !important; padding: 0 10px; font-size: 12px; font-weight: bold; text-transform: uppercase; }
 
         /* Gruppi Input Uniformati */
         .input-group { display: flex; gap: 10px; margin-bottom: 12px; }
@@ -51,10 +54,10 @@
 <body>
 
     <div class="app">
-        <div class="header-box"><h1 style="margin:0;">📦 Elenco prodotti</h1></div>
+        <div class="header-box"><h1 style="margin:0;">📦 Prodotti</h1></div>
         
         <div class="input-group">
-            <input type="text" id="nuovoProdotto" placeholder="Inserisci nuovo prodotto">
+            <input type="text" id="nuovoProdotto" placeholder="Aggiungi prodotto...">
             <button class="btn-main" onclick="aggiungiProdotto()">AGGIUNGI</button>
         </div>
 
@@ -121,7 +124,7 @@
                 riga.innerHTML = `
                     <span class="testo-prodotto">${p.nome}</span>
                     <div style="display:flex;">
-                        <button class="btn-small plus" onclick="mettiInLista(${p.id})">+</button>
+                        <button class="btn-small plus" id="btn-add-${p.id}" onclick="mettiInLista(${p.id})">+</button>
                         <button class="btn-small edit" onclick="modifica(${p.id}, '${p.nome.replace(/'/g, "\\'")}')">✏️</button>
                         <button class="btn-small delete" onclick="apriModalRimuovi(${p.id})">🗑</button>
                     </div>
@@ -148,23 +151,40 @@
         }
 
         async function mettiInLista(idDelProdotto) {
+            const btn = document.getElementById(`btn-add-${idDelProdotto}`);
+            const originalText = "+";
+            const originalClass = "btn-small plus";
+
             try {
+                // 1. Controlla se il prodotto è già presente (completato=false)
+                const checkRes = await fetch(`${URL}/lista_spesa?prodotto_id=eq.${idDelProdotto}&email_utente=eq.${userEmail}&completato=eq.false`, { headers });
+                const esistente = await checkRes.json();
+
+                if (esistente.length > 0) {
+                    // GIÀ AGGIUNTO
+                    btn.innerText = "GIÀ IN LISTA";
+                    btn.className = "btn-small btn-feedback edit"; // Uso il giallo dell'edit per richiamare attenzione
+                    setTimeout(() => { btn.innerText = originalText; btn.className = originalClass; }, 2000);
+                    return;
+                }
+
+                // 2. Aggiungi il prodotto
                 const res = await fetch(`${URL}/lista_spesa`, {
                     method: "POST",
                     headers: headers,
                     body: JSON.stringify({ 
-                        prodotto_id: idDelProdotto, // CORRETTO: come visto nello screenshot
+                        prodotto_id: idDelProdotto, 
                         email_utente: userEmail, 
                         completato: false 
                     })
                 });
+
                 if(res.ok) {
-                    alert("Aggiunto!");
-                } else {
-                    console.log("Errore DB:", await res.text());
-                    alert("Errore nell'aggiunta.");
+                    btn.innerText = "AGGIUNTO!";
+                    btn.className = "btn-small btn-feedback plus"; // Blu del plus
+                    setTimeout(() => { btn.innerText = originalText; btn.className = originalClass; }, 2000);
                 }
-            } catch (e) { alert("Errore di rete"); }
+            } catch (e) { console.error(e); }
         }
 
         async function modifica(id, nomeVecchio) {
