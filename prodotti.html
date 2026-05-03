@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Prodotti</title>
+    <title>Lista Spesa</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -12,110 +12,98 @@
         .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 90px; }
         .card { background: white; border-radius: 16px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         .header-box { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        input { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #ddd; margin-bottom: 10px; box-sizing: border-box; font-size: 16px; }
-        .btn-main { width: 100%; padding: 12px; border-radius: 12px; border: none; background: #aec6cf; color: white; font-weight: 600; cursor: pointer; }
-        .item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; }
-        .btn-small { border: none; border-radius: 8px; width: 32px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-left: 4px; }
-        .plus { background-color: #779ecb; color: white; }
-        .edit { background-color: #fdfd96; color: #3a3a3c; } 
-        .delete { background-color: #add8e6; color: #1c1c1e; }
-        #toast { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 15px 30px; border-radius: 12px; color: white; font-weight: bold; display: none; z-index: 2000; text-align: center; min-width: 150px; }
+        .item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee; }
+        .testo-prodotto { flex-grow: 1; font-size: 16px; }
+        .testo-prodotto.barrato { text-decoration: line-through; color: #8e8e93; }
+        .btn-small { border: none; border-radius: 8px; width: 35px; height: 35px; cursor: pointer; margin-left: 5px; display: inline-flex; align-items: center; justify-content: center; font-size: 16px; }
+        .check { background-color: #77dd77; color: white; }
+        .delete { background-color: #ff6961; color: white; }
+        .btn-orange { width: 100%; padding: 15px; border-radius: 12px; border: none; background: #ffb347; color: white; font-weight: bold; margin-top: 15px; cursor: pointer; }
         .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 65px; background: white; border-top: 1px solid #ddd; display: flex; justify-content: space-around; align-items: center; }
-        .tab-item { flex: 1; text-align: center; font-size: 12px; color: #8e8e93; text-decoration: none; }
+        .tab-item { flex: 1; text-align: center; font-size: 12px; color: #8e8e93; text-decoration: none; padding: 10px; }
+        .tab-active { color: #5ac8fa; font-weight: bold; }
     </style>
 </head>
 <body>
-    <div id="toast"></div>
-    <div class="app">
-        <div class="header-box"><h1>📦 Prodotti</h1></div>
-        <div class="card">
-            <input id="nomeProdotto" placeholder="Nome nuovo prodotto...">
-            <button class="btn-main" onclick="aggiungi()">SALVA NELL'ELENCO</button>
-        </div>
-        <div class="card"><div id="listaProdotti">Caricamento...</div></div>
+
+<div class="app">
+    <div class="header-box"><h1 style="margin:0;">🛒 La mia Lista</h1></div>
+    <div class="card">
+        <div id="contenitoreLista">Caricamento...</div>
+        <button class="btn-orange" onclick="svuotaLista()">SVUOTA TUTTA LA LISTA</button>
     </div>
+</div>
 
-    <div class="tab-bar">
-        <a href="index.html" class="tab-item">🛒 Lista</a>
-        <a href="prodotti.html" class="tab-item" style="color:#5ac8fa; font-weight:bold;">📦 Prodotti</a>
-    </div>
+<div class="tab-bar">
+    <a href="index.html" class="tab-item tab-active">🛒 Lista</a>
+    <a href="prodotti.html" class="tab-item">📦 Prodotti</a>
+    <a href="#" class="tab-item" onclick="logout()">🚪 Esci</a>
+</div>
 
-    <script>
-        const URL = "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1";
-        const KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
-        const headers = { "apikey": KEY, "Content-Type": "application/json" };
-        const userEmail = localStorage.getItem('userEmail');
+<script>
+    const URL_BASE = "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1";
+    const API_KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
+    const HEADERS = { "apikey": API_KEY, "Content-Type": "application/json" };
+    const emailUtente = localStorage.getItem('userEmail');
 
-        if (!userEmail) { window.location.href = 'login.html'; }
-        if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
+    if (!emailUtente) { window.location.href = 'login.html'; }
+    if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
 
-        function showToast(text, color) {
-            const t = document.getElementById("toast");
-            t.innerText = text; t.style.backgroundColor = color; t.style.display = 'block';
-            setTimeout(() => { t.style.display = 'none'; }, 1200);
-        }
-
-        async function carica() {
-            try {
-                const res = await fetch(`${URL}/prodotti?select=*&or=(email.is.null,email.eq.${userEmail})`, { headers });
-                const data = await res.json();
-                data.sort((a, b) => a.nome.localeCompare(b.nome));
-                const div = document.getElementById("listaProdotti");
-                div.innerHTML = "";
-                data.forEach(p => {
-                    const riga = document.createElement("div"); 
-                    riga.className = "item";
-                    riga.innerHTML = `<span>${p.nome}</span>
-                        <div style="display:flex;">
-                            <button class="btn-small plus" onclick="mettiInLista(${p.id})">+</button>
-                            <button class="btn-small edit" onclick="modifica(${p.id}, '${p.nome.replace(/'/g, "\\'")}')">✏️</button>
-                            <button class="btn-small delete" onclick="elimina(${p.id})">🗑</button>
-                        </div>`;
-                    div.appendChild(riga);
-                });
-            } catch(e) { console.error(e); }
-        }
-
-        async function aggiungi() {
-            const n = document.getElementById("nomeProdotto");
-            if (!n.value.trim()) return;
-            await fetch(`${URL}/prodotti`, { method: "POST", headers, body: JSON.stringify({ nome: n.value.trim(), email: userEmail }) });
-            n.value = ""; carica();
-        }
-
-        async function modifica(id, vecchioNome) {
-            const nuovoNome = prompt("Modifica nome:", vecchioNome);
-            if (!nuovoNome || nuovoNome === vecchioNome) return;
-            const check = await fetch(`${URL}/prodotti?id=eq.${id}&select=email`, { headers });
-            const p = await check.json();
-            if (p[0].email === null) {
-                await fetch(`${URL}/prodotti`, { method: "POST", headers, body: JSON.stringify({ nome: nuovoNome, email: userEmail }) });
-                alert("Creato un tuo prodotto personalizzato.");
-            } else {
-                await fetch(`${URL}/prodotti?id=eq.${id}`, { method: "PATCH", headers, body: JSON.stringify({ nome: nuovoNome }) });
+    async function caricaDatiLista() {
+        try {
+            const risposta = await fetch(`${URL_BASE}/lista_spesa?select=*,prodotti!inner(nome)&email_utente=eq.${emailUtente}`, { headers: HEADERS });
+            const dati = await risposta.json();
+            const div = document.getElementById("contenitoreLista");
+            
+            if (!dati || dati.length === 0) {
+                div.innerHTML = "<p style='text-align:center; color:#8e8e93;'>Nessun prodotto in lista.</p>";
+                return;
             }
-            carica();
-        }
 
-        async function elimina(id) {
-            const check = await fetch(`${URL}/prodotti?id=eq.${id}&select=email`, { headers });
-            const p = await check.json();
-            if (p[0].email === null) {
-                alert("Non puoi eliminare i prodotti predefiniti.");
-            } else {
-                await fetch(`${URL}/prodotti?id=eq.${id}`, { method: "DELETE", headers });
-                carica();
-            }
-        }
+            dati.sort((a, b) => a.prodotti.nome.localeCompare(b.prodotti.nome));
+            div.innerHTML = "";
+            dati.forEach(item => {
+                const riga = document.createElement("div");
+                riga.className = "item";
+                riga.innerHTML = `
+                    <span class="testo-prodotto ${item.completato ? 'barrato' : ''}">${item.prodotti.nome}</span>
+                    <div>
+                        <button class="btn-small check" onclick="aggiornaStato(${item.id}, ${!item.completato})">✔</button>
+                        <button class="btn-small delete" onclick="rimuoviDallaLista(${item.id})">✖</button>
+                    </div>`;
+                div.appendChild(riga);
+            });
+        } catch (errore) { console.error(errore); }
+    }
 
-        async function mettiInLista(id) {
-            const check = await fetch(`${URL}/lista_spesa?prodotto_id=eq.${id}&email_utente=eq.${userEmail}`, { headers });
-            const esistenti = await check.json();
-            if (esistenti.length > 0) { showToast("Già aggiunto", "#ff6961"); return; }
-            await fetch(`${URL}/lista_spesa`, { method: "POST", headers, body: JSON.stringify({ prodotto_id: id, email_utente: userEmail, completato: false }) });
-            showToast("Aggiunto", "#77dd77");
+    async function aggiornaStato(id, nuovoStato) {
+        await fetch(`${URL_BASE}/lista_spesa?id=eq.${id}`, {
+            method: "PATCH", headers: HEADERS,
+            body: JSON.stringify({ completato: nuovoStato })
+        });
+        caricaDatiLista();
+    }
+
+    async function rimuoviDallaLista(id) {
+        await fetch(`${URL_BASE}/lista_spesa?id=eq.${id}`, { method: "DELETE", headers: HEADERS });
+        caricaDatiLista();
+    }
+
+    async function svuotaLista() {
+        if (confirm("Vuoi svuotare la tua lista?")) {
+            await fetch(`${URL_BASE}/lista_spesa?email_utente=eq.${emailUtente}`, { method: "DELETE", headers: HEADERS });
+            caricaDatiLista();
         }
-        carica();
-    </script>
+    }
+
+    function logout() {
+        if (confirm("Vuoi uscire?")) {
+            localStorage.removeItem('userEmail');
+            window.location.href = 'login.html';
+        }
+    }
+
+    caricaDatiLista();
+</script>
 </body>
 </html>
