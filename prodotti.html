@@ -87,7 +87,7 @@
         const headers = { 
             "apikey": KEY, 
             "Content-Type": "application/json",
-            "Prefer": "return=minimal" 
+            "Authorization": "Bearer " + KEY
         };
         const userEmail = localStorage.getItem('userEmail');
 
@@ -109,13 +109,12 @@
 
                 tuttiIProdotti = data.filter(p => !idsNascosti.includes(p.id));
                 renderizzaProdotti(tuttiIProdotti);
-            } catch (e) { console.error("Errore caricamento:", e); }
+            } catch (e) { console.error(e); }
         }
 
         function renderizzaProdotti(prodotti) {
             const div = document.getElementById("listaProdotti");
             div.innerHTML = "";
-            
             prodotti.forEach(p => {
                 const riga = document.createElement("div");
                 riga.className = "item";
@@ -148,33 +147,31 @@
             caricaProdotti();
         }
 
-        async function mettiInLista(idProdotto) {
+        async function mettiInLista(idDelProdotto) {
             try {
-                const response = await fetch(`${URL}/lista_spesa`, {
+                const res = await fetch(`${URL}/lista_spesa`, {
                     method: "POST",
                     headers: headers,
                     body: JSON.stringify({ 
-                        id_prodotto: idProdotto, 
+                        prodotto_id: idDelProdotto, // CORRETTO: come visto nello screenshot
                         email_utente: userEmail, 
                         completato: false 
                     })
                 });
-                if (response.ok) {
-                    alert("Aggiunto alla lista!");
+                if(res.ok) {
+                    alert("Aggiunto!");
                 } else {
-                    console.error("Errore risposta:", await response.text());
+                    console.log("Errore DB:", await res.text());
+                    alert("Errore nell'aggiunta.");
                 }
-            } catch (e) {
-                console.error("Errore invio:", e);
-            }
+            } catch (e) { alert("Errore di rete"); }
         }
 
         async function modifica(id, nomeVecchio) {
             const nuovoNome = prompt("Modifica nome prodotto:", nomeVecchio);
             if (nuovoNome && nuovoNome.trim() !== "" && nuovoNome !== nomeVecchio) {
                 await fetch(`${URL}/prodotti?id=eq.${id}`, {
-                    method: "PATCH",
-                    headers,
+                    method: "PATCH", headers,
                     body: JSON.stringify({ nome: nuovoNome.trim() })
                 });
                 caricaProdotti();
@@ -188,7 +185,6 @@
 
         function chiudiModal() {
             document.getElementById('deleteModal').style.display = 'none';
-            idDaRimuovere = null;
         }
 
         document.getElementById('btnTutti').onclick = async () => {
