@@ -112,6 +112,29 @@
             showToast("Aggiunto", "#77dd77");
         }
         carica();
-    </script>
+<script>
+    // 1. DEFINIZIONE DATI BASE
+    const URL = "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1";
+    const KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
+    const headers = { "apikey": KEY, "Content-Type": "application/json" };
+
+    // 2. CONTROLLO ACCESSO (Aggiungi questo pezzo qui)
+    const userEmail = localStorage.getItem('userEmail');
+    if (!userEmail) {
+        window.location.href = 'login.html';
+    }
+
+    // 3. LOGICA DI CARICAMENTO PRODOTTI (Modifica la query come segue)
+    async function carica() {
+        try {
+            // NOTA: Questa query ora scarica i prodotti comuni (email nulla) O i tuoi (email uguale alla tua)
+            const res = await fetch(`${URL}/prodotti?select=*&or=(email.is.null,email.eq.${userEmail})`, { headers });
+            const data = await res.json();
+            
+            // ... resto del codice per mostrare i prodotti ...
+        } catch(e) { console.error(e); }
+    }
+    // ...
+</script>
 </body>
 </html>
