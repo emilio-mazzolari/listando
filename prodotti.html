@@ -19,7 +19,7 @@
         .plus { background-color: #779ecb; color: white; }
         .edit { background-color: #fdfd96; color: #3a3a3c; } 
         .delete { background-color: #add8e6; color: #1c1c1e; }
-        #toast { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 15px 30px; border-radius: 12px; color: white; font-weight: bold; display: none; z-index: 2000; text-align: center; min-width: 150px; }
+        #toast { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 15px 30px; border-radius: 12px; color: white; font-weight: bold; display: none; z-index: 2000; text-align: center; min-width: 200px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
         .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 65px; background: white; border-top: 1px solid #ddd; display: flex; justify-content: space-around; align-items: center; }
         .tab-item { flex: 1; text-align: center; font-size: 12px; color: #8e8e93; text-decoration: none; }
         .tab-active { color: #5ac8fa; font-weight: bold; }
@@ -28,7 +28,7 @@
 <body>
     <div id="toast"></div>
     <div class="app">
-        <div class="header-box"><h1>📦 Elenco prodotti</h1></div>
+        <div class="header-box"><h1>📦 Prodotti</h1></div>
         <div class="card">
             <input id="nomeProdotto" placeholder="Nome nuovo prodotto...">
             <button class="btn-main" onclick="aggiungi()">SALVA NELL'ELENCO</button>
@@ -49,29 +49,39 @@
         const userEmail = localStorage.getItem('userEmail');
 
         if (!userEmail) { window.location.href = 'login.html'; }
-        if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
 
         function showToast(text, color) {
             const t = document.getElementById("toast");
             t.innerText = text; t.style.backgroundColor = color; t.style.display = 'block';
-            setTimeout(() => { t.style.display = 'none'; }, 1200);
+            setTimeout(() => { t.style.display = 'none'; }, 1500);
         }
 
         async function carica() {
             try {
+                // 1. Carico gli ID dei prodotti che l'utente ha nascosto
+                const resNascosti = await fetch(`${URL}/prodotti_nascosti?email_utente=eq.${userEmail}`, { headers });
+                const nascosti = await resNascosti.json();
+                const idsNascosti = nascosti.map(n => n.prodotto_id);
+
+                // 2. Carico i prodotti (default + personali)
                 const res = await fetch(`${URL}/prodotti?select=*&or=(email.is.null,email.eq.${userEmail})`, { headers });
-                const data = await res.json();
+                let data = await res.json();
+                
+                // 3. Filtro i prodotti eliminando quelli nella lista "nascosti"
+                data = data.filter(p => !idsNascosti.includes(p.id));
+
                 data.sort((a, b) => a.nome.localeCompare(b.nome));
                 const div = document.getElementById("listaProdotti");
                 div.innerHTML = "";
+                
                 data.forEach(p => {
                     const riga = document.createElement("div"); 
                     riga.className = "item";
                     riga.innerHTML = `<span>${p.nome}</span>
                         <div style="display:flex;">
-                            <button class="btn-small plus" onclick="mettiInLista(${p.id})">+</button>
-                            <button class="btn-small edit" onclick="modifica(${p.id}, '${p.nome.replace(/'/g, "\\'")}')">✏️</button>
-                            <button class="btn-small delete" onclick="elimina(${p.id})">🗑</button>
+                            <button class="btn-small plus" title="Aggiungi alla spesa" onclick="mettiInLista(${p.id})">+</button>
+                            <button class="btn-small edit" title="Modifica" onclick="modifica(${p.id}, '${p.nome.replace(/'/g, "\\'")}')">✏️</button>
+                            <button class="btn-small delete" title="Rimuovi" onclick="gestisciRimozione(${p.id}, ${p.email === null})">🗑</button>
                         </div>`;
                     div.appendChild(riga);
                 });
@@ -80,13 +90,53 @@
 
         async function aggiungi() {
             const n = document.getElementById("nomeProdotto");
-            if (!n.value.trim()) return;
+            const nomeInserito = n.value.trim();
+            if (!nomeInserito) return;
+
+            // CONTROLLO DUPLICATI: Verifico se esiste già un prodotto con questo nome (ignorando maiuscole/minuscole)
+            const check = await fetch(`${URL}/prodotti?nome=ilike.${nomeInserito}&or=(email.is.null,email.eq.${userEmail})`, { headers });
+            const esistenti = await check.json();
+
+            if (esistenti.length > 0) {
+                showToast("Già presente in elenco", "#ffb347");
+                return;
+            }
+
             await fetch(`${URL}/prodotti`, { 
-                method: "POST", 
-                headers, 
-                body: JSON.stringify({ nome: n.value.trim(), email: userEmail }) 
+                method: "POST", headers, 
+                body: JSON.stringify({ nome: nomeInserito, email: userEmail }) 
             });
             n.value = ""; carica();
+        }
+
+        async function gestisciRimozione(id, isDefault) {
+            if (isDefault) {
+                // Se è un prodotto di default, lo nascondo solo per questo utente
+                await fetch(`${URL}/prodotti_nascosti`, {
+                    method: "POST", headers,
+                    body: JSON.stringify({ prodotto_id: id, email_utente: userEmail })
+                });
+                showToast("Prodotto rimosso", "#aec6cf");
+            } else {
+                // Se è un prodotto creato dall'utente, lo elimino definitivamente
+                if (confirm("Vuoi eliminare definitivamente questo prodotto creato da te?")) {
+                    await fetch(`${URL}/prodotti?id=eq.${id}`, { method: "DELETE", headers });
+                    showToast("Prodotto eliminato", "#ff6961");
+                }
+            }
+            carica();
+        }
+
+        async function mettiInLista(id) {
+            const check = await fetch(`${URL}/lista_spesa?prodotto_id=eq.${id}&email_utente=eq.${userEmail}`, { headers });
+            const esistenti = await check.json();
+            if (esistenti.length > 0) { showToast("Già in lista spesa", "#ffb347"); return; }
+            
+            await fetch(`${URL}/lista_spesa`, { 
+                method: "POST", headers, 
+                body: JSON.stringify({ prodotto_id: id, email_utente: userEmail, completato: false }) 
+            });
+            showToast("Aggiunto alla lista", "#77dd77");
         }
 
         async function modifica(id, vecchioNome) {
@@ -97,43 +147,25 @@
             const p = await check.json();
 
             if (p[0].email === null) {
+                // Se modifico un default, creo una copia personale
                 await fetch(`${URL}/prodotti`, { 
-                    method: "POST", 
-                    headers, 
+                    method: "POST", headers, 
                     body: JSON.stringify({ nome: nuovoNome, email: userEmail }) 
                 });
-                alert("Creato un tuo prodotto personalizzato.");
+                // Nascondo l'originale per non avere doppioni
+                await fetch(`${URL}/prodotti_nascosti`, {
+                    method: "POST", headers,
+                    body: JSON.stringify({ prodotto_id: id, email_utente: userEmail })
+                });
+                showToast("Personalizzato!", "#779ecb");
             } else {
                 await fetch(`${URL}/prodotti?id=eq.${id}`, { 
-                    method: "PATCH", 
-                    headers, 
+                    method: "PATCH", headers, 
                     body: JSON.stringify({ nome: nuovoNome }) 
                 });
+                showToast("Modificato", "#779ecb");
             }
             carica();
-        }
-
-        async function elimina(id) {
-            const check = await fetch(`${URL}/prodotti?id=eq.${id}&select=email`, { headers });
-            const p = await check.json();
-            if (p[0].email === null) {
-                alert("I prodotti predefiniti non possono essere eliminati.");
-            } else {
-                await fetch(`${URL}/prodotti?id=eq.${id}`, { method: "DELETE", headers });
-                carica();
-            }
-        }
-
-        async function mettiInLista(id) {
-            const check = await fetch(`${URL}/lista_spesa?prodotto_id=eq.${id}&email_utente=eq.${userEmail}`, { headers });
-            const esistenti = await check.json();
-            if (esistenti.length > 0) { showToast("Già in lista", "#ff6961"); return; }
-            await fetch(`${URL}/lista_spesa`, { 
-                method: "POST", 
-                headers, 
-                body: JSON.stringify({ prodotto_id: id, email_utente: userEmail, completato: false }) 
-            });
-            showToast("Aggiunto", "#77dd77");
         }
 
         function logout() {
