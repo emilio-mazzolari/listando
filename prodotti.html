@@ -55,7 +55,7 @@
         
         <div class="input-group">
             <input type="text" id="nuovoProdotto" placeholder="Inserisci nuovo prodotto...">
-            <button class="btn-main" onclick="aggiungiProdotto()">INSERISCI</button>
+            <button class="btn-main" onclick="gestisciInserimento()">INSERISCI</button>
         </div>
 
         <div class="input-group">
@@ -72,12 +72,23 @@
         <a href="#" class="tab-item" onclick="logout()">🚪 ESCI</a>
     </div>
 
+    <!-- MODAL INSERIMENTO (SOLO ADMIN) -->
+    <div id="insertModal" class="modal-overlay">
+        <div class="modal-box">
+            <h3>Nuovo Prodotto</h3>
+            <p>Come vuoi inserire questo prodotto?</p>
+            <button class="btn-modal" onclick="confermaInserimento(true)">INSERISCI PER TUTTI</button>
+            <button class="btn-modal" onclick="confermaInserimento(false)">INSERISCI SOLO PER ME</button>
+            <button class="btn-modal btn-cancel" onclick="chiudiModal()">ANNULLA</button>
+        </div>
+    </div>
+
     <!-- MODAL ELIMINA -->
     <div id="deleteModal" class="modal-overlay">
         <div class="modal-box">
             <h3>Cosa vuoi fare?</h3>
             <button class="btn-modal" id="btnTutti">ELIMINA PER TUTTI</button>
-            <button class="btn-modal" id="btnSoloMe">NASCONDI SOLO A ME</button>
+            <button class="btn-modal" id="btnSoloMe">CANCELLA (SOLO PER ME)</button>
             <button class="btn-modal btn-cancel" onclick="chiudiModal()">ANNULLA</button>
         </div>
     </div>
@@ -111,7 +122,7 @@
             "Authorization": "Bearer " + KEY
         };
         const userEmail = localStorage.getItem('userEmail');
-        const adminEmail = "emilio.mazzolari.shop@gmail.com"; // Email autorizzata
+        const adminEmail = "emilio.mazzolari.shop@gmail.com";
 
         let idDaRimuovere = null;
         let idInModifica = null;
@@ -121,16 +132,24 @@
 
         async function caricaProdotti() {
             try {
+                // Prendo i prodotti nascosti dall'utente
                 const resNascosti = await fetch(`${URL}/prodotti_nascosti?email_utente=eq.${userEmail}`, { headers });
                 const nascosti = await resNascosti.json();
                 const idsNascosti = nascosti.map(n => n.prodotto_id);
 
+                // Prendo tutti i prodotti. Logica: vedo quelli globali (email admin o null) e quelli creati da me
                 const res = await fetch(`${URL}/prodotti?select=*&order=nome.asc`, { headers });
                 const data = await res.json();
                 
                 if (!Array.isArray(data)) return;
 
-                tuttiIProdotti = data.filter(p => !idsNascosti.includes(p.id));
+                // Filtro: mostro se non è nascosto E (è globale O è mio)
+                tuttiIProdotti = data.filter(p => {
+                    const nonNascosto = !idsNascosti.includes(p.id);
+                    const eMioOAdmin = (p.email === adminEmail || p.email === userEmail || !p.email);
+                    return nonNascosto && eMioOAdmin;
+                });
+
                 renderizzaProdotti(tuttiIProdotti);
             } catch (e) { console.error(e); }
         }
@@ -159,23 +178,32 @@
             renderizzaProdotti(filtrati);
         }
 
-        async function aggiungiProdotto() {
-            const input = document.getElementById("nuovoProdotto");
-            const nome = input.value.trim();
+        // NUOVA FUNZIONE GESTIONE TASTO INSERISCI
+        function gestisciInserimento() {
+            const nome = document.getElementById("nuovoProdotto").value.trim();
             if (!nome) return;
 
-            const esisteGia = tuttiIProdotti.some(p => p.nome.toLowerCase() === nome.toLowerCase());
-            if (esisteGia) {
-                mostraAlert("Prodotto già presente in elenco!");
-                input.value = "";
-                return;
+            if (userEmail === adminEmail) {
+                document.getElementById('insertModal').style.display = 'flex';
+            } else {
+                confermaInserimento(false); // Utente normale inserisce sempre "solo per sé"
             }
+        }
+
+        async function confermaInserimento(perTutti) {
+            const input = document.getElementById("nuovoProdotto");
+            const nome = input.value.trim();
+            
+            // Se inserito "Per Tutti", usiamo email admin, altrimenti email utente
+            const emailProprietario = perTutti ? adminEmail : userEmail;
 
             await fetch(`${URL}/prodotti`, {
                 method: "POST", headers,
-                body: JSON.stringify({ nome: nome, email: userEmail })
+                body: JSON.stringify({ nome: nome, email: emailProprietario })
             });
+            
             input.value = "";
+            chiudiModal();
             caricaProdotti();
         }
 
@@ -189,7 +217,6 @@
                 btn.style.color = coloreTesto;
                 btn.style.width = "auto";
                 btn.style.padding = "0 10px";
-
                 setTimeout(() => {
                     btn.innerText = originalText;
                     btn.style.backgroundColor = "";
@@ -239,7 +266,6 @@
             idDaRimuovere = id;
             const btnTutti = document.getElementById('btnTutti');
             
-            // SE NON SEI L'ADMIN, NASCONDI IL TASTO "ELIMINA PER TUTTI"
             if (userEmail !== adminEmail) {
                 btnTutti.style.display = "none";
             } else {
@@ -258,22 +284,18 @@
             document.getElementById('deleteModal').style.display = 'none';
             document.getElementById('editModal').style.display = 'none';
             document.getElementById('alertModal').style.display = 'none';
+            document.getElementById('insertModal').style.display = 'none';
         }
 
         document.getElementById('btnTutti').onclick = async () => {
-            // ULTERIORE BLOCCO DI SICUREZZA NEL CODICE
-            if (userEmail !== adminEmail) {
-                chiudiModal();
-                mostraAlert("Non hai i permessi per eliminare globalmente.");
-                return;
-            }
-
+            if (userEmail !== adminEmail) return;
             await fetch(`${URL}/prodotti?id=eq.${idDaRimuovere}`, { method: "DELETE", headers });
             chiudiModal();
             caricaProdotti();
         };
 
         document.getElementById('btnSoloMe').onclick = async () => {
+            // Aggiunge il prodotto alla tabella dei "nascosti" per questo utente
             await fetch(`${URL}/prodotti_nascosti`, {
                 method: "POST", headers,
                 body: JSON.stringify({ prodotto_id: idDaRimuovere, email_utente: userEmail })
