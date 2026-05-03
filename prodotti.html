@@ -16,13 +16,11 @@
         .testo-prodotto { flex-grow: 1; font-size: 16px; color: #1c1c1e; font-weight: 400; }
         .item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; }
         
-        /* BOTTONI STILE ORIGINALE */
         .btn-small { border: none; border-radius: 8px; width: 32px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-left: 4px; font-size: 16px; transition: all 0.3s; }
         .plus { background-color: #779ecb; color: white; } 
         .edit { background-color: #fdfd96; color: #3a3a3c; } 
         .delete { background-color: #add8e6; color: #1c1c1e; }
 
-        /* Gruppi Input Uniformati */
         .input-group { display: flex; gap: 10px; margin-bottom: 12px; }
         input { 
             flex: 1; padding: 12px; border-radius: 12px; border: 1px solid #ddd; 
@@ -46,6 +44,9 @@
         .modal-box { background: white; padding: 25px; border-radius: 20px; width: 85%; max-width: 350px; text-align: center; }
         .btn-modal { width: 100%; padding: 15px; margin-top: 10px; border-radius: 12px; border: none; background: #aec6cf; color: white; font-weight: bold; cursor: pointer; font-size: 16px; }
         .btn-cancel { background: #e5e5ea; color: #8e8e93; margin-top: 15px; }
+        
+        /* Stile per l'input dentro i modal */
+        .modal-box input { width: 100%; margin-bottom: 10px; text-align: center; }
     </style>
 </head>
 <body>
@@ -72,11 +73,22 @@
         <a href="#" class="tab-item" onclick="logout()">🚪 ESCI</a>
     </div>
 
+    <!-- MODAL ELIMINA -->
     <div id="deleteModal" class="modal-overlay">
         <div class="modal-box">
             <h3>Cosa vuoi fare?</h3>
             <button class="btn-modal" id="btnTutti">ELIMINA PER TUTTI</button>
             <button class="btn-modal" id="btnSoloMe">NASCONDI SOLO A ME</button>
+            <button class="btn-modal btn-cancel" onclick="chiudiModal()">ANNULLA</button>
+        </div>
+    </div>
+
+    <!-- MODAL MODIFICA -->
+    <div id="editModal" class="modal-overlay">
+        <div class="modal-box">
+            <h3>Modifica Nome</h3>
+            <input type="text" id="inputModifica" placeholder="Nome prodotto">
+            <button class="btn-modal" onclick="salvaModifica()">SALVA MODIFICA</button>
             <button class="btn-modal btn-cancel" onclick="chiudiModal()">ANNULLA</button>
         </div>
     </div>
@@ -92,6 +104,7 @@
         const userEmail = localStorage.getItem('userEmail');
 
         let idDaRimuovere = null;
+        let idInModifica = null;
         let tuttiIProdotti = [];
 
         if (!userEmail) { window.location.href = 'login.html'; }
@@ -122,7 +135,7 @@
                     <span class="testo-prodotto">${p.nome}</span>
                     <div style="display:flex;">
                         <button class="btn-small plus" id="btn-add-${p.id}" onclick="mettiInLista(${p.id})">+</button>
-                        <button class="btn-small edit" onclick="modifica(${p.id}, '${p.nome.replace(/'/g, "\\'")}')">✏️</button>
+                        <button class="btn-small edit" onclick="apriModalModifica(${p.id}, '${p.nome.replace(/'/g, "\\'")}')">✏️</button>
                         <button class="btn-small delete" onclick="apriModalRimuovi(${p.id})">🗑</button>
                     </div>
                 `;
@@ -137,13 +150,23 @@
         }
 
         async function aggiungiProdotto() {
-            const nome = document.getElementById("nuovoProdotto").value.trim();
+            const input = document.getElementById("nuovoProdotto");
+            const nome = input.value.trim();
             if (!nome) return;
+
+            // Controllo se il prodotto esiste già
+            const esisteGia = tuttiIProdotti.some(p => p.nome.toLowerCase() === nome.toLowerCase());
+            if (esisteGia) {
+                alert("⚠️ PRODOTTO GIÀ INSERITO!");
+                input.value = "";
+                return;
+            }
+
             await fetch(`${URL}/prodotti`, {
                 method: "POST", headers,
                 body: JSON.stringify({ nome: nome, email: userEmail })
             });
-            document.getElementById("nuovoProdotto").value = "";
+            input.value = "";
             caricaProdotti();
         }
 
@@ -196,13 +219,22 @@
             } catch (e) { console.error(e); }
         }
 
-        async function modifica(id, nomeVecchio) {
-            const nuovoNome = prompt("Modifica nome prodotto:", nomeVecchio);
-            if (nuovoNome && nuovoNome.trim() !== "" && nuovoNome !== nomeVecchio) {
-                await fetch(`${URL}/prodotti?id=eq.${id}`, {
+        // --- GESTIONE MODALI ---
+
+        function apriModalModifica(id, nomeVecchio) {
+            idInModifica = id;
+            document.getElementById("inputModifica").value = nomeVecchio;
+            document.getElementById("editModal").style.display = "flex";
+        }
+
+        async function salvaModifica() {
+            const nuovoNome = document.getElementById("inputModifica").value.trim();
+            if (nuovoNome && idInModifica) {
+                await fetch(`${URL}/prodotti?id=eq.${idInModifica}`, {
                     method: "PATCH", headers,
-                    body: JSON.stringify({ nome: nuovoNome.trim() })
+                    body: JSON.stringify({ nome: nuovoNome })
                 });
+                chiudiModal();
                 caricaProdotti();
             }
         }
@@ -214,9 +246,11 @@
 
         function chiudiModal() {
             document.getElementById('deleteModal').style.display = 'none';
+            document.getElementById('editModal').style.display = 'none';
         }
 
         document.getElementById('btnTutti').onclick = async () => {
+            // Rimuovo fisicamente dal DB e ricarico
             await fetch(`${URL}/prodotti?id=eq.${idDaRimuovere}`, { method: "DELETE", headers });
             chiudiModal();
             caricaProdotti();
