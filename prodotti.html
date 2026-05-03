@@ -201,7 +201,7 @@
             const esistente = await res.json();
 
             if (esistente.length > 0) {
-                aggiornaBottone(btn, "GIÀ IN LISTA", "#ff9500", "white");
+                aggiornaBottone(btn, "GIÀ IN LISTA", "#db5151", "white");
                 return;
             }
 
@@ -209,7 +209,7 @@
                 method: "POST", headers,
                 body: JSON.stringify({ prodotto_id: id, email_utente: userEmail, completato: false })
             });
-            aggiornaBottone(btn, "AGGIUNTO", "#4cd964", "white");
+            aggiornaBottone(btn, "AGGIUNTO", "#45a049", "white");
         }
 
         function aggiornaBottone(btn, testo, sfondo, colore) {
