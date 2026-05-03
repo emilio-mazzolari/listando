@@ -40,13 +40,11 @@
     <div class="app">
         <div class="header-box"><h1 style="margin:0;">📦 Prodotti</h1></div>
         
-        <!-- INSERIMENTO -->
         <div class="input-group">
             <input type="text" id="nuovoProdotto" placeholder="Nuovo prodotto...">
             <button class="btn-main" onclick="gestisciInserimento()">INSERISCI</button>
         </div>
 
-        <!-- RICERCA (TROVA) -->
         <div class="input-group">
             <input type="text" id="cercaProdotto" placeholder="Cerca prodotto..." onkeyup="filtraProdotti()">
             <button class="btn-main" onclick="filtraProdotti()">TROVA</button>
@@ -61,7 +59,7 @@
         <a href="#" class="tab-item" onclick="logout()">🚪 ESCI</a>
     </div>
 
-    <!-- MODAL INSERIMENTO (ADMIN) -->
+    <!-- MODAL INSERIMENTO (SOLO ADMIN) -->
     <div id="insertModal" class="modal-overlay">
         <div class="modal-box">
             <h3>Visibilità Prodotto</h3>
@@ -84,9 +82,9 @@
     <!-- MODAL ELIMINA -->
     <div id="deleteModal" class="modal-overlay">
         <div class="modal-box">
-            <h3>Elimina Prodotto</h3>
+            <h3>Cosa vuoi fare?</h3>
             <button class="btn-modal" id="btnTutti">ELIMINA PER TUTTI</button>
-            <button class="btn-modal" id="btnSoloMe">NASCONDI PER ME</button>
+            <button class="btn-modal" id="btnSoloMe">ELIMINA PER ME</button> <!-- Testo aggiornato -->
             <button class="btn-modal btn-cancel" onclick="chiudiModal()">ANNULLA</button>
         </div>
     </div>
@@ -129,7 +127,7 @@
                 const riga = document.createElement("div");
                 riga.className = "item";
                 riga.innerHTML = `
-                    <span class="testo-prodotto">${p.nome} ${p.email ? '🔒' : ''}</span>
+                    <span class="testo-prodotto">${p.nome}</span>
                     <div style="display:flex;">
                         <button class="btn-small plus" onclick="mettiInLista(${p.id})">+</button>
                         <button class="btn-small edit" onclick="apriModalModifica(${p.id}, '${p.nome.replace(/'/g, "\\'")}')">✏️</button>
@@ -149,6 +147,14 @@
         function gestisciInserimento() {
             const nome = document.getElementById("nuovoProdotto").value.trim();
             if (!nome) return;
+
+            // Controllo duplicati veloce
+            const esisteGia = prodottiFiltratiBase.some(p => p.nome.toLowerCase() === nome.toLowerCase());
+            if (esisteGia) {
+                alert("Prodotto già presente in elenco!");
+                return;
+            }
+
             if (userEmail === adminEmail) {
                 document.getElementById('insertModal').style.display = 'flex';
             } else {
@@ -157,7 +163,8 @@
         }
 
         async function confermaInserimento(perTutti) {
-            const nome = document.getElementById("nuovoProdotto").value.trim();
+            const nomeInput = document.getElementById("nuovoProdotto");
+            const nome = nomeInput.value.trim();
             const emailProprietario = perTutti ? null : userEmail;
 
             await fetch(`${URL}/prodotti`, {
@@ -165,7 +172,7 @@
                 body: JSON.stringify({ nome: nome, email: emailProprietario })
             });
             
-            document.getElementById("nuovoProdotto").value = "";
+            nomeInput.value = "";
             chiudiModal();
             caricaProdotti();
         }
@@ -189,7 +196,16 @@
 
         function apriModalRimuovi(id) {
             idDaRimuovere = id;
-            document.getElementById('btnTutti').style.display = (userEmail === adminEmail) ? "block" : "none";
+            const btnTutti = document.getElementById('btnTutti');
+            const btnSoloMe = document.getElementById('btnSoloMe');
+
+            if (userEmail === adminEmail) {
+                btnTutti.style.display = "block";
+                btnSoloMe.innerText = "ELIMINA PER ME";
+            } else {
+                btnTutti.style.display = "none";
+                btnSoloMe.innerText = "ELIMINA"; // Testo per utenti normali
+            }
             document.getElementById('deleteModal').style.display = 'flex';
         }
 
