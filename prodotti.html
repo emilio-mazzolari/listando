@@ -22,9 +22,6 @@
         .edit { background-color: #fdfd96; color: #3a3a3c; } 
         .delete { background-color: #add8e6; color: #1c1c1e; }
 
-        /* Stato dinamico per il feedback del + */
-        .btn-feedback { width: auto !important; padding: 0 10px; font-size: 12px; font-weight: bold; text-transform: uppercase; }
-
         /* Gruppi Input Uniformati */
         .input-group { display: flex; gap: 10px; margin-bottom: 12px; }
         input { 
@@ -150,11 +147,10 @@
             caricaProdotti();
         }
 
-     async function mettiInLista(idDelProdotto) {
+        async function mettiInLista(idDelProdotto) {
             const btn = document.getElementById(`btn-add-${idDelProdotto}`);
             const originalText = "+";
             
-            // Definiamo lo stile comune per i feedback (stessa dimensione)
             const applicaFeedback = (testo, coloreSfondo, coloreTesto) => {
                 btn.innerText = testo;
                 btn.style.backgroundColor = coloreSfondo;
@@ -176,17 +172,14 @@
             };
 
             try {
-                // 1. Controlla se il prodotto è già presente
                 const checkRes = await fetch(`${URL}/lista_spesa?prodotto_id=eq.${idDelProdotto}&email_utente=eq.${userEmail}&completato=eq.false`, { headers });
                 const esistente = await checkRes.json();
 
                 if (esistente.length > 0) {
-                    // Feedback GIÀ AGGIUNTO (Rosso #db5151)
                     applicaFeedback("GIÀ IN LISTA", "#db5151", "white");
                     return;
                 }
 
-                // 2. Aggiungi il prodotto
                 const res = await fetch(`${URL}/lista_spesa`, {
                     method: "POST",
                     headers: headers,
@@ -198,11 +191,9 @@
                 });
 
                 if(res.ok) {
-                    // Feedback AGGIUNTO (Verde #45a049)
                     applicaFeedback("AGGIUNTO!", "#45a049", "white");
                 }
             } catch (e) { console.error(e); }
-        }
         }
 
         async function modifica(id, nomeVecchio) {
