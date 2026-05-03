@@ -9,7 +9,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <style>
         body { margin: 0; font-family: -apple-system, Helvetica, Arial, sans-serif; background: #f2f2f7; display: flex; justify-content: center; }
-        .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 90px; }
+        .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 90px; position: relative; }
         .card { background: white; border-radius: 16px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         .header-box { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
         .testo-prodotto { flex-grow: 1; font-size: 16px; color: #1c1c1e; }
@@ -20,7 +20,7 @@
         .edit { background-color: #fdfd96; color: #3a3a3c; } 
         .delete { background-color: #add8e6; color: #1c1c1e; }
 
-        .input-group { display: flex; gap: 10px; margin-bottom: 12px; }
+        .input-group { display: flex; gap: 10px; margin-bottom: 12px; position: relative; }
         input { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid #ddd; font-size: 16px; outline: none; height: 45px; box-sizing: border-box; background: white; }
         .btn-main { width: 100px; height: 45px; border-radius: 12px; border: none; background: #aec6cf; color: white; font-weight: bold; cursor: pointer; font-size: 14px; }
 
@@ -28,31 +28,28 @@
         .tab-item { flex: 1; text-align: center; font-size: 14px; color: black; text-decoration: none; text-transform: uppercase; font-weight: 600; }
         .tab-active { font-weight: 900; }
 
+        /* TOAST SOPRA INSERIMENTO */
+        #toast {
+            position: absolute; top: -40px; left: 50%; transform: translateX(-50%);
+            background: #3a3a3c; color: white; padding: 8px 15px; border-radius: 10px;
+            font-size: 13px; z-index: 3000; display: none; white-space: nowrap;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
         /* MODALI */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 2000; }
         .modal-box { background: white; padding: 25px; border-radius: 20px; width: 85%; max-width: 350px; text-align: center; }
         .btn-modal { width: 100%; padding: 15px; margin-top: 10px; border-radius: 12px; border: none; background: #aec6cf; color: white; font-weight: bold; cursor: pointer; font-size: 16px; }
         .btn-cancel { background: #e5e5ea; color: #8e8e93; margin-top: 15px; }
-        .modal-box input { width: 100%; margin-bottom: 15px; text-align: center; }
-
-        /* NUOVO TOAST (ALERT BELLO) */
-        #toast {
-            position: fixed; top: -100px; left: 50%; transform: translateX(-50%);
-            background: #3a3a3c; color: white; padding: 12px 25px; border-radius: 25px;
-            font-size: 14px; font-weight: 500; z-index: 3000; transition: top 0.5s cubic-bezier(0.18, 0.89, 0.32, 1.28);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2); white-space: nowrap;
-        }
-        #toast.show { top: 30px; }
     </style>
 </head>
 <body>
-
-    <div id="toast">Prodotto già presente in elenco!</div>
 
     <div class="app">
         <div class="header-box"><h1 style="margin:0;">📦 Prodotti</h1></div>
         
         <div class="input-group">
+            <div id="toast">Prodotto già presente!</div>
             <input type="text" id="nuovoProdotto" placeholder="Nuovo prodotto...">
             <button class="btn-main" onclick="gestisciInserimento()">INSERISCI</button>
         </div>
@@ -71,7 +68,7 @@
         <a href="#" class="tab-item" onclick="logout()">🚪 ESCI</a>
     </div>
 
-    <!-- MODAL INSERIMENTO -->
+    <!-- MODALE INSERIMENTO -->
     <div id="insertModal" class="modal-overlay">
         <div class="modal-box">
             <h3>Visibilità Prodotto</h3>
@@ -81,17 +78,17 @@
         </div>
     </div>
 
-    <!-- MODAL MODIFICA -->
+    <!-- MODALE MODIFICA -->
     <div id="editModal" class="modal-overlay">
         <div class="modal-box">
             <h3>Modifica Nome</h3>
-            <input type="text" id="inputModifica">
+            <input type="text" id="inputModifica" style="width:100%; margin-bottom:15px; text-align:center; padding:12px; border-radius:12px; border:1px solid #ddd;">
             <button class="btn-modal" onclick="salvaModifica()">SALVA</button>
             <button class="btn-modal btn-cancel" onclick="chiudiModal()">ANNULLA</button>
         </div>
     </div>
 
-    <!-- MODAL ELIMINA -->
+    <!-- MODALE ELIMINA -->
     <div id="deleteModal" class="modal-overlay">
         <div class="modal-box">
             <h3>Cosa vuoi fare?</h3>
@@ -115,8 +112,8 @@
         function mostraToast(messaggio) {
             const toast = document.getElementById("toast");
             toast.innerText = messaggio;
-            toast.classList.add("show");
-            setTimeout(() => { toast.classList.remove("show"); }, 3000);
+            toast.style.display = "block";
+            setTimeout(() => { toast.style.display = "none"; }, 2500);
         }
 
         async function caricaProdotti() {
@@ -148,7 +145,7 @@
                 riga.innerHTML = `
                     <span class="testo-prodotto">${p.nome}</span>
                     <div style="display:flex;">
-                        <button class="btn-small plus" onclick="mettiInLista(${p.id})">+</button>
+                        <button class="btn-small plus" id="btn-plus-${p.id}" onclick="mettiInLista(${p.id})">+</button>
                         <button class="btn-small edit" onclick="apriModalModifica(${p.id}, '${p.nome.replace(/'/g, "\\'")}')">✏️</button>
                         <button class="btn-small delete" onclick="apriModalRimuovi(${p.id})">🗑</button>
                     </div>
@@ -193,6 +190,42 @@
             nomeInput.value = "";
             chiudiModal();
             caricaProdotti();
+        }
+
+        async function mettiInLista(id) {
+            const btn = document.getElementById(`btn-plus-${id}`);
+            const originalText = "+";
+            
+            // Verifica se già in lista
+            const res = await fetch(`${URL}/lista_spesa?prodotto_id=eq.${id}&email_utente=eq.${userEmail}`, { headers });
+            const esistente = await res.json();
+
+            if (esistente.length > 0) {
+                aggiornaBottone(btn, "GIÀ IN LISTA", "#ff9500", "white");
+                return;
+            }
+
+            await fetch(`${URL}/lista_spesa`, {
+                method: "POST", headers,
+                body: JSON.stringify({ prodotto_id: id, email_utente: userEmail, completato: false })
+            });
+            aggiornaBottone(btn, "AGGIUNTO", "#4cd964", "white");
+        }
+
+        function aggiornaBottone(btn, testo, sfondo, colore) {
+            const originalText = "+";
+            btn.innerText = testo;
+            btn.style.backgroundColor = sfondo;
+            btn.style.color = colore;
+            btn.style.width = "auto";
+            btn.style.padding = "0 10px";
+            setTimeout(() => {
+                btn.innerText = originalText;
+                btn.style.backgroundColor = "";
+                btn.style.color = "";
+                btn.style.width = "32px";
+                btn.style.padding = "0";
+            }, 2000);
         }
 
         function apriModalModifica(id, nomeAttuale) {
@@ -241,14 +274,6 @@
             chiudiModal();
             caricaProdotti();
         };
-
-        async function mettiInLista(id) {
-            await fetch(`${URL}/lista_spesa`, {
-                method: "POST", headers,
-                body: JSON.stringify({ prodotto_id: id, email_utente: userEmail, completato: false })
-            });
-            mostraToast("Aggiunto alla lista!");
-        }
 
         function chiudiModal() { document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none'); }
         function logout() { localStorage.removeItem('userEmail'); window.location.href = 'login.html'; }
