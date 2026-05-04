@@ -20,9 +20,7 @@
         .completato { text-decoration: line-through; color: #8e8e93; font-weight: 400; }
         
         .btn-del { background: #f2f2f7; border: none; font-size: 16px; cursor: pointer; padding: 8px; border-radius: 10px; transition: 0.2s; }
-        .btn-del:active { background: #ffd1d1; }
 
-        /* Tab Bar Coerente */
         .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 75px; background: #aec6cf; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid rgba(0,0,0,0.1); z-index: 1000; }
         .tab-item { flex: 1; text-align: center; font-size: 11px; color: #333; text-decoration: none; font-weight: 800; display: flex; flex-direction: column; text-transform: uppercase; }
         .tab-item span { font-size: 22px; margin-bottom: 3px; }
@@ -56,50 +54,51 @@
     <script>
         const URL = "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1/lista_spesa";
         const KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
-        const headers = { "apikey": KEY, "Content-Type": "application/json", "Authorization": "Bearer " + KEY };
+        const headers = { 
+            "apikey": KEY, 
+            "Content-Type": "application/json", 
+            "Authorization": "Bearer " + KEY 
+        };
         const userEmail = localStorage.getItem('userEmail');
 
         async function caricaLista() {
-    const container = document.getElementById("listaSpesaContenitore");
-    if (!userEmail) return;
+            try {
+                // Ordiniamo per ID perché la colonna 'nome' non esiste nella tua tabella lista_spesa
+                const res = await fetch(`${URL}?email_utente=eq.${userEmail}&order=id.desc`, { headers });
+                const dati = await res.json();
+                const container = document.getElementById("listaSpesaContenitore");
+                
+                if (!Array.isArray(dati)) {
+                    console.error("Errore dati:", dati);
+                    container.innerHTML = "<p style='text-align:center; padding:20px;'>Errore nel caricamento della tabella.</p>";
+                    return;
+                }
 
-    try {
-        // CAMBIATO: Ordiniamo per 'id' o 'prodotto_id' perché 'nome' non esiste in questa tabella
-        const res = await fetch(`${URL}?email_utente=eq.${userEmail}&order=id.desc`, { headers });
-        const dati = await res.json();
+                if (dati.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <span>🛒</span>
+                            <p>La lista è vuota.<br><small>Aggiungi prodotti da "PRODOTTI"</small></p>
+                        </div>`;
+                    return;
+                }
 
-        if (!Array.isArray(dati)) {
-            console.error("Errore Supabase:", dati);
-            container.innerHTML = "<p style='text-align:center;'>Errore configurazione tabella.</p>";
-            return;
-        }
-
-        if (dati.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <span>🛒</span>
-                    <p>La lista è vuota.</p>
-                </div>`;
-            return;
-        }
-
-        container.innerHTML = "";
-        dati.forEach(item => {
-            const riga = document.createElement("div");
-            riga.className = "item";
-            riga.innerHTML = `
-                <div class="testo ${item.completato ? 'completato' : ''}" onclick="toggleCheck(${item.id}, ${item.completato})">
-                    <span>${item.completato ? '✅' : '⬜'}</span> 
-                    Prodotto #${item.prodotto_id} 
-                </div>
-                <button class="btn-del" onclick="eliminaDallaLista(${item.id})">🗑️</button>
-            `;
-            container.appendChild(riga);
-        });
-    } catch (e) {
-        container.innerHTML = "<p style='text-align:center;'>Errore di connessione.</p>";
-    }
-}
+                container.innerHTML = "";
+                dati.forEach(item => {
+                    const riga = document.createElement("div");
+                    riga.className = "item";
+                    riga.innerHTML = `
+                        <div class="testo ${item.completato ? 'completato' : ''}" onclick="toggleCheck(${item.id}, ${item.completato})">
+                            <span>${item.completato ? '✅' : '⬜'}</span> Prodotto #${item.prodotto_id}
+                        </div>
+                        <button class="btn-del" onclick="eliminaDallaLista(${item.id})">🗑️</button>
+                    `;
+                    container.appendChild(riga);
+                });
+            } catch (e) {
+                console.error("Errore:", e);
+                document.getElementById("listaSpesaContenitore").innerHTML = "<p style='text-align:center;'>Errore di connessione.</p>";
+            }
         }
 
         async function toggleCheck(id, statoAttuale) {
