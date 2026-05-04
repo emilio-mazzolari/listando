@@ -94,7 +94,7 @@
         async function caricaLista() {
             const { data, error } = await supabaseClient.from('lista_spesa').select('*, prodotti(nome)').eq('email_utente', userEmail);
             const div = document.getElementById("contenitoreLista");
-            if (!data || !data.length) { div.innerHTML = "La lista è vuota."; return; }
+            if (!data || !data.length) { div.innerHTML = "La lista è vuota: aggiungi prodotti"; return; }
             data.sort((a, b) => (a.prodotti?.nome || "").localeCompare(b.prodotti?.nome || ""));
             div.innerHTML = "";
             data.forEach(item => {
