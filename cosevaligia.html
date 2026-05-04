@@ -15,7 +15,7 @@
 
         /* Struttura Card */
         .categoria-titolo { background: #aec6cf; color: white; padding: 10px 15px; border-radius: 12px 12px 0 0; font-weight: 800; font-size: 12px; margin-top: 15px; text-transform: uppercase; }
-        .card { background: white; border-radius: 0 0 16px 16px; padding: 0 15px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .card { background: white; border-radius: 0 0 16px 16px; padding: 0 15px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); overflow: hidden; }
         .item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f2f2f7; }
         .item:last-child { border-bottom: none; }
         .testo-prodotto { font-size: 15px; color: #1c1c1e; font-weight: 500; }
@@ -56,14 +56,14 @@
         <div class="category-nav" id="navCategorie"></div>
 
         <!-- Inserimento -->
-        <div class="card" style="padding: 15px; border-radius: 16px;">
+        <div class="card" style="padding: 15px; border-radius: 16px; margin-bottom: 20px;">
             <div class="input-group">
                 <input type="text" id="nuovaCosa" placeholder="Cosa devi portare?">
                 <button class="btn-main" onclick="aggiungiNuovaCosa()">AGGIUNGI</button>
             </div>
             <div class="input-group">
                 <select id="selectCategoria"></select>
-                <input type="text" id="cercaCosa" placeholder="Cerca nel catalogo..." onkeyup="renderizzaCose()">
+                <input type="text" id="cercaCosa" placeholder="Cerca..." onkeyup="renderizzaCose()">
             </div>
         </div>
 
@@ -94,6 +94,12 @@
         const headers = { "apikey": KEY, "Content-Type": "application/json", "Authorization": "Bearer " + KEY };
         const userEmail = localStorage.getItem('userEmail');
 
+        // Controllo Login immediato
+        if (!userEmail) {
+            window.location.href = 'login.html';
+        }
+
+        // Inizializzazione Database
         let databaseCose = JSON.parse(localStorage.getItem('db_viaggio')) || {
             "Abbigliamento": ["Bretelle", "Calze", "Camicie", "Cappello", "Ciabatte", "Costume", "Felpe", "Mutande", "Pantaloni", "Scarpe", "T-shirt"],
             "Igiene": ["Asciugamano", "Bagnodoccia", "Dentifricio", "Deodorante", "Pettine", "Spazzolino"],
@@ -118,39 +124,45 @@
             
             container.innerHTML = "";
             nav.innerHTML = "";
+            
+            // Gestione Select
+            const catSelezionataSalvata = select.value || "Extra";
             select.innerHTML = '<option value="NUOVA">+ NUOVA CATEGORIA</option>';
 
             const categorieOrdinate = Object.keys(databaseCose).sort();
 
             categorieOrdinate.forEach(categoria => {
-                // Select
+                // Popola Select
                 let opt = document.createElement("option");
-                opt.value = categoria; opt.innerText = categoria;
-                if(categoria === "Extra") opt.selected = true;
+                opt.value = categoria; 
+                opt.innerText = categoria;
+                if(categoria === catSelezionataSalvata) opt.selected = true;
                 select.appendChild(opt);
 
-                // Nav Buttons
+                // Popola Nav Buttons
                 let btnNav = document.createElement("button");
                 btnNav.className = "btn-nav";
                 btnNav.innerText = categoria;
                 btnNav.onclick = () => {
                     const el = document.getElementById('cat-' + categoria);
-                    window.scrollTo({ top: el.offsetTop - 20, behavior: "smooth" });
+                    if(el) window.scrollTo({ top: el.offsetTop - 20, behavior: "smooth" });
                 };
                 nav.appendChild(btnNav);
 
-                // Items
+                // Popola Lista Oggetti
                 const oggetti = databaseCose[categoria].sort();
                 const filtrati = oggetti.filter(o => o.toLowerCase().includes(filtro));
 
                 if (filtrati.length > 0) {
                     let html = `<div class="categoria-titolo" id="cat-${categoria}">${categoria}</div><div class="card">`;
                     filtrati.forEach(item => {
+                        // ID pulito per il bottone (rimuove spazi e caratteri speciali)
+                        const safeId = item.replace(/[^a-zA-Z0-9]/g, '');
                         html += `
                         <div class="item">
                             <span class="testo-prodotto">${item}</span>
                             <div style="display:flex;">
-                                <button class="btn-small plus" id="btn-${item.replace(/\s+/g, '')}" onclick="aggiungiADB('${item}')">+</button>
+                                <button class="btn-small plus" id="btn-${safeId}" onclick="aggiungiADB('${item}')">+</button>
                                 <button class="btn-small edit" onclick="apriModifica('${categoria}', '${item}')">✏️</button>
                                 <button class="btn-small delete" onclick="eliminaCosa('${categoria}', '${item}')">🗑</button>
                             </div>
@@ -172,9 +184,9 @@
             nome = nome.charAt(0).toUpperCase() + nome.slice(1);
 
             if (cat === "NUOVA") {
-                const nuovaCat = prompt("Inserisci il nome della nuova categoria:");
+                let nuovaCat = prompt("Inserisci il nome della nuova categoria:");
                 if (!nuovaCat) return;
-                cat = nuovaCat.charAt(0).toUpperCase() + nuovaCat.slice(1);
+                cat = nuovaCat.trim().charAt(0).toUpperCase() + nuovaCat.trim().slice(1);
                 if (!databaseCose[cat]) databaseCose[cat] = [];
             }
 
@@ -182,18 +194,26 @@
                 databaseCose[cat].push(nome);
                 nomeInput.value = "";
                 renderizzaCose();
+            } else {
+                alert("Oggetto già presente in questa categoria");
             }
         }
 
         async function aggiungiADB(nome) {
-            const btn = document.getElementById(`btn-${nome.replace(/\s+/g, '')}`);
+            const safeId = nome.replace(/[^a-zA-Z0-9]/g, '');
+            const btn = document.getElementById(`btn-${safeId}`);
             const originalColor = btn.style.backgroundColor;
             const originalText = btn.innerText;
 
             try {
                 const res = await fetch(`${URL}/lista_viaggio`, {
-                    method: "POST", headers,
-                    body: JSON.stringify({ nome: nome, email_utente: userEmail, completato: false })
+                    method: "POST", 
+                    headers,
+                    body: JSON.stringify({ 
+                        nome: nome, 
+                        email_utente: userEmail, 
+                        completato: false 
+                    })
                 });
                 
                 if(res.ok) {
@@ -207,6 +227,7 @@
                 }
             } catch(e) {
                 console.error(e);
+                alert("Errore nel salvataggio");
             }
         }
 
@@ -220,9 +241,12 @@
             const nuovo = document.getElementById("inputModifica").value.trim();
             if(!nuovo) return;
             const idx = databaseCose[cosaInModifica.cat].indexOf(cosaInModifica.vecchioNome);
-            databaseCose[cosaInModifica.cat][idx] = nuovo;
-            chiudiModal();
-            renderizzaCose();
+            if (idx !== -1) {
+                databaseCose[cosaInModifica.cat][idx] = nuovo;
+                localStorage.setItem('db_viaggio', JSON.stringify(databaseCose));
+                chiudiModal();
+                renderizzaCose();
+            }
         }
 
         function eliminaCosa(cat, nome) {
@@ -233,9 +257,13 @@
         }
 
         function chiudiModal() { document.getElementById("editModal").style.display = "none"; }
-        function logout() { localStorage.clear(); window.location.href = 'login.html'; }
+        
+        function logout() { 
+            localStorage.clear(); 
+            window.location.href = 'login.html'; 
+        }
 
-        if (!userEmail) window.location.href = 'login.html';
+        // Avvio
         renderizzaCose();
     </script>
 </body>
