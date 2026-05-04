@@ -37,30 +37,47 @@
     </div>
 
     <script>
-        const URL = "https://eejdpophfxsrqdvsucye.supabase.co";
-        const KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
-        // Correzione inizializzazione
-        const supabaseClient = supabase.createClient(URL, KEY);
+    const URL = "https://eejdpophfxsrqdvsucye.supabase.co";
+    const KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
+    let supabaseClient;
 
-        async function loginConGoogle() {
-            const { error } = await supabaseClient.auth.signInWithOAuth({
+    // Inizializzazione sicura
+    try {
+        supabaseClient = supabase.createClient(URL, KEY);
+        console.log("Supabase inizializzato correttamente");
+    } catch (e) {
+        console.error("Errore inizializzazione Supabase:", e);
+    }
+
+    async function loginConGoogle() {
+        console.log("Tentativo di login in corso...");
+        try {
+            const { data, error } = await supabaseClient.auth.signInWithOAuth({
                 provider: 'google',
                 options: {
+                    // Importante: se testi in locale deve essere http://127.0.0.1:5500/index.html o simile
                     redirectTo: window.location.origin + '/index.html'
                 }
             });
-            if (error) alert("Errore: " + error.message);
+            
+            if (error) throw error;
+            console.log("Redirect in corso...", data);
+        } catch (error) {
+            alert("Errore durante il login: " + error.message);
+            console.error(error);
         }
+    }
 
-        // Verifica sessione esistente
-        async function checkUser() {
-            const { data: { session } } = await supabaseClient.auth.getSession();
-            if (session) {
-                localStorage.setItem('userEmail', session.user.email);
-                window.location.href = 'index.html';
-            }
+    // Verifica se l'utente torna dal login con una sessione attiva
+    async function checkUser() {
+        const { data: { session }, error } = await supabaseClient.auth.getSession();
+        if (session) {
+            localStorage.setItem('userEmail', session.user.email);
+            window.location.href = 'index.html';
         }
-        checkUser();
-    </script>
+    }
+    
+    checkUser();
+</script>
 </body>
 </html>
