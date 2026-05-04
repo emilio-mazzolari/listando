@@ -12,15 +12,17 @@
         .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 90px; position: relative; }
         .header-box { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
         
-        /* Categorie e Card */
-        .categoria-titolo { background: #aec6cf; color: white; padding: 8px 15px; border-radius: 12px 12px 0 0; font-weight: bold; font-size: 13px; margin-top: 15px; text-transform: uppercase; }
+        /* Navigazione Categorie Rapida */
+        .category-nav { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; justify-content: center; }
+        .btn-nav { background: #aec6cf; color: white; border: none; padding: 8px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; cursor: pointer; text-decoration: none; text-transform: uppercase; }
+
+        .categoria-titolo { background: #aec6cf; color: white; padding: 8px 15px; border-radius: 12px 12px 0 0; font-weight: bold; font-size: 13px; margin-top: 15px; text-transform: uppercase; scroll-margin-top: 20px; }
         .card { background: white; border-radius: 0 0 16px 16px; padding: 10px 15px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         
         .testo-prodotto { flex-grow: 1; font-size: 16px; color: #1c1c1e; text-transform: capitalize; }
         .item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; }
         .item:last-child { border-bottom: none; }
         
-        /* Pulsanti */
         .btn-small { border: none; border-radius: 8px; width: 32px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-left: 4px; font-size: 16px; transition: all 0.3s; }
         .plus { background-color: #779ecb; color: white; } 
         .edit { background-color: #fdfd96; color: #3a3a3c; } 
@@ -34,7 +36,6 @@
         .tab-item { flex: 1; text-align: center; font-size: 14px; color: black; text-decoration: none; text-transform: uppercase; font-weight: 600; }
         .tab-active { font-weight: 900; }
 
-        /* Modali */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 2000; }
         .modal-box { background: white; padding: 25px; border-radius: 20px; width: 85%; max-width: 350px; text-align: center; }
         .btn-modal { width: 100%; padding: 15px; margin-top: 10px; border-radius: 12px; border: none; background: #aec6cf; color: white; font-weight: bold; cursor: pointer; font-size: 16px; }
@@ -46,19 +47,22 @@
     <div class="app">
         <div class="header-box"><h1 style="margin:0;">🧳 Cose Viaggio</h1></div>
         
+        <!-- Pulsanti Categorie Rapidi -->
+        <div class="category-nav" id="navCategorie"></div>
+
         <!-- Inserimento -->
         <div class="input-group">
-            <input type="text" id="nuovaCosa" placeholder="Aggiungi oggetto...">
+            <input type="text" id="nuovaCosa" placeholder="Aggiungi cose...">
             <button class="btn-main" onclick="aggiungiNuovaCosa()">INSERISCI</button>
         </div>
 
         <!-- Ricerca -->
         <div class="input-group">
-            <input type="text" id="cercaCosa" placeholder="Cerca oggetto..." onkeyup="renderizzaCose()">
+            <input type="text" id="cercaCosa" placeholder="Cerca cose..." onkeyup="renderizzaCose()">
             <button class="btn-main" onclick="renderizzaCose()">TROVA</button>
         </div>
 
-        <div id="listaCategorie">Caricamento...</div>
+        <div id="listaCategorie"></div>
     </div>
 
     <div class="tab-bar">
@@ -70,8 +74,8 @@
     <!-- Modale Modifica -->
     <div id="editModal" class="modal-overlay">
         <div class="modal-box">
-            <h3>Modifica Nome</h3>
-            <input type="text" id="inputModifica" style="width:100%; margin-bottom:15px; text-align:center;">
+            <h3>Modifica Cosa</h3>
+            <input type="text" id="inputModifica" style="width:100%; margin-bottom:15px; text-align:center; padding:12px; border-radius:12px; border:1px solid #ddd;">
             <button class="btn-modal" onclick="salvaModifica()">SALVA</button>
             <button class="btn-modal btn-cancel" onclick="chiudiModal()">ANNULLA</button>
         </div>
@@ -83,7 +87,6 @@
         const headers = { "apikey": KEY, "Content-Type": "application/json", "Authorization": "Bearer " + KEY };
         const userEmail = localStorage.getItem('userEmail');
 
-        // Dati iniziali dallo screenshot ordinati alfabeticamente
         let databaseCose = {
             "Abbigliamento": ["bretelle", "calze", "calze antiscivolo", "camicie", "cappello", "ciabatte", "cintura", "costume", "detergente scarpe", "felpe", "giacca a vento", "giaccone", "giubbino catarifrangente", "maglioni", "monospalla", "mutande", "pail", "pantaloncini", "pantaloni", "pigiama", "poncho", "scarpe", "scarpe da ballo", "scarpe trekking", "sciarpa", "spazzola scarpe", "stivali per pioggia", "t-shirt"],
             "Igiene": ["accappatoio", "asciugamano", "bagnodoccia", "carta igienica", "cera", "cerotti", "cotton fioc", "dentifricio", "deodorante", "disinfettante mani", "fazzolettini", "filo interdentale", "mascherina", "pettine", "preservativi", "rasoio", "salviette", "salviette umide", "sapone marsiglia", "spazzolino"],
@@ -94,22 +97,31 @@
             "Cibo": ["biscotti", "caffè", "frutta", "latte", "marmellata", "muesli", "olio", "pane", "pasta", "sale", "sughi", "zucchero"]
         };
 
-        let cosaInModifica = { cat: null, index: null };
+        let cosaInModifica = { cat: null, vecchioNome: null };
 
         function renderizzaCose() {
             const filtro = document.getElementById("cercaCosa").value.toLowerCase();
             const container = document.getElementById("listaCategorie");
+            const nav = document.getElementById("navCategorie");
             container.innerHTML = "";
+            nav.innerHTML = "";
 
             for (const categoria in databaseCose) {
-                // Ordina alfabeticamente ogni categoria
                 databaseCose[categoria].sort((a, b) => a.localeCompare(b));
-
                 const filtrati = databaseCose[categoria].filter(item => item.toLowerCase().includes(filtro));
                 
                 if (filtrati.length > 0) {
+                    // Crea bottone navigazione
+                    const btnNav = document.createElement("button");
+                    btnNav.className = "btn-nav";
+                    btnNav.innerText = categoria;
+                    btnNav.onclick = () => document.getElementById('cat-' + categoria).scrollIntoView({behavior: "smooth"});
+                    nav.appendChild(btnNav);
+
+                    // Crea Titolo Categoria
                     const header = document.createElement("div");
                     header.className = "categoria-titolo";
+                    header.id = 'cat-' + categoria;
                     header.innerText = categoria;
                     container.appendChild(header);
 
@@ -137,45 +149,48 @@
         function aggiungiNuovaCosa() {
             const nome = document.getElementById("nuovaCosa").value.trim();
             if (!nome) return;
-            // Di default aggiunge a "Extra" se non specificato, poi riordina
             databaseCose["Extra"].push(nome);
             document.getElementById("nuovaCosa").value = "";
             renderizzaCose();
         }
 
         function apriModifica(cat, nome) {
-            cosaInModifica = { cat, vecchioNome: nome };
+            cosaInModifica = { cat: cat, vecchioNome: nome };
             document.getElementById("inputModifica").value = nome;
             document.getElementById("editModal").style.display = "flex";
         }
 
         function salvaModifica() {
             const nuovoNome = document.getElementById("inputModifica").value.trim();
-            if (nuovoNome) {
+            if (nuovoNome && cosaInModifica.cat) {
                 const index = databaseCose[cosaInModifica.cat].indexOf(cosaInModifica.vecchioNome);
-                if (index !== -1) databaseCose[cosaInModifica.cat][index] = nuovoNome;
+                if (index !== -1) {
+                    databaseCose[cosaInModifica.cat][index] = nuovoNome;
+                    renderizzaCose();
+                }
             }
             chiudiModal();
-            renderizzaCose();
         }
 
         function eliminaCosa(cat, nome) {
-            databaseCose[cat] = databaseCose[cat].filter(i => i !== nome);
-            renderizzaCose();
+            if(confirm("Eliminare '" + nome + "'?")) {
+                databaseCose[cat] = databaseCose[cat].filter(i => i !== nome);
+                renderizzaCose();
+            }
         }
 
         async function mettiInLista(nome) {
-            // Logica per aggiungere alla tabella lista_spesa o lista_viaggio su Supabase
-            await fetch(`${URL}/lista_spesa`, {
-                method: "POST", headers,
-                body: JSON.stringify({ nome: nome, email_utente: userEmail, completato: false })
-            });
-            alert(nome + " aggiunto alla lista!");
+            try {
+                const res = await fetch(`${URL}/lista_spesa`, {
+                    method: "POST", headers,
+                    body: JSON.stringify({ nome: nome, email_utente: userEmail, completato: false })
+                });
+                if(res.ok) alert("'" + nome + "' aggiunto alla lista spesa!");
+            } catch (e) { console.error(e); }
         }
 
         function chiudiModal() { document.getElementById("editModal").style.display = "none"; }
 
-        // Inizializzazione
         renderizzaCose();
     </script>
 </body>
