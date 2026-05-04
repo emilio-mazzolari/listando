@@ -4,20 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Accesso Spesa</title>
-    <!-- Carichiamo Supabase con un metodo più stabile -->
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <!-- Proviamo un link diverso per la libreria, più universale -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
     <style>
-        body { margin: 0; font-family: -apple-system, sans-serif; background: #f2f2f7; display: flex; justify-content: center; align-items: center; height: 100vh; flex-direction: column; }
-        .login-card { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); width: 100%; max-width: 320px; text-align: center; }
-        h2 { margin: 0 0 10px 0; }
-        input { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 12px; border: 1px solid #e1e1e1; box-sizing: border-box; font-size: 16px; }
-        .btn { width: 100%; padding: 14px; border-radius: 12px; border: none; font-weight: 600; cursor: pointer; font-size: 16px; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        body { margin: 0; font-family: sans-serif; background: #f2f2f7; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        .login-card { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); width: 320px; text-align: center; }
+        input { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 12px; border: 1px solid #e1e1e1; box-sizing: border-box; }
+        .btn { width: 100%; padding: 14px; border-radius: 12px; border: none; font-weight: 600; cursor: pointer; margin-bottom: 15px; }
         .btn-primary { background: #aec6cf; color: white; }
-        .btn-google { background: white; color: #3c4043; border: 1px solid #e1e1e1; }
-        .divider { margin: 10px 0 20px 0; color: #8e8e93; font-size: 12px; }
-        .icon-g { width: 18px; height: 18px; }
-        /* Stile per i messaggi di errore a video */
-        #debug-msg { color: red; font-size: 12px; margin-top: 10px; }
+        .btn-google { background: white; border: 1px solid #e1e1e1; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        #debug-msg { color: red; font-size: 11px; margin-top: 10px; min-height: 15px; }
     </style>
 </head>
 <body>
@@ -29,10 +25,10 @@
         <input type="email" id="emailInput" placeholder="Inserisci la tua email">
         <button class="btn btn-primary" onclick="loginManuale()">ENTRA CON EMAIL</button>
 
-        <div class="divider">oppure</div>
+        <div style="margin: 10px 0; color: #8e8e93; font-size: 12px;">oppure</div>
 
-        <button class="btn btn-google" id="btnGoogle">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_打%22G%22_Logo.svg" class="icon-g">
+        <button class="btn btn-google" onclick="loginConGoogle()">
+            <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" width="18">
             Accedi con Google
         </button>
         
@@ -44,29 +40,31 @@
         const KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
         let supabaseClient;
 
-        // Funzione per mostrare errori direttamente sulla carta se il tasto non va
-        function setDebug(msg) {
-            document.getElementById('debug-msg').innerText = msg;
-        }
-
-        // Inizializzazione forzata
-        try {
-            // Usiamo il riferimento globale esplicito
-            supabaseClient = window.supabase.createClient(URL, KEY);
-            console.log("Supabase caricato");
-        } catch (e) {
-            setDebug("Errore caricamento libreria. Verifica internet.");
-        }
-
-        // Gestione Click Google
-        document.getElementById('btnGoogle').onclick = async function() {
-            setDebug("Tentativo di connessione a Google...");
-            
-            if (!supabaseClient) {
-                setDebug("Errore: Supabase non è pronto.");
-                return;
+        // Funzione per inizializzare il client
+        function initSupabase() {
+            try {
+                if (typeof supabase !== 'undefined') {
+                    supabaseClient = supabase.createClient(URL, KEY);
+                    console.log("Supabase pronto!");
+                } else {
+                    document.getElementById('debug-msg').innerText = "Libreria non trovata. Ricarica la pagina.";
+                }
+            } catch (e) {
+                document.getElementById('debug-msg').innerText = "Errore: " + e.message;
             }
+        }
 
+        // Chiamata immediata
+        initSupabase();
+
+        async function loginConGoogle() {
+            if (!supabaseClient) {
+                initSupabase(); // Riprova l'inizializzazione se era fallita
+                if (!supabaseClient) return;
+            }
+            
+            document.getElementById('debug-msg').innerText = "Connessione a Google...";
+            
             const { error } = await supabaseClient.auth.signInWithOAuth({
                 provider: 'google',
                 options: {
@@ -74,12 +72,9 @@
                 }
             });
 
-            if (error) {
-                setDebug("Errore Google: " + error.message);
-            }
-        };
+            if (error) document.getElementById('debug-msg').innerText = error.message;
+        }
 
-        // Login Manuale
         function loginManuale() {
             const email = document.getElementById('emailInput').value.trim();
             if (email.includes('@')) {
@@ -89,23 +84,6 @@
                 alert("Inserisci una mail valida");
             }
         }
-
-        // Controllo automatico sessione
-        async function checkSession() {
-            if (localStorage.getItem('userEmail')) {
-                window.location.href = 'index.html';
-                return;
-            }
-            if (supabaseClient) {
-                const { data: { session } } = await supabaseClient.auth.getSession();
-                if (session) {
-                    localStorage.setItem('userEmail', session.user.email);
-                    window.location.href = 'index.html';
-                }
-            }
-        }
-        
-        checkSession();
     </script>
 </body>
 </html>
