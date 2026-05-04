@@ -111,20 +111,49 @@
         }
 
         async function aggiungiADB(nome) {
-            const safeId = nome.replace(/[^a-zA-Z0-9]/g, '');
-            const btn = document.getElementById(`btn-${safeId}`);
-            try {
-                const res = await fetch(`${URL}/lista_viaggio`, {
-                    method: "POST", headers,
-                    body: JSON.stringify({ nome: nome, email_utente: userEmail, completato: false })
-                });
-                if(res.ok) {
-                    btn.innerText = "✓"; btn.style.backgroundColor = "#9fb8ad";
-                    const t = document.getElementById("toast"); t.style.display = "block";
-                    setTimeout(() => { t.style.display = "none"; btn.innerText = "+"; btn.style.backgroundColor = "#aec6cf"; }, 1500);
-                }
-            } catch(e) { console.error(e); }
+    const userEmail = localStorage.getItem('userEmail');
+    if (!userEmail) return alert("Effettua il login!");
+
+    // Genera un ID pulito per il bottone (senza spazi o accenti)
+    const safeId = nome.replace(/[^a-zA-Z0-9]/g, '');
+    const btn = document.getElementById(`btn-${safeId}`);
+
+    try {
+        // CORREZIONE: Tabella cambiata in 'cose_valigia'
+        const res = await fetch("https://eejdpophfxsrqdvsucye.supabase.co/rest/v1/cose_valigia", {
+            method: "POST",
+            headers: { 
+                "apikey": KEY, 
+                "Content-Type": "application/json", 
+                "Authorization": "Bearer " + KEY,
+                "Prefer": "return=minimal"
+            },
+            body: JSON.stringify({ 
+                nome: nome, 
+                email_utente: userEmail, 
+                completato: false 
+            })
+        });
+
+        if (res.ok) {
+            if (btn) {
+                btn.innerText = "✅";
+                btn.style.backgroundColor = "#9fb8ad";
+                setTimeout(() => { 
+                    btn.innerText = "+"; 
+                    btn.style.backgroundColor = "#aec6cf"; 
+                }, 1200);
+            }
+            mostraToast(nome + " aggiunto in valigia!");
+        } else {
+            const error = await res.json();
+            console.error("Errore Supabase:", error);
+            alert("Errore: " + error.message);
         }
+    } catch (e) {
+        console.error("Errore di rete:", e);
+    }
+}
 
         function aggiungiNuovaCosa() {
             const input = document.getElementById("nuovaCosa");
