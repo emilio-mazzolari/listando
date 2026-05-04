@@ -2,194 +2,266 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Catalogo Valigia</title>
+    <title>Catalogo Valigia - Le mie cose</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         body { margin: 0; font-family: -apple-system, Helvetica, Arial, sans-serif; background: #f2f2f7; display: flex; justify-content: center; }
-        .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 100px; position: relative; }
-        .category-nav { display: flex; overflow-x: auto; gap: 8px; margin-bottom: 20px; padding-bottom: 5px; -webkit-overflow-scrolling: touch; }
-        .category-nav::-webkit-scrollbar { display: none; }
-        .btn-nav { background: #9fb8ad; color: white; border: none; padding: 8px 14px; border-radius: 10px; font-size: 11px; font-weight: bold; cursor: pointer; text-transform: uppercase; white-space: nowrap; flex-shrink: 0; }
-        .categoria-titolo { background: #aec6cf; color: white; padding: 10px 15px; border-radius: 12px 12px 0 0; font-weight: 800; font-size: 12px; margin-top: 15px; text-transform: uppercase; }
-        .card { background: white; border-radius: 0 0 16px 16px; padding: 0 15px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        .item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f2f2f7; }
+        .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 100px; }
+        
+        .header-box { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        
+        /* Sezione Categorie */
+        .category-section { margin-bottom: 25px; }
+        .category-header { 
+            background: #99b3bc; color: white; padding: 10px 15px; 
+            border-radius: 12px 12px 0 0; font-weight: bold; 
+            text-transform: uppercase; font-size: 14px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .category-content { 
+            background: white; border-radius: 0 0 12px 12px; 
+            padding: 10px 15px; margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        /* Input Group in stile Spesa */
+        .input-group { display: flex; gap: 10px; margin-bottom: 15px; }
+        input { 
+            flex: 1; padding: 12px; border-radius: 12px; border: 1px solid #ddd; 
+            font-size: 16px; outline: none; height: 45px; box-sizing: border-box; 
+        }
+        .btn-main { 
+            width: 100px; height: 45px; border-radius: 12px; border: none; 
+            background: #aec6cf; color: white; font-weight: bold; 
+            cursor: pointer; font-size: 12px; text-transform: uppercase; 
+        }
+
+        /* Liste Articoli */
+        .item { 
+            display: flex; justify-content: space-between; align-items: center; 
+            padding: 12px 0; border-bottom: 1px solid #f2f2f7; 
+        }
         .item:last-child { border-bottom: none; }
-        .testo-prodotto { font-size: 15px; color: #1c1c1e; font-weight: 500; }
-        .btn-small { border: none; border-radius: 8px; width: 34px; height: 34px; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-left: 6px; font-size: 16px; transition: 0.2s; }
+        .testo-prodotto { flex-grow: 1; font-size: 16px; color: #1c1c1e; font-weight: 500; }
+
+        /* Bottoni */
+        .btn-small { 
+            border: none; border-radius: 8px; width: 34px; height: 34px; 
+            cursor: pointer; display: flex; align-items: center; 
+            justify-content: center; margin-left: 6px; font-size: 16px; 
+            transition: all 0.2s; 
+        }
         .plus { background-color: #aec6cf; color: white; } 
-        .edit { background-color: #fdfd96; color: #333; } 
+        .edit { background-color: #fdfd96; color: #3a3a3c; } 
         .delete { background-color: #ffd1d1; color: #d32f2f; }
-        .input-group { display: flex; gap: 8px; margin-bottom: 10px; }
-        input, select { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid #ddd; font-size: 15px; outline: none; box-sizing: border-box; }
-        .btn-main { padding: 0 15px; border-radius: 12px; border: none; background: #9fb8ad; color: white; font-weight: bold; cursor: pointer; text-transform: uppercase; font-size: 12px; }
-        .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 75px; background: #aec6cf; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid rgba(0,0,0,0.1); z-index: 1000; }
-        .tab-item { flex: 1; text-align: center; font-size: 11px; color: #333; text-decoration: none; font-weight: 800; display: flex; flex-direction: column; text-transform: uppercase; }
+
+        /* Tab Bar */
+        .tab-bar { 
+            position: fixed; bottom: 0; left: 0; right: 0; height: 75px; 
+            background: #aec6cf; display: flex; justify-content: space-around; 
+            align-items: center; z-index: 1000; 
+        }
+        .tab-item { 
+            flex: 1; text-align: center; font-size: 11px; color: #333; 
+            text-decoration: none; font-weight: 800; display: flex; flex-direction: column; 
+        }
         .tab-item span { font-size: 22px; margin-bottom: 3px; }
         .tab-active { color: white; }
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 2000; }
+
+        /* Modal */
+        .modal-overlay { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.5); display: none; align-items: center; 
+            justify-content: center; z-index: 2000; 
+        }
         .modal-box { background: white; padding: 25px; border-radius: 20px; width: 85%; max-width: 350px; text-align: center; }
-        .modal-box input { width: 100%; margin: 15px 0; }
-        #toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #3a3a3c; color: white; padding: 10px 20px; border-radius: 10px; display: none; z-index: 3000; }
     </style>
 </head>
 <body>
-    <div id="toast">Aggiunto alla lista!</div>
+
     <div class="app">
-        <h2 style="font-weight: 800; color: #333; margin-bottom: 20px;">📋 Le mie cose</h2>
-        <div class="category-nav" id="navCategorie"></div>
-        <div class="card" style="padding: 15px; border-radius: 16px;">
-            <div class="input-group">
-                <input type="text" id="nuovaCosa" placeholder="Cosa devi portare?">
-                <button class="btn-main" onclick="aggiungiNuovaCosa()">AGGIUNGI</button>
-            </div>
-            <div class="input-group">
-                <select id="selectCategoria"></select>
-                <input type="text" id="cercaCosa" placeholder="Cerca..." onkeyup="renderizzaCose()">
-            </div>
+        <div class="header-box"><h2 style="margin:0; font-weight: 800;">📋 LE MIE COSE</h2></div>
+
+        <!-- AGGIUNGI NUOVA CATEGORIA -->
+        <div class="input-group">
+            <input type="text" id="nuovaCategoria" placeholder="Nuova categoria (es. Igiene)...">
+            <button class="btn-main" onclick="creaCategoria()">INSERISCI</button>
         </div>
-        <div id="listaCategorie"></div>
+
+        <div id="contenitoreMaster">Caricamento...</div>
     </div>
 
+    <!-- NAVBAR -->
     <div class="tab-bar">
         <a href="index.html" class="tab-item"><span>🏠</span>HOME</a>
-        <a href="valigia.html" class="tab-item"><span>🧳</span>VALIGIA</a>
-        <a href="cosevaligia.html" class="tab-item tab-active"><span>📋</span>CATALOGO</a>
+        <a href="valigia.html" class="tab-item"><span>💼</span>VALIGIA</a>
+        <a href="cosevaligia.html" class="tab-item tab-active"><span>📋</span>COSE</a>
         <a href="#" class="tab-item" onclick="logout()"><span>🚪</span>ESCI</a>
     </div>
 
-    <div id="editModal" class="modal-overlay">
-        <div class="modal-box">
-            <h3 style="margin-top:0">Modifica Nome</h3>
-            <input type="text" id="inputModifica">
-            <button class="btn-main" style="width:100%; height:45px; background: #aec6cf;" onclick="salvaModifica()">SALVA</button>
-            <button class="btn-main" style="width:100%; margin-top:10px; height:45px; background:#e5e5ea; color: #8e8e93;" onclick="chiudiModal()">ANNULLA</button>
-        </div>
-    </div>
-
+    <!-- SCRIPT -->
     <script>
-        const URL = "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1";
+        const URL_SUPA = "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1";
         const KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
         const headers = { "apikey": KEY, "Content-Type": "application/json", "Authorization": "Bearer " + KEY };
         const userEmail = localStorage.getItem('userEmail');
 
-        let databaseCose = JSON.parse(localStorage.getItem('db_viaggio')) || {
-            "Abbigliamento": ["Calze", "Camicie", "Mutande", "Pantaloni", "Scarpe", "T-shirt"],
-            "Igiene": ["Asciugamano", "Bagnodoccia", "Dentifricio", "Spazzolino"],
-            "Extra": ["Caricabatterie", "Documenti", "Ombrello", "Portafoglio"]
-        };
+        async function init() {
+            if (!userEmail) { window.location.href = 'login.html'; return; }
+            caricaDati();
+        }
 
-        function renderizzaCose() {
-            const filtro = document.getElementById("cercaCosa").value.toLowerCase();
-            const container = document.getElementById("listaCategorie");
-            const nav = document.getElementById("navCategorie");
-            const select = document.getElementById("selectCategoria");
-            container.innerHTML = ""; nav.innerHTML = "";
-            select.innerHTML = '<option value="NUOVA">+ NUOVA CATEGORIA</option>';
+        async function caricaDati() {
+            try {
+                // 1. Carica Categorie
+                const resCat = await fetch(`${URL_SUPA}/categorie_valigia?email_utente=eq.${userEmail}&order=nome.asc`, { headers });
+                const categorie = await resCat.json();
 
-            Object.keys(databaseCose).sort().forEach(categoria => {
-                let opt = document.createElement("option"); opt.value = categoria; opt.innerText = categoria; select.appendChild(opt);
-                let btnNav = document.createElement("button"); btnNav.className = "btn-nav"; btnNav.innerText = categoria;
-                btnNav.onclick = () => { document.getElementById('cat-' + categoria).scrollIntoView({behavior: "smooth"}); };
-                nav.appendChild(btnNav);
+                // 2. Carica Articoli (il catalogo)
+                const resArt = await fetch(`${URL_SUPA}/catalogo_valigia?email_utente=eq.${userEmail}&order=nome.asc`, { headers });
+                const articoli = await resArt.json();
 
-                const filtrati = databaseCose[categoria].filter(o => o.toLowerCase().includes(filtro)).sort();
-                if (filtrati.length > 0) {
-                    let html = `<div class="categoria-titolo" id="cat-${categoria}">${categoria}</div><div class="card">`;
-                    filtrati.forEach(item => {
-                        const safeId = item.replace(/[^a-zA-Z0-9]/g, '');
-                        html += `<div class="item"><span class="testo-prodotto">${item}</span>
+                renderizzaTutto(categorie, articoli);
+            } catch (e) { console.error(e); }
+        }
+
+        function renderizzaTutto(categorie, articoli) {
+            const master = document.getElementById("contenitoreMaster");
+            master.innerHTML = "";
+
+            if (categorie.length === 0) {
+                master.innerHTML = "<p style='text-align:center; color:#888;'>Inizia aggiungendo una categoria!</p>";
+                return;
+            }
+
+            categorie.forEach(cat => {
+                const section = document.createElement("div");
+                section.className = "category-section";
+
+                // Header Categoria
+                const header = document.createElement("div");
+                header.className = "category-header";
+                header.innerHTML = `<span>${cat.nome}</span><span onclick="eliminaCategoria(${cat.id})" style="cursor:pointer; font-size:12px;">🗑️</span>`;
+                
+                // Box Contenuto
+                const content = document.createElement("div");
+                content.className = "category-content";
+
+                // Input per aggiungere cosa in questa categoria
+                const inputGroup = document.createElement("div");
+                inputGroup.className = "input-group";
+                inputGroup.innerHTML = `
+                    <input type="text" id="input-cat-${cat.id}" placeholder="Nuova cosa in ${cat.nome}...">
+                    <button class="btn-main" onclick="aggiungiArticolo(${cat.id})">INSERISCI</button>
+                `;
+                content.appendChild(inputGroup);
+
+                // Articoli filtrati per questa categoria
+                const articoliFiltrati = articoli.filter(a => a.categoria_id === cat.id);
+                articoliFiltrati.forEach(art => {
+                    const riga = document.createElement("div");
+                    riga.className = "item";
+                    riga.innerHTML = `
+                        <span class="testo-prodotto">${art.nome}</span>
                         <div style="display:flex;">
-                            <button class="btn-small plus" id="btn-${safeId}" onclick="aggiungiADB('${item}')">+</button>
-                            <button class="btn-small edit" onclick="apriModifica('${categoria}', '${item}')">✏️</button>
-                            <button class="btn-small delete" onclick="eliminaCosa('${categoria}', '${item}')">🗑</button>
-                        </div></div>`;
-                    });
-                    container.innerHTML += html + `</div>`;
-                }
+                            <button class="btn-small plus" id="btn-add-${art.id}" onclick="mettiInValigia(${art.id}, '${art.nome.replace(/'/g, "\\'")}')">+</button>
+                            <button class="btn-small delete" onclick="eliminaArticolo(${art.id})">🗑</button>
+                        </div>
+                    `;
+                    content.appendChild(riga);
+                });
+
+                section.appendChild(header);
+                section.appendChild(content);
+                master.appendChild(section);
             });
-            localStorage.setItem('db_viaggio', JSON.stringify(databaseCose));
         }
 
-        async function aggiungiADB(nome) {
-    const userEmail = localStorage.getItem('userEmail');
-    if (!userEmail) return alert("Effettua il login!");
-
-    // Genera un ID pulito per il bottone (senza spazi o accenti)
-    const safeId = nome.replace(/[^a-zA-Z0-9]/g, '');
-    const btn = document.getElementById(`btn-${safeId}`);
-
-    try {
-        // CORREZIONE: Tabella cambiata in 'cose_valigia'
-        const res = await fetch("https://eejdpophfxsrqdvsucye.supabase.co/rest/v1/cose_valigia", {
-            method: "POST",
-            headers: { 
-                "apikey": KEY, 
-                "Content-Type": "application/json", 
-                "Authorization": "Bearer " + KEY,
-                "Prefer": "return=minimal"
-            },
-            body: JSON.stringify({ 
-                nome: nome, 
-                email_utente: userEmail, 
-                completato: false 
-            })
-        });
-
-        if (res.ok) {
-            if (btn) {
-                btn.innerText = "✅";
-                btn.style.backgroundColor = "#9fb8ad";
-                setTimeout(() => { 
-                    btn.innerText = "+"; 
-                    btn.style.backgroundColor = "#aec6cf"; 
-                }, 1200);
-            }
-            mostraToast(nome + " aggiunto in valigia!");
-        } else {
-            const error = await res.json();
-            console.error("Errore Supabase:", error);
-            alert("Errore: " + error.message);
-        }
-    } catch (e) {
-        console.error("Errore di rete:", e);
-    }
-}
-
-        function aggiungiNuovaCosa() {
-            const input = document.getElementById("nuovaCosa");
-            let nome = input.value.trim();
-            let cat = document.getElementById("selectCategoria").value;
+        // --- AZIONI CATEGORIE ---
+        async function creaCategoria() {
+            const nome = document.getElementById("nuovaCategoria").value.trim();
             if (!nome) return;
-            nome = nome.charAt(0).toUpperCase() + nome.slice(1);
-            if (cat === "NUOVA") {
-                const nuova = prompt("Nome nuova categoria:");
-                if (!nuova) return;
-                cat = nuova.trim().charAt(0).toUpperCase() + nuova.trim().slice(1);
-                if (!databaseCose[cat]) databaseCose[cat] = [];
-            }
-            if (!databaseCose[cat].includes(nome)) { databaseCose[cat].push(nome); input.value = ""; renderizzaCose(); }
+            await fetch(`${URL_SUPA}/categorie_valigia`, {
+                method: "POST", headers,
+                body: JSON.stringify({ nome: nome, email_utente: userEmail })
+            });
+            document.getElementById("nuovaCategoria").value = "";
+            caricaDati();
         }
 
-        let cosaInModifica = { cat: null, vecchioNome: null };
-        function apriModifica(cat, nome) {
-            cosaInModifica = { cat, vecchioNome: nome };
-            document.getElementById("inputModifica").value = nome;
-            document.getElementById("editModal").style.display = "flex";
+        async function eliminaCategoria(id) {
+            if (!confirm("Eliminando la categoria eliminerai anche tutti gli articoli al suo interno. Procedere?")) return;
+            await fetch(`${URL_SUPA}/categorie_valigia?id=eq.${id}`, { method: "DELETE", headers });
+            caricaDati();
         }
-        function salvaModifica() {
-            const nuovo = document.getElementById("inputModifica").value.trim();
-            if(!nuovo) return;
-            const idx = databaseCose[cosaInModifica.cat].indexOf(cosaInModifica.vecchioNome);
-            databaseCose[cosaInModifica.cat][idx] = nuovo;
-            chiudiModal(); renderizzaCose();
+
+        // --- AZIONI ARTICOLI ---
+        async function aggiungiArticolo(catId) {
+            const input = document.getElementById(`input-cat-${catId}`);
+            const nome = input.value.trim();
+            if (!nome) return;
+            await fetch(`${URL_SUPA}/catalogo_valigia`, {
+                method: "POST", headers,
+                body: JSON.stringify({ nome: nome, categoria_id: catId, email_utente: userEmail })
+            });
+            input.value = "";
+            caricaDati();
         }
-        function eliminaCosa(cat, nome) {
-            if(confirm(`Eliminare ${nome}?`)) { databaseCose[cat] = databaseCose[cat].filter(i => i !== nome); renderizzaCose(); }
+
+        async function eliminaArticolo(id) {
+            if (!confirm("Eliminare definitivamente dal catalogo?")) return;
+            await fetch(`${URL_SUPA}/catalogo_valigia?id=eq.${id}`, { method: "DELETE", headers });
+            caricaDati();
         }
-        function chiudiModal() { document.getElementById("editModal").style.display = "none"; }
+
+        // --- LOGICA AGGIUNTA ALLA VALIGIA (CON CONTROLLO DUPLICATI) ---
+        async function mettiInValigia(idCatalogo, nome) {
+            const btn = document.getElementById(`btn-add-${idCatalogo}`);
+            
+            // Controllo se esiste già nella tabella 'cose_valigia' (la valigia attuale)
+            const res = await fetch(`${URL_SUPA}/cose_valigia?nome=eq.${nome}&email_utente=eq.${userEmail}`, { headers });
+            const esistente = await res.json();
+
+            if (esistente.length > 0) {
+                flashBottone(btn, "GIÀ IN LISTA", "#db5151");
+                return;
+            }
+
+            // Aggiunta effettiva
+            const addRes = await fetch(`${URL_SUPA}/cose_valigia`, {
+                method: "POST", headers,
+                body: JSON.stringify({ 
+                    nome: nome, 
+                    email_utente: userEmail, 
+                    completato: false 
+                })
+            });
+
+            if (addRes.ok) {
+                flashBottone(btn, "AGGIUNTO", "#45a049");
+            }
+        }
+
+        function flashBottone(btn, testo, colore) {
+            const vecchioTesto = btn.innerText;
+            btn.innerText = testo;
+            btn.style.backgroundColor = colore;
+            btn.style.width = "auto";
+            btn.style.padding = "0 10px";
+            btn.style.fontSize = "10px";
+            
+            setTimeout(() => {
+                btn.innerText = vecchioTesto;
+                btn.style.backgroundColor = "";
+                btn.style.width = "34px";
+                btn.style.padding = "0";
+                btn.style.fontSize = "16px";
+            }, 1500);
+        }
+
         function logout() { localStorage.clear(); window.location.href = 'login.html'; }
-        if (!userEmail) window.location.href = 'login.html';
-        renderizzaCose();
+
+        init();
     </script>
 </body>
 </html>
