@@ -4,80 +4,81 @@
     <meta charset="UTF-8">
     <title>Cose Viaggio</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="manifest" href="manifest.json">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <style>
         body { margin: 0; font-family: -apple-system, Helvetica, Arial, sans-serif; background: #f2f2f7; display: flex; justify-content: center; }
-        .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 90px; position: relative; }
-        .header-box { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 100px; }
         
-        /* Navigazione Categorie Rapida */
+        /* Navigazione Categorie - Palette Salvia */
         .category-nav { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; justify-content: center; }
-        .btn-nav { background: #aec6cf; color: white; border: none; padding: 8px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; cursor: pointer; text-decoration: none; text-transform: uppercase; }
+        .btn-nav { background: #9fb8ad; color: white; border: none; padding: 10px 14px; border-radius: 12px; font-size: 11px; font-weight: bold; cursor: pointer; text-transform: uppercase; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
 
-        .categoria-titolo { background: #aec6cf; color: white; padding: 8px 15px; border-radius: 12px 12px 0 0; font-weight: bold; font-size: 13px; margin-top: 15px; text-transform: uppercase; scroll-margin-top: 20px; }
-        .card { background: white; border-radius: 0 0 16px 16px; padding: 10px 15px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        
-        .testo-prodotto { flex-grow: 1; font-size: 16px; color: #1c1c1e; text-transform: capitalize; }
-        .item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; }
+        /* Struttura Card */
+        .categoria-titolo { background: #aec6cf; color: white; padding: 10px 15px; border-radius: 12px 12px 0 0; font-weight: bold; font-size: 13px; margin-top: 20px; text-transform: uppercase; scroll-margin-top: 20px; }
+        .card { background: white; border-radius: 0 0 16px 16px; padding: 5px 15px; margin-bottom: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f2f2f7; }
         .item:last-child { border-bottom: none; }
         
-        .btn-small { border: none; border-radius: 8px; width: 32px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-left: 4px; font-size: 16px; transition: all 0.3s; }
+        /* Bottoni Azione */
+        .btn-small { border: none; border-radius: 8px; width: 35px; height: 35px; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-left: 5px; font-size: 16px; }
         .plus { background-color: #779ecb; color: white; } 
-        .edit { background-color: #fdfd96; color: #3a3a3c; } 
-        .delete { background-color: #add8e6; color: #1c1c1e; }
+        .edit { background-color: #fdfd96; } 
+        .delete { background-color: #add8e6; }
 
-        .input-group { display: flex; gap: 10px; margin-bottom: 12px; position: relative; }
-        input { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid #ddd; font-size: 16px; outline: none; height: 45px; box-sizing: border-box; background: white; }
-        .btn-main { width: 100px; height: 45px; border-radius: 12px; border: none; background: #aec6cf; color: white; font-weight: bold; cursor: pointer; font-size: 14px; }
+        /* Input */
+        .input-group { display: flex; gap: 10px; margin-bottom: 10px; }
+        input, select { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid #ddd; font-size: 16px; background: white; }
+        .btn-main { padding: 0 15px; border-radius: 12px; border: none; background: #aec6cf; color: white; font-weight: bold; cursor: pointer; }
 
-        .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 70px; background: #aec6cf; border-top: 1px solid #99b3bc; display: flex; justify-content: space-around; align-items: center; z-index: 1000; }
-        .tab-item { flex: 1; text-align: center; font-size: 14px; color: black; text-decoration: none; text-transform: uppercase; font-weight: 600; }
-        .tab-active { font-weight: 900; }
+        /* Tab Bar Corretta */
+        .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 75px; background: #aec6cf; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid rgba(0,0,0,0.1); }
+        .tab-item { flex: 1; text-align: center; font-size: 12px; color: #333; text-decoration: none; font-weight: 600; display: flex; flex-direction: column; }
+        .tab-item span { font-size: 20px; }
+        .tab-active { color: white; font-weight: 900; }
 
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 2000; }
-        .modal-box { background: white; padding: 25px; border-radius: 20px; width: 85%; max-width: 350px; text-align: center; }
-        .btn-modal { width: 100%; padding: 15px; margin-top: 10px; border-radius: 12px; border: none; background: #aec6cf; color: white; font-weight: bold; cursor: pointer; font-size: 16px; }
-        .btn-cancel { background: #e5e5ea; color: #8e8e93; margin-top: 15px; }
+        .modal-box { background: white; padding: 20px; border-radius: 20px; width: 80%; text-align: center; }
     </style>
 </head>
 <body>
 
     <div class="app">
-        <div class="header-box"><h1 style="margin:0;">🧳 Cose Viaggio</h1></div>
+        <h2 style="text-align: center; color: #4a4a4a;">🧳 Catalogo Cose</h2>
         
         <!-- Pulsanti Categorie Rapidi -->
         <div class="category-nav" id="navCategorie"></div>
 
-        <!-- Inserimento -->
+        <!-- Inserimento con Scelta Categoria -->
         <div class="input-group">
             <input type="text" id="nuovaCosa" placeholder="Aggiungi cose...">
+            <select id="selectCategoria">
+                <option value="Extra">Categoria...</option>
+                <!-- Dinamico -->
+            </select>
             <button class="btn-main" onclick="aggiungiNuovaCosa()">INSERISCI</button>
         </div>
 
-        <!-- Ricerca -->
         <div class="input-group">
             <input type="text" id="cercaCosa" placeholder="Cerca cose..." onkeyup="renderizzaCose()">
-            <button class="btn-main" onclick="renderizzaCose()">TROVA</button>
         </div>
 
         <div id="listaCategorie"></div>
     </div>
 
+    <!-- Barra di Navigazione Richiesta -->
     <div class="tab-bar">
-        <a href="index.html" class="tab-item">🛒 LISTA</a>
-        <a href="prodotti.html" class="tab-item">📦 PRODOTTI</a>
-        <a href="coseviaggio.html" class="tab-item tab-active">🧳 VIAGGIO</a>
+        <a href="index.html" class="tab-item"><span>🏠</span>HOME</a>
+        <a href="viaggi.html" class="tab-item"><span>✈️</span>VIAGGI</a>
+        <a href="coseviaggio.html" class="tab-item tab-active"><span>🧳</span>COSE</a>
+        <a href="#" class="tab-item" onclick="logout()"><span>🚪</span>ESCI</a>
     </div>
 
     <!-- Modale Modifica -->
     <div id="editModal" class="modal-overlay">
         <div class="modal-box">
-            <h3>Modifica Cosa</h3>
-            <input type="text" id="inputModifica" style="width:100%; margin-bottom:15px; text-align:center; padding:12px; border-radius:12px; border:1px solid #ddd;">
-            <button class="btn-modal" onclick="salvaModifica()">SALVA</button>
-            <button class="btn-modal btn-cancel" onclick="chiudiModal()">ANNULLA</button>
+            <h3>Modifica Nome</h3>
+            <input type="text" id="inputModifica">
+            <button class="btn-main" style="width:100%; margin-top:10px; height:45px;" onclick="salvaModifica()">SALVA</button>
+            <button class="btn-main" style="width:100%; margin-top:10px; height:45px; background:#ccc;" onclick="chiudiModal()">ANNULLA</button>
         </div>
     </div>
 
@@ -87,14 +88,12 @@
         const headers = { "apikey": KEY, "Content-Type": "application/json", "Authorization": "Bearer " + KEY };
         const userEmail = localStorage.getItem('userEmail');
 
-        let databaseCose = {
-            "Abbigliamento": ["bretelle", "calze", "calze antiscivolo", "camicie", "cappello", "ciabatte", "cintura", "costume", "detergente scarpe", "felpe", "giacca a vento", "giaccone", "giubbino catarifrangente", "maglioni", "monospalla", "mutande", "pail", "pantaloncini", "pantaloni", "pigiama", "poncho", "scarpe", "scarpe da ballo", "scarpe trekking", "sciarpa", "spazzola scarpe", "stivali per pioggia", "t-shirt"],
-            "Igiene": ["accappatoio", "asciugamano", "bagnodoccia", "carta igienica", "cera", "cerotti", "cotton fioc", "dentifricio", "deodorante", "disinfettante mani", "fazzolettini", "filo interdentale", "mascherina", "pettine", "preservativi", "rasoio", "salviette", "salviette umide", "sapone marsiglia", "spazzolino"],
-            "Campeggio": ["antizanzare", "borraccia", "cuscino", "federa", "forbici", "lenzuolo", "materassino", "pile", "plaid", "pompetta", "sacchi spazzatura", "sacco a pelo", "scatola plastica", "scopettino tenda", "telo", "tenda", "torcia"],
-            "Cucina": ["accendino", "bicchieri", "bombola", "colino", "detersivo", "fornellino", "moka", "pentola", "piatti", "posate", "spugnetta", "vaschetta"],
-            "Extra": ["arnica", "auricolari", "caricabatterie", "carta identità", "carta imbarco", "cavigliera", "cellulare", "chiavi di casa", "coltellino svizzero", "comped", "cuffie audio", "cuscino aereo", "custodia occhiali", "guaranà", "ketoprofene", "kit contenitori x aereo", "lasonil", "lenti contatto", "libri", "magnesio potassio", "ombrello", "portafoglio", "powerbank", "prenotazione hotel", "prenotazione parcheggio", "quaderno", "sveglia", "tenda cambusa", "zainetto"],
-            "Mare": ["calotta", "costume", "crema solare", "salviettone"],
-            "Cibo": ["biscotti", "caffè", "frutta", "latte", "marmellata", "muesli", "olio", "pane", "pasta", "sale", "sughi", "zucchero"]
+        // Carico il database da localStorage o uso quello predefinito
+        let databaseCose = JSON.parse(localStorage.getItem('db_viaggio')) || {
+            "Abbigliamento": ["bretelle", "calze", "camicie", "cappello", "ciabatte", "costume", "felpe", "mutande", "pantaloni", "scarpe", "t-shirt"],
+            "Igiene": ["asciugamano", "bagnodoccia", "dentifricio", "deodorante", "pettine", "spazzolino"],
+            "Campeggio": ["borraccia", "sacco a pelo", "tenda", "torcia"],
+            "Extra": ["caricabatterie", "documenti", "ombrello", "portafoglio"]
         };
 
         let cosaInModifica = { cat: null, vecchioNome: null };
@@ -103,93 +102,102 @@
             const filtro = document.getElementById("cercaCosa").value.toLowerCase();
             const container = document.getElementById("listaCategorie");
             const nav = document.getElementById("navCategorie");
+            const select = document.getElementById("selectCategoria");
+            
             container.innerHTML = "";
             nav.innerHTML = "";
+            select.innerHTML = '<option value="NUOVA">+ NUOVA CATEGORIA</option>';
 
-            for (const categoria in databaseCose) {
-                databaseCose[categoria].sort((a, b) => a.localeCompare(b));
-                const filtrati = databaseCose[categoria].filter(item => item.toLowerCase().includes(filtro));
-                
+            // Ordina categorie
+            const categorieOrdinate = Object.keys(databaseCose).sort();
+
+            categorieOrdinate.forEach(categoria => {
+                // Popola Select
+                let opt = document.createElement("option");
+                opt.value = categoria; opt.innerText = categoria;
+                select.appendChild(opt);
+
+                // Popola Nav
+                let btnNav = document.createElement("button");
+                btnNav.className = "btn-nav";
+                btnNav.innerText = categoria;
+                btnNav.onclick = () => document.getElementById('cat-' + categoria).scrollIntoView({behavior: "smooth"});
+                nav.appendChild(btnNav);
+
+                // Popola Lista
+                const oggetti = databaseCose[categoria].sort();
+                const filtrati = oggetti.filter(o => o.toLowerCase().includes(filtro));
+
                 if (filtrati.length > 0) {
-                    // Crea bottone navigazione
-                    const btnNav = document.createElement("button");
-                    btnNav.className = "btn-nav";
-                    btnNav.innerText = categoria;
-                    btnNav.onclick = () => document.getElementById('cat-' + categoria).scrollIntoView({behavior: "smooth"});
-                    nav.appendChild(btnNav);
-
-                    // Crea Titolo Categoria
-                    const header = document.createElement("div");
-                    header.className = "categoria-titolo";
-                    header.id = 'cat-' + categoria;
-                    header.innerText = categoria;
-                    container.appendChild(header);
-
-                    const card = document.createElement("div");
-                    card.className = "card";
-                    
-                    filtrati.forEach((item) => {
-                        const riga = document.createElement("div");
-                        riga.className = "item";
-                        riga.innerHTML = `
+                    let html = `<div class="categoria-titolo" id="cat-${categoria}">${categoria}</div><div class="card">`;
+                    filtrati.forEach(item => {
+                        html += `
+                        <div class="item">
                             <span class="testo-prodotto">${item}</span>
                             <div style="display:flex;">
-                                <button class="btn-small plus" onclick="mettiInLista('${item.replace(/'/g, "\\'")}')">+</button>
-                                <button class="btn-small edit" onclick="apriModifica('${categoria}', '${item.replace(/'/g, "\\'")}')">✏️</button>
-                                <button class="btn-small delete" onclick="eliminaCosa('${categoria}', '${item.replace(/'/g, "\\'")}')">🗑</button>
+                                <button class="btn-small plus" onclick="aggiungiADB('${item}')">+</button>
+                                <button class="btn-small edit" onclick="apriModifica('${categoria}', '${item}')">✏️</button>
+                                <button class="btn-small delete" onclick="eliminaCosa('${categoria}', '${item}')">🗑</button>
                             </div>
-                        `;
-                        card.appendChild(riga);
+                        </div>`;
                     });
-                    container.appendChild(card);
+                    html += `</div>`;
+                    container.innerHTML += html;
                 }
-            }
+            });
+            localStorage.setItem('db_viaggio', JSON.stringify(databaseCose));
         }
 
         function aggiungiNuovaCosa() {
             const nome = document.getElementById("nuovaCosa").value.trim();
+            let cat = document.getElementById("selectCategoria").value;
+            
             if (!nome) return;
-            databaseCose["Extra"].push(nome);
-            document.getElementById("nuovaCosa").value = "";
-            renderizzaCose();
+
+            if (cat === "NUOVA") {
+                const nuovaCat = prompt("Inserisci il nome della nuova categoria:");
+                if (!nuovaCat) return;
+                cat = nuovaCat.charAt(0).toUpperCase() + nuovaCat.slice(1);
+                if (!databaseCose[cat]) databaseCose[cat] = [];
+            }
+
+            if (!databaseCose[cat].includes(nome)) {
+                databaseCose[cat].push(nome);
+                document.getElementById("nuovaCosa").value = "";
+                renderizzaCose();
+            }
+        }
+
+        async function aggiungiADB(nome) {
+            // Qui punta alla tabella lista_viaggio
+            const res = await fetch(`${URL}/lista_viaggio`, {
+                method: "POST", headers,
+                body: JSON.stringify({ nome: nome, email_utente: userEmail, completato: false })
+            });
+            if(res.ok) alert(nome + " aggiunto alla lista viaggio!");
         }
 
         function apriModifica(cat, nome) {
-            cosaInModifica = { cat: cat, vecchioNome: nome };
+            cosaInModifica = { cat, vecchioNome: nome };
             document.getElementById("inputModifica").value = nome;
             document.getElementById("editModal").style.display = "flex";
         }
 
         function salvaModifica() {
-            const nuovoNome = document.getElementById("inputModifica").value.trim();
-            if (nuovoNome && cosaInModifica.cat) {
-                const index = databaseCose[cosaInModifica.cat].indexOf(cosaInModifica.vecchioNome);
-                if (index !== -1) {
-                    databaseCose[cosaInModifica.cat][index] = nuovoNome;
-                    renderizzaCose();
-                }
-            }
+            const nuovo = document.getElementById("inputModifica").value.trim();
+            const idx = databaseCose[cosaInModifica.cat].indexOf(cosaInModifica.vecchioNome);
+            databaseCose[cosaInModifica.cat][idx] = nuovo;
             chiudiModal();
+            renderizzaCose();
         }
 
         function eliminaCosa(cat, nome) {
-            if(confirm("Eliminare '" + nome + "'?")) {
-                databaseCose[cat] = databaseCose[cat].filter(i => i !== nome);
-                renderizzaCose();
-            }
-        }
-
-        async function mettiInLista(nome) {
-            try {
-                const res = await fetch(`${URL}/lista_spesa`, {
-                    method: "POST", headers,
-                    body: JSON.stringify({ nome: nome, email_utente: userEmail, completato: false })
-                });
-                if(res.ok) alert("'" + nome + "' aggiunto alla lista spesa!");
-            } catch (e) { console.error(e); }
+            databaseCose[cat] = databaseCose[cat].filter(i => i !== nome);
+            renderizzaCose();
         }
 
         function chiudiModal() { document.getElementById("editModal").style.display = "none"; }
+        function logout() { localStorage.clear(); window.location.href = 'login.html'; }
 
         renderizzaCose();
     </script>
