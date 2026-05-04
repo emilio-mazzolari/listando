@@ -9,55 +9,72 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <style>
         body { margin: 0; font-family: -apple-system, Helvetica, Arial, sans-serif; background: #f2f2f7; display: flex; justify-content: center; }
-        .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 100px; }
+        .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 90px; position: relative; }
         .header-box { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
         
-        /* Stile Categorie */
-        .categoria-container { margin-bottom: 20px; }
-        .categoria-titolo { 
-            background: #aec6cf; color: white; padding: 10px 15px; 
-            border-radius: 12px 12px 0 0; font-weight: bold; text-transform: uppercase; font-size: 14px;
-        }
-        .card { background: white; border-radius: 0 0 16px 16px; padding: 10px 15px; margin-bottom: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-
+        /* Categorie e Card */
+        .categoria-titolo { background: #aec6cf; color: white; padding: 8px 15px; border-radius: 12px 12px 0 0; font-weight: bold; font-size: 13px; margin-top: 15px; text-transform: uppercase; }
+        .card { background: white; border-radius: 0 0 16px 16px; padding: 10px 15px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        
+        .testo-prodotto { flex-grow: 1; font-size: 16px; color: #1c1c1e; text-transform: capitalize; }
         .item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; }
         .item:last-child { border-bottom: none; }
-        .testo-prodotto { flex-grow: 1; font-size: 16px; color: #1c1c1e; text-transform: capitalize; }
         
-        .btn-small { border: none; border-radius: 8px; width: 32px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-left: 4px; font-size: 16px; transition: all 0.2s; }
+        /* Pulsanti */
+        .btn-small { border: none; border-radius: 8px; width: 32px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-left: 4px; font-size: 16px; transition: all 0.3s; }
         .plus { background-color: #779ecb; color: white; } 
+        .edit { background-color: #fdfd96; color: #3a3a3c; } 
+        .delete { background-color: #add8e6; color: #1c1c1e; }
 
-        /* Input */
-        .input-group { display: flex; gap: 10px; margin-bottom: 12px; }
-        input { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid #ddd; font-size: 16px; outline: none; height: 45px; box-sizing: border-box; }
-        .btn-main { width: 100px; height: 45px; border-radius: 12px; border: none; background: #aec6cf; color: white; font-weight: bold; cursor: pointer; }
+        .input-group { display: flex; gap: 10px; margin-bottom: 12px; position: relative; }
+        input { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid #ddd; font-size: 16px; outline: none; height: 45px; box-sizing: border-box; background: white; }
+        .btn-main { width: 100px; height: 45px; border-radius: 12px; border: none; background: #aec6cf; color: white; font-weight: bold; cursor: pointer; font-size: 14px; }
 
-        /* Tab Bar */
-        .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 75px; background: #aec6cf; display: flex; justify-content: space-around; align-items: center; z-index: 1000; border-top: 1px solid rgba(0,0,0,0.1); }
+        .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 70px; background: #aec6cf; border-top: 1px solid #99b3bc; display: flex; justify-content: space-around; align-items: center; z-index: 1000; }
         .tab-item { flex: 1; text-align: center; font-size: 14px; color: black; text-decoration: none; text-transform: uppercase; font-weight: 600; }
-        .tab-active { font-weight: 900; color: white; }
+        .tab-active { font-weight: 900; }
+
+        /* Modali */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 2000; }
+        .modal-box { background: white; padding: 25px; border-radius: 20px; width: 85%; max-width: 350px; text-align: center; }
+        .btn-modal { width: 100%; padding: 15px; margin-top: 10px; border-radius: 12px; border: none; background: #aec6cf; color: white; font-weight: bold; cursor: pointer; font-size: 16px; }
+        .btn-cancel { background: #e5e5ea; color: #8e8e93; margin-top: 15px; }
     </style>
 </head>
 <body>
 
     <div class="app">
-        <div class="header-box"><h1 style="margin:0; font-size: 24px;">🧳 Cose da Viaggio</h1></div>
+        <div class="header-box"><h1 style="margin:0;">🧳 Cose Viaggio</h1></div>
         
-        <!-- Ricerca rapida -->
+        <!-- Inserimento -->
         <div class="input-group">
-            <input type="text" id="cercaCosa" placeholder="Cerca tra le categorie..." onkeyup="filtraCose()">
+            <input type="text" id="nuovaCosa" placeholder="Aggiungi oggetto...">
+            <button class="btn-main" onclick="aggiungiNuovaCosa()">INSERISCI</button>
         </div>
 
-        <div id="listaCategorie">
-            <!-- Qui verranno generate le categorie dello screenshot -->
+        <!-- Ricerca -->
+        <div class="input-group">
+            <input type="text" id="cercaCosa" placeholder="Cerca oggetto..." onkeyup="renderizzaCose()">
+            <button class="btn-main" onclick="renderizzaCose()">TROVA</button>
         </div>
+
+        <div id="listaCategorie">Caricamento...</div>
     </div>
 
     <div class="tab-bar">
-        <a href="index.html" class="tab-item">🏠 LISTE</a>
-        <a href="prodotti.html" class="tab-item">🛒 SPESA</a>
+        <a href="index.html" class="tab-item">🛒 LISTA</a>
+        <a href="prodotti.html" class="tab-item">📦 PRODOTTI</a>
         <a href="coseviaggio.html" class="tab-item tab-active">🧳 VIAGGIO</a>
-        <a href="#" class="tab-item" onclick="logout()">🚪 ESCI</a>
+    </div>
+
+    <!-- Modale Modifica -->
+    <div id="editModal" class="modal-overlay">
+        <div class="modal-box">
+            <h3>Modifica Nome</h3>
+            <input type="text" id="inputModifica" style="width:100%; margin-bottom:15px; text-align:center;">
+            <button class="btn-modal" onclick="salvaModifica()">SALVA</button>
+            <button class="btn-modal btn-cancel" onclick="chiudiModal()">ANNULLA</button>
+        </div>
     </div>
 
     <script>
@@ -66,9 +83,9 @@
         const headers = { "apikey": KEY, "Content-Type": "application/json", "Authorization": "Bearer " + KEY };
         const userEmail = localStorage.getItem('userEmail');
 
-        // Database delle cose basato sul tuo screenshot
-        const databaseCose = {
-            "Abbigliamento": ["t-shirt", "stivali per pioggia", "spazzola scarpe", "sciarpa", "scarpe trekking", "scarpe da ballo", "scarpe", "poncho", "pigiama", "pantaloni", "pantaloncini", "pail", "mutande", "monospalla", "maglioni", "giubbino catarifrangente", "giaccone", "giacca a vento", "felpe", "detergente scarpe", "costume", "cinture", "ciabatte", "cappello", "camicie", "calze antiscivolo", "calze", "bretelle"],
+        // Dati iniziali dallo screenshot ordinati alfabeticamente
+        let databaseCose = {
+            "Abbigliamento": ["bretelle", "calze", "calze antiscivolo", "camicie", "cappello", "ciabatte", "cintura", "costume", "detergente scarpe", "felpe", "giacca a vento", "giaccone", "giubbino catarifrangente", "maglioni", "monospalla", "mutande", "pail", "pantaloncini", "pantaloni", "pigiama", "poncho", "scarpe", "scarpe da ballo", "scarpe trekking", "sciarpa", "spazzola scarpe", "stivali per pioggia", "t-shirt"],
             "Igiene": ["accappatoio", "asciugamano", "bagnodoccia", "carta igienica", "cera", "cerotti", "cotton fioc", "dentifricio", "deodorante", "disinfettante mani", "fazzolettini", "filo interdentale", "mascherina", "pettine", "preservativi", "rasoio", "salviette", "salviette umide", "sapone marsiglia", "spazzolino"],
             "Campeggio": ["antizanzare", "borraccia", "cuscino", "federa", "forbici", "lenzuolo", "materassino", "pile", "plaid", "pompetta", "sacchi spazzatura", "sacco a pelo", "scatola plastica", "scopettino tenda", "telo", "tenda", "torcia"],
             "Cucina": ["accendino", "bicchieri", "bombola", "colino", "detersivo", "fornellino", "moka", "pentola", "piatti", "posate", "spugnetta", "vaschetta"],
@@ -77,84 +94,88 @@
             "Cibo": ["biscotti", "caffè", "frutta", "latte", "marmellata", "muesli", "olio", "pane", "pasta", "sale", "sughi", "zucchero"]
         };
 
-        function renderizzaCose(filtro = "") {
+        let cosaInModifica = { cat: null, index: null };
+
+        function renderizzaCose() {
+            const filtro = document.getElementById("cercaCosa").value.toLowerCase();
             const container = document.getElementById("listaCategorie");
             container.innerHTML = "";
 
-            for (const [categoria, oggetti] of Object.entries(databaseCose)) {
-                const oggettiFiltrati = oggetti.filter(o => o.toLowerCase().includes(filtro.toLowerCase()));
+            for (const categoria in databaseCose) {
+                // Ordina alfabeticamente ogni categoria
+                databaseCose[categoria].sort((a, b) => a.localeCompare(b));
+
+                const filtrati = databaseCose[categoria].filter(item => item.toLowerCase().includes(filtro));
                 
-                if (oggettiFiltrati.length > 0) {
-                    const catDiv = document.createElement("div");
-                    catDiv.className = "categoria-container";
+                if (filtrati.length > 0) {
+                    const header = document.createElement("div");
+                    header.className = "categoria-titolo";
+                    header.innerText = categoria;
+                    container.appendChild(header);
+
+                    const card = document.createElement("div");
+                    card.className = "card";
                     
-                    let html = `<div class="categoria-titolo">${categoria}</div><div class="card">`;
-                    
-                    oggettiFiltrati.forEach(obj => {
-                        html += `
-                            <div class="item">
-                                <span class="testo-prodotto">${obj}</span>
-                                <button class="btn-small plus" id="btn-${categoria}-${obj.replace(/\s/g, '')}" onclick="aggiungiAlista('${obj}', '${categoria}')">+</button>
-                            </div>`;
+                    filtrati.forEach((item) => {
+                        const riga = document.createElement("div");
+                        riga.className = "item";
+                        riga.innerHTML = `
+                            <span class="testo-prodotto">${item}</span>
+                            <div style="display:flex;">
+                                <button class="btn-small plus" onclick="mettiInLista('${item.replace(/'/g, "\\'")}')">+</button>
+                                <button class="btn-small edit" onclick="apriModifica('${categoria}', '${item.replace(/'/g, "\\'")}')">✏️</button>
+                                <button class="btn-small delete" onclick="eliminaCosa('${categoria}', '${item.replace(/'/g, "\\'")}')">🗑</button>
+                            </div>
+                        `;
+                        card.appendChild(riga);
                     });
-                    
-                    html += `</div>`;
-                    catDiv.innerHTML = html;
-                    container.appendChild(catDiv);
+                    container.appendChild(card);
                 }
             }
         }
 
-        function filtraCose() {
-            const query = document.getElementById("cercaCosa").value;
-            renderizzaCose(query);
+        function aggiungiNuovaCosa() {
+            const nome = document.getElementById("nuovaCosa").value.trim();
+            if (!nome) return;
+            // Di default aggiunge a "Extra" se non specificato, poi riordina
+            databaseCose["Extra"].push(nome);
+            document.getElementById("nuovaCosa").value = "";
+            renderizzaCose();
         }
 
-        async function aggiungiAlista(nome, categoria) {
-            const btnId = `btn-${categoria}-${nome.replace(/\s/g, '')}`;
-            const btn = document.getElementById(btnId);
+        function apriModifica(cat, nome) {
+            cosaInModifica = { cat, vecchioNome: nome };
+            document.getElementById("inputModifica").value = nome;
+            document.getElementById("editModal").style.display = "flex";
+        }
 
-            // Verifica se già presente
-            const check = await fetch(`${URL}/lista_viaggio?nome=eq.${nome}&email_utente=eq.${userEmail}`, { headers });
-            const data = await check.json();
-
-            if (data.length > 0) {
-                aggiornaBottone(btn, "GIÀ C'È", "#db5151");
-                return;
+        function salvaModifica() {
+            const nuovoNome = document.getElementById("inputModifica").value.trim();
+            if (nuovoNome) {
+                const index = databaseCose[cosaInModifica.cat].indexOf(cosaInModifica.vecchioNome);
+                if (index !== -1) databaseCose[cosaInModifica.cat][index] = nuovoNome;
             }
+            chiudiModal();
+            renderizzaCose();
+        }
 
-            // Inserimento
-            await fetch(`${URL}/lista_viaggio`, {
+        function eliminaCosa(cat, nome) {
+            databaseCose[cat] = databaseCose[cat].filter(i => i !== nome);
+            renderizzaCose();
+        }
+
+        async function mettiInLista(nome) {
+            // Logica per aggiungere alla tabella lista_spesa o lista_viaggio su Supabase
+            await fetch(`${URL}/lista_spesa`, {
                 method: "POST", headers,
-                body: JSON.stringify({ 
-                    nome: nome, 
-                    categoria: categoria, 
-                    email_utente: userEmail, 
-                    completato: false 
-                })
+                body: JSON.stringify({ nome: nome, email_utente: userEmail, completato: false })
             });
-
-            aggiornaBottone(btn, "OK", "#45a049");
+            alert(nome + " aggiunto alla lista!");
         }
 
-        function aggiornaBottone(btn, testo, colore) {
-            const originale = btn.innerHTML;
-            btn.innerText = testo;
-            btn.style.backgroundColor = colore;
-            btn.style.width = "auto";
-            btn.style.padding = "0 8px";
-            setTimeout(() => {
-                btn.innerHTML = originale;
-                btn.style.backgroundColor = "";
-                btn.style.width = "32px";
-                btn.style.padding = "0";
-            }, 1500);
-        }
+        function chiudiModal() { document.getElementById("editModal").style.display = "none"; }
 
-        function logout() { localStorage.removeItem('userEmail'); window.location.href = 'login.html'; }
-
-        // Avvio
-        if (!userEmail) window.location.href = 'login.html';
+        // Inizializzazione
         renderizzaCose();
     </script>
 </body>
