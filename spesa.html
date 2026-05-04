@@ -4,124 +4,193 @@
     <meta charset="UTF-8">
     <title>Lista Spesa</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <style>
         body { margin: 0; font-family: -apple-system, Helvetica, Arial, sans-serif; background: #f2f2f7; display: flex; justify-content: center; }
-        .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 100px; }
-        
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .btn-clear { background: #ff3b30; color: white; border: none; padding: 10px 15px; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 11px; text-transform: uppercase; }
+        .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 90px; }
+        .card { background: white; border-radius: 16px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .header-box { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
 
-        .card { background: white; border-radius: 16px; padding: 5px 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        .item { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid #f2f2f7; }
-        .item:last-child { border-bottom: none; }
-        
-        .testo { flex-grow: 1; font-size: 16px; cursor: pointer; display: flex; align-items: center; gap: 10px; font-weight: 500; color: #1c1c1e; }
-        .testo span { font-size: 18px; }
-        .completato { text-decoration: line-through; color: #8e8e93; font-weight: 400; }
-        
-        .btn-del { background: #f2f2f7; border: none; font-size: 16px; cursor: pointer; padding: 8px; border-radius: 10px; transition: 0.2s; }
+        .item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee; }
+        .testo-prodotto { flex-grow: 1; font-size: 16px; color: #1c1c1e; font-weight: 600; }
+        .testo-prodotto.barrato { text-decoration: line-through; color: #8e8e93; opacity: 0.6; }
 
-        .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 75px; background: #aec6cf; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid rgba(0,0,0,0.1); z-index: 1000; }
-        .tab-item { flex: 1; text-align: center; font-size: 11px; color: #333; text-decoration: none; font-weight: 800; display: flex; flex-direction: column; text-transform: uppercase; }
-        .tab-item span { font-size: 22px; margin-bottom: 3px; }
+        .btn-small { 
+            border: none; 
+            border-radius: 8px; 
+            width: 32px; 
+            height: 32px; 
+            cursor: pointer; 
+            margin-left: 8px; 
+            display: inline-flex; 
+            align-items: center; 
+            justify-content: center; 
+            transition: filter 0.1s;
+        }
+        .btn-small:active { filter: brightness(0.8); }
+
+        .check { background-color: #45a049; } 
+        .restore { background-color: #c7c7cc; } /* Grigio per ripristino */
+        .delete { background-color: #db5151; } 
+
+        .icon { width: 20px; height: 20px; fill: none; stroke: white; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+
+        .btn-orange { width: 100%; padding: 15px; border-radius: 12px; border: none; background: #aec6cf; color: white; font-weight: bold; margin-top: 15px; cursor: pointer; font-size: 14px; text-transform: uppercase; }
+        .btn-secondary { background: #99b3bc; }
+
+        .tab-bar { 
+            position: fixed; bottom: 0; left: 0; right: 0; height: 75px; 
+            background: #aec6cf; border-top: 1px solid rgba(0,0,0,0.1); 
+            display: flex; justify-content: space-around; align-items: center; 
+            z-index: 1000;
+        }
+        .tab-item { 
+            flex: 1; text-align: center; font-size: 11px; color: #333; 
+            text-decoration: none; text-transform: uppercase; font-weight: 800;
+            display: flex; flex-direction: column;
+        }
         .tab-active { color: white; }
+        .tab-item span { font-size: 22px; margin-bottom: 3px; }
 
-        .empty-state { text-align: center; padding: 40px 20px; color: #8e8e93; }
-        .empty-state span { font-size: 40px; display: block; margin-bottom: 10px; }
+        /* Modali */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 2000; }
+        .modal-box { background: white; padding: 25px; border-radius: 20px; width: 85%; max-width: 350px; text-align: center; }
+        .btn-modal { width: 100%; padding: 15px; margin-top: 10px; border-radius: 12px; border: none; background: #aec6cf; color: white; font-weight: bold; cursor: pointer; font-size: 16px; }
+        .btn-cancel { background: #e5e5ea; color: #8e8e93; margin-top: 15px; }
     </style>
 </head>
 <body>
 
     <div class="app">
-        <div class="header">
-            <h2 style="margin:0; font-weight: 800;">🛒 LISTA SPESA</h2>
-            <button class="btn-clear" onclick="svuotaLista()">SVUOTA</button>
-        </div>
+        <div class="header-box"><h2 style="margin:0; font-weight: 800;">🛒 LISTA DELLA SPESA</h2></div>
+        
+        <div class="card">
+            <div id="contenitoreLista">Caricamento...</div>
 
-        <div id="listaSpesaContenitore" class="card">
-            <div class="empty-state">Caricamento in corso...</div>
+            <!-- Pulsanti di gestione lista -->
+            <button class="btn-orange btn-secondary" onclick="eliminaAcquistati()">ELIMINA PRODOTTI ACQUISTATI</button>
+            <button class="btn-orange" onclick="apriModalSvuota()">SVUOTA TUTTA LA LISTA</button>
         </div>
     </div>
 
-    <!-- Barra di Navigazione -->
+    <!-- Navigazione Tab -->
     <div class="tab-bar">
-        <a href="index.html" class="tab-item"><span>🏠</span>HOME</a>
-        <a href="spesa.html" class="tab-item tab-active"><span>🛒</span>SPESA</a>
+        <a href="index.html" class="tab-item tab-active"><span>🏠</span>HOME</a>
+        <a href="spesa.html" class="tab-item"><span>🛒</span>SPESA</a>
         <a href="prodottispesa.html" class="tab-item"><span>📦</span>PRODOTTI</a>
         <a href="#" class="tab-item" onclick="logout()"><span>🚪</span>ESCI</a>
     </div>
 
+    <!-- Modale Svuota -->
+    <div id="svuotaModal" class="modal-overlay">
+        <div class="modal-box">
+            <h3>Svuota Lista</h3>
+            <p>Sei sicuro di voler cancellare TUTTI i prodotti?</p>
+            <button class="btn-modal" onclick="confermaSvuota()">SÌ, SVUOTA TUTTO</button>
+            <button class="btn-modal btn-cancel" onclick="chiudiModal()">ANNULLA</button>
+        </div>
+    </div>
+
     <script>
-        const URL = "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1/lista_spesa";
+        const URL = "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1";
         const KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
-        const headers = { 
-            "apikey": KEY, 
-            "Content-Type": "application/json", 
-            "Authorization": "Bearer " + KEY 
-        };
+        const headers = { "apikey": KEY, "Content-Type": "application/json", "Authorization": "Bearer " + KEY };
         const userEmail = localStorage.getItem('userEmail');
 
-        async function caricaLista() {
-    const container = document.getElementById("listaSpesaContenitore");
-    try {
-        // Recuperiamo la lista con i dettagli del prodotto associato
-        // Nota: questa query funziona se hai creato una "Foreign Key" tra le tabelle
-        const res = await fetch(`${URL}?email_utente=eq.${userEmail}&select=*,prodotti(nome)`, { headers });
-        const dati = await res.json();
+        if (!userEmail) window.location.href = 'login.html';
 
-        if (dati.length === 0) {
-            container.innerHTML = "<div class='empty-state'>La lista è vuota.</div>";
-            return;
+        async function caricaLista() {
+            try {
+                // Carichiamo la lista filtrata per utente
+                const res = await fetch(`${URL}/lista_spesa?select=*,prodotti(nome)&email_utente=eq.${userEmail}`, { headers });
+                const data = await res.json();
+                const div = document.getElementById("contenitoreLista");
+
+                if (!data || data.length === 0) {
+                    div.innerHTML = "<p style='text-align:center; color:#888;'>La lista è vuota</p>";
+                    return;
+                }
+
+                // Ordiniamo: prima quelli da comprare, poi quelli fatti, poi per nome
+                data.sort((a, b) => {
+                    if (a.completato !== b.completato) return a.completato ? 1 : -1;
+                    const nomeA = a.nome || a.prodotti?.nome || "";
+                    const nomeB = b.nome || b.prodotti?.nome || "";
+                    return nomeA.localeCompare(nomeB);
+                });
+
+                div.innerHTML = "";
+                data.forEach(item => {
+                    const riga = document.createElement("div");
+                    riga.className = "item";
+
+                    // Se abbiamo il nome nella tabella lista_spesa bene, altrimenti lo prendiamo dalla relazione prodotti
+                    const nomeVisualizzato = item.nome ? item.nome : (item.prodotti ? item.prodotti.nome : "Prodotto #" + item.prodotto_id);
+
+                    // Icona Dinamica (Spunta o Freccia Ripristino)
+                    const iconaClasse = item.completato ? 'restore' : 'check';
+                    const svgIcona = item.completato 
+                        ? `<path d="M9 14l-4-4 4-4M5 10h11a4 4 0 110 8h-1"/>` // Freccia Ripristino
+                        : `<path d="M5 12l5 5L20 7"/>`; // Spunta Verde
+
+                    riga.innerHTML = `
+                        <span class="testo-prodotto ${item.completato ? 'barrato' : ''}">${nomeVisualizzato}</span>
+                        <div style="display:flex;">
+                            <button class="btn-small ${iconaClasse}" onclick="toggle(${item.id}, ${item.completato})">
+                                <svg class="icon" viewBox="0 0 24 24">${svgIcona}</svg>
+                            </button>
+                            <button class="btn-small delete" onclick="elimina(${item.id})">
+                                <svg class="icon" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                            </button>
+                        </div>
+                    `;
+                    div.appendChild(riga);
+                });
+            } catch (e) {
+                console.error("Errore caricamento:", e);
+            }
         }
 
-        container.innerHTML = "";
-        dati.forEach(item => {
-            // Se la relazione prodotti(nome) esiste, usiamo item.prodotti.nome
-            // Altrimenti, mostriamo un testo di backup
-            const nomeProdotto = item.prodotti ? item.prodotti.nome : "Prodotto #" + item.prodotto_id;
-            
-            const riga = document.createElement("div");
-            riga.className = "item";
-            riga.innerHTML = `
-                <div class="testo ${item.completato ? 'completato' : ''}" onclick="toggleCheck(${item.id}, ${item.completato})">
-                    <span>${item.completato ? '✅' : '⬜'}</span> ${nomeProdotto}
-                </div>
-                <button class="btn-del" onclick="eliminaDallaLista(${item.id})">🗑️</button>
-            `;
-            container.appendChild(riga);
-        });
-    } catch (e) {
-        console.error(e);
-    }
-}
-
-        async function toggleCheck(id, statoAttuale) {
-            await fetch(`${URL}?id=eq.${id}`, {
-                method: "PATCH", headers,
+        async function toggle(id, statoAttuale) {
+            await fetch(`${URL}/lista_spesa?id=eq.${id}`, {
+                method: "PATCH",
+                headers,
                 body: JSON.stringify({ completato: !statoAttuale })
             });
             caricaLista();
         }
 
-        async function eliminaDallaLista(id) {
-            await fetch(`${URL}?id=eq.${id}`, { method: "DELETE", headers });
+        async function elimina(id) {
+            await fetch(`${URL}/lista_spesa?id=eq.${id}`, { method: "DELETE", headers });
             caricaLista();
         }
 
-        async function svuotaLista() {
-            if(confirm("Vuoi svuotare tutta la lista della spesa?")) {
-                await fetch(`${URL}?email_utente=eq.${userEmail}`, { method: "DELETE", headers });
+        async function eliminaAcquistati() {
+            if (confirm("Rimuovere dalla lista i prodotti già presi?")) {
+                await fetch(`${URL}/lista_spesa?email_utente=eq.${userEmail}&completato=eq.true`, {
+                    method: "DELETE",
+                    headers
+                });
                 caricaLista();
             }
         }
 
-        function logout() { localStorage.clear(); window.location.href = 'login.html'; }
+        function apriModalSvuota() { document.getElementById('svuotaModal').style.display = 'flex'; }
+        function chiudiModal() { document.getElementById('svuotaModal').style.display = 'none'; }
 
-        if (!userEmail) {
-            window.location.href = 'login.html';
-        } else {
+        async function confermaSvuota() {
+            await fetch(`${URL}/lista_spesa?email_utente=eq.${userEmail}`, { method: "DELETE", headers });
+            chiudiModal();
             caricaLista();
         }
+
+        function logout() {
+            localStorage.removeItem('userEmail');
+            window.location.href = 'login.html';
+        }
+
+        caricaLista();
     </script>
 </body>
 </html>
