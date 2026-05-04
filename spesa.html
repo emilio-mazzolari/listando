@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <style>
         body { margin: 0; font-family: -apple-system, Helvetica, Arial, sans-serif; background: #f2f2f7; display: flex; justify-content: center; }
-        .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 90px; }
+        .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 100px; }
         .card { background: white; border-radius: 16px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         .header-box { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
 
@@ -16,48 +16,28 @@
         .testo-prodotto { flex-grow: 1; font-size: 16px; color: #1c1c1e; font-weight: 600; }
         .testo-prodotto.barrato { text-decoration: line-through; color: #8e8e93; opacity: 0.6; }
 
-        .btn-small { 
-            border: none; 
-            border-radius: 8px; 
-            width: 32px; 
-            height: 32px; 
-            cursor: pointer; 
-            margin-left: 8px; 
-            display: inline-flex; 
-            align-items: center; 
-            justify-content: center; 
-            transition: filter 0.1s;
-        }
-        .btn-small:active { filter: brightness(0.8); }
-
+        .btn-small { border: none; border-radius: 8px; width: 32px; height: 32px; cursor: pointer; margin-left: 8px; display: inline-flex; align-items: center; justify-content: center; }
         .check { background-color: #45a049; } 
-        .restore { background-color: #c7c7cc; } /* Grigio per ripristino */
+        .restore { background-color: #c7c7cc; } 
         .delete { background-color: #db5151; } 
-
         .icon { width: 20px; height: 20px; fill: none; stroke: white; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
 
-        .btn-orange { width: 100%; padding: 15px; border-radius: 12px; border: none; background: #aec6cf; color: white; font-weight: bold; margin-top: 15px; cursor: pointer; font-size: 14px; text-transform: uppercase; }
-        .btn-secondary { background: #99b3bc; }
+        /* Bottoni inferiori */
+        .btn-action { width: 100%; padding: 15px; border-radius: 12px; border: none; color: white; font-weight: bold; margin-top: 10px; cursor: pointer; font-size: 13px; text-transform: uppercase; }
+        .btn-blue { background: #aec6cf; }
+        .btn-gray { background: #99b3bc; }
+        .btn-empty { background: #45a049; margin-top: 20px; display: inline-block; text-decoration: none; line-height: 45px; height: 45px; padding: 0 20px; }
 
-        .tab-bar { 
-            position: fixed; bottom: 0; left: 0; right: 0; height: 75px; 
-            background: #aec6cf; border-top: 1px solid rgba(0,0,0,0.1); 
-            display: flex; justify-content: space-around; align-items: center; 
-            z-index: 1000;
-        }
-        .tab-item { 
-            flex: 1; text-align: center; font-size: 11px; color: #333; 
-            text-decoration: none; text-transform: uppercase; font-weight: 800;
-            display: flex; flex-direction: column;
-        }
-        .tab-active { color: white; }
+        .empty-msg { text-align: center; padding: 40px 10px; color: #8e8e93; font-size: 16px; }
+
+        /* Tab Bar */
+        .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 75px; background: #aec6cf; display: flex; justify-content: space-around; align-items: center; z-index: 1000; }
+        .tab-item { flex: 1; text-align: center; font-size: 11px; color: #333; text-decoration: none; font-weight: 800; display: flex; flex-direction: column; }
         .tab-item span { font-size: 22px; margin-bottom: 3px; }
+        .tab-active { color: white; }
 
-        /* Modali */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 2000; }
-        .modal-box { background: white; padding: 25px; border-radius: 20px; width: 85%; max-width: 350px; text-align: center; }
-        .btn-modal { width: 100%; padding: 15px; margin-top: 10px; border-radius: 12px; border: none; background: #aec6cf; color: white; font-weight: bold; cursor: pointer; font-size: 16px; }
-        .btn-cancel { background: #e5e5ea; color: #8e8e93; margin-top: 15px; }
+        .modal-box { background: white; padding: 25px; border-radius: 20px; width: 80%; max-width: 300px; text-align: center; }
     </style>
 </head>
 <body>
@@ -65,30 +45,31 @@
     <div class="app">
         <div class="header-box"><h2 style="margin:0; font-weight: 800;">🛒 LISTA DELLA SPESA</h2></div>
         
-        <div class="card">
+        <div class="card" id="cardLista">
             <div id="contenitoreLista">Caricamento...</div>
+        </div>
 
-            <!-- Pulsanti di gestione lista -->
-            <button class="btn-orange btn-secondary" onclick="eliminaAcquistati()">ELIMINA PRODOTTI ACQUISTATI</button>
-            <button class="btn-orange" onclick="apriModalSvuota()">SVUOTA TUTTA LA LISTA</button>
+        <!-- Gruppo Bottoni Sotto -->
+        <div id="controlliLista">
+            <button class="btn-action btn-gray" onclick="eliminaAcquistati()">ELIMINA ACQUISTATI</button>
+            <button class="btn-action btn-blue" onclick="apriModalSvuota()">SVUOTA TUTTA LA LISTA</button>
+            <button class="btn-action btn-gray" onclick="ripristinaLista()">RIPRISTINA LISTA</button>
         </div>
     </div>
 
-    <!-- Navigazione Tab -->
     <div class="tab-bar">
-        <a href="index.html" class="tab-item tab-active"><span>🏠</span>HOME</a>
-        <a href="spesa.html" class="tab-item"><span>🛒</span>SPESA</a>
+        <a href="index.html" class="tab-item"><span>🏠</span>HOME</a>
+        <a href="spesa.html" class="tab-item tab-active"><span>🛒</span>SPESA</a>
         <a href="prodottispesa.html" class="tab-item"><span>📦</span>PRODOTTI</a>
         <a href="#" class="tab-item" onclick="logout()"><span>🚪</span>ESCI</a>
     </div>
 
-    <!-- Modale Svuota -->
     <div id="svuotaModal" class="modal-overlay">
         <div class="modal-box">
             <h3>Svuota Lista</h3>
-            <p>Sei sicuro di voler cancellare TUTTI i prodotti?</p>
-            <button class="btn-modal" onclick="confermaSvuota()">SÌ, SVUOTA TUTTO</button>
-            <button class="btn-modal btn-cancel" onclick="chiudiModal()">ANNULLA</button>
+            <p>Sei sicuro di voler cancellare tutto?</p>
+            <button class="btn-action btn-blue" onclick="confermaSvuota()">SÌ, SVUOTA</button>
+            <button class="btn-action btn-gray" onclick="chiudiModal()" style="color:white">ANNULLA</button>
         </div>
     </div>
 
@@ -98,25 +79,29 @@
         const headers = { "apikey": KEY, "Content-Type": "application/json", "Authorization": "Bearer " + KEY };
         const userEmail = localStorage.getItem('userEmail');
 
-        if (!userEmail) window.location.href = 'login.html';
-
         async function caricaLista() {
             try {
-                // Carichiamo la lista filtrata per utente
                 const res = await fetch(`${URL}/lista_spesa?select=*,prodotti(nome)&email_utente=eq.${userEmail}`, { headers });
                 const data = await res.json();
                 const div = document.getElementById("contenitoreLista");
+                const controlli = document.getElementById("controlliLista");
 
                 if (!data || data.length === 0) {
-                    div.innerHTML = "<p style='text-align:center; color:#888;'>La lista è vuota</p>";
+                    div.innerHTML = `
+                        <div class="empty-msg">
+                            La lista è vuota<br>
+                            <a href="prodottispesa.html" class="btn-action btn-empty">AGGIUNGI PRODOTTI</a>
+                        </div>`;
+                    controlli.style.display = "none";
                     return;
                 }
 
-                // Ordiniamo: prima quelli da comprare, poi quelli fatti, poi per nome
+                controlli.style.display = "block";
+                
+                // ORDINE ALFABETICO SEMPRE (sia barrati che non)
                 data.sort((a, b) => {
-                    if (a.completato !== b.completato) return a.completato ? 1 : -1;
-                    const nomeA = a.nome || a.prodotti?.nome || "";
-                    const nomeB = b.nome || b.prodotti?.nome || "";
+                    const nomeA = (a.nome || a.prodotti?.nome || "").toLowerCase();
+                    const nomeB = (b.nome || b.prodotti?.nome || "").toLowerCase();
                     return nomeA.localeCompare(nomeB);
                 });
 
@@ -124,15 +109,12 @@
                 data.forEach(item => {
                     const riga = document.createElement("div");
                     riga.className = "item";
+                    const nomeVisualizzato = item.nome ? item.nome : (item.prodotti ? item.prodotti.nome : "Prodotto");
 
-                    // Se abbiamo il nome nella tabella lista_spesa bene, altrimenti lo prendiamo dalla relazione prodotti
-                    const nomeVisualizzato = item.nome ? item.nome : (item.prodotti ? item.prodotti.nome : "Prodotto #" + item.prodotto_id);
-
-                    // Icona Dinamica (Spunta o Freccia Ripristino)
                     const iconaClasse = item.completato ? 'restore' : 'check';
                     const svgIcona = item.completato 
-                        ? `<path d="M9 14l-4-4 4-4M5 10h11a4 4 0 110 8h-1"/>` // Freccia Ripristino
-                        : `<path d="M5 12l5 5L20 7"/>`; // Spunta Verde
+                        ? `<path d="M9 14l-4-4 4-4M5 10h11a4 4 0 110 8h-1"/>` 
+                        : `<path d="M5 12l5 5L20 7"/>`;
 
                     riga.innerHTML = `
                         <span class="testo-prodotto ${item.completato ? 'barrato' : ''}">${nomeVisualizzato}</span>
@@ -147,16 +129,13 @@
                     `;
                     div.appendChild(riga);
                 });
-            } catch (e) {
-                console.error("Errore caricamento:", e);
-            }
+            } catch (e) { console.error(e); }
         }
 
-        async function toggle(id, statoAttuale) {
+        async function toggle(id, stato) {
             await fetch(`${URL}/lista_spesa?id=eq.${id}`, {
-                method: "PATCH",
-                headers,
-                body: JSON.stringify({ completato: !statoAttuale })
+                method: "PATCH", headers,
+                body: JSON.stringify({ completato: !stato })
             });
             caricaLista();
         }
@@ -167,10 +146,17 @@
         }
 
         async function eliminaAcquistati() {
-            if (confirm("Rimuovere dalla lista i prodotti già presi?")) {
-                await fetch(`${URL}/lista_spesa?email_utente=eq.${userEmail}&completato=eq.true`, {
-                    method: "DELETE",
-                    headers
+            if (confirm("Eliminare i prodotti acquistati?")) {
+                await fetch(`${URL}/lista_spesa?email_utente=eq.${userEmail}&completato=eq.true`, { method: "DELETE", headers });
+                caricaLista();
+            }
+        }
+
+        async function ripristinaLista() {
+            if (confirm("Vuoi rimettere tutti i prodotti come da acquistare?")) {
+                await fetch(`${URL}/lista_spesa?email_utente=eq.${userEmail}`, {
+                    method: "PATCH", headers,
+                    body: JSON.stringify({ completato: false })
                 });
                 caricaLista();
             }
@@ -178,18 +164,14 @@
 
         function apriModalSvuota() { document.getElementById('svuotaModal').style.display = 'flex'; }
         function chiudiModal() { document.getElementById('svuotaModal').style.display = 'none'; }
-
         async function confermaSvuota() {
             await fetch(`${URL}/lista_spesa?email_utente=eq.${userEmail}`, { method: "DELETE", headers });
             chiudiModal();
             caricaLista();
         }
 
-        function logout() {
-            localStorage.removeItem('userEmail');
-            window.location.href = 'login.html';
-        }
-
+        function logout() { localStorage.clear(); window.location.href = 'login.html'; }
+        
         caricaLista();
     </script>
 </body>
