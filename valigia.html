@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>In Valigia</title>
+    <title>Lista Valigia</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -22,22 +22,20 @@
         .delete { background-color: #db5151; } 
         .icon { width: 20px; height: 20px; fill: none; stroke: white; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
 
-        /* Bottoni inferiori */
         .btn-action { width: 100%; padding: 15px; border-radius: 12px; border: none; color: white; font-weight: bold; margin-top: 10px; cursor: pointer; font-size: 13px; text-transform: uppercase; box-sizing: border-box; text-align: center; }
         .btn-blue { background: #aec6cf; }
         .btn-gray { background: #99b3bc; }
         
-        /* Correzione Bottone Aggiungi */
         .btn-empty { 
             background: #aec6cf; 
             margin-top: 20px; 
             display: block; 
             text-decoration: none; 
+            color: white;
         }
 
         .empty-msg { text-align: center; padding: 40px 10px; color: #8e8e93; font-size: 16px; }
 
-        /* Tab Bar */
         .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 75px; background: #aec6cf; display: flex; justify-content: space-around; align-items: center; z-index: 1000; }
         .tab-item { flex: 1; text-align: center; font-size: 11px; color: #333; text-decoration: none; font-weight: 800; display: flex; flex-direction: column; text-transform: uppercase; }
         .tab-item span { font-size: 22px; margin-bottom: 3px; }
@@ -50,14 +48,13 @@
 <body>
 
     <div class="app">
-        <div class="header-box"><h2 style="margin:0; font-weight: 800;">🧳 IN VALIGIA</h2></div>
+        <div class="header-box"><h2 style="margin:0; font-weight: 800;">🧳 LISTA VALIGIA</h2></div>
         
         <div class="card" id="cardLista">
             <div id="contenitoreLista">Caricamento...</div>
         </div>
 
-        <!-- Gruppo Bottoni Sotto -->
-        <div id="controlliLista">
+        <div id="controlliLista" style="display:none;">
             <button class="btn-action btn-gray" onclick="eliminaCompletati()">ELIMINA MESSI IN VALIGIA</button>
             <button class="btn-action btn-gray" onclick="apriModalSvuota()">SVUOTA TUTTA LA VALIGIA</button>
             <button class="btn-action btn-gray" onclick="ripristinaLista()">RIPRISTINA VALIGIA</button>
@@ -76,19 +73,19 @@
             <h3>Svuota Valigia</h3>
             <p>Sei sicuro di voler cancellare tutto?</p>
             <button class="btn-action btn-blue" onclick="confermaSvuota()">SÌ, SVUOTA</button>
-            <button class="btn-action btn-gray" onclick="chiudiModal()" style="color:white">ANNULLA</button>
+            <button class="btn-action btn-gray" onclick="chiudiModal()">ANNULLA</button>
         </div>
     </div>
 
     <script>
-        const URL = "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1/cose_valigia";
+        const URL_BASE = "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1/cose_valigia";
         const KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
         const headers = { "apikey": KEY, "Content-Type": "application/json", "Authorization": "Bearer " + KEY };
         const userEmail = localStorage.getItem('userEmail');
 
         async function caricaLista() {
             try {
-                const res = await fetch(`${URL}?email_utente=eq.${userEmail}&order=nome.asc`, { headers });
+                const res = await fetch(`${URL_BASE}?email_utente=eq.${userEmail}&order=nome.asc`, { headers });
                 const data = await res.json();
                 const div = document.getElementById("contenitoreLista");
                 const controlli = document.getElementById("controlliLista");
@@ -97,7 +94,7 @@
                     div.innerHTML = `
                         <div class="empty-msg">
                             La valigia è vuota<br>
-                            <a href="cosevaligia.html" class="btn-action btn-empty">AGGIUNGI COSE</a>
+                            <a href="cosevaligia.html" class="btn-action btn-empty">METTI NELLA LISTA VALIGIA</a>
                         </div>`;
                     controlli.style.display = "none";
                     return;
@@ -111,6 +108,7 @@
                     riga.className = "item";
                     
                     const iconaClasse = item.completato ? 'restore' : 'check';
+                    // SVG Dinamico: Freccia ripristina se completato, Spunta V se da fare
                     const svgIcona = item.completato 
                         ? `<path d="M9 14l-4-4 4-4M5 10h11a4 4 0 110 8h-1"/>` 
                         : `<path d="M5 12l5 5L20 7"/>`;
@@ -118,42 +116,42 @@
                     riga.innerHTML = `
                         <span class="testo-prodotto ${item.completato ? 'barrato' : ''}">${item.nome}</span>
                         <div style="display:flex;">
-                            <button class="btn-small ${iconaClasse}" onclick="toggle(${item.id}, ${item.completato})">
+                            <button class="btn-small ${iconaClasse}" onclick="toggleStatus(${item.id}, ${item.completato})">
                                 <svg class="icon" viewBox="0 0 24 24">${svgIcona}</svg>
                             </button>
-                            <button class="btn-small delete" onclick="elimina(${item.id})">
+                            <button class="btn-small delete" onclick="eliminaSingolo(${item.id})">
                                 <svg class="icon" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
                             </button>
                         </div>
                     `;
                     div.appendChild(riga);
                 });
-            } catch (e) { console.error(e); }
+            } catch (e) { console.error("Errore caricamento:", e); }
         }
 
-        async function toggle(id, stato) {
-            await fetch(`${URL}?id=eq.${id}`, {
+        async function toggleStatus(id, statoAttuale) {
+            await fetch(`${URL_BASE}?id=eq.${id}`, {
                 method: "PATCH", headers,
-                body: JSON.stringify({ completato: !stato })
+                body: JSON.stringify({ completato: !statoAttuale })
             });
             caricaLista();
         }
 
-        async function elimina(id) {
-            await fetch(`${URL}?id=eq.${id}`, { method: "DELETE", headers });
+        async function eliminaSingolo(id) {
+            await fetch(`${URL_BASE}?id=eq.${id}`, { method: "DELETE", headers });
             caricaLista();
         }
 
         async function eliminaCompletati() {
             if (confirm("Eliminare le cose già messe in valigia?")) {
-                await fetch(`${URL}?email_utente=eq.${userEmail}&completato=eq.true`, { method: "DELETE", headers });
+                await fetch(`${URL_BASE}?email_utente=eq.${userEmail}&completato=eq.true`, { method: "DELETE", headers });
                 caricaLista();
             }
         }
 
         async function ripristinaLista() {
             if (confirm("Vuoi rimettere tutto come 'da preparare'?")) {
-                await fetch(`${URL}?email_utente=eq.${userEmail}`, {
+                await fetch(`${URL_BASE}?email_utente=eq.${userEmail}`, {
                     method: "PATCH", headers,
                     body: JSON.stringify({ completato: false })
                 });
@@ -165,7 +163,7 @@
         function chiudiModal() { document.getElementById('svuotaModal').style.display = 'none'; }
         
         async function confermaSvuota() {
-            await fetch(`${URL}?email_utente=eq.${userEmail}`, { method: "DELETE", headers });
+            await fetch(`${URL_BASE}?email_utente=eq.${userEmail}`, { method: "DELETE", headers });
             chiudiModal();
             caricaLista();
         }
