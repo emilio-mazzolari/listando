@@ -62,44 +62,38 @@
         const userEmail = localStorage.getItem('userEmail');
 
         async function caricaLista() {
-            try {
-                // Ordiniamo per ID perché la colonna 'nome' non esiste nella tua tabella lista_spesa
-                const res = await fetch(`${URL}?email_utente=eq.${userEmail}&order=id.desc`, { headers });
-                const dati = await res.json();
-                const container = document.getElementById("listaSpesaContenitore");
-                
-                if (!Array.isArray(dati)) {
-                    console.error("Errore dati:", dati);
-                    container.innerHTML = "<p style='text-align:center; padding:20px;'>Errore nel caricamento della tabella.</p>";
-                    return;
-                }
+    const container = document.getElementById("listaSpesaContenitore");
+    try {
+        // Recuperiamo la lista con i dettagli del prodotto associato
+        // Nota: questa query funziona se hai creato una "Foreign Key" tra le tabelle
+        const res = await fetch(`${URL}?email_utente=eq.${userEmail}&select=*,prodotti(nome)`, { headers });
+        const dati = await res.json();
 
-                if (dati.length === 0) {
-                    container.innerHTML = `
-                        <div class="empty-state">
-                            <span>🛒</span>
-                            <p>La lista è vuota.<br><small>Aggiungi prodotti da "PRODOTTI"</small></p>
-                        </div>`;
-                    return;
-                }
-
-                container.innerHTML = "";
-                dati.forEach(item => {
-                    const riga = document.createElement("div");
-                    riga.className = "item";
-                    riga.innerHTML = `
-                        <div class="testo ${item.completato ? 'completato' : ''}" onclick="toggleCheck(${item.id}, ${item.completato})">
-                            <span>${item.completato ? '✅' : '⬜'}</span> Prodotto #${item.prodotto_id}
-                        </div>
-                        <button class="btn-del" onclick="eliminaDallaLista(${item.id})">🗑️</button>
-                    `;
-                    container.appendChild(riga);
-                });
-            } catch (e) {
-                console.error("Errore:", e);
-                document.getElementById("listaSpesaContenitore").innerHTML = "<p style='text-align:center;'>Errore di connessione.</p>";
-            }
+        if (dati.length === 0) {
+            container.innerHTML = "<div class='empty-state'>La lista è vuota.</div>";
+            return;
         }
+
+        container.innerHTML = "";
+        dati.forEach(item => {
+            // Se la relazione prodotti(nome) esiste, usiamo item.prodotti.nome
+            // Altrimenti, mostriamo un testo di backup
+            const nomeProdotto = item.prodotti ? item.prodotti.nome : "Prodotto #" + item.prodotto_id;
+            
+            const riga = document.createElement("div");
+            riga.className = "item";
+            riga.innerHTML = `
+                <div class="testo ${item.completato ? 'completato' : ''}" onclick="toggleCheck(${item.id}, ${item.completato})">
+                    <span>${item.completato ? '✅' : '⬜'}</span> ${nomeProdotto}
+                </div>
+                <button class="btn-del" onclick="eliminaDallaLista(${item.id})">🗑️</button>
+            `;
+            container.appendChild(riga);
+        });
+    } catch (e) {
+        console.error(e);
+    }
+}
 
         async function toggleCheck(id, statoAttuale) {
             await fetch(`${URL}?id=eq.${id}`, {
