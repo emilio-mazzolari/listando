@@ -100,16 +100,17 @@
                         ? '<path d="M9 14l-4-4 4-4M5 10h11a4 4 0 110 8h-1"/>' 
                         : '<path d="M5 12l5 5L20 7"/>';
 
-                    riga.innerHTML = `
-                        <span class="testo-prodotto ${item.completato ? 'barrato' : ''}">${item.nome}</span>
-                        <div style="display:flex;">
-                            <button class="btn-small ${btnStatus}" onclick="toggleStatus(${item.id}, ${item.completato})">
-                                <svg class="icon" viewBox="0 0 24 24">${svgIcon}</svg>
-                            </button>
-                            <button class="btn-small delete" onclick="eliminaSingolo(${item.id})">
-                                <svg class="icon" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
-                            </button>
-                        </div>
+                   // Nel ciclo forEach che crea la lista:
+riga.innerHTML = `
+    <span class="testo-prodotto ${item.completato ? 'barrato' : ''}">${item.nome}</span>
+    <div style="display:flex;">
+        <button class="btn-small ${btnStatus}" onclick="toggleStatus(${item.id}, ${item.completato})">
+            V
+        </button>
+        <button class="btn-small delete" onclick="eliminaSingolo(${item.id})">
+            X
+        </button>
+    </div>
                     `;
                     div.appendChild(riga);
                 });
