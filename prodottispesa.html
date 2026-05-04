@@ -2,33 +2,32 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Prodotti</title>
+    <title>Prodotti Spesa</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="manifest" href="manifest.json">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <style>
         body { margin: 0; font-family: -apple-system, Helvetica, Arial, sans-serif; background: #f2f2f7; display: flex; justify-content: center; }
-        .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 90px; position: relative; }
+        .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 100px; position: relative; }
         .card { background: white; border-radius: 16px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         .header-box { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .testo-prodotto { flex-grow: 1; font-size: 16px; color: #1c1c1e; }
-        .item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; }
+        .testo-prodotto { flex-grow: 1; font-size: 16px; color: #1c1c1e; font-weight: 500; }
+        .item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f2f2f7; }
+        .item:last-child { border-bottom: none; }
         
-        .btn-small { border: none; border-radius: 8px; width: 32px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-left: 4px; font-size: 16px; transition: all 0.3s; }
-        .plus { background-color: #779ecb; color: white; } 
+        .btn-small { border: none; border-radius: 8px; width: 34px; height: 34px; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-left: 6px; font-size: 16px; transition: all 0.2s; }
+        .plus { background-color: #aec6cf; color: white; } 
         .edit { background-color: #fdfd96; color: #3a3a3c; } 
-        .delete { background-color: #add8e6; color: #1c1c1e; }
+        .delete { background-color: #ffd1d1; color: #d32f2f; }
 
         .input-group { display: flex; gap: 10px; margin-bottom: 12px; position: relative; }
         input { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid #ddd; font-size: 16px; outline: none; height: 45px; box-sizing: border-box; background: white; }
-        .btn-main { width: 100px; height: 45px; border-radius: 12px; border: none; background: #aec6cf; color: white; font-weight: bold; cursor: pointer; font-size: 14px; }
+        .btn-main { width: 100px; height: 45px; border-radius: 12px; border: none; background: #aec6cf; color: white; font-weight: bold; cursor: pointer; font-size: 13px; text-transform: uppercase; }
 
-        .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 70px; background: #aec6cf; border-top: 1px solid #99b3bc; display: flex; justify-content: space-around; align-items: center; z-index: 1000; }
-        .tab-item { flex: 1; text-align: center; font-size: 14px; color: black; text-decoration: none; text-transform: uppercase; font-weight: 600; }
-        .tab-active { font-weight: 900; }
+        /* Tab Bar Aggiornata */
+        .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 75px; background: #aec6cf; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid rgba(0,0,0,0.1); z-index: 1000; }
+        .tab-item { flex: 1; text-align: center; font-size: 11px; color: #333; text-decoration: none; font-weight: 800; display: flex; flex-direction: column; text-transform: uppercase; }
+        .tab-item span { font-size: 22px; margin-bottom: 3px; }
+        .tab-active { color: white; }
 
-        /* TOAST SOPRA INSERIMENTO */
         #toast {
             position: absolute; top: -40px; left: 50%; transform: translateX(-50%);
             background: #3a3a3c; color: white; padding: 8px 15px; border-radius: 10px;
@@ -36,7 +35,6 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.2);
         }
 
-        /* MODALI */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 2000; }
         .modal-box { background: white; padding: 25px; border-radius: 20px; width: 85%; max-width: 350px; text-align: center; }
         .btn-modal { width: 100%; padding: 15px; margin-top: 10px; border-radius: 12px; border: none; background: #aec6cf; color: white; font-weight: bold; cursor: pointer; font-size: 16px; }
@@ -46,57 +44,33 @@
 <body>
 
     <div class="app">
-        <div class="header-box"><h1 style="margin:0;">📦 I miei prodotti</h1></div>
+        <div class="header-box"><h2 style="margin:0; font-weight: 800;">📦 PRODOTTI</h2></div>
         
         <div class="input-group">
             <div id="toast">Prodotto già presente!</div>
             <input type="text" id="nuovoProdotto" placeholder="Nuovo prodotto...">
-            <button class="btn-main" onclick="gestisciInserimento()">INSERISCI</button>
+            <button class="btn-main" onclick="gestisciInserimento()">AGGIUNGI</button>
         </div>
 
         <div class="input-group">
-            <input type="text" id="cercaProdotto" placeholder="Cerca prodotto..." onkeyup="filtraProdotti()">
-            <button class="btn-main" onclick="filtraProdotti()">TROVA</button>
+            <input type="text" id="cercaProdotto" placeholder="Cerca nel catalogo..." onkeyup="filtraProdotti()">
         </div>
 
         <div class="card" id="listaProdotti">Caricamento...</div>
     </div>
 
+    <!-- Navigazione Coerente -->
     <div class="tab-bar">
-        <a href="index.html" class="tab-item">🛒 LISTA</a>
-        <a href="prodotti.html" class="tab-item tab-active">📦 PRODOTTI</a>
-        <a href="#" class="tab-item" onclick="logout()">🚪 ESCI</a>
+        <a href="index.html" class="tab-item"><span>🏠</span>HOME</a>
+        <a href="spesa.html" class="tab-item"><span>🛒</span>SPESA</a>
+        <a href="prodottispesa.html" class="tab-item tab-active"><span>📦</span>PRODOTTI</a>
+        <a href="#" class="tab-item" onclick="logout()"><span>🚪</span>ESCI</a>
     </div>
 
-    <!-- MODALE INSERIMENTO -->
-    <div id="insertModal" class="modal-overlay">
-        <div class="modal-box">
-            <h3>Visibilità Prodotto</h3>
-            <button class="btn-modal" onclick="confermaInserimento(true)">INSERISCI PER TUTTI</button>
-            <button class="btn-modal" onclick="confermaInserimento(false)">INSERISCI SOLO PER ME</button>
-            <button class="btn-modal btn-cancel" onclick="chiudiModal()">ANNULLA</button>
-        </div>
-    </div>
-
-    <!-- MODALE MODIFICA -->
-    <div id="editModal" class="modal-overlay">
-        <div class="modal-box">
-            <h3>Modifica Nome</h3>
-            <input type="text" id="inputModifica" style="width:100%; margin-bottom:15px; text-align:center; padding:12px; border-radius:12px; border:1px solid #ddd;">
-            <button class="btn-modal" onclick="salvaModifica()">SALVA</button>
-            <button class="btn-modal btn-cancel" onclick="chiudiModal()">ANNULLA</button>
-        </div>
-    </div>
-
-    <!-- MODALE ELIMINA -->
-    <div id="deleteModal" class="modal-overlay">
-        <div class="modal-box">
-            <h3>Cosa vuoi fare?</h3>
-            <button class="btn-modal" id="btnTutti">ELIMINA PER TUTTI</button>
-            <button class="btn-modal" id="btnSoloMe">ELIMINA PER ME</button>
-            <button class="btn-modal btn-cancel" onclick="chiudiModal()">ANNULLA</button>
-        </div>
-    </div>
+    <!-- MODALI (Senza modifiche alla logica) -->
+    <div id="insertModal" class="modal-overlay"><div class="modal-box"><h3>Visibilità</h3><button class="btn-modal" onclick="confermaInserimento(true)">PER TUTTI</button><button class="btn-modal" onclick="confermaInserimento(false)">SOLO PER ME</button><button class="btn-modal btn-cancel" onclick="chiudiModal()">ANNULLA</button></div></div>
+    <div id="editModal" class="modal-overlay"><div class="modal-box"><h3>Modifica Nome</h3><input type="text" id="inputModifica" style="width:100%; margin-bottom:15px; padding:12px; border-radius:12px; border:1px solid #ddd;"><button class="btn-modal" onclick="salvaModifica()">SALVA</button><button class="btn-modal btn-cancel" onclick="chiudiModal()">ANNULLA</button></div></div>
+    <div id="deleteModal" class="modal-overlay"><div class="modal-box"><h3>Elimina Prodotto</h3><button class="btn-modal" id="btnTutti">ELIMINA PER TUTTI</button><button class="btn-modal" id="btnSoloMe">ELIMINA PER ME</button><button class="btn-modal btn-cancel" onclick="chiudiModal()">ANNULLA</button></div></div>
 
     <script>
         const URL = "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1";
@@ -139,13 +113,15 @@
         function renderizzaProdotti(prodotti) {
             const div = document.getElementById("listaProdotti");
             div.innerHTML = "";
+            if(prodotti.length === 0) { div.innerHTML = "<p style='text-align:center;color:#888;'>Nessun prodotto trovato</p>"; return; }
+            
             prodotti.forEach(p => {
                 const riga = document.createElement("div");
                 riga.className = "item";
                 riga.innerHTML = `
                     <span class="testo-prodotto">${p.nome}</span>
                     <div style="display:flex;">
-                        <button class="btn-small plus" id="btn-plus-${p.id}" onclick="mettiInLista(${p.id})">+</button>
+                        <button class="btn-small plus" id="btn-plus-${p.id}" onclick="mettiInLista(${p.id}, '${p.nome.replace(/'/g, "\\'")}')">+</button>
                         <button class="btn-small edit" onclick="apriModalModifica(${p.id}, '${p.nome.replace(/'/g, "\\'")}')">✏️</button>
                         <button class="btn-small delete" onclick="apriModalRimuovi(${p.id})">🗑</button>
                     </div>
@@ -163,12 +139,8 @@
         function gestisciInserimento() {
             const nome = document.getElementById("nuovoProdotto").value.trim();
             if (!nome) return;
-
             const esisteGia = prodottiFiltratiBase.some(p => p.nome.toLowerCase() === nome.toLowerCase());
-            if (esisteGia) {
-                mostraToast("Prodotto già presente in elenco!");
-                return;
-            }
+            if (esisteGia) { mostraToast("Esiste già!"); return; }
 
             if (userEmail === adminEmail) {
                 document.getElementById('insertModal').style.display = 'flex';
@@ -192,40 +164,38 @@
             caricaProdotti();
         }
 
-        async function mettiInLista(id) {
+        async function mettiInLista(id, nome) {
             const btn = document.getElementById(`btn-plus-${id}`);
-            const originalText = "+";
             
-            // Verifica se già in lista
             const res = await fetch(`${URL}/lista_spesa?prodotto_id=eq.${id}&email_utente=eq.${userEmail}`, { headers });
             const esistente = await res.json();
 
             if (esistente.length > 0) {
-                aggiornaBottone(btn, "GIÀ IN LISTA", "#db5151", "white");
+                aggiornaBottone(btn, "GIÀ IN LISTA", "#db5151");
                 return;
             }
 
             await fetch(`${URL}/lista_spesa`, {
                 method: "POST", headers,
-                body: JSON.stringify({ prodotto_id: id, email_utente: userEmail, completato: false })
+                body: JSON.stringify({ prodotto_id: id, nome: nome, email_utente: userEmail, completato: false })
             });
-            aggiornaBottone(btn, "AGGIUNTO", "#45a049", "white");
+            aggiornaBottone(btn, "OK", "#45a049");
         }
 
-        function aggiornaBottone(btn, testo, sfondo, colore) {
+        function aggiornaBottone(btn, testo, sfondo) {
             const originalText = "+";
             btn.innerText = testo;
             btn.style.backgroundColor = sfondo;
-            btn.style.color = colore;
             btn.style.width = "auto";
-            btn.style.padding = "0 10px";
+            btn.style.padding = "0 8px";
+            btn.style.fontSize = "12px";
             setTimeout(() => {
                 btn.innerText = originalText;
                 btn.style.backgroundColor = "";
-                btn.style.color = "";
-                btn.style.width = "32px";
+                btn.style.width = "34px";
                 btn.style.padding = "0";
-            }, 2000);
+                btn.style.fontSize = "16px";
+            }, 1500);
         }
 
         function apriModalModifica(id, nomeAttuale) {
@@ -248,22 +218,13 @@
         function apriModalRimuovi(id) {
             idDaRimuovere = id;
             const btnTutti = document.getElementById('btnTutti');
-            const btnSoloMe = document.getElementById('btnSoloMe');
-
-            if (userEmail === adminEmail) {
-                btnTutti.style.display = "block";
-                btnSoloMe.innerText = "ELIMINA PER ME";
-            } else {
-                btnTutti.style.display = "none";
-                btnSoloMe.innerText = "ELIMINA"; 
-            }
+            btnTutti.style.display = (userEmail === adminEmail) ? "block" : "none";
             document.getElementById('deleteModal').style.display = 'flex';
         }
 
         document.getElementById('btnTutti').onclick = async () => {
             await fetch(`${URL}/prodotti?id=eq.${idDaRimuovere}`, { method: "DELETE", headers });
-            chiudiModal();
-            caricaProdotti();
+            chiudiModal(); caricaProdotti();
         };
 
         document.getElementById('btnSoloMe').onclick = async () => {
@@ -271,12 +232,13 @@
                 method: "POST", headers,
                 body: JSON.stringify({ prodotto_id: idDaRimuovere, email_utente: userEmail })
             });
-            chiudiModal();
-            caricaProdotti();
+            chiudiModal(); caricaProdotti();
         };
 
         function chiudiModal() { document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none'); }
-        function logout() { localStorage.removeItem('userEmail'); window.location.href = 'login.html'; }
+        function logout() { localStorage.clear(); window.location.href = 'login.html'; }
+        
+        if (!userEmail) window.location.href = 'login.html';
         caricaProdotti();
     </script>
 </body>
