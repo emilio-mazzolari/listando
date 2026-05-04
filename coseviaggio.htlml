@@ -1,0 +1,19 @@
+<!-- Parte del caricamento prodotti in cose.html -->
+<script>
+    async function caricaCoseviaggio() {
+        const { data } = await supabaseClient
+            .from('prodotti')
+            .select('*')
+            .eq('tipo', 'viaggio'); // MOSTRA SOLO OGGETTI VIAGGIO
+
+        const div = document.getElementById("listaCoseviaggio");
+        div.innerHTML = "";
+        data.forEach(p => {
+            const btn = document.createElement("button");
+            btn.className = "btn-viaggio"; // Magari un colore diverso, es. verde
+            btn.innerText = p.nome;
+            btn.onclick = () => aggiungiALista(p.id, 'viaggio'); // INVIA COME VIAGGIO
+            div.appendChild(btn);
+        });
+    }
+</script>
