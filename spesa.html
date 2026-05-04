@@ -60,36 +60,46 @@
         const userEmail = localStorage.getItem('userEmail');
 
         async function caricaLista() {
-            try {
-                const res = await fetch(`${URL}?email_utente=eq.${userEmail}&order=nome.asc`, { headers });
-                const dati = await res.json();
-                const container = document.getElementById("listaSpesaContenitore");
-                
-                if (dati.length === 0) {
-                    container.innerHTML = `
-                        <div class="empty-state">
-                            <span>🛒</span>
-                            <p>La lista è vuota.<br><small>Aggiungi prodotti da "PRODOTTI"</small></p>
-                        </div>`;
-                    return;
-                }
+    const container = document.getElementById("listaSpesaContenitore");
+    if (!userEmail) return;
 
-                container.innerHTML = "";
-                dati.forEach(item => {
-                    const riga = document.createElement("div");
-                    riga.className = "item";
-                    riga.innerHTML = `
-                        <div class="testo ${item.completato ? 'completato' : ''}" onclick="toggleCheck(${item.id}, ${item.completato})">
-                            <span>${item.completato ? '✅' : '⬜'}</span> ${item.nome}
-                        </div>
-                        <button class="btn-del" onclick="eliminaDallaLista(${item.id})">🗑️</button>
-                    `;
-                    container.appendChild(riga);
-                });
-            } catch (e) {
-                console.error("Errore:", e);
-                document.getElementById("listaSpesaContenitore").innerHTML = "<p style='text-align:center;'>Errore di connessione.</p>";
-            }
+    try {
+        // CAMBIATO: Ordiniamo per 'id' o 'prodotto_id' perché 'nome' non esiste in questa tabella
+        const res = await fetch(`${URL}?email_utente=eq.${userEmail}&order=id.desc`, { headers });
+        const dati = await res.json();
+
+        if (!Array.isArray(dati)) {
+            console.error("Errore Supabase:", dati);
+            container.innerHTML = "<p style='text-align:center;'>Errore configurazione tabella.</p>";
+            return;
+        }
+
+        if (dati.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <span>🛒</span>
+                    <p>La lista è vuota.</p>
+                </div>`;
+            return;
+        }
+
+        container.innerHTML = "";
+        dati.forEach(item => {
+            const riga = document.createElement("div");
+            riga.className = "item";
+            riga.innerHTML = `
+                <div class="testo ${item.completato ? 'completato' : ''}" onclick="toggleCheck(${item.id}, ${item.completato})">
+                    <span>${item.completato ? '✅' : '⬜'}</span> 
+                    Prodotto #${item.prodotto_id} 
+                </div>
+                <button class="btn-del" onclick="eliminaDallaLista(${item.id})">🗑️</button>
+            `;
+            container.appendChild(riga);
+        });
+    } catch (e) {
+        container.innerHTML = "<p style='text-align:center;'>Errore di connessione.</p>";
+    }
+}
         }
 
         async function toggleCheck(id, statoAttuale) {
