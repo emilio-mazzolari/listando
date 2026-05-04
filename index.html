@@ -2,43 +2,51 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>La Mia Lista</title>
+    <title>Le Mie Liste</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="manifest" href="manifest.json">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { margin: 0; font-family: -apple-system, Helvetica, Arial, sans-serif; background: #f2f2f7; display: flex; justify-content: center; }
-        .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 90px; }
-        .card { background: white; border-radius: 16px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 100px; text-align: center; }
+        h1 { font-size: 24px; color: #1c1c1e; margin-bottom: 20px; text-transform: uppercase; }
         
-        /* Selettore Spesa / Viaggio */
-        .selector { display: flex; background: #e5e5ea; border-radius: 10px; padding: 2px; margin-bottom: 20px; }
-        .selector-btn { flex: 1; border: none; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; background: transparent; color: #8e8e93; transition: 0.3s; }
+        .card { background: white; border-radius: 16px; padding: 20px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        
+        /* Selettore Alto */
+        .selector { display: flex; background: #e5e5ea; border-radius: 12px; padding: 3px; margin-bottom: 20px; }
+        .selector-btn { flex: 1; border: none; padding: 12px; border-radius: 10px; font-weight: bold; cursor: pointer; background: transparent; color: #8e8e93; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px; }
         .selector-btn.active { background: white; color: black; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
 
+        /* Lista Items */
         .item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee; }
-        .testo-prodotto { flex-grow: 1; font-size: 16px; color: #1c1c1e; font-weight: 600; text-transform: capitalize; }
+        .testo-prodotto { flex-grow: 1; font-size: 16px; color: #1c1c1e; font-weight: 600; text-align: left; text-transform: capitalize; }
         .testo-prodotto.barrato { text-decoration: line-through; color: #8e8e93; opacity: 0.6; }
         
-        .btn-small { border: none; border-radius: 8px; width: 32px; height: 32px; cursor: pointer; margin-left: 8px; display: inline-flex; align-items: center; justify-content: center; }
+        /* Bottoni Azione */
+        .btn-small { border: none; border-radius: 8px; width: 34px; height: 34px; cursor: pointer; margin-left: 8px; display: inline-flex; align-items: center; justify-content: center; }
         .check { background-color: #45a049; } 
         .restore { background-color: #c7c7cc; } 
         .delete { background-color: #db5151; } 
-        .icon { width: 22px; height: 22px; fill: none; stroke: white; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
+        .icon { width: 20px; height: 20px; fill: none; stroke: white; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
 
-        .btn-orange { width: 100%; padding: 15px; border-radius: 12px; border: none; background: #aec6cf; color: white; font-weight: bold; margin-top: 10px; cursor: pointer; font-size: 15px; text-transform: uppercase; display: block; }
-        .btn-orange:active { opacity: 0.8; }
+        /* Bottoni Grandi */
+        .btn-main { width: 100%; padding: 16px; border-radius: 12px; border: none; background: #aec6cf; color: white; font-weight: bold; margin-top: 10px; cursor: pointer; font-size: 15px; text-transform: uppercase; }
+        .btn-main:active { opacity: 0.8; }
+        .empty-text { color: #8e8e93; margin-bottom: 15px; font-size: 16px; }
 
-        .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 70px; background: #aec6cf; display: flex; justify-content: space-around; align-items: center; z-index: 1000; }
-        .tab-item { flex: 1; text-align: center; font-size: 14px; color: black; text-decoration: none; text-transform: uppercase; font-weight: 600; }
-        .tab-active { font-weight: 900; }
+        /* Tab Bar Bassa */
+        .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 75px; background: #aec6cf; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid rgba(0,0,0,0.05); }
+        .tab-item { flex: 1; text-align: center; font-size: 12px; color: black; text-decoration: none; font-weight: 700; display: flex; flex-direction: column; gap: 4px; }
+        .tab-active { color: white; }
 
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 2000; }
-        .modal-box { background: white; padding: 25px; border-radius: 20px; width: 85%; max-width: 350px; text-align: center; }
+        .modal-box { background: white; padding: 25px; border-radius: 20px; width: 85%; max-width: 350px; }
     </style>
 </head>
 <body>
     <div class="app">
+        <h1>Le Mie Liste</h1>
+
         <div class="selector">
             <button id="btnSpesa" class="selector-btn active" onclick="setMode('spesa')">🛒 SPESA</button>
             <button id="btnViaggio" class="selector-btn" onclick="setMode('viaggio')">🧳 VIAGGIO</button>
@@ -46,27 +54,28 @@
 
         <div class="card">
             <div id="contenitoreLista">Caricamento...</div>
-            
-            <button class="btn-orange" onclick="eliminaAcquistati()">Elimina completati</button>
-            <button class="btn-orange" onclick="apriModalSvuota()">Svuota tutto</button>
-            <button id="btnRipristina" class="btn-orange" onclick="ripristinaUltimaLista()">Ripristina ultima lista</button>
+            <div id="comandiLista" style="display: none;">
+                <button class="btn-main" onclick="eliminaAcquistati()">Elimina acquistati</button>
+                <button class="btn-main" onclick="apriModalSvuota()">Svuota lista</button>
+                <button id="btnRipristina" class="btn-main" onclick="ripristinaUltimaLista()">Ripristina ultima lista</button>
+            </div>
         </div>
     </div>
 
     <div class="tab-bar">
-        <a href="index.html" class="tab-item tab-active">🏠 LISTA</a>
-        <a href="prodotti.html" class="tab-item">🛒 +SPESA</a>
-        <a href="coseviaggio.html" class="tab-item">🧳 +VIAGGIO</a>
+        <a href="index.html" class="tab-item tab-active">🏠 LISTE</a>
+        <a href="prodotti.html" class="tab-item">🛒 SPESA</a>
+        <a href="coseviaggio.html" class="tab-item">🧳 VIAGGIO</a>
         <a href="#" class="tab-item" onclick="logout()">🚪 ESCI</a>
     </div>
 
-    <!-- Modal Svuota -->
+    <!-- Modal Conferma Svuota -->
     <div id="svuotaModal" class="modal-overlay">
         <div class="modal-box">
             <h3>Svuota Lista</h3>
             <p>Sei sicuro di voler cancellare tutto?</p>
-            <button class="btn-orange" onclick="confermaSvuota()">SI, SVUOTA TUTTO</button>
-            <button class="btn-orange" style="background:#e5e5ea; color:#8e8e93;" onclick="chiudiModal()">ANNULLA</button>
+            <button class="btn-main" onclick="confermaSvuota()">SI, SVUOTA TUTTO</button>
+            <button class="btn-main" style="background:#e5e5ea; color:#8e8e93; margin-top:10px;" onclick="chiudiModal()">ANNULLA</button>
         </div>
     </div>
 
@@ -76,7 +85,7 @@
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let userEmail = localStorage.getItem('userEmail');
-        let mode = 'spesa'; // Può essere 'spesa' o 'viaggio'
+        let mode = 'spesa'; 
 
         async function inizializza() {
             if (!userEmail) { window.location.href = 'login.html'; } 
@@ -87,49 +96,48 @@
             mode = newMode;
             document.getElementById('btnSpesa').classList.toggle('active', mode === 'spesa');
             document.getElementById('btnViaggio').classList.toggle('active', mode === 'viaggio');
-            // Nascondi ripristina se siamo in viaggio (opzionale)
-            document.getElementById('btnRipristina').style.display = mode === 'spesa' ? 'block' : 'none';
             caricaLista();
         }
 
         async function caricaLista() {
             const tabella = mode === 'spesa' ? 'lista_spesa' : 'lista_viaggio';
             const div = document.getElementById("contenitoreLista");
+            const comandi = document.getElementById("comandiLista");
+            
             div.innerHTML = "Caricamento...";
 
-            // Query diversa in base alla tabella
-            let query = supabaseClient.from(tabella).select('*').eq('email_utente', userEmail);
-            
-            // Se spesa, facciamo il join con i nomi dei prodotti
-            if (mode === 'spesa') {
-                query = supabaseClient.from('lista_spesa').select('*, prodotti(nome)').eq('email_utente', userEmail);
-            }
-
+            let query = supabaseClient.from(tabella).select(mode === 'spesa' ? '*, prodotti(nome)' : '*').eq('email_utente', userEmail);
             const { data, error } = await query;
 
-            if (error || !data || !data.length) { 
-                div.innerHTML = "La lista è vuota."; 
-                return; 
+            if (error || !data || data.length === 0) {
+                const msg = mode === 'spesa' ? "La lista della spesa è vuota" : "La lista del viaggio è vuota";
+                const pag = mode === 'spesa' ? "prodotti.html" : "coseviaggio.html";
+                div.innerHTML = `<p class="empty-text">${msg}</p>
+                                 <button class="btn-main" onclick="window.location.href='${pag}'">AGGIUNGI PRODOTTI</button>`;
+                comandi.style.display = "none";
+                return;
             }
 
-            // Ordinamento
+            comandi.style.display = "block";
+            document.getElementById('btnRipristina').style.display = mode === 'spesa' ? 'block' : 'none';
+
             data.sort((a, b) => {
-                const nomeA = mode === 'spesa' ? (a.prodotti?.nome || "") : a.nome;
-                const nomeB = mode === 'spesa' ? (b.prodotti?.nome || "") : b.nome;
-                return nomeA.localeCompare(nomeB);
+                const nA = mode === 'spesa' ? (a.prodotti?.nome || "") : a.nome;
+                const nB = mode === 'spesa' ? (b.prodotti?.nome || "") : b.nome;
+                return nA.localeCompare(nB);
             });
 
             div.innerHTML = "";
             data.forEach(item => {
-                const nomeMostrato = mode === 'spesa' ? item.prodotti?.nome : item.nome;
+                const nome = mode === 'spesa' ? item.prodotti?.nome : item.nome;
                 const riga = document.createElement("div");
                 riga.className = "item";
                 const iconaClasse = item.completato ? 'restore' : 'check';
-                const svgIcona = item.completato ? `<path d="M9 14l-4-4 4-4M5 10h11a4 4 0 110 8h-1"/>` : `<path d="M5 12l5 5L20 7"/>`;
+                const svg = item.completato ? `<path d="M9 14l-4-4 4-4M5 10h11a4 4 0 110 8h-1"/>` : `<path d="M5 12l5 5L20 7"/>`;
                 
-                riga.innerHTML = `<span class="testo-prodotto ${item.completato ? 'barrato' : ''}">${nomeMostrato}</span>
+                riga.innerHTML = `<span class="testo-prodotto ${item.completato ? 'barrato' : ''}">${nome}</span>
                     <div style="display:flex;">
-                        <button class="btn-small ${iconaClasse}" onclick="toggle(${item.id}, ${item.completato})"><svg class="icon" viewBox="0 0 24 24">${svgIcona}</svg></button>
+                        <button class="btn-small ${iconaClasse}" onclick="toggle(${item.id}, ${item.completato})"><svg class="icon" viewBox="0 0 24 24">${svg}</svg></button>
                         <button class="btn-small delete" onclick="elimina(${item.id})"><svg class="icon" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
                     </div>`;
                 div.appendChild(riga);
@@ -159,20 +167,16 @@
 
         async function confermaSvuota() {
             const tabella = mode === 'spesa' ? 'lista_spesa' : 'lista_viaggio';
-            
-            // Backup solo per la spesa
             if (mode === 'spesa') {
                 const { data } = await supabaseClient.from('lista_spesa').select('prodotto_id').eq('email_utente', userEmail);
                 if (data) localStorage.setItem('backup_lista', JSON.stringify(data.map(d => d.prodotto_id)));
             }
-
             await supabaseClient.from(tabella).delete().eq('email_utente', userEmail);
             chiudiModal();
             caricaLista();
         }
 
         async function ripristinaUltimaLista() {
-            if (mode !== 'spesa') return;
             const raw = localStorage.getItem('backup_lista');
             if (!raw) { alert("Nessuna lista da ripristinare!"); return; }
             const ids = JSON.parse(raw);
