@@ -161,34 +161,37 @@
             caricaProdotti();
         }
 
-        async function mettiInLista(id) {
-            const btn = document.getElementById(`btn-plus-${id}`);
-            
-            // Verifichiamo se è già in lista per evitare duplicati
-            const res = await fetch(`${URL}/lista_spesa?prodotto_id=eq.${id}&email_utente=eq.${userEmail}`, { headers });
-            const esistente = await res.json();
+        async function mettiInLista(id, nome) {
+    const btn = document.getElementById(`btn-plus-${id}`);
+    
+    // Verifichiamo se è già in lista
+    const res = await fetch(`${URL}/lista_spesa?prodotto_id=eq.${id}&email_utente=eq.${userEmail}`, { headers });
+    const esistente = await res.json();
 
-            if (esistente.length > 0) {
-                aggiornaBottone(btn, "GIÀ IN LISTA", "#db5151");
-                return;
-            }
+    if (esistente.length > 0) {
+        aggiornaBottone(btn, "GIÀ IN LISTA", "#db5151");
+        return;
+    }
 
-            // CORREZIONE: Inviamo solo i campi che esistono nella tua tabella lista_spesa
-            const fetchRes = await fetch(`${URL}/lista_spesa`, {
-                method: "POST", headers,
-                body: JSON.stringify({ 
-                    prodotto_id: id, 
-                    email_utente: userEmail, 
-                    completato: false 
-                })
-            });
+    // Inviamo SIA l'id CHE il nome
+    const fetchRes = await fetch(`${URL}/lista_spesa`, {
+        method: "POST", 
+        headers,
+        body: JSON.stringify({ 
+            prodotto_id: id, 
+            nome: nome, // IMPORTANTE: Assicurati di avere la colonna 'nome' in lista_spesa su Supabase
+            email_utente: userEmail, 
+            completato: false 
+        })
+    });
 
-            if(fetchRes.ok) {
-                aggiornaBottone(btn, "OK", "#45a049");
-            } else {
-                aggiornaBottone(btn, "ERRORE", "#ff3b30");
-            }
-        }
+    if(fetchRes.ok) {
+        aggiornaBottone(btn, "OK", "#45a049");
+    } else {
+        // Se ti dà errore qui, vai su Supabase e aggiungi la colonna 'nome' (tipo text) alla tabella lista_spesa
+        aggiornaBottone(btn, "ERRORE", "#ff3b30");
+    }
+}
 
         function aggiornaBottone(btn, testo, sfondo) {
             const originalText = "+";
