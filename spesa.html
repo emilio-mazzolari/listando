@@ -9,30 +9,30 @@
         .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 100px; }
         
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .btn-clear { background: #db5151; color: white; border: none; padding: 8px 12px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 12px; }
+        .btn-clear { background: #db5151; color: white; border: none; padding: 8px 12px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 12px; text-transform: uppercase; }
 
         .card { background: white; border-radius: 16px; padding: 5px 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         .item { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #f2f2f7; }
         .item:last-child { border-bottom: none; }
         
-        .testo { flex-grow: 1; font-size: 17px; cursor: pointer; }
+        .testo { flex-grow: 1; font-size: 17px; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 10px; }
         .completato { text-decoration: line-through; color: #8e8e93; }
         
-        .btn-del { background: none; border: none; font-size: 18px; cursor: pointer; padding: 5px; }
+        .btn-del { background: none; border: none; font-size: 18px; cursor: pointer; padding: 5px; filter: grayscale(1); }
 
-        /* Tab Bar: Home, Spesa, Prodotti, Esci */
-        .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 75px; background: #aec6cf; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid rgba(0,0,0,0.1); }
-        .tab-item { flex: 1; text-align: center; font-size: 12px; color: #333; text-decoration: none; font-weight: 600; display: flex; flex-direction: column; }
-        .tab-item span { font-size: 20px; margin-bottom: 3px; }
-        .tab-active { color: white; font-weight: 900; }
+        /* Tab Bar: Home, Spesa, Prodottispesa, Esci */
+        .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 75px; background: #aec6cf; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid rgba(0,0,0,0.1); z-index: 1000; }
+        .tab-item { flex: 1; text-align: center; font-size: 11px; color: #333; text-decoration: none; font-weight: 800; display: flex; flex-direction: column; text-transform: uppercase; }
+        .tab-item span { font-size: 22px; margin-bottom: 3px; }
+        .tab-active { color: white; }
     </style>
 </head>
 <body>
 
     <div class="app">
         <div class="header">
-            <h2 style="margin:0;">🛒 Da Comprare</h2>
-            <button class="btn-clear" onclick="svuotaLista()">SVUOTA</button>
+            <h2 style="margin:0; font-weight: 800;">🛒 SPESA</h2>
+            <button class="btn-clear" onclick="svuotaLista()">Svuota</button>
         </div>
 
         <div id="listaSpesaContenitore" class="card">
@@ -40,11 +40,11 @@
         </div>
     </div>
 
-    <!-- Navigazione Spesa -->
+    <!-- Navigazione Spesa Aggiornata -->
     <div class="tab-bar">
         <a href="index.html" class="tab-item"><span>🏠</span>HOME</a>
         <a href="spesa.html" class="tab-item tab-active"><span>🛒</span>SPESA</a>
-        <a href="prodotti.html" class="tab-item"><span>📦</span>PRODOTTI</a>
+        <a href="prodottispesa.html" class="tab-item"><span>📦</span>PRODOTTI</a>
         <a href="#" class="tab-item" onclick="logout()"><span>🚪</span>ESCI</a>
     </div>
 
@@ -61,7 +61,7 @@
                 const container = document.getElementById("listaSpesaContenitore");
                 
                 if (dati.length === 0) {
-                    container.innerHTML = '<p style="text-align:center; color:#888; padding:20px;">Lista vuota. Vai in "PRODOTTI" per aggiungere.</p>';
+                    container.innerHTML = '<p style="text-align:center; color:#888; padding:30px;">La lista è vuota.<br><br><small>Vai in PRODOTTI per aggiungere qualcosa.</small></p>';
                     return;
                 }
 
@@ -77,7 +77,7 @@
                     `;
                     container.appendChild(riga);
                 });
-            } catch (e) { console.error(e); }
+            } catch (e) { console.error("Errore caricamento:", e); }
         }
 
         async function toggleCheck(id, stato) {
@@ -94,7 +94,7 @@
         }
 
         async function svuotaLista() {
-            if(confirm("Svuotare la lista spesa?")) {
+            if(confirm("Sei sicuro di voler svuotare tutta la lista?")) {
                 await fetch(`${URL}?email_utente=eq.${userEmail}`, { method: "DELETE", headers });
                 caricaLista();
             }
@@ -102,8 +102,11 @@
 
         function logout() { localStorage.clear(); window.location.href = 'login.html'; }
 
-        if (!userEmail) window.location.href = 'login.html';
-        caricaLista();
+        if (!userEmail) {
+            window.location.href = 'login.html';
+        } else {
+            caricaLista();
+        }
     </script>
 </body>
 </html>
