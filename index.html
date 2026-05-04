@@ -22,7 +22,7 @@
         .delete { background-color: #db5151; } 
         .icon { width: 22px; height: 22px; fill: none; stroke: white; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
 
-        /* PULSANTI UNIFORMATI IN PALETTE */
+        /* PULSANTI IDENTICI IN TUTTO */
         .btn-orange { 
             width: 100%; 
             padding: 15px; 
@@ -35,9 +35,8 @@
             cursor: pointer; 
             font-size: 15px;
             text-transform: uppercase;
-            transition: opacity 0.2s;
+            display: block;
         }
-        .btn-orange:disabled { opacity: 0.4; cursor: not-allowed; }
         .btn-orange:active { opacity: 0.8; }
 
         .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 70px; background: #aec6cf; display: flex; justify-content: space-around; align-items: center; z-index: 1000; }
@@ -54,10 +53,9 @@
         <div class="card">
             <div id="contenitoreLista">Caricamento...</div>
             
-            <!-- I TRE PULSANTI IN PALETTE -->
             <button class="btn-orange" onclick="eliminaAcquistati()">Elimina acquistati</button>
             <button class="btn-orange" onclick="apriModalSvuota()">Svuota tutta la lista</button>
-            <button id="btnRipristina" class="btn-orange" onclick="ripristinaUltimaLista()" disabled>Ripristina ultima lista</button>
+            <button class="btn-orange" onclick="ripristinaUltimaLista()">Ripristina ultima lista</button>
         </div>
     </div>
 
@@ -89,24 +87,14 @@
                 userEmail = session.user.email;
                 localStorage.setItem('userEmail', userEmail);
             }
-            
-            if (!userEmail) {
-                window.location.href = 'login.html';
-            } else {
-                aggiornaStatoBottoneRipristina();
-                caricaLista();
-            }
+            if (!userEmail) { window.location.href = 'login.html'; } 
+            else { caricaLista(); }
         }
 
         async function caricaLista() {
             const { data, error } = await supabaseClient.from('lista_spesa').select('*, prodotti(nome)').eq('email_utente', userEmail);
             const div = document.getElementById("contenitoreLista");
-            
-            if (!data || !data.length) {
-                div.innerHTML = "La lista è vuota.";
-                return;
-            }
-
+            if (!data || !data.length) { div.innerHTML = "La lista è vuota."; return; }
             data.sort((a, b) => (a.prodotti?.nome || "").localeCompare(b.prodotti?.nome || ""));
             div.innerHTML = "";
             data.forEach(item => {
@@ -114,7 +102,6 @@
                 riga.className = "item";
                 const iconaClasse = item.completato ? 'restore' : 'check';
                 const svgIcona = item.completato ? `<path d="M9 14l-4-4 4-4M5 10h11a4 4 0 110 8h-1"/>` : `<path d="M5 12l5 5L20 7"/>`;
-
                 riga.innerHTML = `<span class="testo-prodotto ${item.completato ? 'barrato' : ''}">${item.prodotti?.nome}</span>
                     <div style="display:flex;">
                         <button class="btn-small ${iconaClasse}" onclick="toggle(${item.id}, ${item.completato})"><svg class="icon" viewBox="0 0 24 24">${svgIcona}</svg></button>
@@ -143,32 +130,22 @@
         function chiudiModal() { document.getElementById('svuotaModal').style.display = 'none'; }
 
         async function confermaSvuota() {
-            // Salvataggio backup
             const { data } = await supabaseClient.from('lista_spesa').select('prodotto_id').eq('email_utente', userEmail);
             if (data && data.length > 0) {
                 localStorage.setItem('backup_lista', JSON.stringify(data.map(d => d.prodotto_id)));
             }
-            
             await supabaseClient.from('lista_spesa').delete().eq('email_utente', userEmail);
-            aggiornaStatoBottoneRipristina();
             chiudiModal();
             caricaLista();
         }
 
-        function aggiornaStatoBottoneRipristina() {
-            const btn = document.getElementById('btnRipristina');
-            btn.disabled = !localStorage.getItem('backup_lista');
-        }
-
         async function ripristinaUltimaLista() {
-            const ids = JSON.parse(localStorage.getItem('backup_lista'));
-            if (!ids) return;
-
+            const raw = localStorage.getItem('backup_lista');
+            if (!raw) { alert("Nessuna lista da ripristinare!"); return; }
+            const ids = JSON.parse(raw);
             const righe = ids.map(id => ({ prodotto_id: id, email_utente: userEmail, completato: false }));
             await supabaseClient.from('lista_spesa').insert(righe);
-            
             localStorage.removeItem('backup_lista');
-            aggiornaStatoBottoneRipristina();
             caricaLista();
         }
 
