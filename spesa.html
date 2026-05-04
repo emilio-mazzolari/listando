@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <style>
         body { margin: 0; font-family: -apple-system, Helvetica, Arial, sans-serif; background: #f2f2f7; display: flex; justify-content: center; }
-        .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 100px; }
+        .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 100px; box-sizing: border-box; }
         .card { background: white; border-radius: 16px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         .header-box { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
 
@@ -23,10 +23,17 @@
         .icon { width: 20px; height: 20px; fill: none; stroke: white; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
 
         /* Bottoni inferiori */
-        .btn-action { width: 100%; padding: 15px; border-radius: 12px; border: none; color: white; font-weight: bold; margin-top: 10px; cursor: pointer; font-size: 13px; text-transform: uppercase; }
+        .btn-action { width: 100%; padding: 15px; border-radius: 12px; border: none; color: white; font-weight: bold; margin-top: 10px; cursor: pointer; font-size: 13px; text-transform: uppercase; box-sizing: border-box; text-align: center; }
         .btn-blue { background: #aec6cf; }
         .btn-gray { background: #99b3bc; }
-        .btn-empty { background: #45a049; margin-top: 20px; display: inline-block; text-decoration: none; line-height: 45px; height: 45px; padding: 0 20px; }
+        
+        /* Correzione Bottone Aggiungi Prodotti */
+        .btn-empty { 
+            background: #aec6cf; 
+            margin-top: 20px; 
+            display: block; 
+            text-decoration: none; 
+        }
 
         .empty-msg { text-align: center; padding: 40px 10px; color: #8e8e93; font-size: 16px; }
 
@@ -98,7 +105,6 @@
 
                 controlli.style.display = "block";
                 
-                // ORDINE ALFABETICO SEMPRE (sia barrati che non)
                 data.sort((a, b) => {
                     const nomeA = (a.nome || a.prodotti?.nome || "").toLowerCase();
                     const nomeB = (b.nome || b.prodotti?.nome || "").toLowerCase();
