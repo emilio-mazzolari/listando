@@ -4,35 +4,44 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Accesso Spesa</title>
-    <!-- Proviamo un link diverso per la libreria, più universale -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+    <!-- Libreria Supabase caricata via JSDelivr (molto affidabile) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { margin: 0; font-family: sans-serif; background: #f2f2f7; display: flex; justify-content: center; align-items: center; height: 100vh; }
-        .login-card { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); width: 320px; text-align: center; }
-        input { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 12px; border: 1px solid #e1e1e1; box-sizing: border-box; }
-        .btn { width: 100%; padding: 14px; border-radius: 12px; border: none; font-weight: 600; cursor: pointer; margin-bottom: 15px; }
-        .btn-primary { background: #aec6cf; color: white; }
-        .btn-google { background: white; border: 1px solid #e1e1e1; display: flex; align-items: center; justify-content: center; gap: 10px; }
-        #debug-msg { color: red; font-size: 11px; margin-top: 10px; min-height: 15px; }
+        body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f2f2f7; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        .login-card { background: white; padding: 30px; border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); width: 100%; max-width: 320px; text-align: center; }
+        h2 { margin: 0 0 8px 0; color: #1c1c1e; }
+        p { color: #636366; font-size: 14px; margin-bottom: 24px; }
+        input { width: 100%; padding: 14px; margin-bottom: 12px; border-radius: 12px; border: 1px solid #d1d1d6; box-sizing: border-box; font-size: 16px; outline: none; }
+        .btn { width: 100%; padding: 14px; border-radius: 12px; border: none; font-weight: 600; cursor: pointer; font-size: 16px; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .btn-primary { background: #aec6cf; color: white; margin-bottom: 16px; }
+        .btn-google { background: white; color: #3c4043; border: 1px solid #d1d1d6; }
+        .btn:active { transform: scale(0.97); opacity: 0.8; }
+        .divider { margin: 16px 0; color: #8e8e93; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
+        #debug { color: #ff3b30; font-size: 12px; margin-top: 15px; min-height: 1.2em; }
     </style>
 </head>
 <body>
 
     <div class="login-card">
         <h2>Benvenuto</h2>
-        <p style="color:#636366; font-size: 14px;">Accedi alla tua lista spesa</p>
+        <p>Gestisci la tua lista spesa</p>
 
-        <input type="email" id="emailInput" placeholder="Inserisci la tua email">
+        <input type="email" id="emailInput" placeholder="La tua email">
         <button class="btn btn-primary" onclick="loginManuale()">ENTRA CON EMAIL</button>
 
-        <div style="margin: 10px 0; color: #8e8e93; font-size: 12px;">oppure</div>
+        <div class="divider">oppure</div>
 
         <button class="btn btn-google" onclick="loginConGoogle()">
-            <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" width="18">
+            <svg width="20" height="20" viewBox="0 0 24 24">
+                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 12-4.53z" fill="#EA4335"/>
+            </svg>
             Accedi con Google
         </button>
         
-        <div id="debug-msg"></div>
+        <div id="debug"></div>
     </div>
 
     <script>
@@ -40,30 +49,22 @@
         const KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
         let supabaseClient;
 
-        // Funzione per inizializzare il client
-        function initSupabase() {
-            try {
-                if (typeof supabase !== 'undefined') {
-                    supabaseClient = supabase.createClient(URL, KEY);
-                    console.log("Supabase pronto!");
-                } else {
-                    document.getElementById('debug-msg').innerText = "Libreria non trovata. Ricarica la pagina.";
-                }
-            } catch (e) {
-                document.getElementById('debug-msg').innerText = "Errore: " + e.message;
+        // Inizializzazione robusta
+        window.onload = function() {
+            if (window.supabase) {
+                supabaseClient = window.supabase.createClient(URL, KEY);
+                console.log("Supabase pronto");
+                checkSession();
+            } else {
+                document.getElementById('debug').innerText = "Errore: Libreria non caricata. Prova a ricaricare.";
             }
-        }
-
-        // Chiamata immediata
-        initSupabase();
+        };
 
         async function loginConGoogle() {
             if (!supabaseClient) {
-                initSupabase(); // Riprova l'inizializzazione se era fallita
-                if (!supabaseClient) return;
+                alert("Sto ancora caricando i componenti... aspetta un secondo.");
+                return;
             }
-            
-            document.getElementById('debug-msg').innerText = "Connessione a Google...";
             
             const { error } = await supabaseClient.auth.signInWithOAuth({
                 provider: 'google',
@@ -72,7 +73,7 @@
                 }
             });
 
-            if (error) document.getElementById('debug-msg').innerText = error.message;
+            if (error) document.getElementById('debug').innerText = "Errore Google: " + error.message;
         }
 
         function loginManuale() {
@@ -81,7 +82,19 @@
                 localStorage.setItem('userEmail', email);
                 window.location.href = 'index.html';
             } else {
-                alert("Inserisci una mail valida");
+                alert("Inserisci una mail valida.");
+            }
+        }
+
+        async function checkSession() {
+            if (localStorage.getItem('userEmail')) {
+                window.location.href = 'index.html';
+                return;
+            }
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (session) {
+                localStorage.setItem('userEmail', session.user.email);
+                window.location.href = 'index.html';
             }
         }
     </script>
