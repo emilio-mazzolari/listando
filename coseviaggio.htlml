@@ -6,33 +6,38 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { margin: 0; font-family: -apple-system, sans-serif; background: #f2f2f7; padding: 20px; padding-bottom: 90px; }
-        h1 { color: #1c1c1e; font-size: 24px; margin-bottom: 5px; }
-        p { color: #8e8e93; margin-top: 0; margin-bottom: 20px; }
-        
-        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-        
-        /* BOTTONE VIAGGIO: Colore distinto (Verde Salvia/Petrolio) */
-        .btn-viaggio { 
-            background: #99b3bc; 
-            color: white; 
-            border: none; 
-            padding: 20px 10px; 
-            border-radius: 12px; 
-            font-weight: bold; 
-            cursor: pointer; 
-            font-size: 14px;
-            text-transform: uppercase;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            transition: transform 0.1s;
-        }
-        .btn-viaggio:active { transform: scale(0.95); opacity: 0.8; }
+        body { margin: 0; font-family: -apple-system, sans-serif; background: #f2f2f7; padding: 15px; padding-bottom: 90px; }
 
-        /* TAB BAR */
-        .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 70px; background: #aec6cf; display: flex; justify-content: space-around; align-items: center; z-index: 1000; }
-        .tab-item { flex: 1; text-align: center; font-size: 12px; color: black; text-decoration: none; font-weight: 600; text-transform: uppercase; }
-        .tab-active { font-weight: 900; }
-    </style>
+/* Titolo della categoria */
+.titolo-categoria { 
+    font-size: 14px; color: #8e8e93; text-transform: uppercase; 
+    margin: 20px 0 10px 5px; font-weight: bold; width: 100%;
+}
+
+.grid { 
+    display: grid; 
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); 
+    gap: 8px; 
+}
+
+.btn-viaggio { 
+    background: white; /* Sfondo bianco per pulizia */
+    color: #1c1c1e; 
+    border: 1px solid #d1d1d6; 
+    padding: 12px 5px; 
+    border-radius: 10px; 
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    text-transform: capitalize;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.btn-viaggio:active { 
+    background: #99b3bc; 
+    color: white; 
+    transform: scale(0.95); 
+}
 </head>
 <body>
     <h1>🧳 Cose da portare</h1>
