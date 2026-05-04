@@ -15,11 +15,10 @@
         .item:last-child { border-bottom: none; }
         .testo-prodotto { flex-grow: 1; font-size: 16px; color: #1c1c1e; font-weight: 600; }
         .testo-prodotto.barrato { text-decoration: line-through; color: #8e8e93; opacity: 0.6; }
-        .btn-small { border: none; border-radius: 8px; width: 32px; height: 32px; cursor: pointer; margin-left: 8px; display: inline-flex; align-items: center; justify-content: center; }
+        .btn-small { border: none; border-radius: 8px; width: 32px; height: 32px; cursor: pointer; margin-left: 8px; display: inline-flex; align-items: center; justify-content: center; color: white; font-weight: bold; }
         .check { background-color: #45a049; } 
         .restore { background-color: #c7c7cc; } 
         .delete { background-color: #db5151; } 
-        .icon { width: 20px; height: 20px; fill: none; stroke: white; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
         .btn-action { width: 100%; padding: 15px; border-radius: 12px; border: none; color: white; font-weight: bold; margin-top: 10px; cursor: pointer; font-size: 13px; text-transform: uppercase; background: #99b3bc; }
         .empty-msg { text-align: center; padding: 40px 10px; color: #8e8e93; font-size: 16px; }
         .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 75px; background: #aec6cf; display: flex; justify-content: space-around; align-items: center; z-index: 1000; }
@@ -65,7 +64,6 @@
     </div>
 
     <script>
-        // URL base della tabella (senza slash finale)
         const URL_SUPA = "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1/cose_valigia";
         const KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
         const headers = { 
@@ -95,22 +93,19 @@
                 dati.forEach(item => {
                     const riga = document.createElement("div");
                     riga.className = "item";
-                    const btnStatus = item.completato ? 'restore' : 'check';
-                    const svgIcon = item.completato 
-                        ? '<path d="M9 14l-4-4 4-4M5 10h11a4 4 0 110 8h-1"/>' 
-                        : '<path d="M5 12l5 5L20 7"/>';
+                    const btnClass = item.completato ? 'restore' : 'check';
+                    const iconaTxt = item.completato ? '↺' : 'V';
 
-                   // Nel ciclo forEach che crea la lista:
-riga.innerHTML = `
-    <span class="testo-prodotto ${item.completato ? 'barrato' : ''}">${item.nome}</span>
-    <div style="display:flex;">
-        <button class="btn-small ${btnStatus}" onclick="toggleStatus(${item.id}, ${item.completato})">
-            V
-        </button>
-        <button class="btn-small delete" onclick="eliminaSingolo(${item.id})">
-            X
-        </button>
-    </div>
+                    riga.innerHTML = `
+                        <span class="testo-prodotto ${item.completato ? 'barrato' : ''}">${item.nome}</span>
+                        <div style="display:flex;">
+                            <button class="btn-small ${btnClass}" onclick="toggleStatus(${item.id}, ${item.completato})">
+                                ${iconaTxt}
+                            </button>
+                            <button class="btn-small delete" onclick="eliminaSingolo(${item.id})">
+                                X
+                            </button>
+                        </div>
                     `;
                     div.appendChild(riga);
                 });
@@ -118,24 +113,37 @@ riga.innerHTML = `
         }
 
         async function toggleStatus(id, stato) {
+            console.log("Cliccato V/Ripristina per ID:", id);
             try {
                 const res = await fetch(`${URL_SUPA}?id=eq.${id}`, {
                     method: "PATCH",
                     headers: headers,
                     body: JSON.stringify({ completato: !stato })
                 });
-                if (res.ok) caricaLista();
-                else console.error("Errore Patch:", res.statusText);
-            } catch (e) { console.error(e); }
+                if (res.ok) {
+                    caricaLista();
+                } else {
+                    const err = await res.text();
+                    console.error("Errore Supabase PATCH:", err);
+                    alert("Errore durante l'aggiornamento. Controlla le policy RLS.");
+                }
+            } catch (e) { console.error("Errore connessione:", e); }
         }
 
         async function eliminaSingolo(id) {
+            console.log("Cliccato X per ID:", id);
+            if(!confirm("Eliminare questo oggetto?")) return;
             try {
                 const res = await fetch(`${URL_SUPA}?id=eq.${id}`, { 
                     method: "DELETE", 
                     headers: headers 
                 });
-                if (res.ok) caricaLista();
+                if (res.ok) {
+                    caricaLista();
+                } else {
+                    console.error("Errore Supabase DELETE");
+                    alert("Errore durante l'eliminazione.");
+                }
             } catch (e) { console.error(e); }
         }
 
@@ -175,7 +183,13 @@ riga.innerHTML = `
         }
 
         function logout() { localStorage.clear(); window.location.href = 'login.html'; }
-        if (!userEmail) { window.location.href = 'login.html'; } else { caricaLista(); }
+        
+        // Controllo login
+        if (!userEmail) { 
+            window.location.href = 'login.html'; 
+        } else { 
+            caricaLista(); 
+        }
     </script>
 </body>
 </html>
