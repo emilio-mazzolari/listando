@@ -6,65 +6,71 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         body { margin: 0; font-family: -apple-system, Helvetica, Arial, sans-serif; background: #f2f2f7; display: flex; justify-content: center; }
-        .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 100px; }
+        .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 100px; position: relative; }
         
-        /* Navigazione Categorie - Palette Salvia */
-        .category-nav { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; justify-content: center; }
-        .btn-nav { background: #9fb8ad; color: white; border: none; padding: 10px 14px; border-radius: 12px; font-size: 11px; font-weight: bold; cursor: pointer; text-transform: uppercase; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        /* Navigazione Categorie Rapida */
+        .category-nav { display: flex; overflow-x: auto; gap: 8px; margin-bottom: 20px; padding-bottom: 5px; -webkit-overflow-scrolling: touch; }
+        .category-nav::-webkit-scrollbar { display: none; }
+        .btn-nav { background: #9fb8ad; color: white; border: none; padding: 8px 14px; border-radius: 10px; font-size: 11px; font-weight: bold; cursor: pointer; text-transform: uppercase; white-space: nowrap; flex-shrink: 0; }
 
         /* Struttura Card */
-        .categoria-titolo { background: #aec6cf; color: white; padding: 10px 15px; border-radius: 12px 12px 0 0; font-weight: bold; font-size: 13px; margin-top: 20px; text-transform: uppercase; scroll-margin-top: 20px; }
-        .card { background: white; border-radius: 0 0 16px 16px; padding: 5px 15px; margin-bottom: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .categoria-titolo { background: #aec6cf; color: white; padding: 10px 15px; border-radius: 12px 12px 0 0; font-weight: 800; font-size: 12px; margin-top: 15px; text-transform: uppercase; }
+        .card { background: white; border-radius: 0 0 16px 16px; padding: 0 15px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         .item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f2f2f7; }
         .item:last-child { border-bottom: none; }
+        .testo-prodotto { font-size: 15px; color: #1c1c1e; font-weight: 500; }
         
         /* Bottoni Azione */
-        .btn-small { border: none; border-radius: 8px; width: 35px; height: 35px; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-left: 5px; font-size: 16px; }
-        .plus { background-color: #779ecb; color: white; } 
-        .edit { background-color: #fdfd96; } 
-        .delete { background-color: #add8e6; }
+        .btn-small { border: none; border-radius: 8px; width: 34px; height: 34px; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-left: 6px; font-size: 16px; transition: 0.2s; }
+        .plus { background-color: #aec6cf; color: white; } 
+        .edit { background-color: #fdfd96; color: #333; } 
+        .delete { background-color: #ffd1d1; color: #d32f2f; }
 
-        /* Input */
-        .input-group { display: flex; gap: 10px; margin-bottom: 10px; }
-        input, select { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid #ddd; font-size: 16px; background: white; }
-        .btn-main { padding: 0 15px; border-radius: 12px; border: none; background: #aec6cf; color: white; font-weight: bold; cursor: pointer; }
+        /* Input area */
+        .input-group { display: flex; gap: 8px; margin-bottom: 10px; }
+        input, select { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid #ddd; font-size: 15px; outline: none; box-sizing: border-box; }
+        .btn-main { padding: 0 15px; border-radius: 12px; border: none; background: #9fb8ad; color: white; font-weight: bold; cursor: pointer; text-transform: uppercase; font-size: 12px; }
 
-        /* Tab Bar Corretta */
-        .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 75px; background: #aec6cf; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid rgba(0,0,0,0.1); }
-        .tab-item { flex: 1; text-align: center; font-size: 12px; color: #333; text-decoration: none; font-weight: 600; display: flex; flex-direction: column; }
-        .tab-item span { font-size: 20px; }
-        .tab-active { color: white; font-weight: 900; }
+        /* Tab Bar */
+        .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 75px; background: #aec6cf; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid rgba(0,0,0,0.1); z-index: 1000; }
+        .tab-item { flex: 1; text-align: center; font-size: 11px; color: #333; text-decoration: none; font-weight: 800; display: flex; flex-direction: column; text-transform: uppercase; }
+        .tab-item span { font-size: 22px; margin-bottom: 3px; }
+        .tab-active { color: white; }
 
+        /* Modale */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 2000; }
-        .modal-box { background: white; padding: 20px; border-radius: 20px; width: 80%; text-align: center; }
+        .modal-box { background: white; padding: 25px; border-radius: 20px; width: 85%; max-width: 350px; text-align: center; }
+        .modal-box input { width: 100%; margin: 15px 0; }
+        
+        #toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #3a3a3c; color: white; padding: 10px 20px; border-radius: 10px; display: none; z-index: 3000; }
     </style>
 </head>
 <body>
 
+    <div id="toast">Aggiunto alla lista!</div>
+
     <div class="app">
-        <h2 style="text-align: center; color: #4a4a4a;">🧳 Catalogo Cose</h2>
+        <h2 style="font-weight: 800; color: #333; margin-bottom: 20px;">🧳 CATALOGO</h2>
         
-        <!-- Pulsanti Categorie Rapidi -->
+        <!-- Navigazione Categorie -->
         <div class="category-nav" id="navCategorie"></div>
 
-        <!-- Inserimento con Scelta Categoria -->
-        <div class="input-group">
-            <input type="text" id="nuovaCosa" placeholder="Aggiungi cose...">
-            <select id="selectCategoria">
-                <option value="Extra">Categoria...</option>
-                <!-- Dinamico -->
-            </select>
-            <button class="btn-main" onclick="aggiungiNuovaCosa()">INSERISCI</button>
-        </div>
-
-        <div class="input-group">
-            <input type="text" id="cercaCosa" placeholder="Cerca cose..." onkeyup="renderizzaCose()">
+        <!-- Inserimento -->
+        <div class="card" style="padding: 15px; border-radius: 16px;">
+            <div class="input-group">
+                <input type="text" id="nuovaCosa" placeholder="Cosa devi portare?">
+                <button class="btn-main" onclick="aggiungiNuovaCosa()">AGGIUNGI</button>
+            </div>
+            <div class="input-group">
+                <select id="selectCategoria"></select>
+                <input type="text" id="cercaCosa" placeholder="Cerca nel catalogo..." onkeyup="renderizzaCose()">
+            </div>
         </div>
 
         <div id="listaCategorie"></div>
     </div>
 
-    <!-- Barra di Navigazione Richiesta -->
+    <!-- Navigazione -->
     <div class="tab-bar">
         <a href="index.html" class="tab-item"><span>🏠</span>HOME</a>
         <a href="viaggi.html" class="tab-item"><span>✈️</span>VIAGGI</a>
@@ -75,10 +81,10 @@
     <!-- Modale Modifica -->
     <div id="editModal" class="modal-overlay">
         <div class="modal-box">
-            <h3>Modifica Nome</h3>
+            <h3 style="margin-top:0">Modifica Nome</h3>
             <input type="text" id="inputModifica">
-            <button class="btn-main" style="width:100%; margin-top:10px; height:45px;" onclick="salvaModifica()">SALVA</button>
-            <button class="btn-main" style="width:100%; margin-top:10px; height:45px; background:#ccc;" onclick="chiudiModal()">ANNULLA</button>
+            <button class="btn-main" style="width:100%; height:45px; background: #aec6cf;" onclick="salvaModifica()">SALVA MODIFICA</button>
+            <button class="btn-main" style="width:100%; margin-top:10px; height:45px; background:#e5e5ea; color: #8e8e93;" onclick="chiudiModal()">ANNULLA</button>
         </div>
     </div>
 
@@ -88,15 +94,21 @@
         const headers = { "apikey": KEY, "Content-Type": "application/json", "Authorization": "Bearer " + KEY };
         const userEmail = localStorage.getItem('userEmail');
 
-        // Carico il database da localStorage o uso quello predefinito
         let databaseCose = JSON.parse(localStorage.getItem('db_viaggio')) || {
-            "Abbigliamento": ["bretelle", "calze", "camicie", "cappello", "ciabatte", "costume", "felpe", "mutande", "pantaloni", "scarpe", "t-shirt"],
-            "Igiene": ["asciugamano", "bagnodoccia", "dentifricio", "deodorante", "pettine", "spazzolino"],
-            "Campeggio": ["borraccia", "sacco a pelo", "tenda", "torcia"],
-            "Extra": ["caricabatterie", "documenti", "ombrello", "portafoglio"]
+            "Abbigliamento": ["Bretelle", "Calze", "Camicie", "Cappello", "Ciabatte", "Costume", "Felpe", "Mutande", "Pantaloni", "Scarpe", "T-shirt"],
+            "Igiene": ["Asciugamano", "Bagnodoccia", "Dentifricio", "Deodorante", "Pettine", "Spazzolino"],
+            "Campeggio": ["Borraccia", "Sacco a pelo", "Tenda", "Torcia"],
+            "Extra": ["Caricabatterie", "Documenti", "Ombrello", "Portafoglio"]
         };
 
         let cosaInModifica = { cat: null, vecchioNome: null };
+
+        function mostraToast(testo) {
+            const t = document.getElementById("toast");
+            t.innerText = testo;
+            t.style.display = "block";
+            setTimeout(() => t.style.display = "none", 2000);
+        }
 
         function renderizzaCose() {
             const filtro = document.getElementById("cercaCosa").value.toLowerCase();
@@ -108,23 +120,26 @@
             nav.innerHTML = "";
             select.innerHTML = '<option value="NUOVA">+ NUOVA CATEGORIA</option>';
 
-            // Ordina categorie
             const categorieOrdinate = Object.keys(databaseCose).sort();
 
             categorieOrdinate.forEach(categoria => {
-                // Popola Select
+                // Select
                 let opt = document.createElement("option");
                 opt.value = categoria; opt.innerText = categoria;
+                if(categoria === "Extra") opt.selected = true;
                 select.appendChild(opt);
 
-                // Popola Nav
+                // Nav Buttons
                 let btnNav = document.createElement("button");
                 btnNav.className = "btn-nav";
                 btnNav.innerText = categoria;
-                btnNav.onclick = () => document.getElementById('cat-' + categoria).scrollIntoView({behavior: "smooth"});
+                btnNav.onclick = () => {
+                    const el = document.getElementById('cat-' + categoria);
+                    window.scrollTo({ top: el.offsetTop - 20, behavior: "smooth" });
+                };
                 nav.appendChild(btnNav);
 
-                // Popola Lista
+                // Items
                 const oggetti = databaseCose[categoria].sort();
                 const filtrati = oggetti.filter(o => o.toLowerCase().includes(filtro));
 
@@ -135,7 +150,7 @@
                         <div class="item">
                             <span class="testo-prodotto">${item}</span>
                             <div style="display:flex;">
-                                <button class="btn-small plus" onclick="aggiungiADB('${item}')">+</button>
+                                <button class="btn-small plus" id="btn-${item.replace(/\s+/g, '')}" onclick="aggiungiADB('${item}')">+</button>
                                 <button class="btn-small edit" onclick="apriModifica('${categoria}', '${item}')">✏️</button>
                                 <button class="btn-small delete" onclick="eliminaCosa('${categoria}', '${item}')">🗑</button>
                             </div>
@@ -149,10 +164,12 @@
         }
 
         function aggiungiNuovaCosa() {
-            const nome = document.getElementById("nuovaCosa").value.trim();
+            const nomeInput = document.getElementById("nuovaCosa");
+            let nome = nomeInput.value.trim();
             let cat = document.getElementById("selectCategoria").value;
             
             if (!nome) return;
+            nome = nome.charAt(0).toUpperCase() + nome.slice(1);
 
             if (cat === "NUOVA") {
                 const nuovaCat = prompt("Inserisci il nome della nuova categoria:");
@@ -163,18 +180,34 @@
 
             if (!databaseCose[cat].includes(nome)) {
                 databaseCose[cat].push(nome);
-                document.getElementById("nuovaCosa").value = "";
+                nomeInput.value = "";
                 renderizzaCose();
             }
         }
 
         async function aggiungiADB(nome) {
-            // Qui punta alla tabella lista_viaggio
-            const res = await fetch(`${URL}/lista_viaggio`, {
-                method: "POST", headers,
-                body: JSON.stringify({ nome: nome, email_utente: userEmail, completato: false })
-            });
-            if(res.ok) alert(nome + " aggiunto alla lista viaggio!");
+            const btn = document.getElementById(`btn-${nome.replace(/\s+/g, '')}`);
+            const originalColor = btn.style.backgroundColor;
+            const originalText = btn.innerText;
+
+            try {
+                const res = await fetch(`${URL}/lista_viaggio`, {
+                    method: "POST", headers,
+                    body: JSON.stringify({ nome: nome, email_utente: userEmail, completato: false })
+                });
+                
+                if(res.ok) {
+                    btn.innerText = "✓";
+                    btn.style.backgroundColor = "#9fb8ad";
+                    mostraToast(nome + " aggiunto!");
+                    setTimeout(() => {
+                        btn.innerText = originalText;
+                        btn.style.backgroundColor = originalColor;
+                    }, 1500);
+                }
+            } catch(e) {
+                console.error(e);
+            }
         }
 
         function apriModifica(cat, nome) {
@@ -185,6 +218,7 @@
 
         function salvaModifica() {
             const nuovo = document.getElementById("inputModifica").value.trim();
+            if(!nuovo) return;
             const idx = databaseCose[cosaInModifica.cat].indexOf(cosaInModifica.vecchioNome);
             databaseCose[cosaInModifica.cat][idx] = nuovo;
             chiudiModal();
@@ -192,13 +226,16 @@
         }
 
         function eliminaCosa(cat, nome) {
-            databaseCose[cat] = databaseCose[cat].filter(i => i !== nome);
-            renderizzaCose();
+            if(confirm(`Eliminare ${nome} dal catalogo?`)) {
+                databaseCose[cat] = databaseCose[cat].filter(i => i !== nome);
+                renderizzaCose();
+            }
         }
 
         function chiudiModal() { document.getElementById("editModal").style.display = "none"; }
         function logout() { localStorage.clear(); window.location.href = 'login.html'; }
 
+        if (!userEmail) window.location.href = 'login.html';
         renderizzaCose();
     </script>
 </body>
