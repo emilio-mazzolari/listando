@@ -8,16 +8,17 @@
     <style>
         body { margin: 0; font-family: -apple-system, Helvetica, Arial, sans-serif; background: #f2f2f7; display: flex; justify-content: center; }
         .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 100px; text-align: center; }
-        h1 { font-size: 24px; color: #1c1c1e; margin-bottom: 20px; text-transform: uppercase; }
+        h1 { font-size: 24px; color: #1c1c1e; margin-bottom: 20px; text-transform: uppercase; font-weight: 800; }
         
         .card { background: white; border-radius: 16px; padding: 20px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         
+        /* Selettore Spesa / Viaggio */
         .selector { display: flex; background: #e5e5ea; border-radius: 12px; padding: 3px; margin-bottom: 20px; }
-        .selector-btn { flex: 1; border: none; padding: 12px; border-radius: 10px; font-weight: bold; cursor: pointer; background: transparent; color: #8e8e93; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .selector-btn { flex: 1; border: none; padding: 12px; border-radius: 10px; font-weight: bold; cursor: pointer; background: transparent; color: #8e8e93; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px; text-transform: uppercase; }
         .selector-btn.active { background: white; color: black; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
 
-        /* Stile Categorie */
-        .categoria-header { background: #f2f2f7; padding: 8px 15px; text-align: left; font-weight: bold; font-size: 13px; color: #666; text-transform: uppercase; border-radius: 8px; margin-top: 15px; margin-bottom: 5px; }
+        /* Categorie Viaggio */
+        .categoria-header { background: #f2f2f7; padding: 8px 15px; text-align: left; font-weight: bold; font-size: 12px; color: #8e8e93; text-transform: uppercase; border-radius: 8px; margin-top: 15px; margin-bottom: 5px; }
 
         .item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee; }
         .testo-prodotto { flex-grow: 1; font-size: 16px; color: #1c1c1e; font-weight: 600; text-align: left; text-transform: capitalize; }
@@ -29,14 +30,17 @@
         .delete { background-color: #db5151; } 
         .icon { width: 20px; height: 20px; fill: none; stroke: white; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
 
+        /* Bottoni Azione */
         .btn-main { width: 100%; padding: 16px; border-radius: 12px; border: none; background: #aec6cf; color: white; font-weight: bold; margin-top: 10px; cursor: pointer; font-size: 15px; text-transform: uppercase; }
         .btn-main:active { opacity: 0.8; }
-        .empty-text { color: #8e8e93; margin-bottom: 15px; font-size: 16px; }
+        .empty-text { color: #8e8e93; margin-bottom: 15px; font-size: 16px; font-weight: 500; }
 
+        /* Tab Bar Bassa */
         .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 75px; background: #aec6cf; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid rgba(0,0,0,0.05); }
-        .tab-item { flex: 1; text-align: center; font-size: 12px; color: black; text-decoration: none; font-weight: 700; display: flex; flex-direction: column; gap: 4px; }
+        .tab-item { flex: 1; text-align: center; font-size: 12px; color: black; text-decoration: none; font-weight: 800; display: flex; flex-direction: column; gap: 4px; text-transform: uppercase; }
         .tab-active { color: white; }
 
+        /* Modal */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 2000; }
         .modal-box { background: white; padding: 25px; border-radius: 20px; width: 85%; max-width: 350px; }
     </style>
@@ -52,6 +56,7 @@
 
         <div class="card">
             <div id="contenitoreLista">Caricamento...</div>
+            
             <div id="comandiLista" style="display: none;">
                 <button class="btn-main" onclick="eliminaAcquistati()">Elimina acquistati</button>
                 <button class="btn-main" onclick="apriModalSvuota()">Svuota lista</button>
@@ -61,13 +66,13 @@
     </div>
 
     <div class="tab-bar">
-    <a href="index.html" class="tab-item">🏠 LISTE</a>
-    <a href="prodotti.html" class="tab-item">🛒 SPESA</a>
-    <!-- ASSICURATI CHE QUESTO LINK SIA CORRETTO -->
-    <a href="coseviaggio.html" class="tab-item">🧳 VIAGGIO</a> 
-    <a href="#" class="tab-item" onclick="logout()">🚪 ESCI</a>
-</div>
+        <a href="index.html" class="tab-item tab-active">🏠 LISTE</a>
+        <a href="prodotti.html" class="tab-item">🛒 SPESA</a>
+        <a href="coseviaggio.html" class="tab-item">🧳 VIAGGIO</a>
+        <a href="#" class="tab-item" onclick="logout()">🚪 ESCI</a>
+    </div>
 
+    <!-- Modal Conferma -->
     <div id="svuotaModal" class="modal-overlay">
         <div class="modal-box">
             <h3>Svuota Lista</h3>
@@ -98,7 +103,7 @@
         }
 
         async function caricaLista() {
-            const tabella = mode === 'spesa' ? 'lista_spesa' : 'lista_viaggio';
+            const tabella = (mode === 'spesa') ? 'lista_spesa' : 'lista_viaggio';
             const div = document.getElementById("contenitoreLista");
             const comandi = document.getElementById("comandiLista");
             div.innerHTML = "Caricamento...";
@@ -107,9 +112,10 @@
             const { data, error } = await query;
 
             if (error || !data || data.length === 0) {
-                const msg = mode === 'spesa' ? "La lista della spesa è vuota" : "La lista del viaggio è vuota";
-                const btnLabel = mode === 'spesa' ? "AGGIUNGI PRODOTTI" : "AGGIUNGI COSE";
-                const pag = mode === 'spesa' ? "prodotti.html" : "coseviaggio.html";
+                const msg = (mode === 'spesa') ? "La lista della spesa è vuota" : "La lista del viaggio è vuota";
+                const btnLabel = (mode === 'spesa') ? "AGGIUNGI PRODOTTI" : "AGGIUNGI COSE";
+                const pag = (mode === 'spesa') ? "prodotti.html" : "coseviaggio.html";
+                
                 div.innerHTML = `<p class="empty-text">${msg}</p>
                                  <button class="btn-main" onclick="window.location.href='${pag}'">${btnLabel}</button>`;
                 comandi.style.display = "none";
@@ -117,17 +123,17 @@
             }
 
             comandi.style.display = "block";
-            document.getElementById('btnRipristina').style.display = mode === 'spesa' ? 'block' : 'none';
+            document.getElementById('btnRipristina').style.display = (mode === 'spesa') ? 'block' : 'none';
 
-            // Ordinamento: prima per categoria (se viaggio) poi per nome
+            // Ordinamento
             data.sort((a, b) => {
                 if (mode === 'viaggio') {
                     const catA = a.categoria || "Extra";
                     const catB = b.categoria || "Extra";
                     if (catA !== catB) return catA.localeCompare(catB);
                 }
-                const nA = mode === 'spesa' ? (a.prodotti?.nome || "") : a.nome;
-                const nB = mode === 'spesa' ? (b.prodotti?.nome || "") : b.nome;
+                const nA = (mode === 'spesa') ? (a.prodotti?.nome || "") : a.nome;
+                const nB = (mode === 'spesa') ? (b.prodotti?.nome || "") : b.nome;
                 return nA.localeCompare(nB);
             });
 
@@ -135,16 +141,15 @@
             let ultimaCategoria = null;
 
             data.forEach(item => {
-                // Aggiungi header categoria per il viaggio
                 if (mode === 'viaggio' && item.categoria !== ultimaCategoria) {
-                    const header = document.createElement("div");
-                    header.className = "categoria-header";
-                    header.innerText = item.categoria || "Extra";
-                    div.appendChild(header);
+                    const h = document.createElement("div");
+                    h.className = "categoria-header";
+                    h.innerText = item.categoria || "Extra";
+                    div.appendChild(h);
                     ultimaCategoria = item.categoria;
                 }
 
-                const nome = mode === 'spesa' ? item.prodotti?.nome : item.nome;
+                const nome = (mode === 'spesa') ? item.prodotti?.nome : item.nome;
                 const riga = document.createElement("div");
                 riga.className = "item";
                 const iconaClasse = item.completato ? 'restore' : 'check';
@@ -160,19 +165,19 @@
         }
 
         async function toggle(id, stato) {
-            const tabella = mode === 'spesa' ? 'lista_spesa' : 'lista_viaggio';
+            const tabella = (mode === 'spesa') ? 'lista_spesa' : 'lista_viaggio';
             await supabaseClient.from(tabella).update({ completato: !stato }).eq('id', id);
             caricaLista();
         }
 
         async function elimina(id) {
-            const tabella = mode === 'spesa' ? 'lista_spesa' : 'lista_viaggio';
+            const tabella = (mode === 'spesa') ? 'lista_spesa' : 'lista_viaggio';
             await supabaseClient.from(tabella).delete().eq('id', id);
             caricaLista();
         }
 
         async function eliminaAcquistati() {
-            const tabella = mode === 'spesa' ? 'lista_spesa' : 'lista_viaggio';
+            const tabella = (mode === 'spesa') ? 'lista_spesa' : 'lista_viaggio';
             await supabaseClient.from(tabella).delete().eq('email_utente', userEmail).eq('completato', true);
             caricaLista();
         }
@@ -181,7 +186,7 @@
         function chiudiModal() { document.getElementById('svuotaModal').style.display = 'none'; }
 
         async function confermaSvuota() {
-            const tabella = mode === 'spesa' ? 'lista_spesa' : 'lista_viaggio';
+            const tabella = (mode === 'spesa') ? 'lista_spesa' : 'lista_viaggio';
             if (mode === 'spesa') {
                 const { data } = await supabaseClient.from('lista_spesa').select('prodotto_id').eq('email_utente', userEmail);
                 if (data) localStorage.setItem('backup_lista', JSON.stringify(data.map(d => d.prodotto_id)));
