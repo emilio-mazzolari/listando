@@ -4,33 +4,63 @@
     <meta charset="UTF-8">
     <title>In Valigia</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <style>
         body { margin: 0; font-family: -apple-system, Helvetica, Arial, sans-serif; background: #f2f2f7; display: flex; justify-content: center; }
-        .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 100px; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .btn-clear { background: #ff3b30; color: white; border: none; padding: 10px 15px; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 11px; text-transform: uppercase; }
-        .card { background: white; border-radius: 16px; padding: 5px 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        .item { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid #f2f2f7; }
-        .item:last-child { border-bottom: none; }
-        .testo { flex-grow: 1; font-size: 16px; cursor: pointer; display: flex; align-items: center; gap: 10px; font-weight: 500; }
-        .completato { text-decoration: line-through; color: #8e8e93; font-weight: 400; }
-        .btn-del { background: #f2f2f7; border: none; font-size: 16px; cursor: pointer; padding: 8px; border-radius: 10px; }
-        .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 75px; background: #aec6cf; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid rgba(0,0,0,0.1); z-index: 1000; }
+        .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 100px; box-sizing: border-box; }
+        .card { background: white; border-radius: 16px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .header-box { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+
+        .item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee; }
+        .testo-prodotto { flex-grow: 1; font-size: 16px; color: #1c1c1e; font-weight: 600; }
+        .testo-prodotto.barrato { text-decoration: line-through; color: #8e8e93; opacity: 0.6; }
+
+        .btn-small { border: none; border-radius: 8px; width: 32px; height: 32px; cursor: pointer; margin-left: 8px; display: inline-flex; align-items: center; justify-content: center; }
+        .check { background-color: #45a049; } 
+        .restore { background-color: #c7c7cc; } 
+        .delete { background-color: #db5151; } 
+        .icon { width: 20px; height: 20px; fill: none; stroke: white; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+
+        /* Bottoni inferiori */
+        .btn-action { width: 100%; padding: 15px; border-radius: 12px; border: none; color: white; font-weight: bold; margin-top: 10px; cursor: pointer; font-size: 13px; text-transform: uppercase; box-sizing: border-box; text-align: center; }
+        .btn-blue { background: #aec6cf; }
+        .btn-gray { background: #99b3bc; }
+        
+        /* Correzione Bottone Aggiungi */
+        .btn-empty { 
+            background: #aec6cf; 
+            margin-top: 20px; 
+            display: block; 
+            text-decoration: none; 
+        }
+
+        .empty-msg { text-align: center; padding: 40px 10px; color: #8e8e93; font-size: 16px; }
+
+        /* Tab Bar */
+        .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 75px; background: #aec6cf; display: flex; justify-content: space-around; align-items: center; z-index: 1000; }
         .tab-item { flex: 1; text-align: center; font-size: 11px; color: #333; text-decoration: none; font-weight: 800; display: flex; flex-direction: column; text-transform: uppercase; }
         .tab-item span { font-size: 22px; margin-bottom: 3px; }
         .tab-active { color: white; }
-        .empty-state { text-align: center; padding: 40px 20px; color: #8e8e93; }
-        .empty-state span { font-size: 40px; display: block; margin-bottom: 10px; }
+
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 2000; }
+        .modal-box { background: white; padding: 25px; border-radius: 20px; width: 80%; max-width: 300px; text-align: center; }
     </style>
 </head>
 <body>
+
     <div class="app">
-        <div class="header">
-            <h2 style="margin:0; font-weight: 800;">🧳 IN VALIGIA</h2>
-            <button class="btn-clear" onclick="svuotaLista()">SVUOTA</button>
+        <div class="header-box"><h2 style="margin:0; font-weight: 800;">🧳 IN VALIGIA</h2></div>
+        
+        <div class="card" id="cardLista">
+            <div id="contenitoreLista">Caricamento...</div>
         </div>
-        <div id="listaEffettiva" class="card">
-            <div class="empty-state">Caricamento...</div>
+
+        <!-- Gruppo Bottoni Sotto -->
+        <div id="controlliLista">
+            <button class="btn-action btn-gray" onclick="eliminaCompletati()">ELIMINA MESSI IN VALIGIA</button>
+            <button class="btn-action btn-gray" onclick="apriModalSvuota()">SVUOTA TUTTA LA VALIGIA</button>
+            <button class="btn-action btn-gray" onclick="ripristinaLista()">RIPRISTINA VALIGIA</button>
         </div>
     </div>
 
@@ -41,39 +71,67 @@
         <a href="#" class="tab-item" onclick="logout()"><span>🚪</span>ESCI</a>
     </div>
 
-    <script>
-      // Cambia la prima riga del tuo script in valigia.html
-const URL = "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1/cose_valigia";
-const KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
-const headers = { "apikey": KEY, "Content-Type": "application/json", "Authorization": "Bearer " + KEY };
-const userEmail = localStorage.getItem('userEmail');
+    <div id="svuotaModal" class="modal-overlay">
+        <div class="modal-box">
+            <h3>Svuota Valigia</h3>
+            <p>Sei sicuro di voler cancellare tutto?</p>
+            <button class="btn-action btn-blue" onclick="confermaSvuota()">SÌ, SVUOTA</button>
+            <button class="btn-action btn-gray" onclick="chiudiModal()" style="color:white">ANNULLA</button>
+        </div>
+    </div>
 
-async function caricaLista() {
-    try {
-        // Ora punta a cose_valigia
-        const res = await fetch(`${URL}?email_utente=eq.${userEmail}&order=nome.asc`, { headers });
-        const dati = await res.json();
-        const container = document.getElementById("listaEffettiva");
-        
-        if (!Array.isArray(dati) || dati.length === 0) {
-            container.innerHTML = `<div class="empty-state"><span>📭</span><p>La valigia è vuota.</p></div>`;
-            return;
+    <script>
+        const URL = "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1/cose_valigia";
+        const KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
+        const headers = { "apikey": KEY, "Content-Type": "application/json", "Authorization": "Bearer " + KEY };
+        const userEmail = localStorage.getItem('userEmail');
+
+        async function caricaLista() {
+            try {
+                const res = await fetch(`${URL}?email_utente=eq.${userEmail}&order=nome.asc`, { headers });
+                const data = await res.json();
+                const div = document.getElementById("contenitoreLista");
+                const controlli = document.getElementById("controlliLista");
+
+                if (!data || data.length === 0) {
+                    div.innerHTML = `
+                        <div class="empty-msg">
+                            La valigia è vuota<br>
+                            <a href="cosevaligia.html" class="btn-action btn-empty">AGGIUNGI COSE</a>
+                        </div>`;
+                    controlli.style.display = "none";
+                    return;
+                }
+
+                controlli.style.display = "block";
+                div.innerHTML = "";
+                
+                data.forEach(item => {
+                    const riga = document.createElement("div");
+                    riga.className = "item";
+                    
+                    const iconaClasse = item.completato ? 'restore' : 'check';
+                    const svgIcona = item.completato 
+                        ? `<path d="M9 14l-4-4 4-4M5 10h11a4 4 0 110 8h-1"/>` 
+                        : `<path d="M5 12l5 5L20 7"/>`;
+
+                    riga.innerHTML = `
+                        <span class="testo-prodotto ${item.completato ? 'barrato' : ''}">${item.nome}</span>
+                        <div style="display:flex;">
+                            <button class="btn-small ${iconaClasse}" onclick="toggle(${item.id}, ${item.completato})">
+                                <svg class="icon" viewBox="0 0 24 24">${svgIcona}</svg>
+                            </button>
+                            <button class="btn-small delete" onclick="elimina(${item.id})">
+                                <svg class="icon" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                            </button>
+                        </div>
+                    `;
+                    div.appendChild(riga);
+                });
+            } catch (e) { console.error(e); }
         }
 
-        container.innerHTML = "";
-        dati.forEach(item => {
-            const riga = document.createElement("div");
-            riga.className = "item";
-            riga.innerHTML = `
-                <div class="testo ${item.completato ? 'completato' : ''}" onclick="toggleCheck(${item.id}, ${item.completato})">
-                    <span>${item.completato ? '✅' : '⬜'}</span> ${item.nome}
-                </div>
-                <button class="btn-del" onclick="eliminaDallaLista(${item.id})">🗑️</button>`;
-            container.appendChild(riga);
-        });
-    } catch (e) { console.error("Errore:", e); }
-}
-        async function toggleCheck(id, stato) {
+        async function toggle(id, stato) {
             await fetch(`${URL}?id=eq.${id}`, {
                 method: "PATCH", headers,
                 body: JSON.stringify({ completato: !stato })
@@ -81,20 +139,44 @@ async function caricaLista() {
             caricaLista();
         }
 
-        async function eliminaDallaLista(id) {
+        async function elimina(id) {
             await fetch(`${URL}?id=eq.${id}`, { method: "DELETE", headers });
             caricaLista();
         }
 
-        async function svuotaLista() {
-            if(confirm("Svuotare tutto?")) {
-                await fetch(`${URL}?email_utente=eq.${userEmail}`, { method: "DELETE", headers });
+        async function eliminaCompletati() {
+            if (confirm("Eliminare le cose già messe in valigia?")) {
+                await fetch(`${URL}?email_utente=eq.${userEmail}&completato=eq.true`, { method: "DELETE", headers });
                 caricaLista();
             }
         }
 
+        async function ripristinaLista() {
+            if (confirm("Vuoi rimettere tutto come 'da preparare'?")) {
+                await fetch(`${URL}?email_utente=eq.${userEmail}`, {
+                    method: "PATCH", headers,
+                    body: JSON.stringify({ completato: false })
+                });
+                caricaLista();
+            }
+        }
+
+        function apriModalSvuota() { document.getElementById('svuotaModal').style.display = 'flex'; }
+        function chiudiModal() { document.getElementById('svuotaModal').style.display = 'none'; }
+        
+        async function confermaSvuota() {
+            await fetch(`${URL}?email_utente=eq.${userEmail}`, { method: "DELETE", headers });
+            chiudiModal();
+            caricaLista();
+        }
+
         function logout() { localStorage.clear(); window.location.href = 'login.html'; }
-        if (!userEmail) { window.location.href = 'login.html'; } else { caricaLista(); }
+        
+        if (!userEmail) { 
+            window.location.href = 'login.html'; 
+        } else {
+            caricaLista();
+        }
     </script>
 </body>
 </html>
