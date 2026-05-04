@@ -9,36 +9,23 @@
     <style>
         body { margin: 0; font-family: -apple-system, Helvetica, Arial, sans-serif; background: #f2f2f7; display: flex; justify-content: center; }
         .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 100px; box-sizing: border-box; }
-        
-        /* Card e Lista */
         .card { background: white; border-radius: 16px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         .header-box { display: flex; align-items: center; margin-bottom: 20px; }
         .item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f2f2f7; }
         .item:last-child { border-bottom: none; }
-        
         .testo-prodotto { flex-grow: 1; font-size: 16px; color: #1c1c1e; font-weight: 600; }
         .testo-prodotto.barrato { text-decoration: line-through; color: #8e8e93; opacity: 0.6; }
-
-        /* Bottoni quadrati (V e X) */
         .btn-small { border: none; border-radius: 8px; width: 32px; height: 32px; cursor: pointer; margin-left: 8px; display: inline-flex; align-items: center; justify-content: center; }
         .check { background-color: #45a049; } 
         .restore { background-color: #c7c7cc; } 
         .delete { background-color: #db5151; } 
         .icon { width: 20px; height: 20px; fill: none; stroke: white; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
-
-        /* Bottoni Azione Grigi */
         .btn-action { width: 100%; padding: 15px; border-radius: 12px; border: none; color: white; font-weight: bold; margin-top: 10px; cursor: pointer; font-size: 13px; text-transform: uppercase; background: #99b3bc; }
-        
-        /* Empty State */
         .empty-msg { text-align: center; padding: 40px 10px; color: #8e8e93; font-size: 16px; }
-
-        /* Tab Bar */
         .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 75px; background: #aec6cf; display: flex; justify-content: space-around; align-items: center; z-index: 1000; }
         .tab-item { flex: 1; text-align: center; font-size: 11px; color: #333; text-decoration: none; font-weight: 800; display: flex; flex-direction: column; }
         .tab-item span { font-size: 22px; margin-bottom: 3px; }
         .tab-active { color: white; }
-
-        /* Modal */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 2000; }
         .modal-box { background: white; padding: 25px; border-radius: 20px; width: 80%; max-width: 300px; text-align: center; }
     </style>
@@ -61,7 +48,6 @@
         </div>
     </div>
 
-    <!-- Barra di navigazione -->
     <div class="tab-bar">
         <a href="index.html" class="tab-item"><span>🏠</span>HOME</a>
         <a href="valigia.html" class="tab-item tab-active"><span>💼</span>VALIGIA</a>
@@ -69,7 +55,6 @@
         <a href="#" class="tab-item" onclick="logout()"><span>🚪</span>ESCI</a>
     </div>
 
-    <!-- Modal per svuotare -->
     <div id="svuotaModal" class="modal-overlay">
         <div class="modal-box">
             <h3>Svuota Valigia</h3>
@@ -80,9 +65,15 @@
     </div>
 
     <script>
+        // URL base della tabella (senza slash finale)
         const URL_SUPA = "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1/cose_valigia";
         const KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
-        const headers = { "apikey": KEY, "Content-Type": "application/json", "Authorization": "Bearer " + KEY };
+        const headers = { 
+            "apikey": KEY, 
+            "Content-Type": "application/json", 
+            "Authorization": "Bearer " + KEY,
+            "Prefer": "return=minimal" 
+        };
         const userEmail = localStorage.getItem('userEmail');
 
         async function caricaLista() {
@@ -104,11 +95,10 @@
                 dati.forEach(item => {
                     const riga = document.createElement("div");
                     riga.className = "item";
-                    
                     const btnStatus = item.completato ? 'restore' : 'check';
                     const svgIcon = item.completato 
-                        ? '<path d="M9 14l-4-4 4-4M5 10h11a4 4 0 110 8h-1"/>' // Icona ripristina
-                        : '<path d="M5 12l5 5L20 7"/>'; // Icona V spunta
+                        ? '<path d="M9 14l-4-4 4-4M5 10h11a4 4 0 110 8h-1"/>' 
+                        : '<path d="M5 12l5 5L20 7"/>';
 
                     riga.innerHTML = `
                         <span class="testo-prodotto ${item.completato ? 'barrato' : ''}">${item.nome}</span>
@@ -123,50 +113,67 @@
                     `;
                     div.appendChild(riga);
                 });
-            } catch (e) { console.error(e); }
+            } catch (e) { console.error("Errore caricamento:", e); }
         }
 
         async function toggleStatus(id, stato) {
-            await fetch(`${URL_SUPA}?id=eq.${id}`, {
-                method: "PATCH", headers,
-                body: JSON.stringify({ completato: !stato })
-            });
-            caricaLista();
+            try {
+                const res = await fetch(`${URL_SUPA}?id=eq.${id}`, {
+                    method: "PATCH",
+                    headers: headers,
+                    body: JSON.stringify({ completato: !stato })
+                });
+                if (res.ok) caricaLista();
+                else console.error("Errore Patch:", res.statusText);
+            } catch (e) { console.error(e); }
         }
 
         async function eliminaSingolo(id) {
-            await fetch(`${URL_SUPA}?id=eq.${id}`, { method: "DELETE", headers });
-            caricaLista();
+            try {
+                const res = await fetch(`${URL_SUPA}?id=eq.${id}`, { 
+                    method: "DELETE", 
+                    headers: headers 
+                });
+                if (res.ok) caricaLista();
+            } catch (e) { console.error(e); }
         }
 
         async function eliminaMessi() {
             if (confirm("Eliminare gli oggetti già messi in valigia?")) {
-                await fetch(`${URL_SUPA}?email_utente=eq.${userEmail}&completato=eq.true`, { method: "DELETE", headers });
-                caricaLista();
+                const res = await fetch(`${URL_SUPA}?email_utente=eq.${userEmail}&completato=eq.true`, { 
+                    method: "DELETE", 
+                    headers: headers 
+                });
+                if (res.ok) caricaLista();
             }
         }
 
         async function ripristinaValigia() {
             if (confirm("Rimettere tutto come da preparare?")) {
-                await fetch(`${URL_SUPA}?email_utente=eq.${userEmail}`, {
-                    method: "PATCH", headers,
+                const res = await fetch(`${URL_SUPA}?email_utente=eq.${userEmail}`, {
+                    method: "PATCH",
+                    headers: headers,
                     body: JSON.stringify({ completato: false })
                 });
+                if (res.ok) caricaLista();
+            }
+        }
+
+        function apriModalSvuota() { document.getElementById('svuotaModal').style.display = 'flex'; }
+        function chiudiModal() { document.getElementById('svuotaModal').style.display = 'none'; }
+        
+        async function confermaSvuota() {
+            const res = await fetch(`${URL_SUPA}?email_utente=eq.${userEmail}`, { 
+                method: "DELETE", 
+                headers: headers 
+            });
+            if (res.ok) {
+                chiudiModal();
                 caricaLista();
             }
         }
 
-        // Gestione Modal Svuota
-        function apriModalSvuota() { document.getElementById('svuotaModal').style.display = 'flex'; }
-        function chiudiModal() { document.getElementById('svuotaModal').style.display = 'none'; }
-        async function confermaSvuota() {
-            await fetch(`${URL_SUPA}?email_utente=eq.${userEmail}`, { method: "DELETE", headers });
-            chiudiModal();
-            caricaLista();
-        }
-
         function logout() { localStorage.clear(); window.location.href = 'login.html'; }
-        
         if (!userEmail) { window.location.href = 'login.html'; } else { caricaLista(); }
     </script>
 </body>
