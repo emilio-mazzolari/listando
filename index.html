@@ -4,49 +4,27 @@
     <meta charset="UTF-8">
     <title>Lista Spesa</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="manifest" href="manifest.json">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* Mantieni pure tutto il tuo CSS originale qui */
-        body { margin: 0; font-family: -apple-system, Helvetica, Arial, sans-serif; background: #f2f2f7; display: flex; justify-content: center; }
-        .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 90px; }
+        body { margin: 0; font-family: -apple-system, sans-serif; background: #f2f2f7; display: flex; justify-content: center; }
+        .app { width: 100%; max-width: 420px; padding: 20px; }
         .card { background: white; border-radius: 16px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        .header-box { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        #debug-box { font-size: 10px; color: red; background: #eee; padding: 5px; margin-bottom: 10px; display: block; border-radius: 5px; }
         .item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee; }
-        .testo-prodotto { flex-grow: 1; font-size: 16px; color: #1c1c1e; font-weight: 600; }
-        .testo-prodotto.barrato { text-decoration: line-through; color: #8e8e93; opacity: 0.6; }
-        .btn-small { border: none; border-radius: 8px; width: 32px; height: 32px; cursor: pointer; margin-left: 8px; display: inline-flex; align-items: center; justify-content: center; }
-        .check { background-color: #45a049; } .restore { background-color: #c7c7cc; } .delete { background-color: #db5151; }
-        .icon { width: 22px; height: 22px; fill: none; stroke: white; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
-        .btn-orange { width: 100%; padding: 15px; border-radius: 12px; border: none; background: #aec6cf; color: white; font-weight: bold; margin-top: 15px; cursor: pointer; font-size: 16px; }
+        .btn-orange { width: 100%; padding: 15px; border-radius: 12px; border: none; background: #aec6cf; color: white; font-weight: bold; margin-top: 10px; }
         .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 70px; background: #aec6cf; display: flex; justify-content: space-around; align-items: center; }
-        .tab-item { flex: 1; text-align: center; font-size: 14px; color: black; text-decoration: none; font-weight: 600; }
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; }
-        .modal-box { background: white; padding: 25px; border-radius: 20px; width: 85%; max-width: 350px; text-align: center; }
+        .tab-item { text-decoration: none; color: black; font-weight: 600; }
     </style>
 </head>
 <body>
     <div class="app">
-        <div class="header-box"><h1 style="margin:0;">🛒 Lista della spesa</h1></div>
+        <!-- Riquadro di debug per capire cosa succede -->
+        <div id="debug-box">Stato: Inizializzazione...</div>
+
+        <div class="header-box"><h1>🛒 Lista Spesa</h1></div>
         <div class="card">
-            <div id="contenitoreLista">Inizializzazione sessione...</div>
-            <button class="btn-orange" style="background:#99b3bc" onclick="eliminaAcquistati()">ELIMINA ACQUISTATI</button>
-            <button class="btn-orange" onclick="apriModalSvuota()">SVUOTA TUTTO</button>
-        </div>
-    </div>
-
-    <div class="tab-bar">
-        <a href="index.html" class="tab-item" style="font-weight:900">🛒 LISTA</a>
-        <a href="prodotti.html" class="tab-item">📦 PRODOTTI</a>
-        <a href="#" class="tab-item" onclick="logout()">🚪 ESCI</a>
-    </div>
-
-    <!-- I tuoi modali rimangono uguali -->
-    <div id="svuotaModal" class="modal-overlay">
-        <div class="modal-box">
-            <h3>Svuota Lista</h3>
-            <button class="btn-orange" onclick="confermaSvuota()">SI, SVUOTA TUTTO</button>
-            <button class="btn-orange" style="background:#e5e5ea; color:#8e8e93" onclick="chiudiModal()">ANNULLA</button>
+            <div id="contenitoreLista">Caricamento prodotti...</div>
+            <button class="btn-orange" onclick="logout()">ESCI</button>
         </div>
     </div>
 
@@ -54,105 +32,62 @@
         const SUPABASE_URL = "https://eejdpophfxsrqdvsucye.supabase.co";
         const SUPABASE_KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const debug = document.getElementById('debug-box');
 
-        let userEmail = null;
-
-        // 1. GESTIONE SESSIONE SICURA
-        async function inizializzaApp() {
-            const { data: { session } } = await supabaseClient.auth.getSession();
+        async function inizializza() {
+            debug.innerText = "Controllo sessione...";
             
+            // 1. Chiediamo a Supabase se c'è una sessione attiva (anche da Google)
+            const { data: { session }, error } = await supabaseClient.auth.getSession();
+            
+            if (error) {
+                debug.innerText = "Errore sessione: " + error.message;
+            }
+
             if (session) {
-                userEmail = session.user.email;
-                localStorage.setItem('userEmail', userEmail);
-                caricaLista();
+                debug.innerText = "Sessione trovata! Email: " + session.user.email;
+                localStorage.setItem('userEmail', session.user.email);
+                caricaLista(session.user.email);
             } else {
-                // Se non c'è sessione Supabase, controlliamo il vecchio metodo localStorage
-                const legacyEmail = localStorage.getItem('userEmail');
-                if (legacyEmail) {
-                    userEmail = legacyEmail;
-                    caricaLista();
+                debug.innerText = "Nessuna sessione. Controllo LocalStorage...";
+                const local = localStorage.getItem('userEmail');
+                if (local) {
+                    debug.innerText = "Trovata email locale: " + local;
+                    caricaLista(local);
                 } else {
-                    window.location.href = 'login.html';
+                    debug.innerText = "Utente non loggato. Redirect a login...";
+                    // Aspettiamo 1 secondo per farti leggere il debug prima di scappare alla login
+                    setTimeout(() => { window.location.href = 'login.html'; }, 1500);
                 }
             }
         }
 
-        async function caricaLista() {
+        async function caricaLista(email) {
             const div = document.getElementById("contenitoreLista");
-            try {
-                const { data, error } = await supabaseClient
-                    .from('lista_spesa')
-                    .select('*, prodotti(nome)')
-                    .eq('email_utente', userEmail)
-                    .order('id', { ascending: false });
+            const { data, error } = await supabaseClient
+                .from('lista_spesa')
+                .select('*, prodotti(nome)')
+                .eq('email_utente', email);
 
-                if (error) throw error;
-
-                if (!data || data.length === 0) {
-                    div.innerHTML = "La lista è vuota.";
-                    return;
-                }
-
-                div.innerHTML = "";
-                data.forEach(item => {
-                    const riga = document.createElement("div");
-                    riga.className = "item";
-                    const iconaClasse = item.completato ? 'restore' : 'check';
-                    const svgIcona = item.completato ? `<path d="M9 14l-4-4 4-4M5 10h11a4 4 0 110 8h-1"/>` : `<path d="M5 12l5 5L20 7"/>`;
-
-                    riga.innerHTML = `
-                        <span class="testo-prodotto ${item.completato ? 'barrato' : ''}">${item.prodotti?.nome || 'Prodotto rimosso'}</span>
-                        <div style="display:flex;">
-                            <button class="btn-small ${iconaClasse}" onclick="toggle(${item.id}, ${item.completato})">
-                                <svg class="icon" viewBox="0 0 24 24">${svgIcona}</svg>
-                            </button>
-                            <button class="btn-small delete" onclick="elimina(${item.id})">
-                                <svg class="icon" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
-                            </button>
-                        </div>
-                    `;
-                    div.appendChild(riga);
-                });
-            } catch (e) {
-                div.innerHTML = "Errore nel caricamento.";
-                console.error(e);
+            if (error) {
+                div.innerHTML = "Errore DB: " + error.message;
+                return;
             }
-        }
-
-        async function toggle(id, stato) {
-            await supabaseClient.from('lista_spesa').update({ completato: !stato }).eq('id', id);
-            caricaLista();
-        }
-
-        async function elimina(id) {
-            await supabaseClient.from('lista_spesa').delete().eq('id', id);
-            caricaLista();
-        }
-
-        async function eliminaAcquistati() {
-            if (confirm("Rimuovere i prodotti acquistati?")) {
-                await supabaseClient.from('lista_spesa').delete().eq('email_utente', userEmail).eq('completato', true);
-                caricaLista();
+            
+            if (!data || data.length === 0) {
+                div.innerHTML = "La lista è vuota.";
+            } else {
+                div.innerHTML = data.map(item => `<div class="item">${item.prodotti?.nome || 'Prodotto'}</div>`).join('');
             }
-        }
-
-        function apriModalSvuota() { document.getElementById('svuotaModal').style.display = 'flex'; }
-        function chiudiModal() { document.getElementById('svuotaModal').style.display = 'none'; }
-
-        async function confermaSvuota() {
-            await supabaseClient.from('lista_spesa').delete().eq('email_utente', userEmail);
-            chiudiModal();
-            caricaLista();
         }
 
         async function logout() {
             await supabaseClient.auth.signOut();
-            localStorage.removeItem('userEmail');
+            localStorage.clear();
             window.location.href = 'login.html';
         }
 
-        // Avvio
-        inizializzaApp();
+        inizializza();
     </script>
 </body>
 </html>
