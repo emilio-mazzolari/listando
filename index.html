@@ -4,49 +4,79 @@
     <meta charset="UTF-8">
     <title>Lista Spesa</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="manifest.json">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { margin: 0; font-family: -apple-system, sans-serif; background: #f2f2f7; display: flex; justify-content: center; }
+        body { margin: 0; font-family: -apple-system, Helvetica, Arial, sans-serif; background: #f2f2f7; display: flex; justify-content: center; }
         .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 90px; }
         .card { background: white; border-radius: 16px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         .header-box { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        
         .item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee; }
         .testo-prodotto { flex-grow: 1; font-size: 16px; color: #1c1c1e; font-weight: 600; }
         .testo-prodotto.barrato { text-decoration: line-through; color: #8e8e93; opacity: 0.6; }
-        .btn-small { border: none; border-radius: 8px; width: 32px; height: 32px; cursor: pointer; margin-left: 8px; display: inline-flex; align-items: center; justify-content: center; }
-        .check { background-color: #45a049; } .restore { background-color: #c7c7cc; } .delete { background-color: #db5151; }
-        .icon { width: 22px; height: 22px; fill: none; stroke: white; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+        
+        .btn-small { 
+            border: none; 
+            border-radius: 8px; 
+            width: 32px; 
+            height: 32px; 
+            cursor: pointer; 
+            margin-left: 8px; 
+            display: inline-flex; 
+            align-items: center; 
+            justify-content: center; 
+            transition: filter 0.1s;
+        }
+        .btn-small:active { filter: brightness(0.8); }
+
+        .check { background-color: #45a049; } 
+        .restore { background-color: #c7c7cc; } 
+        .delete { background-color: #db5151; } 
+        
+        .icon { width: 22px; height: 22px; fill: none; stroke: white; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
+
         .btn-orange { width: 100%; padding: 15px; border-radius: 12px; border: none; background: #aec6cf; color: white; font-weight: bold; margin-top: 15px; cursor: pointer; font-size: 16px; }
-        .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 70px; background: #aec6cf; display: flex; justify-content: space-around; align-items: center; z-index: 1000; }
-        .tab-item { flex: 1; text-align: center; font-size: 14px; color: black; text-decoration: none; font-weight: 600; text-transform: uppercase; }
+        .btn-secondary { background: #99b3bc; } 
+
+        .tab-bar { 
+            position: fixed; bottom: 0; left: 0; right: 0; height: 70px; 
+            background: #aec6cf; border-top: 1px solid #99b3bc; 
+            display: flex; justify-content: space-around; align-items: center; 
+            z-index: 1000;
+        }
+        .tab-item { 
+            flex: 1; text-align: center; font-size: 14px; color: black; 
+            text-decoration: none; text-transform: uppercase; font-weight: 600;
+        }
+        .tab-active { font-weight: 900; }
+
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 2000; }
         .modal-box { background: white; padding: 25px; border-radius: 20px; width: 85%; max-width: 350px; text-align: center; }
     </style>
 </head>
 <body>
     <div class="app">
-        <div class="header-box"><h1 style="margin:0;">🛒 Lista Spesa</h1></div>
-        
+        <div class="header-box"><h1 style="margin:0;">🛒 Lista della spesa</h1></div>
         <div class="card">
-            <div id="contenitoreLista">Caricamento prodotti...</div>
-            <button class="btn-orange" style="background:#99b3bc" onclick="eliminaAcquistati()">ELIMINA ACQUISTATI</button>
+            <div id="contenitoreLista">Caricamento...</div>
+            <button class="btn-orange btn-secondary" onclick="eliminaAcquistati()">ELIMINA PRODOTTI ACQUISTATI</button>
             <button class="btn-orange" onclick="apriModalSvuota()">SVUOTA TUTTA LA LISTA</button>
         </div>
     </div>
 
     <div class="tab-bar">
-        <a href="index.html" class="tab-item" style="font-weight:900">🛒 LISTA</a>
+        <a href="index.html" class="tab-item tab-active">🛒 LISTA</a>
         <a href="prodotti.html" class="tab-item">📦 PRODOTTI</a>
         <a href="#" class="tab-item" onclick="logout()">🚪 ESCI</a>
     </div>
 
-    <!-- MODALE SVUOTA -->
     <div id="svuotaModal" class="modal-overlay">
         <div class="modal-box">
             <h3>Svuota Lista</h3>
-            <p>Vuoi cancellare tutto?</p>
-            <button class="btn-orange" onclick="confermaSvuota()">SI, SVUOTA</button>
-            <button class="btn-orange" style="background:#e5e5ea; color:#8e8e93" onclick="chiudiModal()">ANNULLA</button>
+            <p>Sei sicuro di voler cancellare tutti i prodotti dalla lista?</p>
+            <button class="btn-orange" onclick="confermaSvuota()">SI, SVUOTA TUTTO</button>
+            <button class="btn-orange" style="background:#e5e5ea; color:#8e8e93; margin-top:10px;" onclick="chiudiModal()">ANNULLA</button>
         </div>
     </div>
 
@@ -55,68 +85,63 @@
         const SUPABASE_KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        let currentUserEmail = null;
+        let userEmail = localStorage.getItem('userEmail');
 
         async function inizializza() {
             const { data: { session } } = await supabaseClient.auth.getSession();
-            
             if (session) {
-                currentUserEmail = session.user.email;
-                localStorage.setItem('userEmail', currentUserEmail);
-                caricaLista();
+                userEmail = session.user.email;
+                localStorage.setItem('userEmail', userEmail);
+            }
+            
+            if (!userEmail) {
+                window.location.href = 'login.html';
             } else {
-                const localEmail = localStorage.getItem('userEmail');
-                if (localEmail) {
-                    currentUserEmail = localEmail;
-                    caricaLista();
-                } else {
-                    window.location.href = 'login.html';
-                }
+                caricaLista();
             }
         }
 
         async function caricaLista() {
-            const div = document.getElementById("contenitoreLista");
-            const { data, error } = await supabaseClient
-                .from('lista_spesa')
-                .select('*, prodotti(nome)')
-                .eq('email_utente', currentUserEmail);
+            try {
+                const { data, error } = await supabaseClient
+                    .from('lista_spesa')
+                    .select('*, prodotti(nome)')
+                    .eq('email_utente', userEmail);
 
-            if (error) {
-                div.innerHTML = "Errore: " + error.message;
-                return;
-            }
+                if (error) throw error;
 
-            if (!data || data.length === 0) {
-                div.innerHTML = "La lista è vuota.";
-                return;
-            }
+                const div = document.getElementById("contenitoreLista");
+                if (!data || !data.length) {
+                    div.innerHTML = "La lista è vuota.";
+                    return;
+                }
 
-            // Ordinamento alfabetico
-            data.sort((a, b) => (a.prodotti?.nome || "").localeCompare(b.prodotti?.nome || ""));
+                data.sort((a, b) => (a.prodotti?.nome || "").localeCompare(b.prodotti?.nome || ""));
 
-            div.innerHTML = "";
-            data.forEach(item => {
-                const riga = document.createElement("div");
-                riga.className = "item";
-                const iconaClasse = item.completato ? 'restore' : 'check';
-                const svgIcona = item.completato 
-                    ? `<path d="M9 14l-4-4 4-4M5 10h11a4 4 0 110 8h-1"/>` 
-                    : `<path d="M5 12l5 5L20 7"/>`;
+                div.innerHTML = "";
+                data.forEach(item => {
+                    const riga = document.createElement("div");
+                    riga.className = "item";
+                    
+                    const iconaClasse = item.completato ? 'restore' : 'check';
+                    const svgIcona = item.completato 
+                        ? `<path d="M9 14l-4-4 4-4M5 10h11a4 4 0 110 8h-1"/>` 
+                        : `<path d="M5 12l5 5L20 7"/>`;
 
-                riga.innerHTML = `
-                    <span class="testo-prodotto ${item.completato ? 'barrato' : ''}">${item.prodotti?.nome || 'Prodotto'}</span>
-                    <div style="display:flex;">
-                        <button class="btn-small ${iconaClasse}" onclick="toggle(${item.id}, ${item.completato})">
-                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="white"><path d="${svgIcona}"/></svg>
-                        </button>
-                        <button class="btn-small delete" onclick="elimina(${item.id})">
-                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="white"><path d="M18 6L6 18M6 6l12 12"/></svg>
-                        </button>
-                    </div>
-                `;
-                div.appendChild(riga);
-            });
+                    riga.innerHTML = `
+                        <span class="testo-prodotto ${item.completato ? 'barrato' : ''}">${item.prodotti?.nome || 'Prodotto'}</span>
+                        <div style="display:flex;">
+                            <button class="btn-small ${iconaClasse}" onclick="toggle(${item.id}, ${item.completato})">
+                                <svg class="icon" viewBox="0 0 24 24">${svgIcona}</svg>
+                            </button>
+                            <button class="btn-small delete" onclick="elimina(${item.id})">
+                                <svg class="icon" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                            </button>
+                        </div>
+                    `;
+                    div.appendChild(riga);
+                });
+            } catch (e) { console.error(e); }
         }
 
         async function toggle(id, stato) {
@@ -130,8 +155,8 @@
         }
 
         async function eliminaAcquistati() {
-            if (confirm("Rimuovere prodotti acquistati?")) {
-                await supabaseClient.from('lista_spesa').delete().eq('email_utente', currentUserEmail).eq('completato', true);
+            if (confirm("Vuoi rimuovere dalla lista tutti i prodotti già acquistati?")) {
+                await supabaseClient.from('lista_spesa').delete().eq('email_utente', userEmail).eq('completato', true);
                 caricaLista();
             }
         }
@@ -140,7 +165,7 @@
         function chiudiModal() { document.getElementById('svuotaModal').style.display = 'none'; }
 
         async function confermaSvuota() {
-            await supabaseClient.from('lista_spesa').delete().eq('email_utente', currentUserEmail);
+            await supabaseClient.from('lista_spesa').delete().eq('email_utente', userEmail);
             chiudiModal();
             caricaLista();
         }
