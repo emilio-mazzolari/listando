@@ -1,19 +1,103 @@
-<!-- Parte del caricamento prodotti in cose.html -->
-<script>
-    async function caricaCoseviaggio() {
-        const { data } = await supabaseClient
-            .from('prodotti')
-            .select('*')
-            .eq('tipo', 'viaggio'); // MOSTRA SOLO OGGETTI VIAGGIO
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Cose da Portare</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { margin: 0; font-family: -apple-system, sans-serif; background: #f2f2f7; padding: 20px; padding-bottom: 90px; }
+        h1 { color: #1c1c1e; font-size: 24px; margin-bottom: 5px; }
+        p { color: #8e8e93; margin-top: 0; margin-bottom: 20px; }
+        
+        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        
+        /* BOTTONE VIAGGIO: Colore distinto (Verde Salvia/Petrolio) */
+        .btn-viaggio { 
+            background: #99b3bc; 
+            color: white; 
+            border: none; 
+            padding: 20px 10px; 
+            border-radius: 12px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            font-size: 14px;
+            text-transform: uppercase;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            transition: transform 0.1s;
+        }
+        .btn-viaggio:active { transform: scale(0.95); opacity: 0.8; }
 
-        const div = document.getElementById("listaCoseviaggio");
-        div.innerHTML = "";
-        data.forEach(p => {
-            const btn = document.createElement("button");
-            btn.className = "btn-viaggio"; // Magari un colore diverso, es. verde
-            btn.innerText = p.nome;
-            btn.onclick = () => aggiungiALista(p.id, 'viaggio'); // INVIA COME VIAGGIO
-            div.appendChild(btn);
-        });
-    }
-</script>
+        /* TAB BAR */
+        .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 70px; background: #aec6cf; display: flex; justify-content: space-around; align-items: center; z-index: 1000; }
+        .tab-item { flex: 1; text-align: center; font-size: 12px; color: black; text-decoration: none; font-weight: 600; text-transform: uppercase; }
+        .tab-active { font-weight: 900; }
+    </style>
+</head>
+<body>
+    <h1>🧳 Cose da portare</h1>
+    <p>Seleziona gli oggetti per il tuo viaggio</p>
+
+    <div id="listaCoseviaggio" class="grid">Caricamento oggetti...</div>
+
+    <div class="tab-bar">
+        <a href="index.html" class="tab-item">🏠 HOME</a>
+        <a href="prodotti.html" class="tab-item">🛒 +SPESA</a>
+        <a href="coseviaggio.html" class="tab-item tab-active">🧳 +VIAGGIO</a>
+    </div>
+
+    <script>
+        const SUPABASE_URL = "https://eejdpophfxsrqdvsucye.supabase.co";
+        const SUPABASE_KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const userEmail = localStorage.getItem('userEmail');
+
+        async function caricaCoseviaggio() {
+            const { data, error } = await supabaseClient
+                .from('prodotti')
+                .select('*')
+                .eq('tipo', 'viaggio'); // FILTRO RIGIDO VIAGGIO
+
+            const div = document.getElementById("listaCoseviaggio");
+            div.innerHTML = "";
+
+            if (error) {
+                div.innerHTML = "Errore nel caricamento.";
+                return;
+            }
+
+            data.forEach(p => {
+                const btn = document.createElement("button");
+                btn.className = "btn-viaggio";
+                btn.innerText = p.nome;
+                btn.onclick = () => aggiungiALista(p.id, 'viaggio');
+                div.appendChild(btn);
+            });
+        }
+
+        async function aggiungiALista(prodottoId, categoria) {
+            const { error } = await supabaseClient.from('lista_spesa').insert([{ 
+                prodotto_id: prodottoId, 
+                email_utente: userEmail, 
+                categoria: categoria, 
+                completato: false 
+            }]);
+
+            if (error) {
+                alert("Errore nell'aggiunta!");
+            } else {
+                // Feedback visivo leggero invece di un alert invasivo
+                console.log("Aggiunto!");
+                // Opzionale: alert("Aggiunto!");
+            }
+        }
+
+        // Controllo sessione ed esecuzione
+        if (!userEmail) {
+            window.location.href = 'login.html';
+        } else {
+            caricaCoseviaggio();
+        }
+    </script>
+</body>
+</html>
