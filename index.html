@@ -189,10 +189,12 @@ async function confermaSvuota() {
             document.getElementById('alertModal').style.display = 'none';
         }
 
-        function logout() {
-            localStorage.removeItem('userEmail');
-            window.location.href = 'login.html';
-        }
+     function logout() {
+    // Se hai importato supabase-js anche in index.html, aggiungi:
+    // supabase.auth.signOut(); 
+    localStorage.removeItem('userEmail');
+    window.location.href = 'login.html';
+}
 
         caricaLista();
     </script>
