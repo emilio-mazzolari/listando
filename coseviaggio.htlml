@@ -7,43 +7,50 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { margin: 0; font-family: -apple-system, sans-serif; background: #f2f2f7; padding: 15px; padding-bottom: 90px; }
+        h1 { margin-bottom: 5px; }
+        
+        .titolo-categoria { 
+            font-size: 14px; color: #8e8e93; text-transform: uppercase; 
+            margin: 25px 0 10px 5px; font-weight: bold; width: 100%;
+            border-bottom: 1px solid #d1d1d6; padding-bottom: 5px;
+        }
 
-/* Titolo della categoria */
-.titolo-categoria { 
-    font-size: 14px; color: #8e8e93; text-transform: uppercase; 
-    margin: 20px 0 10px 5px; font-weight: bold; width: 100%;
-}
+        .grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); 
+            gap: 8px; 
+        }
 
-.grid { 
-    display: grid; 
-    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); 
-    gap: 8px; 
-}
+        .btn-viaggio { 
+            background: white;
+            color: #1c1c1e; 
+            border: 1px solid #d1d1d6; 
+            padding: 12px 5px; 
+            border-radius: 10px; 
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            text-transform: capitalize;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
 
-.btn-viaggio { 
-    background: white; /* Sfondo bianco per pulizia */
-    color: #1c1c1e; 
-    border: 1px solid #d1d1d6; 
-    padding: 12px 5px; 
-    border-radius: 10px; 
-    font-size: 12px;
-    font-weight: 500;
-    cursor: pointer;
-    text-transform: capitalize;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-}
+        .btn-viaggio:active { 
+            background: #99b3bc; 
+            color: white; 
+            transform: scale(0.95); 
+        }
 
-.btn-viaggio:active { 
-    background: #99b3bc; 
-    color: white; 
-    transform: scale(0.95); 
-}
+        /* TAB BAR */
+        .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 70px; background: #aec6cf; display: flex; justify-content: space-around; align-items: center; z-index: 1000; }
+        .tab-item { flex: 1; text-align: center; font-size: 12px; color: black; text-decoration: none; font-weight: 600; text-transform: uppercase; }
+        .tab-active { font-weight: 900; }
+    </style>
 </head>
 <body>
     <h1>🧳 Cose da portare</h1>
     <p>Seleziona gli oggetti per il tuo viaggio</p>
 
-    <div id="listaCoseviaggio" class="grid">Caricamento oggetti...</div>
+    <div id="listaCoseviaggio">Caricamento oggetti...</div>
 
     <div class="tab-bar">
         <a href="index.html" class="tab-item">🏠 HOME</a>
@@ -58,61 +65,66 @@
         const userEmail = localStorage.getItem('userEmail');
 
         async function caricaCoseviaggio() {
-    const { data } = await supabaseClient.from('coseviaggio').select('*');
-    const div = document.getElementById("listaCoseviaggio");
-    div.innerHTML = "";
+            const { data, error } = await supabaseClient.from('coseviaggio').select('*');
+            const div = document.getElementById("listaCoseviaggio");
+            
+            if (error) {
+                div.innerHTML = "Errore nel caricamento.";
+                return;
+            }
 
-    // Raggruppiamo i dati per categoria
-    const categorie = {};
-    data.forEach(item => {
-        const cat = item.categoria || 'Extra';
-        if (!categorie[cat]) categorie[cat] = [];
-        categorie[cat].push(item);
-    });
+            div.innerHTML = "";
 
-    // Creiamo la visualizzazione
-    for (const [nomeCat, oggetti] of Object.entries(categorie)) {
-        // Aggiungi titolo categoria
-        const titolo = document.createElement("div");
-        titolo.className = "titolo-categoria";
-        titolo.innerText = nomeCat;
-        div.appendChild(titolo);
+            // Raggruppiamo i dati per categoria
+            const categorie = {};
+            data.forEach(item => {
+                const cat = item.categoria || 'Extra';
+                if (!categorie[cat]) categorie[cat] = [];
+                categorie[cat].push(item);
+            });
 
-        // Crea mini-griglia per questa categoria
-        const miniGrid = document.createElement("div");
-        miniGrid.className = "grid";
-        
-        oggetti.forEach(p => {
-            const btn = document.createElement("button");
-            btn.className = "btn-viaggio";
-            btn.innerText = p.nome;
-            btn.onclick = () => aggiungiAListaViaggio(p.nome); // Mandiamo il nome direttamente
-            miniGrid.appendChild(btn);
-        });
-        div.appendChild(miniGrid);
-    }
-}
+            // Creiamo la visualizzazione
+            for (const [nomeCat, oggetti] of Object.entries(categorie)) {
+                const titolo = document.createElement("div");
+                titolo.className = "titolo-categoria";
+                titolo.innerText = nomeCat;
+                div.appendChild(titolo);
 
-async function aggiungiAListaViaggio(nomeOggetto) {
-    await supabaseClient.from('lista_viaggio').insert([{ 
-        nome: nomeOggetto, 
-        email_utente: userEmail, 
-        completato: false 
-    }]);
-    // Feedback rapido senza alert bloccante
-    console.log(nomeOggetto + " aggiunto!");
-}
+                const miniGrid = document.createElement("div");
+                miniGrid.className = "grid";
+                
+                oggetti.forEach(p => {
+                    const btn = document.createElement("button");
+                    btn.className = "btn-viaggio";
+                    btn.innerText = p.nome;
+                    btn.onclick = () => aggiungiAListaViaggio(p.nome, btn);
+                    miniGrid.appendChild(btn);
+                });
+                div.appendChild(miniGrid);
+            }
+        }
+
+        async function aggiungiAListaViaggio(nomeOggetto, elemento) {
+            const { error } = await supabaseClient.from('lista_viaggio').insert([{ 
+                nome: nomeOggetto, 
+                email_utente: userEmail, 
+                completato: false 
+            }]);
 
             if (error) {
                 alert("Errore nell'aggiunta!");
             } else {
-                // Feedback visivo leggero invece di un alert invasivo
-                console.log("Aggiunto!");
-                // Opzionale: alert("Aggiunto!");
+                // Feedback visivo: il bottone diventa verde per un secondo
+                const coloreOriginale = elemento.style.background;
+                elemento.style.background = "#45a049";
+                elemento.style.color = "white";
+                setTimeout(() => {
+                    elemento.style.background = coloreOriginale;
+                    elemento.style.color = "#1c1c1e";
+                }, 500);
             }
         }
 
-        // Controllo sessione ed esecuzione
         if (!userEmail) {
             window.location.href = 'login.html';
         } else {
