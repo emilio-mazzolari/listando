@@ -22,9 +22,23 @@
         .delete { background-color: #db5151; } 
         .icon { width: 22px; height: 22px; fill: none; stroke: white; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
 
-        .btn-orange { width: 100%; padding: 15px; border-radius: 12px; border: none; background: #aec6cf; color: white; font-weight: bold; margin-top: 15px; cursor: pointer; font-size: 16px; }
-        .btn-secondary { background: #99b3bc; }
-        .btn-outline { background: transparent; color: #99b3bc; border: 2px solid #99b3bc; margin-top: 10px; }
+        /* PULSANTI UNIFORMATI IN PALETTE */
+        .btn-orange { 
+            width: 100%; 
+            padding: 15px; 
+            border-radius: 12px; 
+            border: none; 
+            background: #aec6cf; 
+            color: white; 
+            font-weight: bold; 
+            margin-top: 10px; 
+            cursor: pointer; 
+            font-size: 15px;
+            text-transform: uppercase;
+            transition: opacity 0.2s;
+        }
+        .btn-orange:disabled { opacity: 0.4; cursor: not-allowed; }
+        .btn-orange:active { opacity: 0.8; }
 
         .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 70px; background: #aec6cf; display: flex; justify-content: space-around; align-items: center; z-index: 1000; }
         .tab-item { flex: 1; text-align: center; font-size: 14px; color: black; text-decoration: none; text-transform: uppercase; font-weight: 600; }
@@ -39,9 +53,11 @@
         <div class="header-box"><h1 style="margin:0;">🛒 Lista della spesa</h1></div>
         <div class="card">
             <div id="contenitoreLista">Caricamento...</div>
-            <button class="btn-orange btn-secondary" onclick="eliminaAcquistati()">ELIMINA PRODOTTI ACQUISTATI</button>
-            <button class="btn-orange" onclick="apriModalSvuota()">SVUOTA TUTTA LA LISTA</button>
-            <button id="btnRipristina" class="btn-orange btn-outline" style="display:none;" onclick="ripristinaUltimaLista()">RIPRISTINA ULTIMA LISTA</button>
+            
+            <!-- I TRE PULSANTI IN PALETTE -->
+            <button class="btn-orange" onclick="eliminaAcquistati()">Elimina acquistati</button>
+            <button class="btn-orange" onclick="apriModalSvuota()">Svuota tutta la lista</button>
+            <button id="btnRipristina" class="btn-orange" onclick="ripristinaUltimaLista()" disabled>Ripristina ultima lista</button>
         </div>
     </div>
 
@@ -56,7 +72,7 @@
             <h3>Svuota Lista</h3>
             <p>Sei sicuro di voler cancellare tutto?</p>
             <button class="btn-orange" onclick="confermaSvuota()">SI, SVUOTA TUTTO</button>
-            <button class="btn-orange" style="background:#e5e5ea; color:#8e8e93; margin-top:10px;" onclick="chiudiModal()">ANNULLA</button>
+            <button class="btn-orange" style="background:#e5e5ea; color:#8e8e93;" onclick="chiudiModal()">ANNULLA</button>
         </div>
     </div>
 
@@ -77,7 +93,7 @@
             if (!userEmail) {
                 window.location.href = 'login.html';
             } else {
-                controllaBackup();
+                aggiornaStatoBottoneRipristina();
                 caricaLista();
             }
         }
@@ -118,7 +134,6 @@
             caricaLista();
         }
 
-        // ELIMINA ACQUISTATI SENZA MESSAGGIO
         async function eliminaAcquistati() {
             await supabaseClient.from('lista_spesa').delete().eq('email_utente', userEmail).eq('completato', true);
             caricaLista();
@@ -128,22 +143,21 @@
         function chiudiModal() { document.getElementById('svuotaModal').style.display = 'none'; }
 
         async function confermaSvuota() {
-            // Salva backup prima di svuotare
+            // Salvataggio backup
             const { data } = await supabaseClient.from('lista_spesa').select('prodotto_id').eq('email_utente', userEmail);
             if (data && data.length > 0) {
                 localStorage.setItem('backup_lista', JSON.stringify(data.map(d => d.prodotto_id)));
-                document.getElementById('btnRipristina').style.display = 'block';
             }
             
             await supabaseClient.from('lista_spesa').delete().eq('email_utente', userEmail);
+            aggiornaStatoBottoneRipristina();
             chiudiModal();
             caricaLista();
         }
 
-        function controllaBackup() {
-            if (localStorage.getItem('backup_lista')) {
-                document.getElementById('btnRipristina').style.display = 'block';
-            }
+        function aggiornaStatoBottoneRipristina() {
+            const btn = document.getElementById('btnRipristina');
+            btn.disabled = !localStorage.getItem('backup_lista');
         }
 
         async function ripristinaUltimaLista() {
@@ -154,7 +168,7 @@
             await supabaseClient.from('lista_spesa').insert(righe);
             
             localStorage.removeItem('backup_lista');
-            document.getElementById('btnRipristina').style.display = 'none';
+            aggiornaStatoBottoneRipristina();
             caricaLista();
         }
 
