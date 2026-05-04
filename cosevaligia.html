@@ -2,61 +2,42 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Cose Viaggio</title>
+    <title>Catalogo Valigia</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         body { margin: 0; font-family: -apple-system, Helvetica, Arial, sans-serif; background: #f2f2f7; display: flex; justify-content: center; }
         .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 100px; position: relative; }
-        
-        /* Navigazione Categorie Rapida */
         .category-nav { display: flex; overflow-x: auto; gap: 8px; margin-bottom: 20px; padding-bottom: 5px; -webkit-overflow-scrolling: touch; }
         .category-nav::-webkit-scrollbar { display: none; }
         .btn-nav { background: #9fb8ad; color: white; border: none; padding: 8px 14px; border-radius: 10px; font-size: 11px; font-weight: bold; cursor: pointer; text-transform: uppercase; white-space: nowrap; flex-shrink: 0; }
-
-        /* Struttura Card */
         .categoria-titolo { background: #aec6cf; color: white; padding: 10px 15px; border-radius: 12px 12px 0 0; font-weight: 800; font-size: 12px; margin-top: 15px; text-transform: uppercase; }
-        .card { background: white; border-radius: 0 0 16px 16px; padding: 0 15px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); overflow: hidden; }
+        .card { background: white; border-radius: 0 0 16px 16px; padding: 0 15px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         .item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f2f2f7; }
         .item:last-child { border-bottom: none; }
         .testo-prodotto { font-size: 15px; color: #1c1c1e; font-weight: 500; }
-        
-        /* Bottoni Azione */
         .btn-small { border: none; border-radius: 8px; width: 34px; height: 34px; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-left: 6px; font-size: 16px; transition: 0.2s; }
         .plus { background-color: #aec6cf; color: white; } 
         .edit { background-color: #fdfd96; color: #333; } 
         .delete { background-color: #ffd1d1; color: #d32f2f; }
-
-        /* Input area */
         .input-group { display: flex; gap: 8px; margin-bottom: 10px; }
         input, select { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid #ddd; font-size: 15px; outline: none; box-sizing: border-box; }
         .btn-main { padding: 0 15px; border-radius: 12px; border: none; background: #9fb8ad; color: white; font-weight: bold; cursor: pointer; text-transform: uppercase; font-size: 12px; }
-
-        /* Tab Bar */
         .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 75px; background: #aec6cf; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid rgba(0,0,0,0.1); z-index: 1000; }
         .tab-item { flex: 1; text-align: center; font-size: 11px; color: #333; text-decoration: none; font-weight: 800; display: flex; flex-direction: column; text-transform: uppercase; }
         .tab-item span { font-size: 22px; margin-bottom: 3px; }
         .tab-active { color: white; }
-
-        /* Modale */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 2000; }
         .modal-box { background: white; padding: 25px; border-radius: 20px; width: 85%; max-width: 350px; text-align: center; }
         .modal-box input { width: 100%; margin: 15px 0; }
-        
         #toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #3a3a3c; color: white; padding: 10px 20px; border-radius: 10px; display: none; z-index: 3000; }
     </style>
 </head>
 <body>
-
     <div id="toast">Aggiunto alla lista!</div>
-
     <div class="app">
-        <h2 style="font-weight: 800; color: #333; margin-bottom: 20px;">🧳 CATALOGO</h2>
-        
-        <!-- Navigazione Categorie -->
+        <h2 style="font-weight: 800; color: #333; margin-bottom: 20px;">📋 CATALOGO</h2>
         <div class="category-nav" id="navCategorie"></div>
-
-        <!-- Inserimento -->
-        <div class="card" style="padding: 15px; border-radius: 16px; margin-bottom: 20px;">
+        <div class="card" style="padding: 15px; border-radius: 16px;">
             <div class="input-group">
                 <input type="text" id="nuovaCosa" placeholder="Cosa devi portare?">
                 <button class="btn-main" onclick="aggiungiNuovaCosa()">AGGIUNGI</button>
@@ -66,24 +47,21 @@
                 <input type="text" id="cercaCosa" placeholder="Cerca..." onkeyup="renderizzaCose()">
             </div>
         </div>
-
         <div id="listaCategorie"></div>
     </div>
 
-    <!-- Navigazione -->
     <div class="tab-bar">
         <a href="index.html" class="tab-item"><span>🏠</span>HOME</a>
-        <a href="viaggi.html" class="tab-item"><span>✈️</span>VIAGGI</a>
-        <a href="coseviaggio.html" class="tab-item tab-active"><span>🧳</span>COSE</a>
+        <a href="valigia.html" class="tab-item"><span>🧳</span>VALIGIA</a>
+        <a href="cosevaligia.html" class="tab-item tab-active"><span>📋</span>CATALOGO</a>
         <a href="#" class="tab-item" onclick="logout()"><span>🚪</span>ESCI</a>
     </div>
 
-    <!-- Modale Modifica -->
     <div id="editModal" class="modal-overlay">
         <div class="modal-box">
             <h3 style="margin-top:0">Modifica Nome</h3>
             <input type="text" id="inputModifica">
-            <button class="btn-main" style="width:100%; height:45px; background: #aec6cf;" onclick="salvaModifica()">SALVA MODIFICA</button>
+            <button class="btn-main" style="width:100%; height:45px; background: #aec6cf;" onclick="salvaModifica()">SALVA</button>
             <button class="btn-main" style="width:100%; margin-top:10px; height:45px; background:#e5e5ea; color: #8e8e93;" onclick="chiudiModal()">ANNULLA</button>
         </div>
     </div>
@@ -94,176 +72,94 @@
         const headers = { "apikey": KEY, "Content-Type": "application/json", "Authorization": "Bearer " + KEY };
         const userEmail = localStorage.getItem('userEmail');
 
-        // Controllo Login immediato
-        if (!userEmail) {
-            window.location.href = 'login.html';
-        }
-
-        // Inizializzazione Database
         let databaseCose = JSON.parse(localStorage.getItem('db_viaggio')) || {
-            "Abbigliamento": ["Bretelle", "Calze", "Camicie", "Cappello", "Ciabatte", "Costume", "Felpe", "Mutande", "Pantaloni", "Scarpe", "T-shirt"],
-            "Igiene": ["Asciugamano", "Bagnodoccia", "Dentifricio", "Deodorante", "Pettine", "Spazzolino"],
-            "Campeggio": ["Borraccia", "Sacco a pelo", "Tenda", "Torcia"],
+            "Abbigliamento": ["Calze", "Camicie", "Mutande", "Pantaloni", "Scarpe", "T-shirt"],
+            "Igiene": ["Asciugamano", "Bagnodoccia", "Dentifricio", "Spazzolino"],
             "Extra": ["Caricabatterie", "Documenti", "Ombrello", "Portafoglio"]
         };
-
-        let cosaInModifica = { cat: null, vecchioNome: null };
-
-        function mostraToast(testo) {
-            const t = document.getElementById("toast");
-            t.innerText = testo;
-            t.style.display = "block";
-            setTimeout(() => t.style.display = "none", 2000);
-        }
 
         function renderizzaCose() {
             const filtro = document.getElementById("cercaCosa").value.toLowerCase();
             const container = document.getElementById("listaCategorie");
             const nav = document.getElementById("navCategorie");
             const select = document.getElementById("selectCategoria");
-            
-            container.innerHTML = "";
-            nav.innerHTML = "";
-            
-            // Gestione Select
-            const catSelezionataSalvata = select.value || "Extra";
+            container.innerHTML = ""; nav.innerHTML = "";
             select.innerHTML = '<option value="NUOVA">+ NUOVA CATEGORIA</option>';
 
-            const categorieOrdinate = Object.keys(databaseCose).sort();
-
-            categorieOrdinate.forEach(categoria => {
-                // Popola Select
-                let opt = document.createElement("option");
-                opt.value = categoria; 
-                opt.innerText = categoria;
-                if(categoria === catSelezionataSalvata) opt.selected = true;
-                select.appendChild(opt);
-
-                // Popola Nav Buttons
-                let btnNav = document.createElement("button");
-                btnNav.className = "btn-nav";
-                btnNav.innerText = categoria;
-                btnNav.onclick = () => {
-                    const el = document.getElementById('cat-' + categoria);
-                    if(el) window.scrollTo({ top: el.offsetTop - 20, behavior: "smooth" });
-                };
+            Object.keys(databaseCose).sort().forEach(categoria => {
+                let opt = document.createElement("option"); opt.value = categoria; opt.innerText = categoria; select.appendChild(opt);
+                let btnNav = document.createElement("button"); btnNav.className = "btn-nav"; btnNav.innerText = categoria;
+                btnNav.onclick = () => { document.getElementById('cat-' + categoria).scrollIntoView({behavior: "smooth"}); };
                 nav.appendChild(btnNav);
 
-                // Popola Lista Oggetti
-                const oggetti = databaseCose[categoria].sort();
-                const filtrati = oggetti.filter(o => o.toLowerCase().includes(filtro));
-
+                const filtrati = databaseCose[categoria].filter(o => o.toLowerCase().includes(filtro)).sort();
                 if (filtrati.length > 0) {
                     let html = `<div class="categoria-titolo" id="cat-${categoria}">${categoria}</div><div class="card">`;
                     filtrati.forEach(item => {
-                        // ID pulito per il bottone (rimuove spazi e caratteri speciali)
                         const safeId = item.replace(/[^a-zA-Z0-9]/g, '');
-                        html += `
-                        <div class="item">
-                            <span class="testo-prodotto">${item}</span>
-                            <div style="display:flex;">
-                                <button class="btn-small plus" id="btn-${safeId}" onclick="aggiungiADB('${item}')">+</button>
-                                <button class="btn-small edit" onclick="apriModifica('${categoria}', '${item}')">✏️</button>
-                                <button class="btn-small delete" onclick="eliminaCosa('${categoria}', '${item}')">🗑</button>
-                            </div>
-                        </div>`;
+                        html += `<div class="item"><span class="testo-prodotto">${item}</span>
+                        <div style="display:flex;">
+                            <button class="btn-small plus" id="btn-${safeId}" onclick="aggiungiADB('${item}')">+</button>
+                            <button class="btn-small edit" onclick="apriModifica('${categoria}', '${item}')">✏️</button>
+                            <button class="btn-small delete" onclick="eliminaCosa('${categoria}', '${item}')">🗑</button>
+                        </div></div>`;
                     });
-                    html += `</div>`;
-                    container.innerHTML += html;
+                    container.innerHTML += html + `</div>`;
                 }
             });
             localStorage.setItem('db_viaggio', JSON.stringify(databaseCose));
         }
 
-        function aggiungiNuovaCosa() {
-            const nomeInput = document.getElementById("nuovaCosa");
-            let nome = nomeInput.value.trim();
-            let cat = document.getElementById("selectCategoria").value;
-            
-            if (!nome) return;
-            nome = nome.charAt(0).toUpperCase() + nome.slice(1);
-
-            if (cat === "NUOVA") {
-                let nuovaCat = prompt("Inserisci il nome della nuova categoria:");
-                if (!nuovaCat) return;
-                cat = nuovaCat.trim().charAt(0).toUpperCase() + nuovaCat.trim().slice(1);
-                if (!databaseCose[cat]) databaseCose[cat] = [];
-            }
-
-            if (!databaseCose[cat].includes(nome)) {
-                databaseCose[cat].push(nome);
-                nomeInput.value = "";
-                renderizzaCose();
-            } else {
-                alert("Oggetto già presente in questa categoria");
-            }
-        }
-
         async function aggiungiADB(nome) {
             const safeId = nome.replace(/[^a-zA-Z0-9]/g, '');
             const btn = document.getElementById(`btn-${safeId}`);
-            const originalColor = btn.style.backgroundColor;
-            const originalText = btn.innerText;
-
             try {
                 const res = await fetch(`${URL}/lista_viaggio`, {
-                    method: "POST", 
-                    headers,
-                    body: JSON.stringify({ 
-                        nome: nome, 
-                        email_utente: userEmail, 
-                        completato: false 
-                    })
+                    method: "POST", headers,
+                    body: JSON.stringify({ nome: nome, email_utente: userEmail, completato: false })
                 });
-                
                 if(res.ok) {
-                    btn.innerText = "✓";
-                    btn.style.backgroundColor = "#9fb8ad";
-                    mostraToast(nome + " aggiunto!");
-                    setTimeout(() => {
-                        btn.innerText = originalText;
-                        btn.style.backgroundColor = originalColor;
-                    }, 1500);
+                    btn.innerText = "✓"; btn.style.backgroundColor = "#9fb8ad";
+                    const t = document.getElementById("toast"); t.style.display = "block";
+                    setTimeout(() => { t.style.display = "none"; btn.innerText = "+"; btn.style.backgroundColor = "#aec6cf"; }, 1500);
                 }
-            } catch(e) {
-                console.error(e);
-                alert("Errore nel salvataggio");
-            }
+            } catch(e) { console.error(e); }
         }
 
+        function aggiungiNuovaCosa() {
+            const input = document.getElementById("nuovaCosa");
+            let nome = input.value.trim();
+            let cat = document.getElementById("selectCategoria").value;
+            if (!nome) return;
+            nome = nome.charAt(0).toUpperCase() + nome.slice(1);
+            if (cat === "NUOVA") {
+                const nuova = prompt("Nome nuova categoria:");
+                if (!nuova) return;
+                cat = nuova.trim().charAt(0).toUpperCase() + nuova.trim().slice(1);
+                if (!databaseCose[cat]) databaseCose[cat] = [];
+            }
+            if (!databaseCose[cat].includes(nome)) { databaseCose[cat].push(nome); input.value = ""; renderizzaCose(); }
+        }
+
+        let cosaInModifica = { cat: null, vecchioNome: null };
         function apriModifica(cat, nome) {
             cosaInModifica = { cat, vecchioNome: nome };
             document.getElementById("inputModifica").value = nome;
             document.getElementById("editModal").style.display = "flex";
         }
-
         function salvaModifica() {
             const nuovo = document.getElementById("inputModifica").value.trim();
             if(!nuovo) return;
             const idx = databaseCose[cosaInModifica.cat].indexOf(cosaInModifica.vecchioNome);
-            if (idx !== -1) {
-                databaseCose[cosaInModifica.cat][idx] = nuovo;
-                localStorage.setItem('db_viaggio', JSON.stringify(databaseCose));
-                chiudiModal();
-                renderizzaCose();
-            }
+            databaseCose[cosaInModifica.cat][idx] = nuovo;
+            chiudiModal(); renderizzaCose();
         }
-
         function eliminaCosa(cat, nome) {
-            if(confirm(`Eliminare ${nome} dal catalogo?`)) {
-                databaseCose[cat] = databaseCose[cat].filter(i => i !== nome);
-                renderizzaCose();
-            }
+            if(confirm(`Eliminare ${nome}?`)) { databaseCose[cat] = databaseCose[cat].filter(i => i !== nome); renderizzaCose(); }
         }
-
         function chiudiModal() { document.getElementById("editModal").style.display = "none"; }
-        
-        function logout() { 
-            localStorage.clear(); 
-            window.location.href = 'login.html'; 
-        }
-
-        // Avvio
+        function logout() { localStorage.clear(); window.location.href = 'login.html'; }
+        if (!userEmail) window.location.href = 'login.html';
         renderizzaCose();
     </script>
 </body>
