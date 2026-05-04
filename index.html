@@ -12,29 +12,27 @@
         
         .card { background: white; border-radius: 16px; padding: 20px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         
-        /* Selettore Alto */
         .selector { display: flex; background: #e5e5ea; border-radius: 12px; padding: 3px; margin-bottom: 20px; }
         .selector-btn { flex: 1; border: none; padding: 12px; border-radius: 10px; font-weight: bold; cursor: pointer; background: transparent; color: #8e8e93; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px; }
         .selector-btn.active { background: white; color: black; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
 
-        /* Lista Items */
+        /* Stile Categorie */
+        .categoria-header { background: #f2f2f7; padding: 8px 15px; text-align: left; font-weight: bold; font-size: 13px; color: #666; text-transform: uppercase; border-radius: 8px; margin-top: 15px; margin-bottom: 5px; }
+
         .item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee; }
         .testo-prodotto { flex-grow: 1; font-size: 16px; color: #1c1c1e; font-weight: 600; text-align: left; text-transform: capitalize; }
         .testo-prodotto.barrato { text-decoration: line-through; color: #8e8e93; opacity: 0.6; }
         
-        /* Bottoni Azione */
         .btn-small { border: none; border-radius: 8px; width: 34px; height: 34px; cursor: pointer; margin-left: 8px; display: inline-flex; align-items: center; justify-content: center; }
         .check { background-color: #45a049; } 
         .restore { background-color: #c7c7cc; } 
         .delete { background-color: #db5151; } 
         .icon { width: 20px; height: 20px; fill: none; stroke: white; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
 
-        /* Bottoni Grandi */
         .btn-main { width: 100%; padding: 16px; border-radius: 12px; border: none; background: #aec6cf; color: white; font-weight: bold; margin-top: 10px; cursor: pointer; font-size: 15px; text-transform: uppercase; }
         .btn-main:active { opacity: 0.8; }
         .empty-text { color: #8e8e93; margin-bottom: 15px; font-size: 16px; }
 
-        /* Tab Bar Bassa */
         .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 75px; background: #aec6cf; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid rgba(0,0,0,0.05); }
         .tab-item { flex: 1; text-align: center; font-size: 12px; color: black; text-decoration: none; font-weight: 700; display: flex; flex-direction: column; gap: 4px; }
         .tab-active { color: white; }
@@ -69,7 +67,6 @@
         <a href="#" class="tab-item" onclick="logout()">🚪 ESCI</a>
     </div>
 
-    <!-- Modal Conferma Svuota -->
     <div id="svuotaModal" class="modal-overlay">
         <div class="modal-box">
             <h3>Svuota Lista</h3>
@@ -103,7 +100,6 @@
             const tabella = mode === 'spesa' ? 'lista_spesa' : 'lista_viaggio';
             const div = document.getElementById("contenitoreLista");
             const comandi = document.getElementById("comandiLista");
-            
             div.innerHTML = "Caricamento...";
 
             let query = supabaseClient.from(tabella).select(mode === 'spesa' ? '*, prodotti(nome)' : '*').eq('email_utente', userEmail);
@@ -111,9 +107,10 @@
 
             if (error || !data || data.length === 0) {
                 const msg = mode === 'spesa' ? "La lista della spesa è vuota" : "La lista del viaggio è vuota";
+                const btnLabel = mode === 'spesa' ? "AGGIUNGI PRODOTTI" : "AGGIUNGI COSE";
                 const pag = mode === 'spesa' ? "prodotti.html" : "coseviaggio.html";
                 div.innerHTML = `<p class="empty-text">${msg}</p>
-                                 <button class="btn-main" onclick="window.location.href='${pag}'">AGGIUNGI PRODOTTI</button>`;
+                                 <button class="btn-main" onclick="window.location.href='${pag}'">${btnLabel}</button>`;
                 comandi.style.display = "none";
                 return;
             }
@@ -121,14 +118,31 @@
             comandi.style.display = "block";
             document.getElementById('btnRipristina').style.display = mode === 'spesa' ? 'block' : 'none';
 
+            // Ordinamento: prima per categoria (se viaggio) poi per nome
             data.sort((a, b) => {
+                if (mode === 'viaggio') {
+                    const catA = a.categoria || "Extra";
+                    const catB = b.categoria || "Extra";
+                    if (catA !== catB) return catA.localeCompare(catB);
+                }
                 const nA = mode === 'spesa' ? (a.prodotti?.nome || "") : a.nome;
                 const nB = mode === 'spesa' ? (b.prodotti?.nome || "") : b.nome;
                 return nA.localeCompare(nB);
             });
 
             div.innerHTML = "";
+            let ultimaCategoria = null;
+
             data.forEach(item => {
+                // Aggiungi header categoria per il viaggio
+                if (mode === 'viaggio' && item.categoria !== ultimaCategoria) {
+                    const header = document.createElement("div");
+                    header.className = "categoria-header";
+                    header.innerText = item.categoria || "Extra";
+                    div.appendChild(header);
+                    ultimaCategoria = item.categoria;
+                }
+
                 const nome = mode === 'spesa' ? item.prodotti?.nome : item.nome;
                 const riga = document.createElement("div");
                 riga.className = "item";
