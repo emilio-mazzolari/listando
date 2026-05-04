@@ -10,21 +10,46 @@
         body { margin: 0; font-family: -apple-system, Helvetica, Arial, sans-serif; background: #f2f2f7; display: flex; justify-content: center; }
         .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 100px; box-sizing: border-box; }
         .card { background: white; border-radius: 16px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        .header-box { display: flex; align-items: center; margin-bottom: 20px; }
-        .item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f2f2f7; }
-        .item:last-child { border-bottom: none; }
+        .header-box { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+
+        .item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee; }
         .testo-prodotto { flex-grow: 1; font-size: 16px; color: #1c1c1e; font-weight: 600; }
         .testo-prodotto.barrato { text-decoration: line-through; color: #8e8e93; opacity: 0.6; }
-        .btn-small { border: none; border-radius: 8px; width: 32px; height: 32px; cursor: pointer; margin-left: 8px; display: inline-flex; align-items: center; justify-content: center; color: white; font-weight: bold; }
+
+        /* Bottoni icone (V e X) uniformati alla spesa */
+        .btn-small { border: none; border-radius: 8px; width: 32px; height: 32px; cursor: pointer; margin-left: 8px; display: inline-flex; align-items: center; justify-content: center; }
         .check { background-color: #45a049; } 
         .restore { background-color: #c7c7cc; } 
         .delete { background-color: #db5151; } 
-        .btn-action { width: 100%; padding: 15px; border-radius: 12px; border: none; color: white; font-weight: bold; margin-top: 10px; cursor: pointer; font-size: 13px; text-transform: uppercase; background: #99b3bc; }
+        .icon { width: 20px; height: 20px; fill: none; stroke: white; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+
+        /* Bottoni inferiori */
+        .btn-action { width: 100%; padding: 15px; border-radius: 12px; border: none; color: white; font-weight: bold; margin-top: 10px; cursor: pointer; font-size: 13px; text-transform: uppercase; box-sizing: border-box; text-align: center; }
+        .btn-blue { background: #aec6cf; }
+        .btn-gray { background: #99b3bc; }
+        
+        /* Bottone Aggiungi Cose (quando vuoto) - Uguale alla spesa */
+        .btn-empty { 
+            background: #aec6cf; 
+            margin-top: 20px; 
+            display: block; 
+            text-decoration: none; 
+            color: white;
+            font-size: 13px;
+            font-weight: bold;
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
         .empty-msg { text-align: center; padding: 40px 10px; color: #8e8e93; font-size: 16px; }
+
+        /* Tab Bar */
         .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 75px; background: #aec6cf; display: flex; justify-content: space-around; align-items: center; z-index: 1000; }
         .tab-item { flex: 1; text-align: center; font-size: 11px; color: #333; text-decoration: none; font-weight: 800; display: flex; flex-direction: column; }
         .tab-item span { font-size: 22px; margin-bottom: 3px; }
         .tab-active { color: white; }
+
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 2000; }
         .modal-box { background: white; padding: 25px; border-radius: 20px; width: 80%; max-width: 300px; text-align: center; }
     </style>
@@ -32,18 +57,16 @@
 <body>
 
     <div class="app">
-        <div class="header-box">
-            <h2 style="margin:0; font-weight: 800;">💼 LISTA VALIGIA</h2>
-        </div>
+        <div class="header-box"><h2 style="margin:0; font-weight: 800;">💼 LISTA VALIGIA</h2></div>
         
         <div class="card" id="cardLista">
             <div id="contenitoreLista">Caricamento...</div>
         </div>
 
-        <div id="controlliLista" style="display:none;">
-            <button class="btn-action" onclick="eliminaMessi()">ELIMINA MESSI IN VALIGIA</button>
-            <button class="btn-action" onclick="apriModalSvuota()">SVUOTA TUTTA LA VALIGIA</button>
-            <button class="btn-action" onclick="ripristinaValigia()">RIPRISTINA VALIGIA</button>
+        <div id="controlliLista">
+            <button class="btn-action btn-gray" onclick="eliminaMessi()">ELIMINA MESSI IN VALIGIA</button>
+            <button class="btn-action btn-gray" onclick="apriModalSvuota()">SVUOTA TUTTA LA VALIGIA</button>
+            <button class="btn-action btn-gray" onclick="ripristinaValigia()">RIPRISTINA VALIGIA</button>
         </div>
     </div>
 
@@ -58,8 +81,8 @@
         <div class="modal-box">
             <h3>Svuota Valigia</h3>
             <p>Sei sicuro di voler cancellare tutto?</p>
-            <button class="btn-action" onclick="confermaSvuota()" style="background:#aec6cf; margin-bottom: 10px;">SÌ, SVUOTA</button>
-            <button class="btn-action" onclick="chiudiModal()" style="background:#8e8e93">ANNULLA</button>
+            <button class="btn-action btn-blue" onclick="confermaSvuota()">SÌ, SVUOTA</button>
+            <button class="btn-action btn-gray" onclick="chiudiModal()" style="color:white">ANNULLA</button>
         </div>
     </div>
 
@@ -69,8 +92,7 @@
         const headers = { 
             "apikey": KEY, 
             "Content-Type": "application/json", 
-            "Authorization": "Bearer " + KEY,
-            "Prefer": "return=minimal" 
+            "Authorization": "Bearer " + KEY 
         };
         const userEmail = localStorage.getItem('userEmail');
 
@@ -82,7 +104,11 @@
                 const controlli = document.getElementById("controlliLista");
 
                 if (!dati || dati.length === 0) {
-                    div.innerHTML = `<div class="empty-msg">La valigia è vuota.<br><br><a href="cosevaligia.html" style="color:#aec6cf; font-weight:bold;">Aggiungi cose ora</a></div>`;
+                    div.innerHTML = `
+                        <div class="empty-msg">
+                            La valigia è vuota<br>
+                            <a href="cosevaligia.html" class="btn-empty">AGGIUNGI COSE</a>
+                        </div>`;
                     controlli.style.display = "none";
                     return;
                 }
@@ -93,17 +119,21 @@
                 dati.forEach(item => {
                     const riga = document.createElement("div");
                     riga.className = "item";
-                    const btnClass = item.completato ? 'restore' : 'check';
-                    const iconaTxt = item.completato ? '↺' : 'V';
+                    
+                    // Logica icone SVG uguale alla spesa
+                    const iconaClasse = item.completato ? 'restore' : 'check';
+                    const svgIcona = item.completato 
+                        ? `<path d="M9 14l-4-4 4-4M5 10h11a4 4 0 110 8h-1"/>` 
+                        : `<path d="M5 12l5 5L20 7"/>`;
 
                     riga.innerHTML = `
                         <span class="testo-prodotto ${item.completato ? 'barrato' : ''}">${item.nome}</span>
                         <div style="display:flex;">
-                            <button class="btn-small ${btnClass}" onclick="toggleStatus(${item.id}, ${item.completato})">
-                                ${iconaTxt}
+                            <button class="btn-small ${iconaClasse}" onclick="toggleStatus(${item.id}, ${item.completato})">
+                                <svg class="icon" viewBox="0 0 24 24">${svgIcona}</svg>
                             </button>
                             <button class="btn-small delete" onclick="eliminaSingolo(${item.id})">
-                                X
+                                <svg class="icon" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
                             </button>
                         </div>
                     `;
@@ -113,58 +143,33 @@
         }
 
         async function toggleStatus(id, stato) {
-            console.log("Cliccato V/Ripristina per ID:", id);
-            try {
-                const res = await fetch(`${URL_SUPA}?id=eq.${id}`, {
-                    method: "PATCH",
-                    headers: headers,
-                    body: JSON.stringify({ completato: !stato })
-                });
-                if (res.ok) {
-                    caricaLista();
-                } else {
-                    const err = await res.text();
-                    console.error("Errore Supabase PATCH:", err);
-                    alert("Errore durante l'aggiornamento. Controlla le policy RLS.");
-                }
-            } catch (e) { console.error("Errore connessione:", e); }
+            await fetch(`${URL_SUPA}?id=eq.${id}`, {
+                method: "PATCH", headers,
+                body: JSON.stringify({ completato: !stato })
+            });
+            caricaLista();
         }
 
         async function eliminaSingolo(id) {
-            console.log("Cliccato X per ID:", id);
             if(!confirm("Eliminare questo oggetto?")) return;
-            try {
-                const res = await fetch(`${URL_SUPA}?id=eq.${id}`, { 
-                    method: "DELETE", 
-                    headers: headers 
-                });
-                if (res.ok) {
-                    caricaLista();
-                } else {
-                    console.error("Errore Supabase DELETE");
-                    alert("Errore durante l'eliminazione.");
-                }
-            } catch (e) { console.error(e); }
+            await fetch(`${URL_SUPA}?id=eq.${id}`, { method: "DELETE", headers });
+            caricaLista();
         }
 
         async function eliminaMessi() {
             if (confirm("Eliminare gli oggetti già messi in valigia?")) {
-                const res = await fetch(`${URL_SUPA}?email_utente=eq.${userEmail}&completato=eq.true`, { 
-                    method: "DELETE", 
-                    headers: headers 
-                });
-                if (res.ok) caricaLista();
+                await fetch(`${URL_SUPA}?email_utente=eq.${userEmail}&completato=eq.true`, { method: "DELETE", headers });
+                caricaLista();
             }
         }
 
         async function ripristinaValigia() {
             if (confirm("Rimettere tutto come da preparare?")) {
-                const res = await fetch(`${URL_SUPA}?email_utente=eq.${userEmail}`, {
-                    method: "PATCH",
-                    headers: headers,
+                await fetch(`${URL_SUPA}?email_utente=eq.${userEmail}`, {
+                    method: "PATCH", headers,
                     body: JSON.stringify({ completato: false })
                 });
-                if (res.ok) caricaLista();
+                caricaLista();
             }
         }
 
@@ -172,19 +177,13 @@
         function chiudiModal() { document.getElementById('svuotaModal').style.display = 'none'; }
         
         async function confermaSvuota() {
-            const res = await fetch(`${URL_SUPA}?email_utente=eq.${userEmail}`, { 
-                method: "DELETE", 
-                headers: headers 
-            });
-            if (res.ok) {
-                chiudiModal();
-                caricaLista();
-            }
+            await fetch(`${URL_SUPA}?email_utente=eq.${userEmail}`, { method: "DELETE", headers });
+            chiudiModal();
+            caricaLista();
         }
 
         function logout() { localStorage.clear(); window.location.href = 'login.html'; }
         
-        // Controllo login
         if (!userEmail) { 
             window.location.href = 'login.html'; 
         } else { 
