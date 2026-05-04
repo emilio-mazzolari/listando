@@ -42,37 +42,37 @@
     </div>
 
     <script>
-        const URL = "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1/lista_viaggio";
-        const KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
-        const headers = { "apikey": KEY, "Content-Type": "application/json", "Authorization": "Bearer " + KEY };
-        const userEmail = localStorage.getItem('userEmail');
+      // Cambia la prima riga del tuo script in valigia.html
+const URL = "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1/cose_valigia";
+const KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
+const headers = { "apikey": KEY, "Content-Type": "application/json", "Authorization": "Bearer " + KEY };
+const userEmail = localStorage.getItem('userEmail');
 
-        async function caricaLista() {
-            try {
-                const res = await fetch(`${URL}?email_utente=eq.${userEmail}&order=nome.asc`, { headers });
-                const dati = await res.json();
-                const container = document.getElementById("listaEffettiva");
-                
-                // Correzione errore forEach: verifichiamo che dati sia un array
-                if (!Array.isArray(dati) || dati.length === 0) {
-                    container.innerHTML = `<div class="empty-state"><span>📭</span><p>Valigia vuota.<br><small>Usa il CATALOGO</small></p></div>`;
-                    return;
-                }
-
-                container.innerHTML = "";
-                dati.forEach(item => {
-                    const riga = document.createElement("div");
-                    riga.className = "item";
-                    riga.innerHTML = `
-                        <div class="testo ${item.completato ? 'completato' : ''}" onclick="toggleCheck(${item.id}, ${item.completato})">
-                            <span>${item.completato ? '✅' : '⬜'}</span> ${item.nome}
-                        </div>
-                        <button class="btn-del" onclick="eliminaDallaLista(${item.id})">🗑️</button>`;
-                    container.appendChild(riga);
-                });
-            } catch (e) { console.error(e); }
+async function caricaLista() {
+    try {
+        // Ora punta a cose_valigia
+        const res = await fetch(`${URL}?email_utente=eq.${userEmail}&order=nome.asc`, { headers });
+        const dati = await res.json();
+        const container = document.getElementById("listaEffettiva");
+        
+        if (!Array.isArray(dati) || dati.length === 0) {
+            container.innerHTML = `<div class="empty-state"><span>📭</span><p>La valigia è vuota.</p></div>`;
+            return;
         }
 
+        container.innerHTML = "";
+        dati.forEach(item => {
+            const riga = document.createElement("div");
+            riga.className = "item";
+            riga.innerHTML = `
+                <div class="testo ${item.completato ? 'completato' : ''}" onclick="toggleCheck(${item.id}, ${item.completato})">
+                    <span>${item.completato ? '✅' : '⬜'}</span> ${item.nome}
+                </div>
+                <button class="btn-del" onclick="eliminaDallaLista(${item.id})">🗑️</button>`;
+            container.appendChild(riga);
+        });
+    } catch (e) { console.error("Errore:", e); }
+}
         async function toggleCheck(id, stato) {
             await fetch(`${URL}?id=eq.${id}`, {
                 method: "PATCH", headers,
