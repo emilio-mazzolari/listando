@@ -172,13 +172,12 @@
         function apriModalSvuota() {
             document.getElementById('svuotaModal').style.display = 'flex';
         }
-
-        async function confermaSvuota() {
-            if (userEmail !== adminEmail) {
-                chiudiModal();
-                mostraAlert("Accesso Negato", "Solo l'amministratore può svuotare la lista completa.");
-                return;
-            }
+async function confermaSvuota() {
+    // Rimosso il blocco if (userEmail !== adminEmail)
+    await fetch(`${URL}/lista_spesa?email_utente=eq.${userEmail}`, { method: "DELETE", headers });
+    chiudiModal();
+    caricaLista();
+}
             await fetch(`${URL}/lista_spesa?email_utente=eq.${userEmail}`, { method: "DELETE", headers });
             chiudiModal();
             caricaLista();
