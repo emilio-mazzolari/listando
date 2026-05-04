@@ -22,7 +22,6 @@
         input { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid #ddd; font-size: 16px; outline: none; height: 45px; box-sizing: border-box; background: white; }
         .btn-main { width: 100px; height: 45px; border-radius: 12px; border: none; background: #aec6cf; color: white; font-weight: bold; cursor: pointer; font-size: 13px; text-transform: uppercase; }
 
-        /* Tab Bar Aggiornata */
         .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 75px; background: #aec6cf; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid rgba(0,0,0,0.1); z-index: 1000; }
         .tab-item { flex: 1; text-align: center; font-size: 11px; color: #333; text-decoration: none; font-weight: 800; display: flex; flex-direction: column; text-transform: uppercase; }
         .tab-item span { font-size: 22px; margin-bottom: 3px; }
@@ -59,7 +58,6 @@
         <div class="card" id="listaProdotti">Caricamento...</div>
     </div>
 
-    <!-- Navigazione Coerente -->
     <div class="tab-bar">
         <a href="index.html" class="tab-item"><span>🏠</span>HOME</a>
         <a href="spesa.html" class="tab-item"><span>🛒</span>SPESA</a>
@@ -67,7 +65,6 @@
         <a href="#" class="tab-item" onclick="logout()"><span>🚪</span>ESCI</a>
     </div>
 
-    <!-- MODALI (Senza modifiche alla logica) -->
     <div id="insertModal" class="modal-overlay"><div class="modal-box"><h3>Visibilità</h3><button class="btn-modal" onclick="confermaInserimento(true)">PER TUTTI</button><button class="btn-modal" onclick="confermaInserimento(false)">SOLO PER ME</button><button class="btn-modal btn-cancel" onclick="chiudiModal()">ANNULLA</button></div></div>
     <div id="editModal" class="modal-overlay"><div class="modal-box"><h3>Modifica Nome</h3><input type="text" id="inputModifica" style="width:100%; margin-bottom:15px; padding:12px; border-radius:12px; border:1px solid #ddd;"><button class="btn-modal" onclick="salvaModifica()">SALVA</button><button class="btn-modal btn-cancel" onclick="chiudiModal()">ANNULLA</button></div></div>
     <div id="deleteModal" class="modal-overlay"><div class="modal-box"><h3>Elimina Prodotto</h3><button class="btn-modal" id="btnTutti">ELIMINA PER TUTTI</button><button class="btn-modal" id="btnSoloMe">ELIMINA PER ME</button><button class="btn-modal btn-cancel" onclick="chiudiModal()">ANNULLA</button></div></div>
@@ -121,7 +118,7 @@
                 riga.innerHTML = `
                     <span class="testo-prodotto">${p.nome}</span>
                     <div style="display:flex;">
-                        <button class="btn-small plus" id="btn-plus-${p.id}" onclick="mettiInLista(${p.id}, '${p.nome.replace(/'/g, "\\'")}')">+</button>
+                        <button class="btn-small plus" id="btn-plus-${p.id}" onclick="mettiInLista(${p.id})">+</button>
                         <button class="btn-small edit" onclick="apriModalModifica(${p.id}, '${p.nome.replace(/'/g, "\\'")}')">✏️</button>
                         <button class="btn-small delete" onclick="apriModalRimuovi(${p.id})">🗑</button>
                     </div>
@@ -164,9 +161,10 @@
             caricaProdotti();
         }
 
-        async function mettiInLista(id, nome) {
+        async function mettiInLista(id) {
             const btn = document.getElementById(`btn-plus-${id}`);
             
+            // Verifichiamo se è già in lista per evitare duplicati
             const res = await fetch(`${URL}/lista_spesa?prodotto_id=eq.${id}&email_utente=eq.${userEmail}`, { headers });
             const esistente = await res.json();
 
@@ -175,11 +173,21 @@
                 return;
             }
 
-            await fetch(`${URL}/lista_spesa`, {
+            // CORREZIONE: Inviamo solo i campi che esistono nella tua tabella lista_spesa
+            const fetchRes = await fetch(`${URL}/lista_spesa`, {
                 method: "POST", headers,
-                body: JSON.stringify({ prodotto_id: id, nome: nome, email_utente: userEmail, completato: false })
+                body: JSON.stringify({ 
+                    prodotto_id: id, 
+                    email_utente: userEmail, 
+                    completato: false 
+                })
             });
-            aggiornaBottone(btn, "OK", "#45a049");
+
+            if(fetchRes.ok) {
+                aggiornaBottone(btn, "OK", "#45a049");
+            } else {
+                aggiornaBottone(btn, "ERRORE", "#ff3b30");
+            }
         }
 
         function aggiornaBottone(btn, testo, sfondo) {
