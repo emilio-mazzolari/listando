@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Lista Spesa</title>
+    <title>La Mia Lista</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="manifest" href="manifest.json">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -10,10 +10,14 @@
         body { margin: 0; font-family: -apple-system, Helvetica, Arial, sans-serif; background: #f2f2f7; display: flex; justify-content: center; }
         .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 90px; }
         .card { background: white; border-radius: 16px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        .header-box { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
         
+        /* Selettore Spesa / Viaggio */
+        .selector { display: flex; background: #e5e5ea; border-radius: 10px; padding: 2px; margin-bottom: 20px; }
+        .selector-btn { flex: 1; border: none; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; background: transparent; color: #8e8e93; transition: 0.3s; }
+        .selector-btn.active { background: white; color: black; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+
         .item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee; }
-        .testo-prodotto { flex-grow: 1; font-size: 16px; color: #1c1c1e; font-weight: 600; }
+        .testo-prodotto { flex-grow: 1; font-size: 16px; color: #1c1c1e; font-weight: 600; text-transform: capitalize; }
         .testo-prodotto.barrato { text-decoration: line-through; color: #8e8e93; opacity: 0.6; }
         
         .btn-small { border: none; border-radius: 8px; width: 32px; height: 32px; cursor: pointer; margin-left: 8px; display: inline-flex; align-items: center; justify-content: center; }
@@ -22,21 +26,7 @@
         .delete { background-color: #db5151; } 
         .icon { width: 22px; height: 22px; fill: none; stroke: white; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
 
-        /* PULSANTI IDENTICI IN TUTTO */
-        .btn-orange { 
-            width: 100%; 
-            padding: 15px; 
-            border-radius: 12px; 
-            border: none; 
-            background: #aec6cf; 
-            color: white; 
-            font-weight: bold; 
-            margin-top: 10px; 
-            cursor: pointer; 
-            font-size: 15px;
-            text-transform: uppercase;
-            display: block;
-        }
+        .btn-orange { width: 100%; padding: 15px; border-radius: 12px; border: none; background: #aec6cf; color: white; font-weight: bold; margin-top: 10px; cursor: pointer; font-size: 15px; text-transform: uppercase; display: block; }
         .btn-orange:active { opacity: 0.8; }
 
         .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 70px; background: #aec6cf; display: flex; justify-content: space-around; align-items: center; z-index: 1000; }
@@ -49,22 +39,28 @@
 </head>
 <body>
     <div class="app">
-        <div class="header-box"><h1 style="margin:0;">🛒 Lista della spesa</h1></div>
+        <div class="selector">
+            <button id="btnSpesa" class="selector-btn active" onclick="setMode('spesa')">🛒 SPESA</button>
+            <button id="btnViaggio" class="selector-btn" onclick="setMode('viaggio')">🧳 VIAGGIO</button>
+        </div>
+
         <div class="card">
             <div id="contenitoreLista">Caricamento...</div>
             
-            <button class="btn-orange" onclick="eliminaAcquistati()">Elimina acquistati</button>
-            <button class="btn-orange" onclick="apriModalSvuota()">Svuota tutta la lista</button>
-            <button class="btn-orange" onclick="ripristinaUltimaLista()">Ripristina ultima lista</button>
+            <button class="btn-orange" onclick="eliminaAcquistati()">Elimina completati</button>
+            <button class="btn-orange" onclick="apriModalSvuota()">Svuota tutto</button>
+            <button id="btnRipristina" class="btn-orange" onclick="ripristinaUltimaLista()">Ripristina ultima lista</button>
         </div>
     </div>
 
     <div class="tab-bar">
-        <a href="index.html" class="tab-item tab-active">🛒 LISTA</a>
-        <a href="prodotti.html" class="tab-item">📦 PRODOTTI</a>
+        <a href="index.html" class="tab-item tab-active">🏠 LISTA</a>
+        <a href="prodotti.html" class="tab-item">🛒 +SPESA</a>
+        <a href="coseviaggio.html" class="tab-item">🧳 +VIAGGIO</a>
         <a href="#" class="tab-item" onclick="logout()">🚪 ESCI</a>
     </div>
 
+    <!-- Modal Svuota -->
     <div id="svuotaModal" class="modal-overlay">
         <div class="modal-box">
             <h3>Svuota Lista</h3>
@@ -80,29 +76,58 @@
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let userEmail = localStorage.getItem('userEmail');
+        let mode = 'spesa'; // Può essere 'spesa' o 'viaggio'
 
         async function inizializza() {
-            const { data: { session } } = await supabaseClient.auth.getSession();
-            if (session) {
-                userEmail = session.user.email;
-                localStorage.setItem('userEmail', userEmail);
-            }
             if (!userEmail) { window.location.href = 'login.html'; } 
             else { caricaLista(); }
         }
 
+        function setMode(newMode) {
+            mode = newMode;
+            document.getElementById('btnSpesa').classList.toggle('active', mode === 'spesa');
+            document.getElementById('btnViaggio').classList.toggle('active', mode === 'viaggio');
+            // Nascondi ripristina se siamo in viaggio (opzionale)
+            document.getElementById('btnRipristina').style.display = mode === 'spesa' ? 'block' : 'none';
+            caricaLista();
+        }
+
         async function caricaLista() {
-            const { data, error } = await supabaseClient.from('lista_spesa').select('*, prodotti(nome)').eq('email_utente', userEmail);
+            const tabella = mode === 'spesa' ? 'lista_spesa' : 'lista_viaggio';
             const div = document.getElementById("contenitoreLista");
-            if (!data || !data.length) { div.innerHTML = "La lista è vuota: aggiungi prodotti"; return; }
-            data.sort((a, b) => (a.prodotti?.nome || "").localeCompare(b.prodotti?.nome || ""));
+            div.innerHTML = "Caricamento...";
+
+            // Query diversa in base alla tabella
+            let query = supabaseClient.from(tabella).select('*').eq('email_utente', userEmail);
+            
+            // Se spesa, facciamo il join con i nomi dei prodotti
+            if (mode === 'spesa') {
+                query = supabaseClient.from('lista_spesa').select('*, prodotti(nome)').eq('email_utente', userEmail);
+            }
+
+            const { data, error } = await query;
+
+            if (error || !data || !data.length) { 
+                div.innerHTML = "La lista è vuota."; 
+                return; 
+            }
+
+            // Ordinamento
+            data.sort((a, b) => {
+                const nomeA = mode === 'spesa' ? (a.prodotti?.nome || "") : a.nome;
+                const nomeB = mode === 'spesa' ? (b.prodotti?.nome || "") : b.nome;
+                return nomeA.localeCompare(nomeB);
+            });
+
             div.innerHTML = "";
             data.forEach(item => {
+                const nomeMostrato = mode === 'spesa' ? item.prodotti?.nome : item.nome;
                 const riga = document.createElement("div");
                 riga.className = "item";
                 const iconaClasse = item.completato ? 'restore' : 'check';
                 const svgIcona = item.completato ? `<path d="M9 14l-4-4 4-4M5 10h11a4 4 0 110 8h-1"/>` : `<path d="M5 12l5 5L20 7"/>`;
-                riga.innerHTML = `<span class="testo-prodotto ${item.completato ? 'barrato' : ''}">${item.prodotti?.nome}</span>
+                
+                riga.innerHTML = `<span class="testo-prodotto ${item.completato ? 'barrato' : ''}">${nomeMostrato}</span>
                     <div style="display:flex;">
                         <button class="btn-small ${iconaClasse}" onclick="toggle(${item.id}, ${item.completato})"><svg class="icon" viewBox="0 0 24 24">${svgIcona}</svg></button>
                         <button class="btn-small delete" onclick="elimina(${item.id})"><svg class="icon" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
@@ -112,17 +137,20 @@
         }
 
         async function toggle(id, stato) {
-            await supabaseClient.from('lista_spesa').update({ completato: !stato }).eq('id', id);
+            const tabella = mode === 'spesa' ? 'lista_spesa' : 'lista_viaggio';
+            await supabaseClient.from(tabella).update({ completato: !stato }).eq('id', id);
             caricaLista();
         }
 
         async function elimina(id) {
-            await supabaseClient.from('lista_spesa').delete().eq('id', id);
+            const tabella = mode === 'spesa' ? 'lista_spesa' : 'lista_viaggio';
+            await supabaseClient.from(tabella).delete().eq('id', id);
             caricaLista();
         }
 
         async function eliminaAcquistati() {
-            await supabaseClient.from('lista_spesa').delete().eq('email_utente', userEmail).eq('completato', true);
+            const tabella = mode === 'spesa' ? 'lista_spesa' : 'lista_viaggio';
+            await supabaseClient.from(tabella).delete().eq('email_utente', userEmail).eq('completato', true);
             caricaLista();
         }
 
@@ -130,16 +158,21 @@
         function chiudiModal() { document.getElementById('svuotaModal').style.display = 'none'; }
 
         async function confermaSvuota() {
-            const { data } = await supabaseClient.from('lista_spesa').select('prodotto_id').eq('email_utente', userEmail);
-            if (data && data.length > 0) {
-                localStorage.setItem('backup_lista', JSON.stringify(data.map(d => d.prodotto_id)));
+            const tabella = mode === 'spesa' ? 'lista_spesa' : 'lista_viaggio';
+            
+            // Backup solo per la spesa
+            if (mode === 'spesa') {
+                const { data } = await supabaseClient.from('lista_spesa').select('prodotto_id').eq('email_utente', userEmail);
+                if (data) localStorage.setItem('backup_lista', JSON.stringify(data.map(d => d.prodotto_id)));
             }
-            await supabaseClient.from('lista_spesa').delete().eq('email_utente', userEmail);
+
+            await supabaseClient.from(tabella).delete().eq('email_utente', userEmail);
             chiudiModal();
             caricaLista();
         }
 
         async function ripristinaUltimaLista() {
+            if (mode !== 'spesa') return;
             const raw = localStorage.getItem('backup_lista');
             if (!raw) { alert("Nessuna lista da ripristinare!"); return; }
             const ids = JSON.parse(raw);
@@ -157,12 +190,5 @@
 
         inizializza();
     </script>
-    <script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js');
-    });
-  }
-</script>
 </body>
 </html>
