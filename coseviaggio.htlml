@@ -58,35 +58,50 @@
         const userEmail = localStorage.getItem('userEmail');
 
         async function caricaCoseviaggio() {
-            const { data, error } = await supabaseClient
-                .from('prodotti')
-                .select('*')
-                .eq('tipo', 'viaggio'); // FILTRO RIGIDO VIAGGIO
+    const { data } = await supabaseClient.from('coseviaggio').select('*');
+    const div = document.getElementById("listaCoseviaggio");
+    div.innerHTML = "";
 
-            const div = document.getElementById("listaCoseviaggio");
-            div.innerHTML = "";
+    // Raggruppiamo i dati per categoria
+    const categorie = {};
+    data.forEach(item => {
+        const cat = item.categoria || 'Extra';
+        if (!categorie[cat]) categorie[cat] = [];
+        categorie[cat].push(item);
+    });
 
-            if (error) {
-                div.innerHTML = "Errore nel caricamento.";
-                return;
-            }
+    // Creiamo la visualizzazione
+    for (const [nomeCat, oggetti] of Object.entries(categorie)) {
+        // Aggiungi titolo categoria
+        const titolo = document.createElement("div");
+        titolo.className = "titolo-categoria";
+        titolo.innerText = nomeCat;
+        div.appendChild(titolo);
 
-            data.forEach(p => {
-                const btn = document.createElement("button");
-                btn.className = "btn-viaggio";
-                btn.innerText = p.nome;
-                btn.onclick = () => aggiungiALista(p.id, 'viaggio');
-                div.appendChild(btn);
-            });
-        }
+        // Crea mini-griglia per questa categoria
+        const miniGrid = document.createElement("div");
+        miniGrid.className = "grid";
+        
+        oggetti.forEach(p => {
+            const btn = document.createElement("button");
+            btn.className = "btn-viaggio";
+            btn.innerText = p.nome;
+            btn.onclick = () => aggiungiAListaViaggio(p.nome); // Mandiamo il nome direttamente
+            miniGrid.appendChild(btn);
+        });
+        div.appendChild(miniGrid);
+    }
+}
 
-        async function aggiungiALista(prodottoId, categoria) {
-            const { error } = await supabaseClient.from('lista_spesa').insert([{ 
-                prodotto_id: prodottoId, 
-                email_utente: userEmail, 
-                categoria: categoria, 
-                completato: false 
-            }]);
+async function aggiungiAListaViaggio(nomeOggetto) {
+    await supabaseClient.from('lista_viaggio').insert([{ 
+        nome: nomeOggetto, 
+        email_utente: userEmail, 
+        completato: false 
+    }]);
+    // Feedback rapido senza alert bloccante
+    console.log(nomeOggetto + " aggiunto!");
+}
 
             if (error) {
                 alert("Errore nell'aggiunta!");
