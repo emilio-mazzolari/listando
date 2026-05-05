@@ -4,19 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Lista Spesa</title>
-    
-    <!-- 1. IMPORTANTE: Carica la libreria Supabase PRIMA di ogni altro script -->
+    <!-- 1. Caricamento libreria Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
     <style>
         body { margin: 0; font-family: -apple-system, sans-serif; background: #f2f2f7; display: flex; justify-content: center; align-items: center; height: 100vh; }
         .card { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); width: 100%; max-width: 350px; text-align: center; }
         h1 { margin-bottom: 10px; font-weight: 800; }
-        input { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 12px; border: 1px solid #ddd; box-sizing: border-box; }
-        button { width: 100%; padding: 12px; border-radius: 12px; border: none; font-weight: bold; cursor: pointer; }
+        input { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 12px; border: 1px solid #ddd; box-sizing: border-box; font-size: 16px; }
+        button { width: 100%; padding: 12px; border-radius: 12px; border: none; font-weight: bold; cursor: pointer; font-size: 14px; }
         .btn-email { background: #aec6cf; color: white; margin-bottom: 20px; }
-        .btn-google { background: white; border: 1px solid #ddd; display: flex; align-items: center; justify-content: center; gap: 10px; }
-        #status { margin-top: 15px; font-size: 13px; }
+        .btn-google { background: white; border: 1px solid #ddd; display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; }
+        #status { margin-top: 15px; font-size: 13px; min-height: 20px; }
         .error { color: red; }
     </style>
 </head>
@@ -25,63 +23,65 @@
 <div class="card">
     <h1>Benvenuto</h1>
     <p>Accedi alla tua lista spesa</p>
-
     <input type="email" id="emailInput" placeholder="La tua email">
     <button class="btn-email" onclick="loginManuale()">ENTRA CON EMAIL</button>
-
-    <div style="margin: 20px 0; color: #aaa;">OPPURE</div>
-
-    <button class="btn-google" onclick="loginConGoogle()">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" width="18" alt="Google">
+    <div style="margin: 20px 0; color: #aaa; font-size: 12px;">OPPURE</div>
+    <button class="btn-google" id="googleBtn">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" width="18" alt="G">
         Accedi con Google
     </button>
-
     <div id="status"></div>
 </div>
 
 <script>
-// 2. Inizializzazione CLIENT
+// Configurazione
 const SUPABASE_URL = "https://eejdpophfxsrqdvsucye.supabase.co"; 
 const SUPABASE_KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
 
-// Verifichiamo che la libreria sia caricata
-if (typeof supabase === 'undefined') {
-    console.error("Errore: Libreria Supabase non caricata!");
-}
-
+// Inizializzazione corretta per Supabase v2
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-const statusDiv = document.getElementById('status');
 
-async function loginConGoogle() {
+const statusDiv = document.getElementById('status');
+const googleBtn = document.getElementById('googleBtn');
+
+// Gestione Login Google
+googleBtn.addEventListener('click', async () => {
     statusDiv.innerHTML = 'Apertura Google...';
     const { error } = await supabaseClient.auth.signInWithOAuth({
         provider: 'google',
         options: {
-            // Usa window.location.origin per evitare errori di slash / finale
-            redirectTo: window.location.origin 
+            // redirectTo deve corrispondere esattamente al Site URL salvato su Supabase
+            redirectTo: "https://lista-spesa-flame.vercel.app" 
         }
     });
-    if (error) statusDiv.innerHTML = `<span class="error">${error.message}</span>`;
-}
 
+    if (error) {
+        statusDiv.innerHTML = `<span class="error">Errore: ${error.message}</span>`;
+        console.error(error);
+    }
+});
+
+// Login Manuale
 function loginManuale() {
     const email = document.getElementById('emailInput').value.trim();
     if (email.includes('@')) {
         localStorage.setItem('userEmail', email);
         window.location.href = 'index.html';
     } else {
-        alert("Inserisci un'email valida.");
+        statusDiv.innerHTML = '<span class="error">Inserisci un\'email valida.</span>';
     }
 }
 
-// Gestore eventi per il reindirizzamento automatico dopo il login Google
+// Ascolta i cambiamenti di autenticazione (fondamentale per Google)
 supabaseClient.auth.onAuthStateChange((event, session) => {
     if (session) {
         localStorage.setItem('userEmail', session.user.email);
-        window.location.replace('index.html');
+        statusDiv.innerHTML = 'Accesso eseguito! Attendere...';
+        setTimeout(() => {
+            window.location.replace('index.html');
+        }, 500);
     }
 });
 </script>
-
 </body>
 </html>
