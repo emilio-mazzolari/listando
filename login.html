@@ -17,7 +17,6 @@
     </style>
 </head>
 <body>
-
 <div class="card">
     <h1>Benvenuto</h1>
     <p>Accedi alla tua lista spesa</p>
@@ -32,27 +31,25 @@
 </div>
 
 <script>
-// CONFIGURAZIONE - CONTROLLA LA KEY!
 const SUPABASE_URL = "https://eejdpophfxsrqdvsucye.supabase.co"; 
-const SUPABASE_KEY = "INSERISCI_QUI_LA_TUA_CHIAVE_ANON_LUNGHISSIMA_CHE_INIZIA_CON_eyJ"; 
+// CHIAVE CORRETTA INSERITA QUI SOTTO
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlamRwb3BoZnhzcnFkdnN1Y3llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2NTMzMDQsImV4cCI6MjA5MzIyOTMwNH0.mpxbwlJyIdZgqKIdutHbLd85JR1P11yiglbYeApi17k";
 
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const statusDiv = document.getElementById('status');
 
-// Login Google
 document.getElementById('btnGoogle').addEventListener('click', async () => {
     statusDiv.innerHTML = 'Connessione a Google...';
     const { error } = await supabaseClient.auth.signInWithOAuth({
         provider: 'google',
         options: {
-            // Aggiunto lo slash finale per corrispondere allo screenshot 23.10.37.jpg
+            // Deve corrispondere esattamente a una delle voci nello Screenshot 23.10.37.jpg
             redirectTo: "https://lista-spesa-flame.vercel.app/" 
         }
     });
     if (error) statusDiv.innerHTML = `<span class="error">${error.message}</span>`;
 });
 
-// Login Manuale
 function loginManuale() {
     const email = document.getElementById('emailInput').value.trim();
     if (email.includes('@')) {
@@ -63,7 +60,6 @@ function loginManuale() {
     }
 }
 
-// Gestione Ritorno da Google
 supabaseClient.auth.onAuthStateChange((event, session) => {
     if (session) {
         localStorage.setItem('userEmail', session.user.email);
