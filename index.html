@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <title>Le Mie Liste</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Libreria Supabase necessaria per il logout ufficiale -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { margin: 0; font-family: -apple-system, Helvetica, Arial, sans-serif; background: #f2f2f7; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
         .app { width: 100%; max-width: 420px; padding: 20px; text-align: center; }
@@ -12,7 +14,6 @@
         
         .menu-container { display: flex; flex-direction: column; gap: 15px; width: 100%; }
         
-        /* Bottoni Semplici e Flat */
         .btn-big { 
             display: flex; 
             align-items: center; 
@@ -21,7 +22,6 @@
             width: 100%; 
             padding: 30px 0; 
             border-radius: 16px; 
-            /* Rimosse ombreggiature */
             border: 1px solid #ddd; 
             background: white; 
             color: #1c1c1e; 
@@ -31,19 +31,16 @@
             transition: background-color 0.2s;
         }
 
-        /* Effetto al tocco: cambia solo il colore di sfondo */
         .btn-big:active { 
             background-color: #ebebeb;
-            transform: none; /* Rimosso l'effetto scala per massima semplicità */
         }
 
         .btn-big span { font-size: 28px; }
 
-        /* Palette dedicata solo sul bordo laterale */
         .btn-spesa { border-left: 12px solid #aec6cf; }
         .btn-valigia { border-left: 12px solid #9fb8ad; }
 
-        /* Tab Bar Bassa */
+        /* Tab Bar */
         .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 75px; background: #aec6cf; display: flex; justify-content: space-around; align-items: center; }
         .tab-item { flex: 1; text-align: center; font-size: 12px; color: #333; text-decoration: none; font-weight: 800; display: flex; flex-direction: column; gap: 4px; text-transform: uppercase; }
         .tab-active { color: white; }
@@ -71,28 +68,28 @@
     </div>
 
     <script>
-        function logout() {
-            localStorage.clear();
-            window.location.href = 'login.html';
-        }
+        // Configurazione allineata con Screenshot 2026-05-05 alle 23.16.39.jpg
+        const SUPABASE_URL = "https://eejdpophfxsrqdvsucye.supabase.co"; 
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlamRwb3BoZnhzcnFkdnN1Y3llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2NTMzMDQsImV4cCI6MjA5MzIyOTMwNH0.mpxbwlJyIdZgqKIdutHbLd85JR1P11yiglbYeApi17k";
+        
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+        // Controllo accesso: se non c'è l'email nel localStorage, torna al login
         if (!localStorage.getItem('userEmail')) {
             window.location.href = 'login.html';
         }
-        // Aggiungi la libreria Supabase anche qui se vuoi un logout pulito
-// <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-async function logout() {
-    // Se hai inizializzato supabaseClient anche qui:
-    // await supabaseClient.auth.signOut(); 
-    localStorage.clear();
-    window.location.href = 'login.html';
-}
-
-// Controllo accesso
-if (!localStorage.getItem('userEmail')) {
-    window.location.href = 'login.html';
-}
+        async function logout() {
+            try {
+                // Chiude la sessione su Supabase
+                await supabaseClient.auth.signOut(); 
+            } catch (err) {
+                console.error("Errore durante il logout sessione:", err);
+            }
+            // Pulisce i dati locali e reindirizza
+            localStorage.clear();
+            window.location.href = 'login.html';
+        }
     </script>
 </body>
 </html>
