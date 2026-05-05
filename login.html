@@ -66,21 +66,11 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
         });
 
         // 2. FUNZIONE LOGIN GOOGLE
-        async function loginConGoogle() {
-            statusDiv.innerHTML = '<span class="loading">Apertura Google...</span>';
-            const { error } = await supabaseClient.auth.signInWithOAuth({
-                provider: 'google',
-                options: {
-                    // Reindirizza esplicitamente a index.html
-                    redirectTo: 'https://lista-spesa-flame.vercel.app/index.html'
-                }
-            });
-
-            if (error) {
-                statusDiv.innerHTML = `<span class="error">Errore: ${error.message}</span>`;
-            }
-        }
-
+       const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+    auth: {
+        detectSessionInUrl: true
+    }
+});
         // 3. FUNZIONE LOGIN MANUALE
         function loginManuale() {
             const email = document.getElementById('emailInput').value.trim();
