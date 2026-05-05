@@ -44,7 +44,7 @@ document.getElementById('btnGoogle').addEventListener('click', async () => {
         provider: 'google',
         options: {
             // Deve corrispondere esattamente a una delle voci nello Screenshot 23.10.37.jpg
-            redirectTo: "https://lista-spesa-flame.vercel.app/" 
+            redirectTo: "https://lista-spesa-flame.vercel.app" 
         }
     });
     if (error) statusDiv.innerHTML = `<span class="error">${error.message}</span>`;
