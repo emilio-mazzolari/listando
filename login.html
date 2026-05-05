@@ -1,24 +1,63 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Lista Spesa</title>
+    <!-- Includi la libreria Supabase via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { margin: 0; font-family: -apple-system, sans-serif; background: #f2f2f7; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        .card { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); width: 100%; max-width: 350px; text-align: center; }
+        h1 { margin-bottom: 10px; font-weight: 800; }
+        p { color: #666; margin-bottom: 25px; font-size: 14px; }
+        input { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 12px; border: 1px solid #ddd; box-sizing: border-box; font-size: 16px; }
+        button { width: 100%; padding: 12px; border-radius: 12px; border: none; font-weight: bold; cursor: pointer; transition: opacity 0.2s; font-size: 14px; }
+        .btn-email { background: #aec6cf; color: white; margin-bottom: 20px; }
+        .btn-google { background: white; border: 1px solid #ddd; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .separator { margin: 20px 0; color: #aaa; font-size: 12px; text-transform: uppercase; }
+        #status { margin-top: 15px; font-size: 13px; min-height: 20px; }
+        .error { color: #d32f2f; }
+        .loading { color: #666; }
+        img { width: 18px; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h1>Benvenuto</h1>
+    <p>Accedi alla tua lista spesa</p>
+
+    <input type="email" id="emailInput" placeholder="La tua email">
+    <button class="btn-email" onclick="loginManuale()">ENTRA CON EMAIL</button>
+
+    <div class="separator">Oppure</div>
+
+    <button class="btn-google" onclick="loginConGoogle()">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="Google">
+        Accedi con Google
+    </button>
+
+    <div id="status"></div>
+</div>
+
 <script>
+// Configurazione Supabase
 const SUPABASE_URL = "https://eejdpophfxsrqdvsucye.supabase.co"; 
 const SUPABASE_KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
-
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-    auth: {
-        detectSessionInUrl: true
-    }
-});
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const statusDiv = document.getElementById('status');
 
-
-// 🔹 GESTIONE LOGIN GOOGLE
+// 1. LOGIN CON GOOGLE
 async function loginConGoogle() {
-    statusDiv.innerHTML = '<span class="loading">Apertura Google...</span>';
+    statusDiv.innerHTML = '<span class="loading">Reindirizzamento a Google...</span>';
 
     const { error } = await supabaseClient.auth.signInWithOAuth({
         provider: 'google',
         options: {
-            redirectTo: window.location.origin + '/index.html'
+            // Usa window.location.origin per corrispondere esattamente a Google Cloud Console
+            redirectTo: window.location.origin 
         }
     });
 
@@ -27,45 +66,44 @@ async function loginConGoogle() {
     }
 }
 
-
-// 🔹 GESTIONE EVENTI AUTH
-supabaseClient.auth.onAuthStateChange((event, session) => {
-    console.log("Evento:", event);
-
-    if (event === 'SIGNED_IN' && session) {
-        statusDiv.innerHTML = '<span class="loading">Accesso riuscito! Reindirizzamento...</span>';
-        
-        localStorage.setItem('userEmail', session.user.email);
-
-        setTimeout(() => {
-            window.location.replace('index.html');
-        }, 300);
-    }
-});
-
-
-// 🔹 LOGIN MANUALE
+// 2. LOGIN MANUALE (SENZA PASSWORD)
 function loginManuale() {
     const email = document.getElementById('emailInput').value.trim();
 
     if (email.includes('@') && email.length > 5) {
         localStorage.setItem('userEmail', email);
+        statusDiv.innerHTML = '<span class="loading">Accesso in corso...</span>';
         window.location.href = 'index.html';
     } else {
-        alert("Inserisci un'email valida.");
+        statusDiv.innerHTML = '<span class="error">Inserisci un\'email valida.</span>';
     }
 }
 
+// 3. GESTIONE AUTOMATICA SESSIONE E REINDIRIZZAMENTO
+supabaseClient.auth.onAuthStateChange((event, session) => {
+    if (session) {
+        // Salviamo l'email per le query nel database
+        localStorage.setItem('userEmail', session.user.email);
+        statusDiv.innerHTML = '<span class="loading">Accesso riuscito! Caricamento...</span>';
+        
+        // Piccola pausa per assicurarsi che il token sia salvato
+        setTimeout(() => {
+            window.location.replace('index.html');
+        }, 500);
+    }
+});
 
-// 🔹 CONTROLLO SESSIONE ALL'AVVIO
-async function init() {
+// 4. CONTROLLO INIZIALE (Se l'utente è già loggato)
+async function checkUser() {
     const { data: { session } } = await supabaseClient.auth.getSession();
-
     if (session) {
         localStorage.setItem('userEmail', session.user.email);
         window.location.replace('index.html');
     }
 }
 
-init();
+checkUser();
 </script>
+
+</body>
+</html>
