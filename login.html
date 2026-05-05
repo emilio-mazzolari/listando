@@ -67,9 +67,10 @@ function loginManuale() {
 }
 
 supabaseClient.auth.onAuthStateChange((event, session) => {
-    if (session) {
+    console.log("Evento Auth:", event);
+    if (event === "SIGNED_IN" && session) {
         localStorage.setItem('userEmail', session.user.email);
-        window.location.replace('index.html');
+        window.location.assign('index.html');
     }
 });
 </script>
