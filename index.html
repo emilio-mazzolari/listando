@@ -79,6 +79,20 @@
         if (!localStorage.getItem('userEmail')) {
             window.location.href = 'login.html';
         }
+        // Aggiungi la libreria Supabase anche qui se vuoi un logout pulito
+// <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+async function logout() {
+    // Se hai inizializzato supabaseClient anche qui:
+    // await supabaseClient.auth.signOut(); 
+    localStorage.clear();
+    window.location.href = 'login.html';
+}
+
+// Controllo accesso
+if (!localStorage.getItem('userEmail')) {
+    window.location.href = 'login.html';
+}
     </script>
 </body>
 </html>
