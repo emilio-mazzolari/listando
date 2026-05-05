@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Lista Spesa</title>
-    <!-- Caricamento forzato della libreria -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { margin: 0; font-family: -apple-system, sans-serif; background: #f2f2f7; display: flex; justify-content: center; align-items: center; height: 100vh; }
@@ -12,10 +11,9 @@
         input { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 12px; border: 1px solid #ddd; box-sizing: border-box; }
         button { width: 100%; padding: 12px; border-radius: 12px; border: none; font-weight: bold; cursor: pointer; }
         .btn-email { background: #aec6cf; color: white; margin-bottom: 20px; }
-        .btn-google { background: white; border: 1px solid #ddd; display: flex; align-items: center; justify-content: center; gap: 10px; }
-        #status { margin-top: 15px; font-size: 13px; font-weight: bold; }
+        .btn-google { background: white; border: 1px solid #ddd; display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; }
+        #status { margin-top: 15px; font-size: 13px; font-weight: bold; min-height: 20px; }
         .error { color: #d32f2f; }
-        .success { color: #45a049; }
     </style>
 </head>
 <body>
@@ -23,73 +21,38 @@
 <div class="card">
     <h1>Benvenuto</h1>
     <p>Accedi alla tua lista spesa</p>
-
     <input type="email" id="emailInput" placeholder="La tua email">
     <button class="btn-email" onclick="loginManuale()">ENTRA CON EMAIL</button>
-
     <div style="margin: 20px 0; color: #aaa; font-size: 12px;">OPPURE</div>
-
     <button class="btn-google" id="btnGoogle">
         <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" width="18" alt="G">
         Accedi con Google
     </button>
-
     <div id="status"></div>
 </div>
 
 <script>
-// 1. Configurazione - I tuoi dati sono corretti
+// CONFIGURAZIONE - CONTROLLA LA KEY!
 const SUPABASE_URL = "https://eejdpophfxsrqdvsucye.supabase.co"; 
-const SUPABASE_KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
-let supabaseClient;
+const SUPABASE_KEY = "INSERISCI_QUI_LA_TUA_CHIAVE_ANON_LUNGHISSIMA_CHE_INIZIA_CON_eyJ"; 
 
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const statusDiv = document.getElementById('status');
 
-// 2. Inizializzazione con controllo errore
-try {
-    if (typeof supabase === 'undefined') {
-        statusDiv.innerHTML = '<span class="error">ERRORE: Libreria non caricata. Controlla la connessione internet.</span>';
-    } else {
-        supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        console.log("Supabase inizializzato correttamente.");
-    }
-} catch (e) {
-    statusDiv.innerHTML = '<span class="error">Errore inizializzazione: ' + e.message + '</span>';
-}
-
-// 3. Funzione Google Login
+// Login Google
 document.getElementById('btnGoogle').addEventListener('click', async () => {
-    statusDiv.innerHTML = 'Tentativo di apertura Google...';
-    
-    try {
-        const { data, error } = await supabaseClient.auth.signInWithOAuth({
-            provider: 'google',
-            options: {
-                // redirectTo deve corrispondere al Site URL nello Screenshot 2026-05-05 alle 23.10.37.jpg
-                redirectTo: "https://lista-spesa-flame.vercel.app" 
-            }
-        });
-
-        if (error) throw error;
-        
-    } catch (err) {
-        statusDiv.innerHTML = '<span class="error">Errore Google: ' + err.message + '</span>';
-        console.error("Dettaglio errore:", err);
-    }
-});
-
-// 4. Gestore sessione (per quando torni da Google)
-if (supabaseClient) {
-    supabaseClient.auth.onAuthStateChange((event, session) => {
-        console.log("Evento Auth:", event);
-        if (session) {
-            localStorage.setItem('userEmail', session.user.email);
-            statusDiv.innerHTML = '<span class="success">Accesso eseguito!</span>';
-            setTimeout(() => { window.location.replace('index.html'); }, 800);
+    statusDiv.innerHTML = 'Connessione a Google...';
+    const { error } = await supabaseClient.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+            // Aggiunto lo slash finale per corrispondere allo screenshot 23.10.37.jpg
+            redirectTo: "https://lista-spesa-flame.vercel.app/" 
         }
     });
-}
+    if (error) statusDiv.innerHTML = `<span class="error">${error.message}</span>`;
+});
 
+// Login Manuale
 function loginManuale() {
     const email = document.getElementById('emailInput').value.trim();
     if (email.includes('@')) {
@@ -99,6 +62,14 @@ function loginManuale() {
         statusDiv.innerHTML = '<span class="error">Inserisci un\'email valida.</span>';
     }
 }
+
+// Gestione Ritorno da Google
+supabaseClient.auth.onAuthStateChange((event, session) => {
+    if (session) {
+        localStorage.setItem('userEmail', session.user.email);
+        window.location.replace('index.html');
+    }
+});
 </script>
 </body>
 </html>
