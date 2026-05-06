@@ -41,15 +41,15 @@ document.getElementById('btnGoogle').addEventListener('click', async () => {
     statusDiv.innerHTML = 'Connessione a Google...';
     
     const { error } = await supabaseClient.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-            redirectTo: "https://lista-spesa-flame.vercel.app", // Virgola aggiunta qui
-            queryParams: {
-                access_type: 'offline',
-                prompt: 'consent'
-            } // Chiusura corretta di queryParams
-        } // Chiusura corretta di options
-    });
+    provider: 'google',
+    options: {
+        redirectTo: "[lista-spesa-flame.vercel.app](https://lista-spesa-flame.vercel.app/login.html)",
+        queryParams: {
+            access_type: 'offline',
+            prompt: 'consent'
+        }
+    }
+});
 
     if (error) {
         statusDiv.innerHTML = `<span class="error">${error.message}</span>`;
