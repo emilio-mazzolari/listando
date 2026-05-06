@@ -5,8 +5,7 @@ const FILES = [
   "/index.html",
   "/prodotti.html",
   "/manifest.json",
-  "/icon-192.png",
-  "/icon-512.png"
+  "/logolistando.png",
 ];
 
 /* INSTALL */
