@@ -1,40 +1,14 @@
-<!DOCTYPE html>
-<html lang="it">
-<head>
-    <meta charset="UTF-8">
-    <title>Listando - Le Mie Liste</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        :root {
-            --primary-blue: #007aff; /* Il blu del logo */
-            --accent-yellow: #f1b32b; /* Il giallo della 'n' */
-            --success-green: #00c389; /* Il verde della spunta */
-            --dark-text: #1c1c1e;
-            --bg-light: #f9f9fb;
-        }
-
-        body { 
-            margin: 0; 
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
-            background: var(--bg-light); 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            height: 100vh; 
-            overflow: hidden; 
-        }
-
-        .app { 
-            width: 100%; 
-            max-width: 420px; 
-            padding: 20px; 
-            text-align: center; 
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        
+<div class="menu-container">
+    <a href="spesa.html" class="btn-big btn-spesa">
+        <img src="icona-spesa.png" alt="Spesa" class="icon-custom">
+        <span>LA SPESA</span>
+    </a>
+    
+    <a href="valigia.html" class="btn-big btn-valigia">
+        <img src="icona-valigia.png" alt="Valigia" class="icon-custom">
+        <span>LA VALIGIA</span>
+    </a>
+</div>        
         /* Logo Header */
         .logo-container {
             margin-bottom: 30px;
