@@ -2,72 +2,198 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Prodotti Spesa</title>
+    <title>Listando - Prodotti</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="/manifest.json">
     <style>
-        body { margin: 0; font-family: -apple-system, Helvetica, Arial, sans-serif; background: #f2f2f7; display: flex; justify-content: center; }
-        .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 100px; position: relative; }
-        .card { background: white; border-radius: 16px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        .header-box { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .testo-prodotto { flex-grow: 1; font-size: 16px; color: #1c1c1e; font-weight: 500; }
-        .item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f2f2f7; }
-        .item:last-child { border-bottom: none; }
-        
-        .btn-small { border: none; border-radius: 8px; width: 34px; height: 34px; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-left: 6px; font-size: 16px; transition: all 0.2s; }
-        .plus { background-color: #aec6cf; color: white; } 
-        .edit { background-color: #fdfd96; color: #3a3a3c; } 
-        .delete { background-color: #ffd1d1; color: #d32f2f; }
-
-        .input-group { display: flex; gap: 10px; margin-bottom: 12px; position: relative; }
-        input { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid #ddd; font-size: 16px; outline: none; height: 45px; box-sizing: border-box; background: white; }
-        .btn-main { width: 100px; height: 45px; border-radius: 12px; border: none; background: #aec6cf; color: white; font-weight: bold; cursor: pointer; font-size: 13px; text-transform: uppercase; }
-
-        .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 75px; background: #aec6cf; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid rgba(0,0,0,0.1); z-index: 1000; }
-        .tab-item { flex: 1; text-align: center; font-size: 11px; color: #333; text-decoration: none; font-weight: 800; display: flex; flex-direction: column; text-transform: uppercase; }
-        .tab-item span { font-size: 22px; margin-bottom: 3px; }
-        .tab-active { color: white; }
-
-        #toast {
-            position: absolute; top: -40px; left: 50%; transform: translateX(-50%);
-            background: #3a3a3c; color: white; padding: 8px 15px; border-radius: 10px;
-            font-size: 13px; z-index: 3000; display: none; white-space: nowrap;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        :root {
+            --green: #0fba8d;
+            --blue: #3384d4;
+            --yellow: #feb310;
+            --grey: #d8dddc;
+            --dark: #000000;
+            --bg: #fdfdfd;
         }
 
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 2000; }
-        .modal-box { background: white; padding: 25px; border-radius: 20px; width: 85%; max-width: 350px; text-align: center; }
-        .btn-modal { width: 100%; padding: 15px; margin-top: 10px; border-radius: 12px; border: none; background: #aec6cf; color: white; font-weight: bold; cursor: pointer; font-size: 16px; }
-        .btn-cancel { background: #e5e5ea; color: #8e8e93; margin-top: 15px; }
+        body { 
+            margin: 0; 
+            font-family: 'Segoe UI', system-ui, sans-serif; 
+            background: var(--bg); 
+            display: flex; 
+            justify-content: center; 
+            color: var(--dark);
+        }
+
+        .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 110px; }
+
+        h2 { font-weight: 900; font-size: 24px; margin: 10px 0 20px 0; display: flex; align-items: center; gap: 10px; }
+
+        /* Input Styles */
+        .input-group { display: flex; gap: 10px; margin-bottom: 15px; position: relative; }
+        
+        input { 
+            flex: 1; 
+            padding: 14px; 
+            border-radius: 20px; 
+            border: 3px solid var(--grey); 
+            font-size: 16px; 
+            outline: none; 
+            height: 54px; 
+            box-sizing: border-box; 
+            transition: border-color 0.2s;
+        }
+        
+        input:focus { border-color: var(--blue); }
+
+        .btn-main { 
+            padding: 0 20px; 
+            height: 54px; 
+            border-radius: 20px; 
+            border: none; 
+            background: var(--blue); 
+            color: white; 
+            font-weight: 800; 
+            cursor: pointer; 
+            font-size: 14px; 
+        }
+
+        /* Card & Items */
+        .card { 
+            background: white; 
+            border-radius: 28px; 
+            padding: 10px 20px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.03); 
+            border: 3px solid var(--grey);
+        }
+
+        .item { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            padding: 15px 0; 
+            border-bottom: 2px solid #f2f2f7; 
+        }
+
+        .item:last-child { border-bottom: none; }
+        
+        .testo-prodotto { font-size: 17px; font-weight: 700; }
+
+        /* Buttons Small Styles */
+        .btn-actions { display: flex; gap: 8px; }
+
+        .btn-small { 
+            border: 3px solid var(--grey); 
+            border-radius: 14px; 
+            width: 40px; 
+            height: 40px; 
+            cursor: pointer; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            background: white;
+            transition: all 0.2s;
+        }
+
+        .btn-small.plus { border-color: var(--blue); color: var(--blue); }
+        .btn-small.edit { border-color: var(--yellow); color: var(--yellow); }
+        .btn-small.delete { border-color: #ff3b30; color: #ff3b30; }
+
+        .btn-small:active { transform: scale(0.9); }
+
+        /* Tab Bar */
+        .tab-bar { 
+            position: fixed; 
+            bottom: 0; left: 0; right: 0; 
+            height: 85px; 
+            background: white; 
+            display: flex; 
+            justify-content: space-around; 
+            align-items: center; 
+            border-top: 3px solid var(--grey); 
+            z-index: 1000; 
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        .tab-item { 
+            flex: 1; text-align: center; font-size: 10px; color: var(--dark); 
+            text-decoration: none; font-weight: 800; display: flex; 
+            flex-direction: column; align-items: center; gap: 5px; 
+        }
+
+        .tab-active { color: var(--green); }
+        .icon-tab { width: 26px; height: 26px; stroke-width: 2.5; stroke: currentColor; fill: none; }
+
+        /* Modals */
+        .modal-overlay { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.4); display: none; align-items: center; 
+            justify-content: center; z-index: 2000; backdrop-filter: blur(4px);
+        }
+        .modal-box { 
+            background: white; padding: 30px; border-radius: 32px; 
+            width: 85%; max-width: 350px; text-align: center; 
+            border: 4px solid var(--grey);
+        }
+        .btn-modal { 
+            width: 100%; padding: 16px; margin-top: 10px; border-radius: 18px; 
+            border: none; background: var(--blue); color: white; 
+            font-weight: 800; cursor: pointer; font-size: 16px; 
+        }
+        .btn-cancel { background: var(--grey); color: var(--dark); margin-top: 12px; }
+
+        #toast {
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+            background: var(--dark); color: white; padding: 12px 25px; 
+            border-radius: 20px; font-weight: 700; z-index: 3000; display: none;
+        }
     </style>
 </head>
 <body>
 
+    <div id="toast"></div>
+
     <div class="app">
-        <div class="header-box"><h2 style="margin:0; font-weight: 800;">📦 I miei prodotti</h2></div>
+        <h2>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8V21H3V8"></path><path d="M1 3H23V8H1V3Z"></path><path d="M10 12H14"></path></svg>
+            Prodotti
+        </h2>
         
         <div class="input-group">
-            <div id="toast">Prodotto già presente!</div>
-            <input type="text" id="nuovoProdotto" placeholder="Nuovo prodotto...">
-            <button class="btn-main" onclick="gestisciInserimento()">AGGIUNGI</button>
+            <input type="text" id="nuovoProdotto" placeholder="Aggiungi nuovo...">
+            <button class="btn-main" onclick="gestisciInserimento()">INVIA</button>
         </div>
 
         <div class="input-group">
-            <input type="text" id="cercaProdotto" placeholder="Cerca prodotti..." onkeyup="filtraProdotti()">
+            <input type="text" id="cercaProdotto" placeholder="Cerca tra i prodotti..." onkeyup="filtraProdotti()">
         </div>
 
         <div class="card" id="listaProdotti">Caricamento...</div>
     </div>
 
     <div class="tab-bar">
-        <a href="index.html" class="tab-item"><span>🏠</span>HOME</a>
-        <a href="spesa.html" class="tab-item"><span>🛒</span>SPESA</a>
-        <a href="prodottispesa.html" class="tab-item tab-active"><span>📦</span>PRODOTTI</a>
-        <a href="#" class="tab-item" onclick="logout()"><span>🚪</span>ESCI</a>
+        <a href="index.html" class="tab-item">
+            <svg class="icon-tab" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+            HOME
+        </a>
+        <a href="spesa.html" class="tab-item">
+            <svg class="icon-tab" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+            SPESA
+        </a>
+        <a href="prodottispesa.html" class="tab-item tab-active">
+            <svg class="icon-tab" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line></svg>
+            PRODOTTI
+        </a>
+        <a href="#" class="tab-item" onclick="logout()">
+            <svg class="icon-tab" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+            ESCI
+        </a>
     </div>
 
-    <div id="insertModal" class="modal-overlay"><div class="modal-box"><h3>Visibilità</h3><button class="btn-modal" onclick="confermaInserimento(true)">PER TUTTI</button><button class="btn-modal" onclick="confermaInserimento(false)">SOLO PER ME</button><button class="btn-modal btn-cancel" onclick="chiudiModal()">ANNULLA</button></div></div>
-    <div id="editModal" class="modal-overlay"><div class="modal-box"><h3>Modifica Nome</h3><input type="text" id="inputModifica" style="width:100%; margin-bottom:15px; padding:12px; border-radius:12px; border:1px solid #ddd;"><button class="btn-modal" onclick="salvaModifica()">SALVA</button><button class="btn-modal btn-cancel" onclick="chiudiModal()">ANNULLA</button></div></div>
-    <div id="deleteModal" class="modal-overlay"><div class="modal-box"><h3>Elimina Prodotto</h3><button class="btn-modal" id="btnTutti">ELIMINA PER TUTTI</button><button class="btn-modal" id="btnSoloMe">ELIMINA PER ME</button><button class="btn-modal btn-cancel" onclick="chiudiModal()">ANNULLA</button></div></div>
+    <div id="insertModal" class="modal-overlay"><div class="modal-box"><h3>Visibilità</h3><button class="btn-modal" onclick="confermaInserimento(true)">PER TUTTI</button><button class="btn-modal" style="background:var(--green)" onclick="confermaInserimento(false)">SOLO PER ME</button><button class="btn-modal btn-cancel" onclick="chiudiModal()">ANNULLA</button></div></div>
+    
+    <div id="editModal" class="modal-overlay"><div class="modal-box"><h3>Modifica Nome</h3><input type="text" id="inputModifica" style="width:100%; margin-bottom:15px;"><button class="btn-modal" onclick="salvaModifica()">SALVA</button><button class="btn-modal btn-cancel" onclick="chiudiModal()">ANNULLA</button></div></div>
+    
+    <div id="deleteModal" class="modal-overlay"><div class="modal-box"><h3>Elimina</h3><button class="btn-modal" style="background:#ff3b30" id="btnTutti">ELIMINA PER TUTTI</button><button class="btn-modal" id="btnSoloMe">ELIMINA PER ME</button><button class="btn-modal btn-cancel" onclick="chiudiModal()">ANNULLA</button></div></div>
 
     <script>
         const URL = "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1";
@@ -80,11 +206,10 @@
         let idInModifica = null;
         let prodottiFiltratiBase = [];
 
-        function mostraToast(messaggio) {
-            const toast = document.getElementById("toast");
-            toast.innerText = messaggio;
-            toast.style.display = "block";
-            setTimeout(() => { toast.style.display = "none"; }, 2500);
+        function mostraToast(msg) {
+            const t = document.getElementById("toast");
+            t.innerText = msg; t.style.display = "block";
+            setTimeout(() => t.style.display = "none", 2500);
         }
 
         async function caricaProdotti() {
@@ -102,7 +227,6 @@
                     const eMioPrivato = (p.email === userEmail);
                     return nonNascosto && (ePubblico || eMioPrivato);
                 });
-
                 renderizzaProdotti(prodottiFiltratiBase);
             } catch (e) { console.error(e); }
         }
@@ -110,17 +234,23 @@
         function renderizzaProdotti(prodotti) {
             const div = document.getElementById("listaProdotti");
             div.innerHTML = "";
-            if(prodotti.length === 0) { div.innerHTML = "<p style='text-align:center;color:#888;'>Nessun prodotto trovato</p>"; return; }
+            if(prodotti.length === 0) { div.innerHTML = "<p style='text-align:center;color:var(--grey);'>Nessun prodotto</p>"; return; }
             
             prodotti.forEach(p => {
                 const riga = document.createElement("div");
                 riga.className = "item";
                 riga.innerHTML = `
                     <span class="testo-prodotto">${p.nome}</span>
-                    <div style="display:flex;">
-                        <button class="btn-small plus" id="btn-plus-${p.id}" onclick="mettiInLista(${p.id})">+</button>
-                        <button class="btn-small edit" onclick="apriModalModifica(${p.id}, '${p.nome.replace(/'/g, "\\'")}')">✏️</button>
-                        <button class="btn-small delete" onclick="apriModalRimuovi(${p.id})">🗑</button>
+                    <div class="btn-actions">
+                        <button class="btn-small plus" id="btn-plus-${p.id}" onclick="mettiInLista(${p.id}, '${p.nome.replace(/'/g, "\\'")}')">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        </button>
+                        <button class="btn-small edit" onclick="apriModalModifica(${p.id}, '${p.nome.replace(/'/g, "\\'")}')">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4L18.5 2.5z"></path></svg>
+                        </button>
+                        <button class="btn-small delete" onclick="apriModalRimuovi(${p.id})">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                        </button>
                     </div>
                 `;
                 div.appendChild(riga);
@@ -136,9 +266,6 @@
         function gestisciInserimento() {
             const nome = document.getElementById("nuovoProdotto").value.trim();
             if (!nome) return;
-            const esisteGia = prodottiFiltratiBase.some(p => p.nome.toLowerCase() === nome.toLowerCase());
-            if (esisteGia) { mostraToast("Esiste già!"); return; }
-
             if (userEmail === adminEmail) {
                 document.getElementById('insertModal').style.display = 'flex';
             } else {
@@ -149,87 +276,47 @@
         async function confermaInserimento(perTutti) {
             const nomeInput = document.getElementById("nuovoProdotto");
             const nome = nomeInput.value.trim();
-            const emailProprietario = perTutti ? null : userEmail;
-
             await fetch(`${URL}/prodotti`, {
                 method: "POST", headers,
-                body: JSON.stringify({ nome: nome, email: emailProprietario })
+                body: JSON.stringify({ nome: nome, email: perTutti ? null : userEmail })
             });
-            
-            nomeInput.value = "";
-            chiudiModal();
-            caricaProdotti();
+            nomeInput.value = ""; chiudiModal(); caricaProdotti();
         }
 
         async function mettiInLista(id, nome) {
-    const btn = document.getElementById(`btn-plus-${id}`);
-    
-    // Verifichiamo se è già in lista
-    const res = await fetch(`${URL}/lista_spesa?prodotto_id=eq.${id}&email_utente=eq.${userEmail}`, { headers });
-    const esistente = await res.json();
+            const btn = document.getElementById(`btn-plus-${id}`);
+            const res = await fetch(`${URL}/lista_spesa?prodotto_id=eq.${id}&email_utente=eq.${userEmail}`, { headers });
+            const esistente = await res.json();
 
-    if (esistente.length > 0) {
-        aggiornaBottone(btn, "GIÀ IN LISTA", "#db5151");
-        return;
-    }
+            if (esistente.length > 0) { mostraToast("Già in lista!"); return; }
 
-    // Inviamo SIA l'id CHE il nome
-    const fetchRes = await fetch(`${URL}/lista_spesa`, {
-        method: "POST", 
-        headers,
-        body: JSON.stringify({ 
-            prodotto_id: id, 
-            nome: nome, // IMPORTANTE: Assicurati di avere la colonna 'nome' in lista_spesa su Supabase
-            email_utente: userEmail, 
-            completato: false 
-        })
-    });
+            const fetchRes = await fetch(`${URL}/lista_spesa`, {
+                method: "POST", headers,
+                body: JSON.stringify({ prodotto_id: id, nome: nome, email_utente: userEmail, completato: false })
+            });
 
-    if(fetchRes.ok) {
-        aggiornaBottone(btn, "OK", "#45a049");
-    } else {
-        // Se ti dà errore qui, vai su Supabase e aggiungi la colonna 'nome' (tipo text) alla tabella lista_spesa
-        aggiornaBottone(btn, "ERRORE", "#ff3b30");
-    }
-}
-
-        function aggiornaBottone(btn, testo, sfondo) {
-            const originalText = "+";
-            btn.innerText = testo;
-            btn.style.backgroundColor = sfondo;
-            btn.style.width = "auto";
-            btn.style.padding = "0 8px";
-            btn.style.fontSize = "12px";
-            setTimeout(() => {
-                btn.innerText = originalText;
-                btn.style.backgroundColor = "";
-                btn.style.width = "34px";
-                btn.style.padding = "0";
-                btn.style.fontSize = "16px";
-            }, 1500);
+            if(fetchRes.ok) {
+                btn.style.background = "var(--green)"; btn.style.borderColor = "var(--green)"; btn.style.color = "white";
+                setTimeout(() => { btn.style.background = ""; btn.style.borderColor = ""; btn.style.color = ""; }, 1000);
+            }
         }
 
-        function apriModalModifica(id, nomeAttuale) {
-            idInModifica = id;
-            document.getElementById("inputModifica").value = nomeAttuale;
+        function apriModalModifica(id, nome) {
+            idInModifica = id; document.getElementById("inputModifica").value = nome;
             document.getElementById("editModal").style.display = "flex";
         }
 
         async function salvaModifica() {
             const nuovoNome = document.getElementById("inputModifica").value.trim();
-            if (!nuovoNome) return;
             await fetch(`${URL}/prodotti?id=eq.${idInModifica}`, {
-                method: "PATCH", headers,
-                body: JSON.stringify({ nome: nuovoNome })
+                method: "PATCH", headers, body: JSON.stringify({ nome: nuovoNome })
             });
-            chiudiModal();
-            caricaProdotti();
+            chiudiModal(); caricaProdotti();
         }
 
         function apriModalRimuovi(id) {
             idDaRimuovere = id;
-            const btnTutti = document.getElementById('btnTutti');
-            btnTutti.style.display = (userEmail === adminEmail) ? "block" : "none";
+            document.getElementById('btnTutti').style.display = (userEmail === adminEmail) ? "block" : "none";
             document.getElementById('deleteModal').style.display = 'flex';
         }
 
@@ -248,7 +335,6 @@
 
         function chiudiModal() { document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none'); }
         function logout() { localStorage.clear(); window.location.href = 'login.html'; }
-        
         if (!userEmail) window.location.href = 'login.html';
         caricaProdotti();
     </script>
