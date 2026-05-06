@@ -43,7 +43,7 @@ document.getElementById('btnGoogle').addEventListener('click', async () => {
     const { error } = await supabaseClient.auth.signInWithOAuth({
     provider: 'google',
     options: {
-        redirectTo: "[lista-spesa-flame.vercel.app](https://lista-spesa-flame.vercel.app/login.html)",
+        redirectTo: "[listando.it](https://listando.it/login.html)",
         queryParams: {
             access_type: 'offline',
             prompt: 'consent'
