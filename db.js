@@ -1,4 +1,4 @@
-const DB_NAME = "lista_spesa_db";
+const DB_NAME = "listando_db";
 const STORE = "items";
 
 /* ===== OPEN DB ===== */
