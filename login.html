@@ -3,30 +3,146 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Lista Spesa</title>
+    <title>Login - Listando</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { margin: 0; font-family: -apple-system, sans-serif; background: #f2f2f7; display: flex; justify-content: center; align-items: center; height: 100vh; }
-        .card { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); width: 100%; max-width: 350px; text-align: center; }
-        input { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 12px; border: 1px solid #ddd; box-sizing: border-box; }
-        button { width: 100%; padding: 12px; border-radius: 12px; border: none; font-weight: bold; cursor: pointer; }
-        .btn-email { background: #aec6cf; color: white; margin-bottom: 20px; }
-        .btn-google { background: white; border: 1px solid #ddd; display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; }
-        #status { margin-top: 15px; font-size: 13px; font-weight: bold; min-height: 20px; }
-        .error { color: #d32f2f; }
+        :root {
+            --green: #0fba8d;
+            --blue: #3384d4;
+            --yellow: #feb310;
+            --grey: #d8dddc;
+            --dark: #1c1c1e;
+            --bg: #fdfdfd;
+        }
+
+        body { 
+            margin: 0; 
+            font-family: 'Segoe UI', system-ui, sans-serif; 
+            background: var(--bg); 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            color: var(--dark);
+        }
+
+        .card { 
+            background: white; 
+            padding: 40px 30px; 
+            border-radius: 32px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05); 
+            width: 100%; 
+            max-width: 350px; 
+            text-align: center; 
+            border: 4px solid var(--grey);
+        }
+
+        .logo-img {
+            max-width: 160px;
+            height: auto;
+            margin-bottom: 20px;
+        }
+
+        p { 
+            font-weight: 600; 
+            color: #8e8e93; 
+            margin-bottom: 30px; 
+            font-size: 16px;
+        }
+
+        input { 
+            width: 100%; 
+            padding: 16px; 
+            margin-bottom: 15px; 
+            border-radius: 18px; 
+            border: 3px solid var(--grey); 
+            box-sizing: border-box; 
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input:focus {
+            border-color: var(--blue);
+        }
+
+        button { 
+            width: 100%; 
+            padding: 16px; 
+            border-radius: 18px; 
+            border: none; 
+            font-weight: 800; 
+            font-size: 16px;
+            cursor: pointer; 
+            transition: transform 0.1s, opacity 0.2s; 
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        .btn-email { 
+            background: var(--blue); 
+            color: white; 
+            margin-bottom: 10px; 
+            box-shadow: 0 4px 0px #2664a1;
+        }
+
+        .btn-google { 
+            background: white; 
+            border: 3px solid var(--grey); 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            gap: 12px; 
+            color: var(--dark);
+        }
+
+        .divider { 
+            margin: 25px 0; 
+            color: var(--grey); 
+            font-size: 12px; 
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .divider::before, .divider::after {
+            content: "";
+            flex: 1;
+            height: 2px;
+            background: var(--grey);
+        }
+
+        #status { 
+            margin-top: 20px; 
+            font-size: 13px; 
+            font-weight: 700; 
+            min-height: 20px; 
+        }
+
+        .error { color: #ff3b30; }
+        .success { color: var(--green); }
     </style>
 </head>
 <body>
+
 <div class="card">
-    <h1>Benvenuto</h1>
+    <img src="logolistando.jpg" alt="Listando" class="logo-img">
+    
     <p>Accedi alle tue liste</p>
+
     <input type="email" id="emailInput" placeholder="La tua email">
     <button class="btn-email" onclick="loginManuale()">ENTRA CON EMAIL</button>
-    <div style="margin: 20px 0; color: #aaa; font-size: 12px;">OPPURE</div>
+
+    <div class="divider">OPPURE</div>
+
     <button class="btn-google" id="btnGoogle">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" width="18" alt="G">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" width="20" alt="G">
         Accedi con Google
     </button>
+
     <div id="status"></div>
 </div>
 
@@ -41,15 +157,15 @@ document.getElementById('btnGoogle').addEventListener('click', async () => {
     statusDiv.innerHTML = 'Connessione a Google...';
     
     const { error } = await supabaseClient.auth.signInWithOAuth({
-    provider: 'google',
-    options: {
-        redirectTo: "[listando.it](https://listando.it/login.html)",
-        queryParams: {
-            access_type: 'offline',
-            prompt: 'consent'
+        provider: 'google',
+        options: {
+            redirectTo: "https://listando.it/login.html", // URL pulito
+            queryParams: {
+                access_type: 'offline',
+                prompt: 'consent'
+            }
         }
-    }
-});
+    });
 
     if (error) {
         statusDiv.innerHTML = `<span class="error">${error.message}</span>`;
@@ -60,14 +176,16 @@ function loginManuale() {
     const email = document.getElementById('emailInput').value.trim();
     if (email.includes('@')) {
         localStorage.setItem('userEmail', email);
-        window.location.href = 'index.html';
+        statusDiv.innerHTML = '<span class="success">Accesso in corso...</span>';
+        setTimeout(() => {
+            window.location.href = 'index.html';
+        }, 500);
     } else {
         statusDiv.innerHTML = '<span class="error">Inserisci un\'email valida.</span>';
     }
 }
 
 supabaseClient.auth.onAuthStateChange((event, session) => {
-    console.log("Evento Auth:", event);
     if (event === "SIGNED_IN" && session) {
         localStorage.setItem('userEmail', session.user.email);
         window.location.assign('index.html');
