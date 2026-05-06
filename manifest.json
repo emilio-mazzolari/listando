@@ -1,6 +1,6 @@
 {
-  "name": "Lista Spesa",
-  "short_name": "Spesa",
+  "name": "listando",
+  "short_name": "listando",
   "start_url": "/index.html",
   "display": "standalone",
   "background_color": "#f2f2f7",
@@ -12,7 +12,7 @@
       "type": "image/png"
     },
     {
-      "src": "/icon-512.png",
+      "src": "/logolistando.png",
       "sizes": "512x512",
       "type": "image/png"
     }
