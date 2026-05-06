@@ -2,9 +2,8 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Listando - Gestione Prodotti</title>
+    <title>Listando - Prodotti</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="manifest" href="/manifest.json">
     <style>
         :root {
             --green: #0fba8d; --blue: #3384d4; --yellow: #feb310;
@@ -25,39 +24,44 @@
         }
         .btn-filter.active { background: var(--blue); color: white; border-color: var(--blue); }
 
-        /* Input Area */
+        /* Area Inserimento e Ricerca */
         .input-group { background: white; padding: 18px; border-radius: 28px; border: 3px solid var(--grey); margin-bottom: 20px; }
         .input-row { display: flex; gap: 10px; margin-bottom: 12px; }
-        input, select { flex: 1; padding: 14px; border-radius: 16px; border: 2px solid var(--grey); outline: none; font-size: 16px; }
+        
+        .search-wrapper { position: relative; width: 100%; }
+        .search-wrapper svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 18px; color: #999; stroke-width: 3; }
+        .search-wrapper input { padding-left: 40px; width: 100%; box-sizing: border-box; }
+
+        input, select { padding: 14px; border-radius: 16px; border: 2px solid var(--grey); outline: none; font-size: 16px; }
         .btn-add { background: var(--blue); color: white; border: none; border-radius: 16px; width: 54px; font-weight: 900; cursor: pointer; font-size: 24px; display: flex; align-items: center; justify-content: center; }
 
-        /* Liste */
+        /* Lista Prodotti */
         .card { background: white; border-radius: 28px; padding: 5px 18px; border: 3px solid var(--grey); }
         .item { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 2px solid #f2f2f7; }
         .item:last-child { border-bottom: none; }
         .testo-prodotto { font-weight: 700; font-size: 16px; }
         
         .btn-actions { display: flex; gap: 8px; }
-        .btn-small { 
-            border: 2.5px solid var(--grey); border-radius: 14px; width: 42px; height: 42px; 
-            cursor: pointer; display: flex; align-items: center; justify-content: center; background: white; 
-        }
+        .btn-small { border: 2.5px solid var(--grey); border-radius: 14px; width: 42px; height: 42px; cursor: pointer; display: flex; align-items: center; justify-content: center; background: white; }
         .btn-small svg { width: 18px; height: 18px; stroke-width: 3; stroke: currentColor; fill: none; }
-        
         .btn-small.plus { border-color: var(--blue); color: var(--blue); }
         .btn-small.edit { border-color: var(--yellow); color: var(--yellow); }
         .btn-small.delete { border-color: #ff3b30; color: #ff3b30; }
+
+        /* Modals */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); display: none; align-items: center; justify-content: center; z-index: 2000; backdrop-filter: blur(5px); }
+        .modal-box { background: white; padding: 30px; border-radius: 32px; width: 85%; max-width: 380px; text-align: center; border: 4px solid var(--grey); box-sizing: border-box;}
+        
+        /* Fix campi modale lunghi uguali */
+        .modal-box input, .modal-box select { width: 100%; box-sizing: border-box; margin-bottom: 15px; display: block; }
+        
+        .btn-modal { width: 100%; padding: 16px; margin-top: 10px; border-radius: 18px; border: none; font-weight: 800; cursor: pointer; font-size: 16px; }
 
         /* Tab Bar */
         .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 85px; background: white; display: flex; justify-content: space-around; align-items: center; border-top: 3px solid var(--grey); z-index: 1000; }
         .tab-item { flex: 1; text-align: center; font-size: 10px; color: var(--dark); text-decoration: none; font-weight: 800; display: flex; flex-direction: column; align-items: center; gap: 6px; }
         .tab-active { color: var(--green); }
         .icon-tab { width: 26px; height: 26px; stroke-width: 2.5; stroke: currentColor; fill: none; }
-
-        /* Modals */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); display: none; align-items: center; justify-content: center; z-index: 2000; backdrop-filter: blur(5px); }
-        .modal-box { background: white; padding: 30px; border-radius: 32px; width: 85%; max-width: 350px; text-align: center; border: 4px solid var(--grey); }
-        .btn-modal { width: 100%; padding: 16px; margin-top: 10px; border-radius: 18px; border: none; font-weight: 800; cursor: pointer; font-size: 16px; }
     </style>
 </head>
 <body>
@@ -66,10 +70,10 @@
         <h2>Prodotti</h2>
 
         <div class="filter-container">
-            <button class="btn-filter active" id="f-Cibo" onclick="setFilter('Cibo', this)">Cibo</button>
-            <button class="btn-filter" id="f-Igiene" onclick="setFilter('Igiene Persona', this)">Igiene</button>
-            <button class="btn-filter" id="f-Casa" onclick="setFilter('Cura Casa', this)">Casa</button>
-            <button class="btn-filter" id="f-Altro" onclick="setFilter('Altro', this)">Altro</button>
+            <button class="btn-filter active" onclick="setFilter('Cibo', this)">Cibo</button>
+            <button class="btn-filter" onclick="setFilter('Igiene Persona', this)">Igiene</button>
+            <button class="btn-filter" onclick="setFilter('Cura Casa', this)">Casa</button>
+            <button class="btn-filter" onclick="setFilter('Altro', this)">Altro</button>
         </div>
 
         <div class="input-group">
@@ -77,7 +81,10 @@
                 <input type="text" id="nuovoProdotto" placeholder="Aggiungi prodotto...">
                 <button class="btn-add" onclick="gestisciInserimento()">+</button>
             </div>
-            <input type="text" id="cercaProdotto" placeholder="Cerca..." onkeyup="renderizzaProdotti()">
+            <div class="search-wrapper">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <input type="text" id="cercaProdotto" placeholder="Cerca..." onkeyup="renderizzaProdotti()">
+            </div>
         </div>
 
         <div class="card" id="listaProdotti">Caricamento...</div>
@@ -85,9 +92,10 @@
 
     <div id="editModal" class="modal-overlay">
         <div class="modal-box">
-            <h3>Modifica Prodotto</h3>
-            <input type="text" id="inputModifica" style="width:100%; margin-bottom:15px;">
-            <select id="selectModificaCat" style="width:100%; margin-bottom:15px;">
+            <h3 style="margin-top:0">Modifica Prodotto</h3>
+            <input type="text" id="inputModifica" placeholder="Nome prodotto">
+            <select id="selectModificaCat">
+                <option value="" disabled selected>Scegli categoria...</option>
                 <option value="Cibo">Cibo</option>
                 <option value="Igiene Persona">Igiene Persona</option>
                 <option value="Cura Casa">Cura Casa</option>
@@ -152,12 +160,18 @@
             div.innerHTML = "";
 
             const filtrati = prodottiBase.filter(p => {
-                const cat = p.categoria || 'Altro';
-                return cat === categoriaCorrente && p.nome.toLowerCase().includes(query);
+                // LOGICA RICHIESTA: Se la categoria è vuota o 'Altro', mostrali in 'Cibo' 
+                // a meno che l'utente non scelga esplicitamente 'Altro' nel filtro
+                let catAssegnata = p.categoria;
+                if (!catAssegnata || catAssegnata === "" || catAssegnata === "null") {
+                    catAssegnata = "Cibo";
+                }
+                
+                return catAssegnata === categoriaCorrente && p.nome.toLowerCase().includes(query);
             });
 
             if (filtrati.length === 0) {
-                div.innerHTML = `<p style="text-align:center; padding:20px; color:var(--grey)">Nessun prodotto in ${categoriaCorrente}</p>`;
+                div.innerHTML = `<p style="text-align:center; padding:20px; color:#999">Nessun prodotto in questa categoria</p>`;
                 return;
             }
 
@@ -185,70 +199,37 @@
         async function gestisciInserimento() {
             const nome = document.getElementById("nuovoProdotto").value.trim();
             if(!nome) return;
-            
-            // Forza la categoria attualmente selezionata nei filtri
-            const body = { 
-                nome: nome, 
-                categoria: categoriaCorrente, 
-                email: (userEmail === adminEmail ? null : userEmail) 
-            };
-
-            const response = await fetch(`${URL}/prodotti`, { method: "POST", headers, body: JSON.stringify(body) });
-            if(response.ok) {
-                document.getElementById("nuovoProdotto").value = "";
-                caricaProdotti();
-            }
+            const body = { nome: nome, categoria: categoriaCorrente, email: (userEmail === adminEmail ? null : userEmail) };
+            await fetch(`${URL}/prodotti`, { method: "POST", headers, body: JSON.stringify(body) });
+            document.getElementById("nuovoProdotto").value = "";
+            caricaProdotti();
         }
 
-        async function mettiInLista(id, nomeProdotto) {
-            // Controllo se esiste già
-            const check = await fetch(`${URL}/lista_spesa?prodotto_id=eq.${id}&email_utente=eq.${userEmail}`, { headers });
-            const esistenti = await check.json();
-
-            if (esistenti.length > 0) {
-                alert("Il prodotto è già nella lista della spesa!");
-                return;
-            }
-
-            // Inserimento con dati espliciti
+        async function mettiInLista(id, nomeP) {
             const res = await fetch(`${URL}/lista_spesa`, {
-                method: "POST", 
-                headers,
-                body: JSON.stringify({ 
-                    prodotto_id: id, 
-                    nome: nomeProdotto, 
-                    email_utente: userEmail, 
-                    completato: false 
-                })
+                method: "POST", headers,
+                body: JSON.stringify({ prodotto_id: id, nome: nomeP, email_utente: userEmail, completato: false })
             });
-
-            if(res.ok) {
-                alert("Aggiunto alla spesa con successo!");
-            } else {
-                alert("Errore nell'aggiunta alla spesa.");
-            }
+            if(res.ok) alert("Aggiunto alla spesa!");
         }
 
         function apriModalModifica(id, nome, cat) {
             idInModifica = id;
             document.getElementById("inputModifica").value = nome;
-            document.getElementById("selectModificaCat").value = cat || 'Altro';
+            document.getElementById("selectModificaCat").value = cat || "";
             document.getElementById("editModal").style.display = "flex";
         }
 
         async function salvaModifica() {
             const nuovoNome = document.getElementById("inputModifica").value.trim();
             const nuovaCat = document.getElementById("selectModificaCat").value;
-            
-            if(!nuovoNome) return;
+            if(!nuovoNome || !nuovaCat) { alert("Inserisci nome e categoria!"); return; }
 
             await fetch(`${URL}/prodotti?id=eq.${idInModifica}`, { 
-                method: "PATCH", 
-                headers, 
+                method: "PATCH", headers, 
                 body: JSON.stringify({ nome: nuovoNome, categoria: nuovaCat }) 
             });
-            chiudiModal(); 
-            caricaProdotti();
+            chiudiModal(); caricaProdotti();
         }
 
         function apriModalRimuovi(id) {
@@ -263,18 +244,12 @@
         };
 
         document.getElementById('btnSoloMe').onclick = async () => {
-            await fetch(`${URL}/prodotti_nascosti`, { 
-                method: "POST", 
-                headers, 
-                body: JSON.stringify({ prodotto_id: idDaRimuovere, email_utente: userEmail }) 
-            });
+            await fetch(`${URL}/prodotti_nascosti`, { method: "POST", headers, body: JSON.stringify({ prodotto_id: idDaRimuovere, email_utente: userEmail }) });
             chiudiModal(); caricaProdotti();
         };
 
         function chiudiModal() { document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none'); }
         function logout() { localStorage.clear(); window.location.href = 'login.html'; }
-        
-        if (!userEmail) window.location.href = 'login.html';
         caricaProdotti();
     </script>
 </body>
