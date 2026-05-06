@@ -2,91 +2,187 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Le Mie Liste</title>
+    <title>Listando - Le Mie Liste</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Libreria Supabase necessaria per il logout ufficiale -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { margin: 0; font-family: -apple-system, Helvetica, Arial, sans-serif; background: #f2f2f7; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
-        .app { width: 100%; max-width: 420px; padding: 20px; text-align: center; }
+        :root {
+            --primary-blue: #007aff; /* Il blu del logo */
+            --accent-yellow: #f1b32b; /* Il giallo della 'n' */
+            --success-green: #00c389; /* Il verde della spunta */
+            --dark-text: #1c1c1e;
+            --bg-light: #f9f9fb;
+        }
+
+        body { 
+            margin: 0; 
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+            background: var(--bg-light); 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            overflow: hidden; 
+        }
+
+        .app { 
+            width: 100%; 
+            max-width: 420px; 
+            padding: 20px; 
+            text-align: center; 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
         
-        h1 { font-size: 28px; color: #1c1c1e; margin-bottom: 40px; text-transform: uppercase; font-weight: 800; letter-spacing: 1px; }
+        /* Logo Header */
+        .logo-container {
+            margin-bottom: 30px;
+        }
+        .logo-img {
+            max-width: 180px;
+            height: auto;
+        }
+
+        h1 { 
+            font-size: 22px; 
+            color: var(--dark-text); 
+            margin-bottom: 30px; 
+            font-weight: 700; 
+            letter-spacing: -0.5px;
+        }
         
-        .menu-container { display: flex; flex-direction: column; gap: 15px; width: 100%; }
+        .menu-container { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 20px; 
+            width: 100%; 
+        }
         
         .btn-big { 
             display: flex; 
             align-items: center; 
-            justify-content: center; 
-            gap: 15px;
+            justify-content: flex-start; 
+            gap: 20px;
             width: 100%; 
-            padding: 30px 0; 
-            border-radius: 16px; 
-            border: 1px solid #ddd; 
+            padding: 20px; 
+            border-radius: 24px; 
+            border: 3px solid #f0f0f0; 
             background: white; 
-            color: #1c1c1e; 
-            font-size: 20px; 
-            font-weight: 700; 
+            color: var(--dark-text); 
+            font-size: 18px; 
+            font-weight: 800; 
             text-decoration: none; 
-            transition: background-color 0.2s;
+            transition: all 0.2s ease;
+            box-sizing: border-box;
+            box-shadow: 0 4px 0px #eee;
         }
 
         .btn-big:active { 
-            background-color: #ebebeb;
+            transform: translateY(2px);
+            box-shadow: 0 2px 0px #eee;
         }
 
-        .btn-big span { font-size: 28px; }
+        /* Icone personalizzate con i colori del logo */
+        .icon-circle {
+            width: 50px;
+            height: 50px;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
 
-        .btn-spesa { border-left: 12px solid #aec6cf; }
-        .btn-valigia { border-left: 12px solid #9fb8ad; }
+        .btn-spesa { border-color: var(--primary-blue); }
+        .btn-spesa .icon-circle { background: #e6f2ff; color: var(--primary-blue); }
+
+        .btn-valigia { border-color: var(--accent-yellow); }
+        .btn-valigia .icon-circle { background: #fef7e6; color: var(--accent-yellow); }
 
         /* Tab Bar */
-        .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 75px; background: #aec6cf; display: flex; justify-content: space-around; align-items: center; }
-        .tab-item { flex: 1; text-align: center; font-size: 12px; color: #333; text-decoration: none; font-weight: 800; display: flex; flex-direction: column; gap: 4px; text-transform: uppercase; }
-        .tab-active { color: white; }
+        .tab-bar { 
+            position: fixed; 
+            bottom: 0; 
+            left: 0; 
+            right: 0; 
+            height: 85px; 
+            background: white; 
+            display: flex; 
+            justify-content: space-around; 
+            align-items: center; 
+            border-top: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        
+        .tab-item { 
+            flex: 1; 
+            text-align: center; 
+            font-size: 11px; 
+            color: #8e8e93; 
+            text-decoration: none; 
+            font-weight: 700; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 5px; 
+            text-transform: uppercase; 
+        }
+
+        .tab-active { color: var(--primary-blue); }
+        .tab-item span { font-size: 22px; }
+
+        .logout-text { color: #ff3b30; }
     </style>
 </head>
 <body>
 
     <div class="app">
-        <h1>Le Mie Liste</h1>
+        <div class="logo-container">
+            <img src="logolistando.jpg" alt="Listando Logo" class="logo-img">
+        </div>
+
+        <h1>Cosa vuoi pianificare?</h1>
 
         <div class="menu-container">
             <a href="spesa.html" class="btn-big btn-spesa">
-                <span>🛒</span> SPESA
+                <div class="icon-circle">🛒</div>
+                <span>LA SPESA</span>
             </a>
             
             <a href="valigia.html" class="btn-big btn-valigia">
-                <span>🧳</span> VALIGIA
+                <div class="icon-circle">🧳</div>
+                <span>LA VALIGIA</span>
             </a>
         </div>
     </div>
 
     <div class="tab-bar">
-        <a href="index.html" class="tab-item tab-active"><span>🏠</span>HOME</a>
-        <a href="#" class="tab-item" onclick="logout()"><span>🚪</span>ESCI</a>
+        <a href="index.html" class="tab-item tab-active">
+            <span>🏠</span>
+            HOME
+        </a>
+        <a href="#" class="tab-item logout-text" onclick="logout()">
+            <span>🚪</span>
+            ESCI
+        </a>
     </div>
 
     <script>
-        // Configurazione allineata con Screenshot 2026-05-05 alle 23.16.39.jpg
         const SUPABASE_URL = "https://eejdpophfxsrqdvsucye.supabase.co"; 
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlamRwb3BoZnhzcnFkdnN1Y3llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2NTMzMDQsImV4cCI6MjA5MzIyOTMwNH0.mpxbwlJyIdZgqKIdutHbLd85JR1P11yiglbYeApi17k";
         
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // Controllo accesso: se non c'è l'email nel localStorage, torna al login
         if (!localStorage.getItem('userEmail')) {
             window.location.href = 'login.html';
         }
 
         async function logout() {
             try {
-                // Chiude la sessione su Supabase
                 await supabaseClient.auth.signOut(); 
             } catch (err) {
-                console.error("Errore durante il logout sessione:", err);
+                console.error("Errore durante il logout:", err);
             }
-            // Pulisce i dati locali e reindirizza
             localStorage.clear();
             window.location.href = 'login.html';
         }
