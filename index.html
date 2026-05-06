@@ -1,78 +1,88 @@
-<div class="menu-container">
-    <a href="spesa.html" class="btn-big btn-spesa">
-        <img src="icona-spesa.png" alt="Spesa" class="icon-custom">
-        <span>LA SPESA</span>
-    </a>
-    
-    <a href="valigia.html" class="btn-big btn-valigia">
-        <img src="icona-valigia.png" alt="Valigia" class="icon-custom">
-        <span>LA VALIGIA</span>
-    </a>
-</div>        
-        /* Logo Header */
-        .logo-container {
-            margin-bottom: 30px;
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Listando - Le Mie Liste</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --green: #0fba8d;
+            --blue: #3384d4;
+            --yellow: #feb310;
+            --grey: #d8dddc;
+            --dark: #1c1c1e;
+            --bg: #fdfdfd;
         }
+
+        body { 
+            margin: 0; 
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; 
+            background: var(--bg); 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            overflow: hidden; 
+            color: var(--dark);
+        }
+
+        .app { 
+            width: 100%; 
+            max-width: 400px; 
+            padding: 20px; 
+            text-align: center;
+        }
+        
+        .logo-header {
+            margin-bottom: 40px;
+        }
+
         .logo-img {
             max-width: 180px;
             height: auto;
+            border-radius: 20px;
         }
 
-        h1 { 
-            font-size: 22px; 
-            color: var(--dark-text); 
-            margin-bottom: 30px; 
-            font-weight: 700; 
-            letter-spacing: -0.5px;
-        }
-        
         .menu-container { 
             display: flex; 
             flex-direction: column; 
-            gap: 20px; 
+            gap: 18px; 
             width: 100%; 
         }
         
         .btn-big { 
             display: flex; 
             align-items: center; 
-            justify-content: flex-start; 
             gap: 20px;
             width: 100%; 
-            padding: 20px; 
-            border-radius: 24px; 
-            border: 3px solid #f0f0f0; 
+            padding: 22px; 
+            border-radius: 28px; 
+            border: 4px solid var(--grey); 
             background: white; 
-            color: var(--dark-text); 
-            font-size: 18px; 
+            color: var(--dark); 
+            font-size: 20px; 
             font-weight: 800; 
             text-decoration: none; 
-            transition: all 0.2s ease;
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             box-sizing: border-box;
-            box-shadow: 0 4px 0px #eee;
         }
 
         .btn-big:active { 
-            transform: translateY(2px);
-            box-shadow: 0 2px 0px #eee;
+            transform: scale(0.96);
+            background-color: #fafafa;
         }
 
-        /* Icone personalizzate con i colori del logo */
-        .icon-circle {
-            width: 50px;
-            height: 50px;
-            border-radius: 15px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
+        /* Colori dinamici bordi */
+        .btn-spesa { border-color: var(--blue); }
+        .btn-valigia { border-color: var(--yellow); }
+
+        /* Icone Style */
+        .icon-svg {
+            width: 42px;
+            height: 42px;
+            flex-shrink: 0;
         }
-
-        .btn-spesa { border-color: var(--primary-blue); }
-        .btn-spesa .icon-circle { background: #e6f2ff; color: var(--primary-blue); }
-
-        .btn-valigia { border-color: var(--accent-yellow); }
-        .btn-valigia .icon-circle { background: #fef7e6; color: var(--accent-yellow); }
 
         /* Tab Bar */
         .tab-bar { 
@@ -85,58 +95,81 @@
             display: flex; 
             justify-content: space-around; 
             align-items: center; 
-            border-top: 1px solid #eee;
-            padding-bottom: 10px;
+            border-top: 3px solid var(--grey);
+            padding-bottom: env(safe-area-inset-bottom);
         }
         
         .tab-item { 
             flex: 1; 
             text-align: center; 
             font-size: 11px; 
-            color: #8e8e93; 
+            color: var(--dark); 
             text-decoration: none; 
-            font-weight: 700; 
+            font-weight: 800; 
             display: flex; 
             flex-direction: column; 
-            gap: 5px; 
-            text-transform: uppercase; 
+            align-items: center;
+            gap: 6px; 
         }
 
-        .tab-active { color: var(--primary-blue); }
-        .tab-item span { font-size: 22px; }
+        .tab-active { color: var(--green); }
+        .tab-active .icon-tab { stroke: var(--green); }
 
-        .logout-text { color: #ff3b30; }
+        .icon-tab {
+            width: 28px;
+            height: 28px;
+            stroke-width: 2.5px;
+            stroke: var(--dark);
+            fill: none;
+        }
+
+        .logout-btn { color: #eb445a; }
+        .logout-btn .icon-tab { stroke: #eb445a; }
     </style>
 </head>
 <body>
 
     <div class="app">
-        <div class="logo-container">
-            <img src="logolistando.jpg" alt="Listando Logo" class="logo-img">
+        <div class="logo-header">
+            <img src="logolistando.jpg" alt="Listando" class="logo-img">
         </div>
-
-        <h1>Cosa vuoi pianificare?</h1>
 
         <div class="menu-container">
             <a href="spesa.html" class="btn-big btn-spesa">
-                <div class="icon-circle">🛒</div>
-                <span>LA SPESA</span>
+                <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="#3384d4" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="9" cy="21" r="1"></circle>
+                    <circle cx="20" cy="21" r="1"></circle>
+                    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                </svg>
+                <span>SPESA</span>
             </a>
             
             <a href="valigia.html" class="btn-big btn-valigia">
-                <div class="icon-circle">🧳</div>
-                <span>LA VALIGIA</span>
+                <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="#feb310" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="6" width="18" height="14" rx="4"></rect>
+                    <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    <line x1="12" y1="10" x2="12" y2="16"></line>
+                    <line x1="9" y1="13" x2="15" y2="13"></line>
+                </svg>
+                <span>VALIGIA</span>
             </a>
         </div>
     </div>
 
     <div class="tab-bar">
         <a href="index.html" class="tab-item tab-active">
-            <span>🏠</span>
+            <svg class="icon-tab" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                <polyline points="9 22 9 12 15 12 15 22"></polyline>
+            </svg>
             HOME
         </a>
-        <a href="#" class="tab-item logout-text" onclick="logout()">
-            <span>🚪</span>
+        <a href="#" class="tab-item logout-btn" onclick="logout()">
+            <svg class="icon-tab" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                <polyline points="16 17 21 12 16 7"></polyline>
+                <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
             ESCI
         </a>
     </div>
