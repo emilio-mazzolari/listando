@@ -233,14 +233,35 @@
             }
         }
 
-        async function mettiInLista(id, nome) {
-            const res = await fetch(`${URL}/lista_spesa`, { 
-                method: "POST", headers, 
-                body: JSON.stringify({ prodotto_id: id, nome, email_utente: userEmail, completato: false }) 
-            });
-            if(res.ok) alert("Aggiunto alla spesa!");
-        }
+        async function mettiInLista(id) {
+    const userEmail = localStorage.getItem('userEmail');
+    
+    if (!userEmail) {
+        alert("Errore: effettua di nuovo il login.");
+        return;
+    }
 
+    // Inviamo SOLO le colonne che esistono davvero nella tabella 'lista_spesa'
+    const payload = { 
+        prodotto_id: id, 
+        email_utente: userEmail, 
+        completato: false 
+    };
+
+    const res = await fetch(`${URL}/lista_spesa`, { 
+        method: "POST", 
+        headers: headers, 
+        body: JSON.stringify(payload) 
+    });
+
+    if (res.ok) {
+        alert("Aggiunto alla lista!");
+    } else {
+        const error = await res.json();
+        console.error("Errore dettagliato:", error);
+        alert("Errore: " + error.message);
+    }
+}
         function apriModalModifica(id, nome, cat) {
             idInModifica = id;
             document.getElementById("inputModifica").value = nome;
