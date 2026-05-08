@@ -43,7 +43,7 @@
             margin: 0 0 20px 0;
         }
 
-        /* ── Filtri categoria ── */
+        /* ── Filtri ── */
         .filter-container {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -63,15 +63,12 @@
             color: var(--dark);
             transition: all 0.15s;
             box-shadow: var(--shadow);
+            font-family: inherit;
         }
         .btn-filter:active { transform: scale(0.97); }
-        .btn-filter.active {
-            background: var(--blue);
-            color: white;
-            border-color: var(--blue);
-        }
+        .btn-filter.active { background: var(--blue); color: white; border-color: var(--blue); }
 
-        /* ── Input card (aggiungi + cerca) ── */
+        /* ── Input card ── */
         .input-card {
             background: var(--white);
             padding: 16px;
@@ -83,11 +80,7 @@
             flex-direction: column;
             gap: 10px;
         }
-        .input-row {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
+        .input-row { display: flex; gap: 10px; align-items: center; }
         .input-card input {
             flex: 1;
             padding: 12px 16px;
@@ -102,31 +95,18 @@
             transition: border-color 0.2s;
         }
         .input-card input:focus { border-color: var(--green); }
+        .search-input:focus { border-color: var(--blue) !important; }
 
-        .input-card input.search-input:focus { border-color: var(--blue); }
-
-        .search-wrap {
-            position: relative;
-            display: flex;
-            align-items: center;
-        }
+        .search-wrap { position: relative; display: flex; align-items: center; }
         .search-wrap svg {
-            position: absolute;
-            left: 14px;
+            position: absolute; left: 14px;
             width: 16px; height: 16px;
             stroke: #aaa; fill: none; stroke-width: 2.5;
             pointer-events: none;
         }
-        .search-wrap input {
-            padding-left: 40px !important;
-        }
+        .search-wrap input { padding-left: 40px !important; }
 
-        .divider {
-            height: 2px;
-            background: var(--grey-light);
-            border-radius: 2px;
-            margin: 2px 0;
-        }
+        .divider { height: 2px; background: var(--grey-light); border-radius: 2px; }
 
         .btn-save {
             padding: 12px 18px;
@@ -138,9 +118,9 @@
             font-size: 13px;
             cursor: pointer;
             text-transform: uppercase;
-            transition: opacity 0.15s;
             white-space: nowrap;
             font-family: inherit;
+            transition: opacity 0.15s;
         }
         .btn-save:active { opacity: 0.85; }
 
@@ -153,14 +133,13 @@
             box-shadow: var(--shadow);
         }
 
-        /* ── Righe prodotto ── */
+        /* ── Righe ── */
         .item {
             display: flex;
             align-items: center;
             gap: 10px;
             padding: 13px 20px;
             border-bottom: 2px solid var(--grey-light);
-            transition: background 0.15s;
         }
         .item:last-child { border-bottom: none; }
 
@@ -169,17 +148,6 @@
             font-weight: 700;
             font-size: 16px;
             line-height: 1.3;
-        }
-
-        .item-badge-custom {
-            font-size: 10px;
-            font-weight: 800;
-            background: var(--grey-light);
-            color: #999;
-            padding: 2px 8px;
-            border-radius: 8px;
-            text-transform: uppercase;
-            white-space: nowrap;
         }
 
         .btn-actions { display: flex; gap: 7px; }
@@ -193,11 +161,12 @@
             display: flex; align-items: center; justify-content: center;
             transition: all 0.15s;
             flex-shrink: 0;
+            font-family: inherit;
         }
         .btn-ic:active { transform: scale(0.9); }
         .btn-ic svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 2.5; }
 
-        .btn-ic.add  { border-color: var(--blue);   color: var(--blue);   font-size: 22px; font-weight: 900; line-height: 1; }
+        .btn-ic.add  { border-color: var(--blue);   color: var(--blue);   font-size: 24px; font-weight: 900; line-height: 1; }
         .btn-ic.edit { border-color: var(--yellow);  color: var(--yellow); }
         .btn-ic.del  { border-color: var(--red);     color: var(--red);    }
 
@@ -206,14 +175,10 @@
         .btn-ic.del:active  { background: #fff0f0; }
 
         /* ── Stato vuoto ── */
-        .empty-state {
-            text-align: center;
-            padding: 44px 20px;
-        }
+        .empty-state { text-align: center; padding: 44px 20px; }
         .empty-icon {
             width: 58px; height: 58px;
-            background: var(--grey-light);
-            border-radius: 50%;
+            background: var(--grey-light); border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
             margin: 0 auto 14px;
         }
@@ -265,64 +230,48 @@
             padding: 14px 16px;
             border-radius: 16px;
             border: 2.5px solid var(--grey);
-            font-size: 15px;
-            font-weight: 700;
+            font-size: 15px; font-weight: 700;
             font-family: inherit;
-            outline: none;
-            margin-bottom: 14px;
+            outline: none; margin-bottom: 14px;
             transition: border-color 0.2s;
         }
         .modal-input:focus { border-color: var(--blue); }
 
         .cat-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-            margin-bottom: 16px;
+            display: grid; grid-template-columns: 1fr 1fr;
+            gap: 8px; margin-bottom: 16px;
         }
         .btn-cat {
-            padding: 12px;
-            border-radius: 16px;
-            border: 2.5px solid var(--grey);
-            background: white;
-            font-weight: 800;
-            font-size: 13px;
-            cursor: pointer;
-            text-transform: uppercase;
-            transition: all 0.15s;
+            padding: 12px; border-radius: 16px;
+            border: 2.5px solid var(--grey); background: white;
+            font-weight: 800; font-size: 13px; cursor: pointer;
+            text-transform: uppercase; transition: all 0.15s;
             font-family: inherit;
         }
         .btn-cat.selected { background: var(--blue); color: white; border-color: var(--blue); }
 
         .btn-modal {
-            width: 100%; padding: 15px;
-            margin-top: 8px;
+            width: 100%; padding: 15px; margin-top: 8px;
             border-radius: 18px; border: none;
             font-weight: 800; cursor: pointer;
-            font-size: 15px; transition: opacity 0.15s;
-            font-family: inherit;
+            font-size: 15px; font-family: inherit;
+            transition: opacity 0.15s;
         }
         .btn-modal:active { opacity: 0.85; }
 
         /* ── Tab Bar ── */
         .tab-bar {
             position: fixed; bottom: 0; left: 0; right: 0;
-            height: 88px;
-            background: white;
+            height: 88px; background: white;
             display: flex; justify-content: space-around; align-items: center;
-            border-top: 3px solid var(--grey);
-            z-index: 1000;
+            border-top: 3px solid var(--grey); z-index: 1000;
             padding-bottom: env(safe-area-inset-bottom, 0);
         }
         .tab-item {
-            flex: 1; text-align: center;
-            font-size: 10px; color: #aaa;
-            text-decoration: none;
-            font-weight: 800;
-            display: flex; flex-direction: column;
-            align-items: center; gap: 5px;
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
+            flex: 1; text-align: center; font-size: 10px; color: #aaa;
+            text-decoration: none; font-weight: 800;
+            display: flex; flex-direction: column; align-items: center; gap: 5px;
+            text-transform: uppercase; letter-spacing: 0.3px;
         }
         .tab-active { color: var(--green); }
         .icon-tab { width: 24px; height: 24px; stroke-width: 2.5; stroke: currentColor; fill: none; }
@@ -333,7 +282,6 @@
 <div class="app">
     <h2 class="page-title">Prodotti</h2>
 
-    <!-- Filtri categoria (senza icone) -->
     <div class="filter-container">
         <button class="btn-filter active" onclick="setFilter('Cibo', this)">Cibo</button>
         <button class="btn-filter" onclick="setFilter('Igiene', this)">Igiene</button>
@@ -341,7 +289,6 @@
         <button class="btn-filter" onclick="setFilter('Altro', this)">Altro</button>
     </div>
 
-    <!-- Box inserimento + ricerca -->
     <div class="input-card">
         <div class="input-row">
             <input type="text" id="nuovoNome" placeholder="Nuovo prodotto..."
@@ -351,12 +298,11 @@
         <div class="divider"></div>
         <div class="search-wrap">
             <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input type="text" class="search-input" id="ricerca" placeholder="Cerca prodotto..."
-                   oninput="render()">
+            <input type="text" class="search-input" id="ricerca"
+                   placeholder="Cerca prodotto..." oninput="render()">
         </div>
     </div>
 
-    <!-- Lista prodotti -->
     <div class="card" id="listaCard">
         <div class="empty-state">
             <div class="empty-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg></div>
@@ -365,7 +311,6 @@
     </div>
 </div>
 
-<!-- Toast -->
 <div class="toast" id="toast"></div>
 
 <!-- Modal: Scegli categoria nuovo prodotto -->
@@ -383,7 +328,8 @@
         <button class="btn-modal" id="btnConfermaCategoria"
                 style="background:var(--green); color:white; opacity:0.4;"
                 disabled onclick="confermaSalvaNuovo()">Salva Prodotto</button>
-        <button class="btn-modal" style="background:var(--grey-light);" onclick="chiudiModal('modalCategoria')">Annulla</button>
+        <button class="btn-modal" style="background:var(--grey-light);"
+                onclick="chiudiModal('modalCategoria')">Annulla</button>
     </div>
 </div>
 
@@ -399,8 +345,10 @@
             <button class="btn-cat" onclick="selezionaCatModifica('Casa', this)">Casa</button>
             <button class="btn-cat" onclick="selezionaCatModifica('Altro', this)">Altro</button>
         </div>
-        <button class="btn-modal" style="background:var(--yellow); color:white;" onclick="confermaModifica()">Salva Modifiche</button>
-        <button class="btn-modal" style="background:var(--grey-light);" onclick="chiudiModal('modalModifica')">Annulla</button>
+        <button class="btn-modal" style="background:var(--yellow); color:white;"
+                onclick="confermaModifica()">Salva Modifiche</button>
+        <button class="btn-modal" style="background:var(--grey-light);"
+                onclick="chiudiModal('modalModifica')">Annulla</button>
     </div>
 </div>
 
@@ -410,8 +358,10 @@
         <div class="modal-emoji">🗑️</div>
         <h3>Elimina prodotto?</h3>
         <p id="eliminaNome"></p>
-        <button class="btn-modal" style="background:var(--red); color:white;" onclick="confermaElimina()">Sì, elimina</button>
-        <button class="btn-modal" style="background:var(--grey-light);" onclick="chiudiModal('modalElimina')">Annulla</button>
+        <button class="btn-modal" style="background:var(--red); color:white;"
+                onclick="confermaElimina()">Sì, elimina</button>
+        <button class="btn-modal" style="background:var(--grey-light);"
+                onclick="chiudiModal('modalElimina')">Annulla</button>
     </div>
 </div>
 
@@ -438,15 +388,28 @@
 <script>
     const URL_BASE  = "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1";
     const KEY       = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
-    const headers   = { "apikey": KEY, "Content-Type": "application/json", "Authorization": "Bearer " + KEY };
+
+    // ── FIX CHIAVE: headers separati per GET e POST/PATCH/DELETE ──
+    // Supabase richiede "Prefer: return=minimal" per POST senza body di ritorno
+    const headersRead = {
+        "apikey": KEY,
+        "Authorization": "Bearer " + KEY
+    };
+    const headersWrite = {
+        "apikey": KEY,
+        "Authorization": "Bearer " + KEY,
+        "Content-Type": "application/json",
+        "Prefer": "return=minimal"          // ← fix principale per il POST
+    };
+
     const userEmail = localStorage.getItem('userEmail');
 
-    let prodottiBase       = [];
-    let categoriaCorrente  = 'Cibo';
-    let categoriaScelta    = null;
-    let catModificaScelta  = null;
-    let idInModifica       = null;
-    let idInElimina        = null;
+    let prodottiBase      = [];
+    let categoriaCorrente = 'Cibo';
+    let categoriaScelta   = null;
+    let catModificaScelta = null;
+    let idInModifica      = null;
+    let idInElimina       = null;
 
     // ── Caricamento ──────────────────────────────────────────────
     async function caricaProdotti() {
@@ -455,32 +418,33 @@
                 `${URL_BASE}/spesa_prodotti?select=*,spesa_prodottinascosti!left(prodotto_id)` +
                 `&or=(email_utente.is.null,email_utente.eq.${userEmail})` +
                 `&spesa_prodottinascosti.prodotto_id=is.null&order=nome.asc`,
-                { headers }
+                { headers: headersRead }
             );
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
             prodottiBase = await res.json();
             render();
-        } catch (e) { console.error(e); }
+        } catch (e) {
+            console.error("caricaProdotti:", e);
+            mostraToast("Errore nel caricamento");
+        }
     }
 
-    // ── Filtro categoria ─────────────────────────────────────────
+    // ── Filtro ───────────────────────────────────────────────────
     function setFilter(cat, btn) {
         categoriaCorrente = cat;
         document.querySelectorAll('.btn-filter').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        // Resetta ricerca al cambio categoria
         document.getElementById('ricerca').value = '';
         render();
     }
 
-    // ── Render lista ─────────────────────────────────────────────
+    // ── Render ───────────────────────────────────────────────────
     function render() {
-        const div    = document.getElementById("listaCard");
-        const query  = document.getElementById("ricerca").value.trim().toLowerCase();
+        const div   = document.getElementById("listaCard");
+        const query = document.getElementById("ricerca").value.trim().toLowerCase();
 
         let filtrati = prodottiBase.filter(p => p.categoria === categoriaCorrente);
-        if (query) {
-            filtrati = filtrati.filter(p => p.nome.toLowerCase().includes(query));
-        }
+        if (query) filtrati = filtrati.filter(p => p.nome.toLowerCase().includes(query));
 
         if (filtrati.length === 0) {
             div.innerHTML = `
@@ -489,57 +453,100 @@
                         <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
                     </div>
                     <div class="empty-title">${query ? 'Nessun risultato' : 'Nessun prodotto'}</div>
-                    <div class="empty-sub">${query ? `Nessun prodotto corrisponde a "${query}"` : 'Aggiungi il primo prodotto in questa categoria'}</div>
+                    <div class="empty-sub">${query ? `Nessun prodotto per "${query}"` : 'Aggiungi il primo prodotto in questa categoria'}</div>
                 </div>`;
             return;
         }
 
         div.innerHTML = '';
         filtrati.forEach(p => {
-            const isMio = p.email_utente === userEmail;
-            const riga  = document.createElement("div");
+            const riga = document.createElement("div");
             riga.className = "item";
-
-            const badgeMio = isMio ? `<span class="item-badge-custom">Mio</span>` : '';
-
-            const azioniExtra = isMio ? `
-                <button class="btn-ic edit" onclick="apriModifica(${p.id}, '${escHtml(p.nome)}', '${p.categoria}')" aria-label="Modifica">
-                    <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                </button>
-                <button class="btn-ic del" onclick="apriElimina(${p.id}, '${escHtml(p.nome)}')" aria-label="Elimina">
-                    <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                </button>` : '';
-
             riga.innerHTML = `
                 <span class="item-nome">${p.nome}</span>
-                ${badgeMio}
                 <div class="btn-actions">
-                    <button class="btn-ic add" onclick="mettiInLista(${p.id})" aria-label="Aggiungi alla lista">+</button>
-                    ${azioniExtra}
+                    <button class="btn-ic add"
+                            onclick="mettiInLista(${p.id}, this)"
+                            aria-label="Aggiungi alla lista">+</button>
+                    <button class="btn-ic edit"
+                            onclick="apriModifica(${p.id}, '${escHtml(p.nome)}', '${p.categoria}')"
+                            aria-label="Modifica">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                        </svg>
+                    </button>
+                    <button class="btn-ic del"
+                            onclick="apriElimina(${p.id}, '${escHtml(p.nome)}')"
+                            aria-label="Elimina">
+                        <svg viewBox="0 0 24 24">
+                            <polyline points="3 6 5 6 21 6"/>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                        </svg>
+                    </button>
                 </div>`;
             div.appendChild(riga);
         });
     }
 
-    // ── Aggiungi alla lista spesa ────────────────────────────────
-    async function mettiInLista(id) {
+    // ── Aggiungi alla lista spesa (FIX) ──────────────────────────
+    async function mettiInLista(prodottoId, btnEl) {
+        // Feedback visivo immediato
+        btnEl.textContent = '…';
+        btnEl.disabled = true;
+
         try {
             const res = await fetch(`${URL_BASE}/spesa_lista`, {
-                method: "POST", headers,
-                body: JSON.stringify({ prodotto_id: id, email_utente: userEmail, completato: false })
+                method: "POST",
+                headers: headersWrite,
+                body: JSON.stringify({
+                    prodotto_id: prodottoId,
+                    email_utente: userEmail,
+                    completato: false
+                })
             });
-            mostraToast(res.ok || res.status === 201 ? "✓ Aggiunto alla lista!" : "Già presente nella lista");
-        } catch (e) { mostraToast("Errore di rete"); }
+
+            if (res.ok || res.status === 201 || res.status === 204) {
+                btnEl.textContent = '✓';
+                btnEl.style.borderColor = 'var(--green)';
+                btnEl.style.color = 'var(--green)';
+                mostraToast("✓ Aggiunto alla lista!");
+                // Ripristina dopo 1.5s
+                setTimeout(() => {
+                    btnEl.textContent = '+';
+                    btnEl.style.borderColor = '';
+                    btnEl.style.color = '';
+                    btnEl.disabled = false;
+                }, 1500);
+            } else {
+                // Leggi il body dell'errore per debug
+                const errBody = await res.text();
+                console.error("Errore POST spesa_lista:", res.status, errBody);
+                mostraToast(`Errore ${res.status}: controlla la console`);
+                btnEl.textContent = '+';
+                btnEl.disabled = false;
+            }
+        } catch (e) {
+            console.error("mettiInLista:", e);
+            mostraToast("Errore di rete");
+            btnEl.textContent = '+';
+            btnEl.disabled = false;
+        }
     }
 
-    // ── Nuovo prodotto → scegli categoria ───────────────────────
+    // ── Nuovo prodotto ───────────────────────────────────────────
     function apriModalCategoria() {
         const nome = document.getElementById("nuovoNome").value.trim();
-        if (!nome) { document.getElementById("nuovoNome").focus(); mostraToast("⚠️ Inserisci il nome del prodotto"); return; }
+        if (!nome) {
+            document.getElementById("nuovoNome").focus();
+            mostraToast("⚠️ Inserisci il nome del prodotto");
+            return;
+        }
         categoriaScelta = null;
         document.querySelectorAll('#modalCategoria .btn-cat').forEach(b => b.classList.remove('selected'));
         const btn = document.getElementById("btnConfermaCategoria");
-        btn.disabled = true; btn.style.opacity = "0.4";
+        btn.disabled = true;
+        btn.style.opacity = "0.4";
         document.getElementById("modalCatNome").textContent = `"${nome}"`;
         apriModal('modalCategoria');
     }
@@ -549,17 +556,25 @@
         document.querySelectorAll('#modalCategoria .btn-cat').forEach(b => b.classList.remove('selected'));
         btn.classList.add('selected');
         const b = document.getElementById("btnConfermaCategoria");
-        b.disabled = false; b.style.opacity = "1";
+        b.disabled = false;
+        b.style.opacity = "1";
     }
 
     async function confermaSalvaNuovo() {
         const nome = document.getElementById("nuovoNome").value.trim();
         if (!nome || !categoriaScelta) return;
         try {
-            await fetch(`${URL_BASE}/spesa_prodotti`, {
-                method: "POST", headers,
+            const res = await fetch(`${URL_BASE}/spesa_prodotti`, {
+                method: "POST",
+                headers: headersWrite,
                 body: JSON.stringify({ nome, categoria: categoriaScelta, email_utente: userEmail })
             });
+            if (!res.ok && res.status !== 201 && res.status !== 204) {
+                const err = await res.text();
+                console.error("Errore POST prodotto:", res.status, err);
+                mostraToast("Errore nel salvataggio");
+                return;
+            }
             document.getElementById("nuovoNome").value = "";
             chiudiModal('modalCategoria');
             await caricaProdotti();
@@ -567,7 +582,10 @@
                 .find(b => b.textContent === categoriaScelta);
             if (btnFiltro) setFilter(categoriaScelta, btnFiltro);
             mostraToast(`✓ "${nome}" aggiunto!`);
-        } catch (e) { mostraToast("Errore nel salvataggio"); }
+        } catch (e) {
+            console.error("confermaSalvaNuovo:", e);
+            mostraToast("Errore di rete");
+        }
     }
 
     // ── Modifica ─────────────────────────────────────────────────
@@ -591,14 +609,27 @@
         const nuovoNome = document.getElementById("inputModifica").value.trim();
         if (!nuovoNome || !idInModifica) return;
         try {
-            await fetch(`${URL_BASE}/spesa_prodotti?id=eq.${idInModifica}&email_utente=eq.${userEmail}`, {
-                method: "PATCH", headers,
-                body: JSON.stringify({ nome: nuovoNome, categoria: catModificaScelta })
-            });
+            const res = await fetch(
+                `${URL_BASE}/spesa_prodotti?id=eq.${idInModifica}`,
+                {
+                    method: "PATCH",
+                    headers: headersWrite,
+                    body: JSON.stringify({ nome: nuovoNome, categoria: catModificaScelta })
+                }
+            );
+            if (!res.ok && res.status !== 204) {
+                const err = await res.text();
+                console.error("Errore PATCH prodotto:", res.status, err);
+                mostraToast("Errore nella modifica");
+                return;
+            }
             chiudiModal('modalModifica');
             await caricaProdotti();
             mostraToast("✓ Prodotto modificato");
-        } catch (e) { mostraToast("Errore nella modifica"); }
+        } catch (e) {
+            console.error("confermaModifica:", e);
+            mostraToast("Errore di rete");
+        }
     }
 
     // ── Elimina ──────────────────────────────────────────────────
@@ -611,13 +642,23 @@
     async function confermaElimina() {
         if (!idInElimina) return;
         try {
-            await fetch(`${URL_BASE}/spesa_prodotti?id=eq.${idInElimina}&email_utente=eq.${userEmail}`, {
-                method: "DELETE", headers
-            });
+            const res = await fetch(
+                `${URL_BASE}/spesa_prodotti?id=eq.${idInElimina}`,
+                { method: "DELETE", headers: headersWrite }
+            );
+            if (!res.ok && res.status !== 204) {
+                const err = await res.text();
+                console.error("Errore DELETE prodotto:", res.status, err);
+                mostraToast("Errore nell'eliminazione");
+                return;
+            }
             chiudiModal('modalElimina');
             await caricaProdotti();
             mostraToast("🗑️ Prodotto eliminato");
-        } catch (e) { mostraToast("Errore nell'eliminazione"); }
+        } catch (e) {
+            console.error("confermaElimina:", e);
+            mostraToast("Errore di rete");
+        }
     }
 
     // ── Utility ──────────────────────────────────────────────────
@@ -634,10 +675,13 @@
         t.textContent = msg;
         t.classList.add('show');
         clearTimeout(toastTimer);
-        toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+        toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
     }
 
-    function escHtml(str) { return str.replace(/'/g, "\\'").replace(/"/g, '&quot;'); }
+    function escHtml(str) {
+        return str.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    }
+
     function logout() { localStorage.clear(); window.location.href = 'login.html'; }
 
     window.onload = caricaProdotti;
