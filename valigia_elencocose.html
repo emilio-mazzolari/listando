@@ -184,7 +184,7 @@
             const esistente = await res.json();
 
             if (esistente.length > 0) {
-                aggiornaBottone(btn, "ESISTE", "var(--yellow)", "white");
+                aggiornaBottone(btn, "GIÀ IN LISTA", "var(--red)", "white");
                 return;
             }
 
@@ -193,7 +193,7 @@
                 body: JSON.stringify({ nome: nome, email_utente: userEmail, completato: false })
             });
 
-            if (add.ok) aggiornaBottone(btn, "OK!", "var(--green)", "white");
+            if (add.ok) aggiornaBottone(btn, "AGGIUNTO", "var(--blue)", "white");
         }
 
         function aggiornaBottone(btn, testo, sfondo, coloreTesto) {
