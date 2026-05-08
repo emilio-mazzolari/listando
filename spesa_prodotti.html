@@ -215,7 +215,7 @@
         async function confermaInserimento() {
             const nome = document.getElementById("nuovoProdotto").value.trim();
             const categoria = document.getElementById("selectCatNuovo").value;
-            const res = await fetch(`${URL}/spesa_prodotti`, { method: "POST", headers, body: JSON.stringify({ nome, categoria, email: userEmail }) });
+            const res = await fetch(`${URL}/spesa_prodotti`, { method: "POST", headers, body: JSON.stringify({ nome, categoria, email_utente: userEmail }) });
             if(res.ok) { document.getElementById("nuovoProdotto").value = ""; chiudiModal(); caricaProdotti(); }
         }
 
