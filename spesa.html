@@ -6,203 +6,540 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         :root {
-            --green: #0fba8d; --blue: #3384d4; --yellow: #feb310;
-            --red: #ff4d4d; --grey: #d8dddc; --dark: #000000; --bg: #fdfdfd;
+            --green: #0fba8d;
+            --blue: #3384d4;
+            --yellow: #feb310;
+            --red: #ff4d4d;
+            --grey: #d8dddc;
+            --grey-light: #f2f2f7;
+            --dark: #111111;
+            --bg: #f5f6f8;
+            --white: #ffffff;
+            --shadow: 0 4px 20px rgba(0,0,0,0.07);
         }
 
-        body { margin: 0; font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--dark); display: flex; justify-content: center; }
-        .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 110px; }
+        * { box-sizing: border-box; }
 
-        h2 { font-weight: 900; font-size: 24px; margin: 10px 0 20px 0; text-transform: uppercase; }
-
-        /* Card Principale Lista */
-        .card { background: white; border-radius: 28px; padding: 10px 20px; border: 3px solid var(--grey); min-height: 150px; margin-bottom: 20px; }
-
-        /* Contenitore per il bottone sempre visibile in alto */
-        .header-lista {
-            padding: 15px 0;
-            border-bottom: 2px solid #f2f2f7;
-            text-align: center;
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--dark);
+            display: flex;
+            justify-content: center;
         }
 
-        .item { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 2px solid #f2f2f7; }
+        .app {
+            width: 100%;
+            max-width: 420px;
+            padding: 24px 20px 120px;
+        }
+
+        /* ── Header ── */
+        .page-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+
+        .page-title {
+            font-weight: 900;
+            font-size: 26px;
+            text-transform: uppercase;
+            letter-spacing: -0.5px;
+            margin: 0;
+        }
+
+        .badge-count {
+            background: var(--blue);
+            color: white;
+            font-size: 13px;
+            font-weight: 800;
+            padding: 4px 12px;
+            border-radius: 20px;
+            display: none;
+        }
+
+        /* ── Card Lista ── */
+        .card {
+            background: var(--white);
+            border-radius: 28px;
+            border: 3px solid var(--grey);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            margin-bottom: 16px;
+        }
+
+        .card-header {
+            padding: 16px 20px;
+            border-bottom: 2px solid var(--grey-light);
+            display: none;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-header-label {
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: #999;
+        }
+
+        .btn-add-inline {
+            background: var(--blue);
+            color: white;
+            border: none;
+            border-radius: 14px;
+            padding: 8px 16px;
+            font-size: 12px;
+            font-weight: 800;
+            text-transform: uppercase;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: opacity 0.2s;
+        }
+        .btn-add-inline:active { opacity: 0.8; }
+        .btn-add-inline svg { width: 14px; height: 14px; stroke: white; fill: none; stroke-width: 3; }
+
+        /* ── Righe prodotto ── */
+        .item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 20px;
+            border-bottom: 2px solid var(--grey-light);
+            transition: background 0.15s;
+        }
         .item:last-child { border-bottom: none; }
-        
-        .testo-prodotto { font-weight: 700; font-size: 17px; flex: 1; transition: all 0.3s; }
-        .testo-prodotto.barrato { text-decoration: line-through; color: #b0b0b0; opacity: 0.6; }
+        .item.completato-row { background: #fafafa; }
 
-        /* Pulsanti Azione Riga */
-        .btn-actions { display: flex; gap: 8px; }
-        .btn-small { border: 2.5px solid var(--grey); border-radius: 14px; width: 42px; height: 42px; cursor: pointer; display: flex; align-items: center; justify-content: center; background: white; transition: transform 0.1s; }
-        .btn-small:active { transform: scale(0.9); }
-        .btn-small svg { width: 20px; height: 20px; stroke-width: 3; stroke: currentColor; fill: none; }
-        
-        .btn-small.check { border-color: var(--green); color: var(--green); }
-        .btn-small.restore { border-color: var(--blue); color: var(--blue); }
-        .btn-small.delete { border-color: var(--red); color: var(--red); }
-
-        /* Controlli Inferiori */
-        .controls-group { display: flex; flex-direction: column; gap: 10px; }
-        .btn-action { 
-            width: 100%; padding: 16px; border-radius: 20px; border: 3px solid var(--grey); 
-            background: white; font-weight: 800; font-size: 13px; cursor: pointer;
-            text-transform: uppercase; color: var(--dark); transition: all 0.2s;
+        /* Checkbox custom */
+        .check-circle {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 2.5px solid var(--grey);
+            flex-shrink: 0;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            background: white;
         }
-        .btn-action:active { background: var(--grey); }
-        .btn-main-color { background: var(--blue); color: white; border-color: var(--blue); }
-
-        /* Stato Vuoto e Bottone Aggiungi */
-        .empty-msg { text-align: center; padding: 30px 10px; color: #888; font-weight: 600; }
-        .btn-empty { 
-            display: inline-block; padding: 12px 25px; 
-            background: var(--blue); color: white; border-radius: 15px; 
-            text-decoration: none; font-weight: 800; font-size: 14px;
-            transition: transform 0.2s;
+        .check-circle.done {
+            background: var(--green);
+            border-color: var(--green);
         }
-        .btn-empty:active { transform: scale(0.95); }
+        .check-circle svg {
+            width: 14px; height: 14px;
+            stroke: white; fill: none; stroke-width: 3;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .check-circle.done svg { opacity: 1; }
 
-        /* Modal */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); display: none; align-items: center; justify-content: center; z-index: 2000; backdrop-filter: blur(5px); }
-        .modal-box { background: white; padding: 30px; border-radius: 32px; width: 85%; max-width: 350px; text-align: center; border: 4px solid var(--grey); }
-        .modal-box h3 { font-weight: 900; margin-top: 0; }
-        .btn-modal { width: 100%; padding: 16px; margin-top: 10px; border-radius: 18px; border: none; font-weight: 800; cursor: pointer; font-size: 16px; }
+        .testo-prodotto {
+            font-weight: 700;
+            font-size: 16px;
+            flex: 1;
+            transition: all 0.25s;
+            line-height: 1.3;
+        }
+        .testo-prodotto.barrato {
+            text-decoration: line-through;
+            color: #b5b5b5;
+            font-weight: 600;
+        }
 
-        /* Tab Bar */
-        .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 85px; background: white; display: flex; justify-content: space-around; align-items: center; border-top: 3px solid var(--grey); z-index: 1000; }
-        .tab-item { flex: 1; text-align: center; font-size: 10px; color: var(--dark); text-decoration: none; font-weight: 800; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+        .btn-delete {
+            width: 36px; height: 36px;
+            border-radius: 12px;
+            border: 2px solid var(--grey-light);
+            background: white;
+            color: #ccc;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+        .btn-delete:active { background: #fff0f0; border-color: var(--red); color: var(--red); transform: scale(0.92); }
+        .btn-delete svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2.5; }
+
+        /* ── Stato vuoto ── */
+        .empty-state {
+            text-align: center;
+            padding: 50px 20px;
+        }
+        .empty-icon {
+            width: 60px; height: 60px;
+            background: var(--grey-light);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+        }
+        .empty-icon svg { width: 28px; height: 28px; stroke: #aaa; fill: none; stroke-width: 2; }
+        .empty-title { font-weight: 900; font-size: 17px; margin-bottom: 6px; }
+        .empty-sub { color: #999; font-size: 14px; font-weight: 600; margin-bottom: 20px; }
+
+        .btn-empty {
+            display: inline-block;
+            padding: 14px 28px;
+            background: var(--blue);
+            color: white;
+            border-radius: 18px;
+            text-decoration: none;
+            font-weight: 800;
+            font-size: 14px;
+            transition: transform 0.15s;
+        }
+        .btn-empty:active { transform: scale(0.96); }
+
+        /* ── Barra progresso ── */
+        .progress-wrap {
+            padding: 0 20px 16px;
+            display: none;
+        }
+        .progress-bar-bg {
+            background: var(--grey-light);
+            border-radius: 10px;
+            height: 8px;
+            overflow: hidden;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--green), #0fd4a4);
+            border-radius: 10px;
+            transition: width 0.4s ease;
+            width: 0%;
+        }
+        .progress-label {
+            font-size: 12px;
+            font-weight: 700;
+            color: #999;
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .progress-label span { color: var(--green); }
+
+        /* ── Controlli ── */
+        .controls-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .btn-action {
+            width: 100%;
+            padding: 16px;
+            border-radius: 20px;
+            border: 3px solid var(--grey);
+            background: var(--white);
+            font-weight: 800;
+            font-size: 13px;
+            cursor: pointer;
+            text-transform: uppercase;
+            color: var(--dark);
+            transition: all 0.15s;
+            letter-spacing: 0.3px;
+            box-shadow: var(--shadow);
+        }
+        .btn-action:active { background: var(--grey-light); transform: scale(0.98); }
+
+        .btn-action.danger { border-color: #ffd6d6; color: var(--red); }
+        .btn-action.danger:active { background: #fff0f0; }
+
+        .btn-action.primary {
+            background: var(--blue);
+            color: white;
+            border-color: var(--blue);
+        }
+        .btn-action.primary:active { opacity: 0.88; }
+
+        /* ── Modal ── */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.45);
+            display: none; align-items: flex-end;
+            justify-content: center;
+            z-index: 2000;
+            backdrop-filter: blur(6px);
+            padding-bottom: 30px;
+        }
+        .modal-box {
+            background: white;
+            padding: 32px 28px 24px;
+            border-radius: 32px 32px 24px 24px;
+            width: 92%;
+            max-width: 380px;
+            text-align: center;
+            border: 3px solid var(--grey);
+            animation: slideUp 0.25s ease;
+        }
+        @keyframes slideUp {
+            from { transform: translateY(40px); opacity: 0; }
+            to   { transform: translateY(0);    opacity: 1; }
+        }
+        .modal-emoji { font-size: 40px; margin-bottom: 10px; }
+        .modal-box h3 { font-weight: 900; font-size: 20px; margin: 0 0 8px; }
+        .modal-box p { font-weight: 600; color: #777; font-size: 14px; margin: 0 0 20px; }
+
+        .btn-modal {
+            width: 100%; padding: 16px;
+            margin-top: 8px;
+            border-radius: 18px;
+            border: none;
+            font-weight: 800;
+            cursor: pointer;
+            font-size: 15px;
+            transition: opacity 0.15s;
+        }
+        .btn-modal:active { opacity: 0.85; }
+
+        /* ── Tab Bar ── */
+        .tab-bar {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            height: 88px;
+            background: white;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            border-top: 3px solid var(--grey);
+            z-index: 1000;
+            padding-bottom: env(safe-area-inset-bottom, 0);
+        }
+        .tab-item {
+            flex: 1; text-align: center;
+            font-size: 10px; color: #aaa;
+            text-decoration: none;
+            font-weight: 800;
+            display: flex; flex-direction: column;
+            align-items: center; gap: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            transition: color 0.15s;
+        }
         .tab-active { color: var(--green); }
-        .icon-tab { width: 26px; height: 26px; stroke-width: 2.5; stroke: currentColor; fill: none; }
+        .icon-tab { width: 24px; height: 24px; stroke-width: 2.5; stroke: currentColor; fill: none; }
     </style>
 </head>
 <body>
 
-    <div class="app">
-        <h2>Lista Spesa</h2>
-        
-        <div class="card" id="cardLista">
-            <div id="headerAggiungi" class="header-lista" style="display:none;">
-                <a href="spesa_prodotti.html" class="btn-empty">AGGIUNGI PRODOTTI</a>
+<div class="app">
+
+    <div class="page-header">
+        <h2 class="page-title">Lista Spesa</h2>
+        <span class="badge-count" id="badgeCount"></span>
+    </div>
+
+    <div class="card" id="cardLista">
+        <div id="cardHeader" class="card-header">
+            <span class="card-header-label" id="labelProgresso">0 prodotti</span>
+            <a href="spesa_prodotti.html" class="btn-add-inline">
+                <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Aggiungi
+            </a>
+        </div>
+
+        <div id="progressWrap" class="progress-wrap">
+            <div class="progress-label">
+                <span id="progressText">Avanzamento</span>
+                <span id="progressPct">0%</span>
             </div>
-
-            <div id="contenitoreLista">
-                <div class="empty-msg">Caricamento in corso...</div>
+            <div class="progress-bar-bg">
+                <div class="progress-bar-fill" id="progressFill"></div>
             </div>
         </div>
 
-        <div id="controlliLista" class="controls-group" style="display: none;">
-            <button class="btn-action" onclick="eliminaAcquistati()">Elimina Acquistati</button>
-            <button class="btn-action" onclick="ripristinaLista()">Ripristina tutto</button>
-            <button class="btn-action btn-main-color" onclick="apriModalSvuota()">Svuota Lista</button>
+        <div id="contenitoreLista">
+            <div class="empty-state">
+                <div class="empty-icon">
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg>
+                </div>
+                <div class="empty-title">Caricamento…</div>
+            </div>
         </div>
     </div>
 
-    <div id="svuotaModal" class="modal-overlay">
-        <div class="modal-box">
-            <h3>Svuota tutto?</h3>
-            <p style="font-weight: 600; color: #666;">Questa azione cancellerà tutti i prodotti dalla tua lista attuale.</p>
-            <button class="btn-modal" style="background:var(--red); color:white;" onclick="confermaSvuota()">SÌ, CANCELLA</button>
-            <button class="btn-modal" style="background:var(--grey);" onclick="chiudiModal()">ANNULLA</button>
-        </div>
+    <div id="controlliLista" class="controls-group" style="display:none;">
+        <button class="btn-action" onclick="eliminaAcquistati()">✓ Elimina Acquistati</button>
+        <button class="btn-action" onclick="ripristinaLista()">↺ Ripristina tutto</button>
+        <button class="btn-action primary" onclick="apriModalSvuota()">Svuota Lista</button>
     </div>
+</div>
 
-    <div class="tab-bar">
-        <a href="index.html" class="tab-item"><svg class="icon-tab" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>HOME</a>
-        <a href="spesa.html" class="tab-item tab-active"><svg class="icon-tab" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>SPESA</a>
-        <a href="spesa_prodotti.html" class="tab-item"><svg class="icon-tab" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line></svg>PRODOTTI</a>
-        <a href="#" class="tab-item" onclick="logout()"><svg class="icon-tab" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline></svg>ESCI</a>
+<!-- Modal Svuota -->
+<div id="svuotaModal" class="modal-overlay">
+    <div class="modal-box">
+        <div class="modal-emoji">🗑️</div>
+        <h3>Svuota tutto?</h3>
+        <p>Questa azione cancellerà tutti i prodotti dalla tua lista attuale.</p>
+        <button class="btn-modal" style="background:var(--red); color:white;" onclick="confermaSvuota()">Sì, cancella tutto</button>
+        <button class="btn-modal" style="background:var(--grey-light); color:var(--dark);" onclick="chiudiModal()">Annulla</button>
     </div>
+</div>
 
-    <script>
-        const URL = "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1";
-        const KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
-        const headers = { "apikey": KEY, "Content-Type": "application/json", "Authorization": "Bearer " + KEY };
-        const userEmail = localStorage.getItem('userEmail');
+<!-- Tab Bar -->
+<nav class="tab-bar">
+    <a href="index.html" class="tab-item">
+        <svg class="icon-tab" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+        Home
+    </a>
+    <a href="spesa.html" class="tab-item tab-active">
+        <svg class="icon-tab" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+        Spesa
+    </a>
+    <a href="spesa_prodotti.html" class="tab-item">
+        <svg class="icon-tab" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+        Prodotti
+    </a>
+    <a href="#" class="tab-item" onclick="logout()">
+        <svg class="icon-tab" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/></svg>
+        Esci
+    </a>
+</nav>
 
-        async function caricaLista() {
-            if (!userEmail) return;
-            try {
-                // Aggiornato per riflettere i tuoi nuovi nomi tabella e colonna email_utente
-                const res = await fetch(`${URL}/spesa_lista?select=*,spesa_prodotti(nome)&email_utente=eq.${userEmail}`, { headers });
-                const data = await res.json();
-                const div = document.getElementById("contenitoreLista");
-                const headerAggiungi = document.getElementById("headerAggiungi");
-                const controlli = document.getElementById("controlliLista");
+<script>
+    const URL_BASE = "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1";
+    const KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
+    const headers = {
+        "apikey": KEY,
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + KEY
+    };
+    const userEmail = localStorage.getItem('userEmail');
 
-                if (!Array.isArray(data) || data.length === 0) {
-                    headerAggiungi.style.display = "none";
-                    div.innerHTML = `<div class="empty-msg">La lista è vuota<br><br><a href="spesa_prodotti.html" class="btn-empty">AGGIUNGI PRODOTTI</a></div>`;
-                    controlli.style.display = "none";
-                    return;
-                }
+    async function caricaLista() {
+        if (!userEmail) return;
+        try {
+            const res = await fetch(
+                `${URL_BASE}/spesa_lista?select=*,spesa_prodotti(nome)&email_utente=eq.${userEmail}`,
+                { headers }
+            );
+            const data = await res.json();
 
-                headerAggiungi.style.display = "block";
-                controlli.style.display = "flex";
-                data.sort((a, b) => (a.completato === b.completato) ? 0 : a.completato ? 1 : -1);
+            const div       = document.getElementById("contenitoreLista");
+            const cardHeader = document.getElementById("cardHeader");
+            const controlli = document.getElementById("controlliLista");
+            const progressWrap = document.getElementById("progressWrap");
+            const badge     = document.getElementById("badgeCount");
 
-                div.innerHTML = "";
-                data.forEach(item => {
-                    const riga = document.createElement("div");
-                    riga.className = "item";
-                    // Prende il nome dal join con spesa_prodotti
-                    const nomeVisualizzato = item.spesa_prodotti?.nome || "Prodotto";
-
-                    riga.innerHTML = `
-                        <span class="testo-prodotto ${item.completato ? 'barrato' : ''}">${nomeVisualizzato}</span>
-                        <div class="btn-actions">
-                            <button class="btn-small ${item.completato ? 'restore' : 'check'}" onclick="toggle(${item.id}, ${item.completato})">
-                                ${item.completato 
-                                    ? '<svg viewBox="0 0 24 24"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>' 
-                                    : '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>'}
-                            </button>
-                            <button class="btn-small delete" onclick="elimina(${item.id})">
-                                <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                            </button>
+            if (!Array.isArray(data) || data.length === 0) {
+                cardHeader.style.display = "none";
+                progressWrap.style.display = "none";
+                controlli.style.display = "none";
+                badge.style.display = "none";
+                div.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">
+                            <svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
                         </div>
-                    `;
-                    div.appendChild(riga);
-                });
-            } catch (e) { console.error(e); }
-        }
-
-        async function toggle(id, stato) {
-            await fetch(`${URL}/spesa_lista?id=eq.${id}`, {
-                method: "PATCH", headers,
-                body: JSON.stringify({ completato: !stato })
-            });
-            caricaLista();
-        }
-
-        async function elimina(id) {
-            await fetch(`${URL}/spesa_lista?id=eq.${id}`, { method: "DELETE", headers });
-            caricaLista();
-        }
-
-        async function eliminaAcquistati() {
-            if (confirm("Eliminare i prodotti già presi?")) {
-                await fetch(`${URL}/spesa_lista?email_utente=eq.${userEmail}&completato=eq.true`, { method: "DELETE", headers });
-                caricaLista();
+                        <div class="empty-title">Lista vuota</div>
+                        <div class="empty-sub">Aggiungi i prodotti che vuoi acquistare</div>
+                        <a href="spesa_prodotti.html" class="btn-empty">+ Aggiungi prodotti</a>
+                    </div>`;
+                return;
             }
-        }
 
-        async function ripristinaLista() {
-            await fetch(`${URL}/spesa_lista?email_utente=eq.${userEmail}`, {
-                method: "PATCH", headers,
-                body: JSON.stringify({ completato: false })
+            // Calcolo progresso
+            const totale    = data.length;
+            const completati = data.filter(i => i.completato).length;
+            const pct       = Math.round((completati / totale) * 100);
+            const rimanenti = totale - completati;
+
+            // Aggiorna badge e label
+            badge.style.display = rimanenti > 0 ? "inline-block" : "none";
+            badge.textContent   = rimanenti;
+
+            document.getElementById("labelProgresso").textContent =
+                `${totale} prodotto${totale !== 1 ? 'i' : ''}`;
+            document.getElementById("progressText").textContent =
+                `${completati} di ${totale} presi`;
+            document.getElementById("progressPct").textContent = `${pct}%`;
+            document.getElementById("progressFill").style.width = `${pct}%`;
+
+            cardHeader.style.display    = "flex";
+            progressWrap.style.display  = "block";
+            controlli.style.display     = "flex";
+
+            // Ordina: non completati prima
+            data.sort((a, b) => (a.completato === b.completato) ? 0 : a.completato ? 1 : -1);
+
+            div.innerHTML = "";
+            data.forEach(item => {
+                const nome = item.spesa_prodotti?.nome || "Prodotto";
+                const riga = document.createElement("div");
+                riga.className = `item${item.completato ? ' completato-row' : ''}`;
+                riga.innerHTML = `
+                    <div class="check-circle ${item.completato ? 'done' : ''}" onclick="toggle(${item.id}, ${item.completato})">
+                        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                    </div>
+                    <span class="testo-prodotto ${item.completato ? 'barrato' : ''}">${nome}</span>
+                    <button class="btn-delete" onclick="elimina(${item.id})" aria-label="Elimina">
+                        <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    </button>
+                `;
+                div.appendChild(riga);
+            });
+
+        } catch (e) { console.error(e); }
+    }
+
+    async function toggle(id, stato) {
+        await fetch(`${URL_BASE}/spesa_lista?id=eq.${id}`, {
+            method: "PATCH", headers,
+            body: JSON.stringify({ completato: !stato })
+        });
+        caricaLista();
+    }
+
+    async function elimina(id) {
+        await fetch(`${URL_BASE}/spesa_lista?id=eq.${id}`, { method: "DELETE", headers });
+        caricaLista();
+    }
+
+    async function eliminaAcquistati() {
+        if (confirm("Eliminare i prodotti già presi?")) {
+            await fetch(`${URL_BASE}/spesa_lista?email_utente=eq.${userEmail}&completato=eq.true`, {
+                method: "DELETE", headers
             });
             caricaLista();
         }
+    }
 
-        function apriModalSvuota() { document.getElementById('svuotaModal').style.display = 'flex'; }
-        function chiudiModal() { document.getElementById('svuotaModal').style.display = 'none'; }
-        
-        async function confermaSvuota() {
-            await fetch(`${URL}/spesa_lista?email_utente=eq.${userEmail}`, { method: "DELETE", headers });
-            chiudiModal();
-            caricaLista();
-        }
-
-        function logout() { localStorage.clear(); window.location.href = 'login.html'; }
+    async function ripristinaLista() {
+        await fetch(`${URL_BASE}/spesa_lista?email_utente=eq.${userEmail}`, {
+            method: "PATCH", headers,
+            body: JSON.stringify({ completato: false })
+        });
         caricaLista();
-    </script>
+    }
+
+    function apriModalSvuota()  { document.getElementById('svuotaModal').style.display = 'flex'; }
+    function chiudiModal()      { document.getElementById('svuotaModal').style.display = 'none'; }
+
+    async function confermaSvuota() {
+        await fetch(`${URL_BASE}/spesa_lista?email_utente=eq.${userEmail}`, {
+            method: "DELETE", headers
+        });
+        chiudiModal();
+        caricaLista();
+    }
+
+    function logout() { localStorage.clear(); window.location.href = 'login.html'; }
+
+    caricaLista();
+</script>
 </body>
 </html>
