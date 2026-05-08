@@ -2,88 +2,99 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Lista Valigia</title>
+    <title>Listando - Valigia</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <style>
-        body { margin: 0; font-family: -apple-system, Helvetica, Arial, sans-serif; background: #f2f2f7; display: flex; justify-content: center; }
-        .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 100px; box-sizing: border-box; }
-        .card { background: white; border-radius: 16px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        .header-box { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-
-        .item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee; }
-        .testo-prodotto { flex-grow: 1; font-size: 16px; color: #1c1c1e; font-weight: 600; }
-        .testo-prodotto.barrato { text-decoration: line-through; color: #8e8e93; opacity: 0.6; }
-
-        /* Bottoni icone (V e X) uniformati alla spesa */
-        .btn-small { border: none; border-radius: 8px; width: 32px; height: 32px; cursor: pointer; margin-left: 8px; display: inline-flex; align-items: center; justify-content: center; }
-        .check { background-color: #45a049; } 
-        .restore { background-color: #c7c7cc; } 
-        .delete { background-color: #db5151; } 
-        .icon { width: 20px; height: 20px; fill: none; stroke: white; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
-
-        /* Bottoni inferiori */
-        .btn-action { width: 100%; padding: 15px; border-radius: 12px; border: none; color: white; font-weight: bold; margin-top: 10px; cursor: pointer; font-size: 13px; text-transform: uppercase; box-sizing: border-box; text-align: center; }
-        .btn-blue { background: #aec6cf; }
-        .btn-gray { background: #99b3bc; }
-        
-        /* Bottone Aggiungi Cose (quando vuoto) - Uguale alla spesa */
-        .btn-empty { 
-            background: #aec6cf; 
-            margin-top: 20px; 
-            display: block; 
-            text-decoration: none; 
-            color: white;
-            font-size: 13px;
-            font-weight: bold;
-            padding: 15px;
-            border-radius: 12px;
-            text-align: center;
+        :root {
+            --green: #0fba8d; --blue: #3384d4; --yellow: #feb310;
+            --grey: #d8dddc; --dark: #000000; --bg: #fdfdfd;
+            --soft-blue: #aec6cf;
         }
 
-        .empty-msg { text-align: center; padding: 40px 10px; color: #8e8e93; font-size: 16px; }
+        body { margin: 0; font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--dark); display: flex; justify-content: center; }
+        .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 110px; }
 
+        h2 { font-weight: 900; font-size: 24px; margin: 10px 0 20px 0; text-transform: uppercase; }
+
+        /* Lista Card principale */
+        .card { background: white; border-radius: 28px; padding: 5px 18px; border: 3px solid var(--grey); min-height: 100px; margin-bottom: 20px; }
+        
+        .item { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 2px solid #f2f2f7; }
+        .item:last-child { border-bottom: none; }
+        
+        .testo-prodotto { font-weight: 700; font-size: 16px; }
+        .testo-prodotto.barrato { text-decoration: line-through; color: #8e8e93; opacity: 0.5; }
+
+        /* Bottoni Azione Piccoli (V, Ritorna, X) */
+        .btn-actions { display: flex; gap: 8px; }
+        .btn-small { border: 2.5px solid var(--grey); border-radius: 14px; width: 42px; height: 42px; cursor: pointer; display: flex; align-items: center; justify-content: center; background: white; transition: transform 0.1s; }
+        .btn-small:active { transform: scale(0.9); }
+        .btn-small svg { width: 20px; height: 20px; stroke-width: 3; stroke: currentColor; fill: none; }
+        
+        .btn-small.check { border-color: var(--green); color: var(--green); }
+        .btn-small.restore { border-color: var(--blue); color: var(--blue); }
+        .btn-small.delete { border-color: #ff4d4d; color: #ff4d4d; }
+
+        /* Gruppo Bottoni Inferiori */
+        .controlli-gruppo { display: flex; flex-direction: column; gap: 10px; }
+        .btn-main { 
+            width: 100%; padding: 16px; border-radius: 20px; border: 3px solid var(--grey); 
+            background: white; font-weight: 800; font-size: 13px; cursor: pointer;
+            text-transform: uppercase; transition: all 0.2s;
+        }
+        .btn-main:hover { background: #f9f9f9; }
+        .btn-main.primary { background: var(--blue); color: white; border-color: var(--blue); }
+
+        /* Messaggio Vuoto */
+        .empty-msg { text-align: center; padding: 40px 10px; color: #888; font-weight: 600; }
+        .btn-empty { 
+            display: inline-block; margin-top: 15px; padding: 12px 25px; 
+            background: var(--blue); color: white; border-radius: 18px; 
+            text-decoration: none; font-weight: 800; font-size: 14px;
+        }
+
+        /* Modal */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); display: none; align-items: center; justify-content: center; z-index: 2000; backdrop-filter: blur(5px); }
+        .modal-box { background: white; padding: 30px; border-radius: 32px; width: 85%; max-width: 350px; text-align: center; border: 4px solid var(--grey); }
+        .modal-box h3 { font-weight: 900; margin-top: 0; }
+        
         /* Tab Bar */
-        .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 75px; background: #aec6cf; display: flex; justify-content: space-around; align-items: center; z-index: 1000; }
-        .tab-item { flex: 1; text-align: center; font-size: 11px; color: #333; text-decoration: none; font-weight: 800; display: flex; flex-direction: column; }
-        .tab-item span { font-size: 22px; margin-bottom: 3px; }
-        .tab-active { color: white; }
-
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 2000; }
-        .modal-box { background: white; padding: 25px; border-radius: 20px; width: 80%; max-width: 300px; text-align: center; }
+        .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 85px; background: white; display: flex; justify-content: space-around; align-items: center; border-top: 3px solid var(--grey); z-index: 1000; }
+        .tab-item { flex: 1; text-align: center; font-size: 10px; color: var(--dark); text-decoration: none; font-weight: 800; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+        .tab-active { color: var(--soft-blue); }
+        .icon-tab { width: 26px; height: 26px; stroke-width: 2.5; stroke: currentColor; fill: none; }
     </style>
 </head>
 <body>
 
     <div class="app">
-        <div class="header-box"><h2 style="margin:0; font-weight: 800;">💼 LISTA VALIGIA</h2></div>
+        <h2>💼 Lista Valigia</h2>
         
-        <div class="card" id="cardLista">
-            <div id="contenitoreLista">Caricamento...</div>
+        <div class="card" id="contenitoreLista">
+            <p style="text-align:center; padding:20px; font-weight:700;">Caricamento...</p>
         </div>
 
-        <div id="controlliLista">
-            <button class="btn-action btn-gray" onclick="eliminaMessi()">ELIMINA MESSI IN VALIGIA</button>
-            <button class="btn-action btn-gray" onclick="apriModalSvuota()">SVUOTA TUTTA LA VALIGIA</button>
-            <button class="btn-action btn-gray" onclick="ripristinaValigia()">RIPRISTINA VALIGIA</button>
+        <div id="controlliLista" class="controlli-gruppo">
+            <button class="btn-main" onclick="eliminaMessi()">Elimina messi in valigia</button>
+            <button class="btn-main" onclick="ripristinaValigia()">Ripristina tutto</button>
+            <button class="btn-main" onclick="apriModalSvuota()" style="color:#ff4d4d;">Svuota tutta la lista</button>
         </div>
-    </div>
-
-    <div class="tab-bar">
-        <a href="index.html" class="tab-item"><span>🏠</span>HOME</a>
-        <a href="valigia.html" class="tab-item tab-active"><span>💼</span>VALIGIA</a>
-        <a href="cosevaligia.html" class="tab-item"><span>📋</span>COSE</a>
-        <a href="#" class="tab-item" onclick="logout()"><span>🚪</span>ESCI</a>
     </div>
 
     <div id="svuotaModal" class="modal-overlay">
         <div class="modal-box">
-            <h3>Svuota Valigia</h3>
-            <p>Sei sicuro di voler cancellare tutto?</p>
-            <button class="btn-action btn-blue" onclick="confermaSvuota()">SÌ, SVUOTA</button>
-            <button class="btn-action btn-gray" onclick="chiudiModal()" style="color:white">ANNULLA</button>
+            <h3>Svuota Valigia?</h3>
+            <p style="font-weight: 600; color: #666;">Sei sicuro di voler cancellare definitivamente tutti gli oggetti?</p>
+            <button class="btn-main primary" style="margin-bottom:10px;" onclick="confermaSvuota()">SÌ, CANCELLA TUTTO</button>
+            <button class="btn-main" onclick="chiudiModal()">ANNULLA</button>
         </div>
+    </div>
+
+    <div class="tab-bar">
+        <a href="index.html" class="tab-item"><svg class="icon-tab" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>HOME</a>
+        <a href="valigia.html" class="tab-item tab-active"><svg class="icon-tab" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>VALIGIA</a>
+        <a href="cosevaligia.html" class="tab-item"><svg class="icon-tab" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>COSE</a>
+        <a href="#" class="tab-item" onclick="logout()"><svg class="icon-tab" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline></svg>ESCI</a>
     </div>
 
     <script>
@@ -107,33 +118,33 @@
                     div.innerHTML = `
                         <div class="empty-msg">
                             La valigia è vuota<br>
-                            <a href="cosevaligia.html" class="btn-empty">AGGIUNGI COSE</a>
+                            <a href="cosevaligia.html" class="btn-empty">AGGIUNGI OGGETTI</a>
                         </div>`;
                     controlli.style.display = "none";
                     return;
                 }
 
-                controlli.style.display = "block";
+                controlli.style.display = "flex";
                 div.innerHTML = "";
                 
                 dati.forEach(item => {
                     const riga = document.createElement("div");
                     riga.className = "item";
                     
-                    // Logica icone SVG uguale alla spesa
-                    const iconaClasse = item.completato ? 'restore' : 'check';
-                    const svgIcona = item.completato 
-                        ? `<path d="M9 14l-4-4 4-4M5 10h11a4 4 0 110 8h-1"/>` 
-                        : `<path d="M5 12l5 5L20 7"/>`;
+                    const btnStatus = item.completato 
+                        ? `<button class="btn-small restore" onclick="toggleStatus(${item.id}, ${item.completato})">
+                             <svg viewBox="0 0 24 24"><path d="M9 14l-4-4 4-4M5 10h11a4 4 0 110 8h-1"/></svg>
+                           </button>`
+                        : `<button class="btn-small check" onclick="toggleStatus(${item.id}, ${item.completato})">
+                             <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                           </button>`;
 
                     riga.innerHTML = `
                         <span class="testo-prodotto ${item.completato ? 'barrato' : ''}">${item.nome}</span>
-                        <div style="display:flex;">
-                            <button class="btn-small ${iconaClasse}" onclick="toggleStatus(${item.id}, ${item.completato})">
-                                <svg class="icon" viewBox="0 0 24 24">${svgIcona}</svg>
-                            </button>
+                        <div class="btn-actions">
+                            ${btnStatus}
                             <button class="btn-small delete" onclick="eliminaSingolo(${item.id})">
-                                <svg class="icon" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                                <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                             </button>
                         </div>
                     `;
