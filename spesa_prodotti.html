@@ -155,41 +155,57 @@
             });
         }
 
-        // FUNZIONE AGGIORNA BOTTONE (STILE VALIGIA)
-        function aggiornaBottone(btn, testo, sfondo, coloreTesto) {
-            const originalHTML = btn.innerHTML;
-            btn.innerHTML = `<span class="btn-feedback">${testo}</span>`;
-            btn.style.backgroundColor = sfondo;
-            btn.style.color = coloreTesto;
-            btn.style.borderColor = sfondo;
-            btn.classList.add('btn-feedback');
-            setTimeout(() => {
-                btn.innerHTML = originalHTML;
-                btn.style.backgroundColor = "";
-                btn.style.color = "";
-                btn.style.borderColor = "";
-                btn.classList.remove('btn-feedback');
-            }, 1200);
-        }
+        async function mettiInLista(idProdotto) {
+    const btn = document.getElementById(`btn-p-${idProdotto}`);
+    
+    // Recuperiamo il nome del prodotto dal DOM per cercarlo nella lista spesa
+    // Questo serve per il controllo "esistente" come fai nella valigia
+    const nomeProdotto = btn.closest('.item').querySelector('.testo-prodotto').innerText;
 
-        window.mettiInLista = async (idProdotto) => {
-            const btn = document.getElementById(`btn-p-${idProdotto}`);
-            
-            // Controllo se esiste già
-            const check = await fetch(`${URL}/spesa_lista?prodotto_id=eq.${idProdotto}&email_utente=eq.${userEmail}&completato=eq.false`, { headers });
-            const data = await check.json();
+    // 1. Controllo se il prodotto è già presente nella lista spesa (non completato)
+    const res = await fetch(`${URL}/spesa_lista?prodotto_id=eq.${idProdotto}&email_utente=eq.${userEmail}&completato=eq.false`, { headers });
+    const esistente = await res.json();
 
-            if (data.length > 0) {
-                aggiornaBottone(btn, "ESISTE", "var(--red)", "white");
-                return;
-            }
+    if (esistente.length > 0) {
+        // Se esiste, rosso e scritta "GIÀ IN LISTA"
+        aggiornaBottone(btn, "GIÀ IN LISTA", "var(--red)", "white");
+        return;
+    }
 
-            const res = await fetch(`${URL}/spesa_lista`, { 
-                method: "POST", headers, 
-                body: JSON.stringify({ prodotto_id: idProdotto, email_utente: userEmail, completato: false }) 
-            });
-            if(res.ok) aggiornaBottone(btn, "AGGIUNTO", "var(--blue)", "white");
-        }
+    // 2. Se non esiste, lo aggiungiamo
+    const add = await fetch(`${URL}/spesa_lista`, { 
+        method: "POST", 
+        headers, 
+        body: JSON.stringify({ 
+            prodotto_id: idProdotto, 
+            email_utente: userEmail, 
+            completato: false 
+        }) 
+    });
+
+    if (add.ok) {
+        // Se l'aggiunta va a buon fine, blu e scritta "AGGIUNTO"
+        aggiornaBottone(btn, "AGGIUNTO", "var(--blue)", "white");
+    }
+}
+
+// Assicurati che la funzione aggiornaBottone sia presente nel tuo script:
+function aggiornaBottone(btn, testo, sfondo, coloreTesto) {
+    const originalHTML = btn.innerHTML;
+    btn.innerHTML = `<span class="btn-feedback">${testo}</span>`;
+    btn.style.backgroundColor = sfondo;
+    btn.style.color = coloreTesto;
+    btn.style.borderColor = sfondo;
+    btn.classList.add('btn-feedback');
+    
+    setTimeout(() => {
+        btn.innerHTML = originalHTML;
+        btn.style.backgroundColor = "";
+        btn.style.color = "";
+        btn.style.borderColor = "";
+        btn.classList.remove('btn-feedback');
+    }, 1200);
+}
 
         window.apriModalCategoria = () => {
             if(!document.getElementById("nuovoProdotto").value.trim()) return;
