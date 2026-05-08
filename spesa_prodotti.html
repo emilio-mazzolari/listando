@@ -19,7 +19,7 @@
         .btn-filter { padding: 14px; border-radius: 20px; border: 3px solid var(--grey); background: white; font-weight: 800; font-size: 11px; cursor: pointer; transition: all 0.2s; text-transform: uppercase; }
         .btn-filter.active { background: var(--blue); color: white; border-color: var(--blue); }
 
-        /* Struttura Inserimento e Ricerca (2 Righe) */
+        /* Struttura Inserimento e Ricerca */
         .input-group-main { background: white; padding: 20px; border-radius: 28px; border: 3px solid var(--grey); margin-bottom: 20px; display: flex; flex-direction: column; gap: 15px; }
         .input-row { display: flex; align-items: center; gap: 10px; }
         input { flex: 1; padding: 14px 18px; border-radius: 18px; border: 2px solid var(--grey); outline: none; font-size: 15px; background: #f9f9f9; }
@@ -30,16 +30,16 @@
         /* Lista Prodotti */
         .card { background: white; border-radius: 28px; padding: 5px 18px; border: 3px solid var(--grey); min-height: 100px; }
         .item { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 2px solid #f2f2f7; }
-        .testo-prodotto { font-weight: 700; font-size: 16px; flex: 1; }
-        .btn-actions { display: flex; gap: 8px; }
+        .testo-prodotto { font-weight: 700; font-size: 16px; flex: 1; cursor: pointer; }
+        .testo-prodotto:hover { color: var(--blue); }
         
-        .btn-small { border: 2.5px solid var(--grey); border-radius: 12px; width: 42px; height: 42px; cursor: pointer; display: flex; align-items: center; justify-content: center; background: white; transition: all 0.2s; }
+        .btn-actions { display: flex; gap: 8px; }
+        .btn-small { border: 2.5px solid var(--grey); border-radius: 12px; width: 42px; height: 42px; cursor: pointer; display: flex; align-items: center; justify-content: center; background: white; transition: all 0.2s; position: relative; }
         .btn-small svg { width: 18px; height: 18px; stroke-width: 3; stroke: currentColor; fill: none; }
         .btn-small.plus { border-color: var(--blue); color: var(--blue); }
         .btn-small.delete { border-color: var(--red); color: var(--red); }
 
-        /* FEEDBACK STILE VALIGIA */
-        .btn-feedback { font-size: 9px !important; font-weight: 900; text-transform: uppercase; width: auto !important; padding: 0 10px; min-width: 60px; }
+        .btn-feedback { font-size: 9px !important; font-weight: 900; text-transform: uppercase; position: absolute; }
 
         /* Modali */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 2000; backdrop-filter: blur(4px); }
@@ -125,14 +125,14 @@
             } catch (e) { console.error(e); }
         }
 
-        window.setFilter = (cat, btn) => {
+        function setFilter(cat, btn) {
             categoriaCorrente = cat;
             document.querySelectorAll('.btn-filter').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             renderizzaProdotti();
         }
 
-        window.renderizzaProdotti = () => {
+        function renderizzaProdotti() {
             const query = document.getElementById("cercaProdotto").value.toLowerCase();
             const div = document.getElementById("listaProdotti");
             div.innerHTML = "";
@@ -142,7 +142,7 @@
                 const riga = document.createElement("div");
                 riga.className = "item";
                 riga.innerHTML = `
-                    <span class="testo-prodotto">${p.nome}</span>
+                    <span class="testo-prodotto" onclick="rinominaProdotto(${p.id}, '${p.nome}', '${p.email}')">${p.nome}</span>
                     <div class="btn-actions">
                         <button class="btn-small plus" id="btn-p-${p.id}" onclick="mettiInLista(${p.id})">
                             <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
@@ -155,102 +155,61 @@
             });
         }
 
-       // Sostituisci la funzione mettiInLista e aggiungi window. per sicurezza
-window.mettiInLista = async function(idProdotto) {
-    const btn = document.getElementById(`btn-p-${idProdotto}`);
-    if (!btn) return;
+        async function mettiInLista(idProdotto) {
+            const btn = document.getElementById(`btn-p-${idProdotto}`);
+            try {
+                const res = await fetch(`${URL}/spesa_lista?prodotto_id=eq.${idProdotto}&email_utente=eq.${userEmail}&completato=eq.false`, { headers });
+                const esistente = await res.json();
 
-    try {
-        // 1. Controllo duplicati: fondamentale usare lo stesso URL della pagina spesa
-        const res = await fetch(`${URL}/spesa_lista?prodotto_id=eq.${idProdotto}&email_utente=eq.${userEmail}&completato=eq.false`, { headers });
-        const esistente = await res.json();
+                if (esistente.length > 0) {
+                    aggiornaBottone(btn, "ESISTE", "#f39c12");
+                    return;
+                }
 
-        if (Array.isArray(esistente) && esistente.length > 0) {
-            aggiornaBottone(btn, "ESISTE", "#f39c12", "white");
-            return;
+                const add = await fetch(`${URL}/spesa_lista`, {
+                    method: "POST", headers,
+                    body: JSON.stringify({ prodotto_id: idProdotto, email_utente: userEmail, completato: false })
+                });
+
+                if (add.ok) aggiornaBottone(btn, "OK!", "var(--green)");
+            } catch (e) { console.error(e); }
         }
 
-        // 2. Inserimento: assicuriamoci di inviare prodotto_id correttamente
-        const add = await fetch(`${URL}/spesa_lista`, {
-            method: "POST",
-            headers,
-            body: JSON.stringify({ 
-                prodotto_id: idProdotto, 
-                email_utente: userEmail, 
-                completato: false 
-            })
-        });
-
-        if (add.ok) {
-            aggiornaBottone(btn, "OK!", "#27ae60", "white");
+        async function rinominaProdotto(id, nomeAttuale, emailP) {
+            if (emailP === "null" || !emailP) {
+                alert("Non puoi rinominare i prodotti predefiniti.");
+                return;
+            }
+            const nuovoNome = prompt("Rinomina prodotto:", nomeAttuale);
+            if (nuovoNome && nuovoNome !== nomeAttuale) {
+                await fetch(`${URL}/spesa_prodotti?id=eq.${id}`, {
+                    method: "PATCH", headers,
+                    body: JSON.stringify({ nome: nuovoNome })
+                });
+                caricaProdotti();
+            }
         }
-    } catch (e) {
-        console.error("Errore inserimento:", e);
-    }
-}
 
-// Funzione feedback universale
-window.aggiornaBottone = function(btn, testo, sfondo, coloreTesto) {
-    const originalHTML = btn.innerHTML;
-    btn.innerHTML = `<span class="btn-feedback" style="font-size:10px">${testo}</span>`;
-    btn.style.backgroundColor = sfondo;
-    btn.style.color = coloreTesto;
-    btn.style.borderColor = sfondo;
-    btn.style.pointerEvents = "none";
-    
-    setTimeout(() => {
-        btn.innerHTML = originalHTML;
-        btn.style.backgroundColor = "";
-        btn.style.color = "";
-        btn.style.borderColor = "";
-        btn.style.pointerEvents = "auto";
-    }, 1200);
-}
-    // 2. Se non esiste, lo aggiungiamo
-    const add = await fetch(`${URL}/spesa_lista`, { 
-        method: "POST", 
-        headers, 
-        body: JSON.stringify({ 
-            prodotto_id: idProdotto, 
-            email_utente: userEmail, 
-            completato: false 
-        }) 
-    });
+        function aggiornaBottone(btn, testo, sfondo) {
+            const icon = btn.innerHTML;
+            btn.innerHTML = `<span class="btn-feedback">${testo}</span>`;
+            btn.style.backgroundColor = sfondo;
+            btn.style.color = "white";
+            btn.style.borderColor = sfondo;
+            setTimeout(() => {
+                btn.innerHTML = icon;
+                btn.style = "";
+            }, 1200);
+        }
 
-    if (add.ok) {
-        // Se l'aggiunta va a buon fine, blu e scritta "AGGIUNTO"
-        aggiornaBottone(btn, "AGGIUNTO", "var(--blue)", "white");
-    }
-}
-
-// Assicurati che la funzione aggiornaBottone sia presente nel tuo script:
-function aggiornaBottone(btn, testo, sfondo, coloreTesto) {
-    const originalHTML = btn.innerHTML;
-    btn.innerHTML = `<span class="btn-feedback">${testo}</span>`;
-    btn.style.backgroundColor = sfondo;
-    btn.style.color = coloreTesto;
-    btn.style.borderColor = sfondo;
-    btn.classList.add('btn-feedback');
-    
-    setTimeout(() => {
-        btn.innerHTML = originalHTML;
-        btn.style.backgroundColor = "";
-        btn.style.color = "";
-        btn.style.borderColor = "";
-        btn.classList.remove('btn-feedback');
-    }, 1200);
-}
-
-        window.apriModalCategoria = () => {
+        function apriModalCategoria() {
             if(!document.getElementById("nuovoProdotto").value.trim()) return;
             document.getElementById("catModal").style.display = "flex";
         }
 
-        window.confermaInserimento = async () => {
+        async function confermaInserimento() {
             const nome = document.getElementById("nuovoProdotto").value.trim();
             const categoria = document.getElementById("selectCatNuovo").value;
-            const btnMain = document.getElementById("btn-add-main");
-            
             const res = await fetch(`${URL}/spesa_prodotti`, { 
                 method: "POST", headers, 
                 body: JSON.stringify({ nome, categoria, email: userEmail }) 
@@ -258,13 +217,12 @@ function aggiornaBottone(btn, testo, sfondo, coloreTesto) {
             if(res.ok) {
                 document.getElementById("nuovoProdotto").value = "";
                 chiudiModal();
-                aggiornaBottone(btnMain, "CREATO", "var(--green)", "white");
                 caricaProdotti();
             }
         }
 
-        window.eliminaProdotto = async (id, emailP) => {
-            if (!confirm("Nascondere o eliminare questo prodotto?")) return;
+        async function eliminaProdotto(id, emailP) {
+            if (!confirm("Eliminare o nascondere questo prodotto?")) return;
             if (!emailP || emailP === "null") {
                 await fetch(`${URL}/spesa_prodottinascosti`, { method: "POST", headers, body: JSON.stringify({ prodotto_id: id, email_utente: userEmail }) });
             } else {
@@ -273,8 +231,8 @@ function aggiornaBottone(btn, testo, sfondo, coloreTesto) {
             caricaProdotti();
         }
 
-        window.chiudiModal = () => { document.getElementById('catModal').style.display = 'none'; };
-        window.logout = () => { localStorage.clear(); window.location.href = 'login.html'; };
+        function chiudiModal() { document.getElementById('catModal').style.display = 'none'; }
+        function logout() { localStorage.clear(); window.location.href = 'login.html'; }
     </script>
 </body>
 </html>
