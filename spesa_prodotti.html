@@ -55,6 +55,49 @@
         .tab-item { flex: 1; text-align: center; font-size: 10px; color: var(--dark); text-decoration: none; font-weight: 800; display: flex; flex-direction: column; align-items: center; gap: 6px; }
         .tab-active { color: var(--green); }
         .icon-tab { width: 26px; height: 26px; stroke-width: 2.5; stroke: currentColor; fill: none; }
+        /* Stile base del pulsante trasformabile */
+.btn-small {
+    /* ... i tuoi stili esistenti ... */
+    transition: all 0.3s ease; /* Transizione fluida per tutte le proprietà */
+    position: relative;
+    overflow: hidden; /* Assicura che l'icona sparisca */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Nasconde l'icona SVG quando lo stato cambia */
+.btn-small.status-active svg {
+    display: none;
+}
+
+/* Stile per lo stato "Aggiunto" (Blu) */
+.btn-small.status-added {
+    background-color: var(--blue) !important;
+    border-color: var(--blue) !important;
+    color: white !important;
+    width: auto !important; /* Permette al pulsante di allargarsi per il testo */
+    padding: 0 15px !important;
+    border-radius: 12px !important;
+}
+
+/* Stile per lo stato "Già in lista" (Rosso) */
+.btn-small.status-exists {
+    background-color: var(--red) !important;
+    border-color: var(--red) !important;
+    color: white !important;
+    width: auto !important;
+    padding: 0 15px !important;
+    border-radius: 12px !important;
+}
+
+/* Stile del testo all'interno del pulsante trasformato */
+.btn-status-text {
+    font-size: 14px;
+    font-weight: 800;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
     </style>
 </head>
 <body>
