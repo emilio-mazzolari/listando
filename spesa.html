@@ -118,7 +118,7 @@
             if (!userEmail) { window.location.href = 'login.html'; return; }
             
             try {
-                // Join con spesa_prodotti per recuperare il nome tramite l'ID
+                // Recuperiamo la lista e i dettagli del prodotto associato tramite join
                 const res = await fetch(`${URL}/spesa_lista?select=*,spesa_prodotti(nome)&email_utente=eq.${userEmail}`, { headers });
                 const data = await res.json();
                 
@@ -126,7 +126,6 @@
                 const headerAggiungi = document.getElementById("headerAggiungi");
                 const controlli = document.getElementById("controlliLista");
 
-                // Gestione caso lista vuota o errore
                 if (!Array.isArray(data) || data.length === 0) {
                     headerAggiungi.style.display = "none";
                     div.innerHTML = `<div class="empty-msg">La lista è vuota<br><br><a href="spesa_prodotti.html" class="btn-empty">AGGIUNGI PRODOTTI</a></div>`;
@@ -137,7 +136,7 @@
                 headerAggiungi.style.display = "block";
                 controlli.style.display = "flex";
 
-                // Ordinamento: prima i non completati, poi i completati
+                // Ordina: prima da comprare (false), poi completati (true)
                 data.sort((a, b) => a.completato - b.completato);
 
                 div.innerHTML = "";
@@ -145,8 +144,11 @@
                     const riga = document.createElement("div");
                     riga.className = "item";
                     
-                    // Fallback se il nome non viene trovato nel join
-                    const nomeVisualizzato = item.spesa_prodotti?.nome || "Prodotto sconosciuto";
+                    // LOGICA DI RECUPERO NOME ROBUSTA:
+                    // 1. Cerca in spesa_prodotti.nome (grazie al select join)
+                    // 2. Se manca (es. riga orfana), prova item.nome
+                    // 3. Fallback finale con ID
+                    const nomeVisualizzato = item.spesa_prodotti?.nome || item.nome || `Prodotto #${item.prodotto_id}`;
 
                     riga.innerHTML = `
                         <span class="testo-prodotto ${item.completato ? 'barrato' : ''}">${nomeVisualizzato}</span>
@@ -164,8 +166,8 @@
                     div.appendChild(riga);
                 });
             } catch (e) { 
-                console.error("Errore caricamento:", e);
-                document.getElementById("contenitoreLista").innerHTML = `<div class="empty-msg">Errore di connessione.</div>`;
+                console.error("Errore critico:", e);
+                document.getElementById("contenitoreLista").innerHTML = `<div class="empty-msg">Errore nel caricamento dati.</div>`;
             }
         }
 
