@@ -119,8 +119,7 @@
             
             try {
                 // Recuperiamo la lista e i dettagli del prodotto associato tramite join
-                const res = await fetch(`${URL}/spesa_lista?select=*,spesa_prodotti(nome)&email_utente=eq.${userEmail}`, { headers });
-                const data = await res.json();
+const res = await fetch(`${URL}/spesa_lista?select=*,spesa_prodotti(*)&email_utente=eq.${userEmail}`, { headers });                const data = await res.json();
                 
                 const div = document.getElementById("contenitoreLista");
                 const headerAggiungi = document.getElementById("headerAggiungi");
