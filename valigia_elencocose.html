@@ -2,60 +2,100 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Le mie cose - Valigia</title>
+    <title>Listando - Le mie cose</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        body { margin: 0; font-family: -apple-system, Helvetica, Arial, sans-serif; background: #f2f2f7; display: flex; justify-content: center; }
-        .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 100px; position: relative; }
-        .card { background: white; border-radius: 16px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        .header-box { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .testo-prodotto { flex-grow: 1; font-size: 16px; color: #1c1c1e; font-weight: 500; }
-        .item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f2f2f7; }
-        .item:last-child { border-bottom: none; }
+        :root {
+            --green: #0fba8d; --blue: #3384d4; --yellow: #feb310;
+            --grey: #d8dddc; --dark: #000000; --bg: #fdfdfd;
+            --soft-blue: #aec6cf;
+        }
+
+        body { margin: 0; font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--dark); display: flex; justify-content: center; }
+        .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 110px; }
+
+        h2 { font-weight: 900; font-size: 24px; margin: 10px 0 20px 0; text-transform: uppercase; }
+
+        /* Box Inserimento Categoria */
+        .category-input-box { 
+            background: rgba(216, 221, 220, 0.3); 
+            padding: 15px; 
+            border-radius: 28px; 
+            margin-bottom: 25px;
+            border: 1px solid rgba(216, 221, 220, 0.5);
+        }
+
+        .input-group { display: flex; gap: 10px; }
+        input { 
+            flex: 1; padding: 12px; border-radius: 16px; border: 2px solid var(--grey); 
+            outline: none; font-size: 14px; background: white; transition: border-color 0.2s;
+        }
+        input:focus { border-color: var(--blue); }
+
+        .btn-action-main { 
+            background: var(--blue); color: white; border: none; border-radius: 16px; 
+            width: 50px; height: 50px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+        }
+        .btn-action-main svg { width: 22px; height: 22px; stroke-width: 3.5; stroke: currentColor; fill: none; }
+
+        /* Card Categoria */
+        .card { background: white; border-radius: 28px; padding: 18px; border: 3px solid var(--grey); margin-bottom: 25px; }
         
-        /* Stile pulsanti identico a Prodotti Spesa */
-        .btn-small { border: none; border-radius: 8px; width: 34px; height: 34px; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-left: 6px; font-size: 16px; transition: all 0.2s; }
-        .plus { background-color: #aec6cf; color: white; } 
-        .edit { background-color: #fdfd96; color: #3a3a3c; } 
-        .delete { background-color: #ffd1d1; color: #d32f2f; }
+        .cat-title { 
+            font-weight: 900; font-size: 14px; color: var(--blue); 
+            margin-bottom: 15px; text-transform: uppercase; 
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .btn-del-cat { color: #ff4d4d; cursor: pointer; font-size: 18px; }
 
-        .input-group { display: flex; gap: 10px; margin-bottom: 12px; position: relative; }
-        input { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid #ddd; font-size: 16px; outline: none; height: 45px; box-sizing: border-box; background: white; }
-        .btn-main { width: 100px; height: 45px; border-radius: 12px; border: none; background: #aec6cf; color: white; font-weight: bold; cursor: pointer; font-size: 13px; text-transform: uppercase; }
+        /* Lista Articoli */
+        .item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 2px solid #f2f2f7; }
+        .item:last-child { border-bottom: none; }
+        .testo-prodotto { font-weight: 700; font-size: 15px; }
 
-        .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 75px; background: #aec6cf; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid rgba(0,0,0,0.1); z-index: 1000; }
-        .tab-item { flex: 1; text-align: center; font-size: 11px; color: #333; text-decoration: none; font-weight: 800; display: flex; flex-direction: column; text-transform: uppercase; }
-        .tab-item span { font-size: 22px; margin-bottom: 3px; }
-        .tab-active { color: white; }
+        .btn-actions { display: flex; gap: 8px; }
+        .btn-small { 
+            border: 2.5px solid var(--grey); border-radius: 12px; width: 40px; height: 40px; 
+            cursor: pointer; display: flex; align-items: center; justify-content: center; background: white; 
+        }
+        .btn-small svg { width: 18px; height: 18px; stroke-width: 3; stroke: currentColor; fill: none; }
+        .btn-small.plus { border-color: var(--blue); color: var(--blue); }
+        .btn-small.delete { border-color: #ff4d4d; color: #ff4d4d; }
 
-        /* Categorie Style */
-        .cat-title { background: #aec6cf; color: white; padding: 8px 15px; border-radius: 10px; font-weight: 800; font-size: 14px; margin-bottom: 10px; text-transform: uppercase; display: flex; justify-content: space-between; }
+        /* Feedback stato pulsante */
+        .btn-feedback { font-size: 10px !important; font-weight: 800; text-transform: uppercase; width: auto !important; padding: 0 10px; }
 
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 2000; }
-        .modal-box { background: white; padding: 25px; border-radius: 20px; width: 85%; max-width: 350px; text-align: center; }
-        .btn-modal { width: 100%; padding: 15px; margin-top: 10px; border-radius: 12px; border: none; background: #aec6cf; color: white; font-weight: bold; cursor: pointer; font-size: 16px; }
-        .btn-cancel { background: #e5e5ea; color: #8e8e93; margin-top: 15px; }
+        /* Tab Bar */
+        .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 85px; background: white; display: flex; justify-content: space-around; align-items: center; border-top: 3px solid var(--grey); z-index: 1000; }
+        .tab-item { flex: 1; text-align: center; font-size: 10px; color: var(--dark); text-decoration: none; font-weight: 800; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+        .tab-active { color: var(--soft-blue); }
+        .icon-tab { width: 26px; height: 26px; stroke-width: 2.5; stroke: currentColor; fill: none; }
     </style>
 </head>
 <body>
 
     <div class="app">
-        <div class="header-box"><h2 style="margin:0; font-weight: 800;">📋 LE MIE COSE</h2></div>
-        
-        <!-- AGGIUNGI CATEGORIA -->
-        <div class="input-group">
-            <input type="text" id="nuovaCategoria" placeholder="Nuova categoria...">
-            <button class="btn-main" onclick="creaCategoria()">INSERISCI</button>
+        <h2>📋 Le mie cose</h2>
+
+        <div class="category-input-box">
+            <div class="input-group">
+                <input type="text" id="nuovaCategoria" placeholder="Aggiungi nuova categoria...">
+                <button class="btn-action-main" onclick="creaCategoria()">
+                    <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                </button>
+            </div>
         </div>
 
-        <div id="contenitoreMaster">Caricamento...</div>
+        <div id="contenitoreMaster">
+            <p style="text-align:center; padding:20px; font-weight:700; color:var(--grey);">Caricamento...</p>
+        </div>
     </div>
 
     <div class="tab-bar">
-        <a href="index.html" class="tab-item"><span>🏠</span>HOME</a>
-        <a href="valigia.html" class="tab-item"><span>💼</span>VALIGIA</a>
-        <a href="cosevaligia.html" class="tab-item tab-active"><span>📋</span>COSE</a>
-        <a href="#" class="tab-item" onclick="logout()"><span>🚪</span>ESCI</a>
+        <a href="index.html" class="tab-item"><svg class="icon-tab" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>HOME</a>
+        <a href="valigia.html" class="tab-item"><svg class="icon-tab" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>VALIGIA</a>
+        <a href="cosevaligia.html" class="tab-item tab-active"><svg class="icon-tab" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>COSE</a>
+        <a href="#" class="tab-item" onclick="logout()"><svg class="icon-tab" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline></svg>ESCI</a>
     </div>
 
     <script>
@@ -97,53 +137,54 @@
                 const card = document.createElement("div");
                 card.className = "card";
                 
-                const title = document.createElement("div");
-                title.className = "cat-title";
-                title.innerHTML = `<span>${cat.nome}</span> ${!cat.isDefault ? `<span onclick="eliminaCategoria(${cat.id})" style="cursor:pointer">🗑️</span>` : ''}`;
-                card.appendChild(title);
-
-                // Input Aggiungi Nuova Cosa
-                const inputGroup = document.createElement("div");
-                inputGroup.className = "input-group";
-                inputGroup.innerHTML = `
-                    <input type="text" id="input-cat-${cat.id}" placeholder="Nuova cosa...">
-                    <button class="btn-main" onclick="aggiungiArticolo('${cat.id}', ${cat.isDefault || false})">INSERISCI</button>
+                card.innerHTML = `
+                    <div class="cat-title">
+                        <span>${cat.nome}</span>
+                        ${!cat.isDefault ? `<span class="btn-del-cat" onclick="eliminaCategoria(${cat.id})">×</span>` : ''}
+                    </div>
+                    <div class="input-group" style="margin-bottom:15px">
+                        <input type="text" id="input-cat-${cat.id}" placeholder="Aggiungi cosa...">
+                        <button class="btn-action-main" onclick="aggiungiArticolo('${cat.id}', ${cat.isDefault || false})">
+                            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        </button>
+                    </div>
+                    <div id="lista-${cat.id}"></div>
                 `;
-                card.appendChild(inputGroup);
 
-                // Lista prodotti
-                const list = document.createElement("div");
+                const listDiv = card.querySelector(`#lista-${cat.id}`);
                 const prods = cat.isDefault ? DATI_DEFAULT[cat.nome] : articoli.filter(a => a.categoria_id == cat.id);
                 
                 prods.forEach(p => {
                     const nomeProdotto = cat.isDefault ? p : p.nome;
-                    const idProdotto = cat.isDefault ? `def-${nomeProdotto}` : p.id;
+                    const idProdotto = cat.isDefault ? `def-${nomeProdotto.replace(/\s+/g, '')}` : p.id;
                     
                     const item = document.createElement("div");
                     item.className = "item";
                     item.innerHTML = `
                         <span class="testo-prodotto">${nomeProdotto}</span>
-                        <div style="display:flex;">
-                            <button class="btn-small plus" id="btn-${idProdotto}" onclick="mettiInValigia('${idProdotto}', '${nomeProdotto.replace(/'/g, "\\'")}')">+</button>
-                            ${!cat.isDefault ? `<button class="btn-small delete" onclick="eliminaArticolo(${p.id})">🗑</button>` : ''}
+                        <div class="btn-actions">
+                            <button class="btn-small plus" id="btn-${idProdotto}" onclick="mettiInValigia('${idProdotto}', '${nomeProdotto.replace(/'/g, "\\'")}')">
+                                <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                            </button>
+                            ${!cat.isDefault ? `
+                            <button class="btn-small delete" onclick="eliminaArticolo(${p.id})">
+                                <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                            </button>` : ''}
                         </div>
                     `;
-                    list.appendChild(item);
+                    listDiv.appendChild(item);
                 });
-                card.appendChild(list);
                 master.appendChild(card);
             });
         }
 
         async function mettiInValigia(btnId, nome) {
             const btn = document.getElementById(`btn-${btnId}`);
-            
-            // Verifica duplicati
             const res = await fetch(`${URL_SUPA}/cose_valigia?nome=eq.${nome}&email_utente=eq.${userEmail}`, { headers });
             const esistente = await res.json();
 
             if (esistente.length > 0) {
-                aggiornaBottone(btn, "GIÀ IN LISTA", "#ffd1d1", "#d32f2f");
+                aggiornaBottone(btn, "ESISTE", "var(--yellow)", "white");
                 return;
             }
 
@@ -152,28 +193,21 @@
                 body: JSON.stringify({ nome: nome, email_utente: userEmail, completato: false })
             });
 
-            if (add.ok) {
-                aggiornaBottone(btn, "AGGIUNTO", "#aec6cf", "white");
-            }
+            if (add.ok) aggiornaBottone(btn, "OK!", "var(--green)", "white");
         }
 
         function aggiornaBottone(btn, testo, sfondo, coloreTesto) {
-            const originalText = "+";
-            const originalBg = "";
-            btn.innerText = testo;
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = `<span class="btn-feedback">${testo}</span>`;
             btn.style.backgroundColor = sfondo;
             btn.style.color = coloreTesto;
-            btn.style.width = "auto";
-            btn.style.padding = "0 8px";
-            btn.style.fontSize = "12px";
+            btn.classList.add('btn-feedback');
             setTimeout(() => {
-                btn.innerText = originalText;
-                btn.style.backgroundColor = originalBg;
+                btn.innerHTML = originalHTML;
+                btn.style.backgroundColor = "";
                 btn.style.color = "";
-                btn.style.width = "34px";
-                btn.style.padding = "0";
-                btn.style.fontSize = "16px";
-            }, 1500);
+                btn.classList.remove('btn-feedback');
+            }, 1200);
         }
 
         async function creaCategoria() {
@@ -193,8 +227,7 @@
             if (!nome) return;
 
             if (isDefault) {
-                // Se aggiunge a un default, creiamo prima la categoria nel DB per quell'utente
-                const res = await fetch(`${URL_SUPA}/categorie_valigia`, {
+                await fetch(`${URL_SUPA}/categorie_valigia`, {
                     method: "POST", headers,
                     body: JSON.stringify({ nome: catId, email_utente: userEmail })
                 });
@@ -211,7 +244,7 @@
         }
 
         async function eliminaCategoria(id) {
-            if(confirm("Eliminare categoria e prodotti?")) {
+            if(confirm("Eliminare categoria e prodotti contenuti?")) {
                 await fetch(`${URL_SUPA}/categorie_valigia?id=eq.${id}`, { method: "DELETE", headers });
                 caricaDati();
             }
