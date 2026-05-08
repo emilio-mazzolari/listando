@@ -13,13 +13,11 @@
         .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 110px; }
         h2 { font-weight: 900; font-size: 24px; margin: 10px 0 20px 0; text-transform: uppercase; }
         
-        /* Filtri Categorie */
         .category-box { background: rgba(216, 221, 220, 0.3); padding: 15px; border-radius: 28px; margin-bottom: 25px; border: 1px solid rgba(216, 221, 220, 0.5); }
         .filter-container { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .btn-filter { padding: 14px; border-radius: 20px; border: 3px solid var(--grey); background: white; font-weight: 800; font-size: 11px; cursor: pointer; transition: all 0.2s; text-transform: uppercase; }
         .btn-filter.active { background: var(--blue); color: white; border-color: var(--blue); }
 
-        /* Input Ricerca e Inserimento */
         .input-group-main { background: white; padding: 20px; border-radius: 28px; border: 3px solid var(--grey); margin-bottom: 20px; display: flex; flex-direction: column; gap: 15px; }
         .input-row { display: flex; align-items: center; gap: 10px; }
         input { flex: 1; padding: 14px 18px; border-radius: 18px; border: 2px solid var(--grey); outline: none; font-size: 15px; background: #f9f9f9; }
@@ -27,28 +25,23 @@
         .btn-action-main { background: var(--blue); color: white; border: none; border-radius: 18px; width: 52px; height: 52px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         .btn-action-main svg { width: 22px; height: 22px; stroke-width: 3.5; stroke: currentColor; fill: none; }
 
-        /* Lista Prodotti */
         .card { background: white; border-radius: 28px; padding: 5px 18px; border: 3px solid var(--grey); min-height: 100px; }
         .item { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 2px solid #f2f2f7; }
         .testo-prodotto { font-weight: 700; font-size: 16px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-right: 10px; }
         
         .btn-actions { display: flex; gap: 6px; }
         .btn-small { border: 2.5px solid var(--grey); border-radius: 12px; width: 40px; height: 40px; cursor: pointer; display: flex; align-items: center; justify-content: center; background: white; transition: all 0.1s; position: relative; }
-        .btn-small:active { transform: scale(0.9); }
         .btn-small svg { width: 17px; height: 17px; stroke-width: 3; stroke: currentColor; fill: none; }
         
         .btn-small.plus { border-color: var(--blue); color: var(--blue); }
         .btn-small.edit { border-color: var(--yellow); color: var(--yellow); }
         .btn-small.delete { border-color: var(--red); color: var(--red); }
+        .btn-feedback { font-size: 8px !important; font-weight: 900; position: absolute; }
 
-        .btn-feedback { font-size: 8px !important; font-weight: 900; text-transform: uppercase; position: absolute; }
-
-        /* Modale */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 2000; backdrop-filter: blur(4px); }
         .modal-box { background: white; padding: 25px; border-radius: 30px; width: 85%; max-width: 350px; text-align: center; border: 4px solid var(--grey); }
         select { width: 100%; padding: 12px; border-radius: 15px; border: 2px solid var(--grey); margin: 15px 0; font-size: 16px; }
 
-        /* Tab Bar */
         .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 85px; background: white; display: flex; justify-content: space-around; align-items: center; border-top: 3px solid var(--grey); }
         .tab-item { flex: 1; text-align: center; font-size: 10px; color: var(--dark); text-decoration: none; font-weight: 800; display: flex; flex-direction: column; align-items: center; gap: 6px; }
         .tab-active { color: var(--green); }
@@ -59,7 +52,6 @@
 
     <div class="app">
         <h2>Prodotti Spesa</h2>
-        
         <div class="category-box">
             <div class="filter-container">
                 <button class="btn-filter active" onclick="setFilter('Cibo', this)">Cibo</button>
@@ -71,8 +63,8 @@
 
         <div class="input-group-main">
             <div class="input-row">
-                <input type="text" id="nuovoProdotto" placeholder="Inserisci nuovo prodotto...">
-                <button class="btn-action-main" id="btn-add-main" onclick="apriModalCategoria()">
+                <input type="text" id="nuovoProdotto" placeholder="Nuovo prodotto...">
+                <button class="btn-action-main" onclick="apriModalCategoria()">
                     <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                 </button>
             </div>
@@ -117,14 +109,20 @@
         let prodottiBase = [];
         let categoriaCorrente = 'Cibo';
 
-        window.onload = () => { if(!userEmail) window.location.href = 'login.html'; caricaProdotti(); };
+        window.onload = () => { 
+            if(!userEmail) { window.location.href = 'login.html'; return; }
+            caricaProdotti(); 
+        };
 
         async function caricaProdotti() {
             try {
                 const res = await fetch(`${URL}/spesa_prodotti?select=*,spesa_prodottinascosti!left(prodotto_id)&or=(email.is.null,email.eq.${userEmail})&spesa_prodottinascosti.prodotto_id=is.null&order=nome.asc`, { headers });
-                prodottiBase = await res.json();
-                renderizzaProdotti();
-            } catch (e) { console.error(e); }
+                const data = await res.json();
+                if(Array.isArray(data)) {
+                    prodottiBase = data;
+                    renderizzaProdotti();
+                }
+            } catch (e) { console.error("Errore caricamento:", e); }
         }
 
         function setFilter(cat, btn) {
@@ -163,101 +161,27 @@
         async function mettiInLista(idProdotto) {
             const btn = document.getElementById(`btn-p-${idProdotto}`);
             try {
-                const res = await fetch(`${URL}/spesa_lista?prodotto_id=eq.${idProdotto}&email_utente=eq.${userEmail}&completato=eq.false`, { headers });
-                const esistente = await res.json();
-                
-                if (esistente.length > 0) { 
-                    aggiornaBottone(btn, "C'È GIÀ", "#f39c12"); 
-                    return; 
-                }
+                const check = await fetch(`${URL}/spesa_lista?prodotto_id=eq.${idProdotto}&email_utente=eq.${userEmail}&completato=eq.false`, { headers });
+                const esistente = await check.json();
+                if (esistente.length > 0) { aggiornaBottone(btn, "ESISTE", "#f39c12"); return; }
 
-                const add = await fetch(`${URL}/spesa_lista`, {
+                const res = await fetch(`${URL}/spesa_lista`, {
                     method: "POST", 
                     headers: { ...headers, "Prefer": "return=minimal" },
-                    body: JSON.stringify({ 
-                        prodotto_id: idProdotto,
-                        email_utente: userEmail, 
-                        completato: false 
-                    })
+                    body: JSON.stringify({ prodotto_id: idProdotto, email_utente: userEmail, completato: false })
                 });
 
-                if (add.ok) {
-                    aggiornaBottone(btn, "OK!", "var(--green)");
-                } else {
-                    aggiornaBottone(btn, "ERRORE", "var(--red)");
-                }
-            } catch (e) { 
-                console.error(e); 
-            }
+                if (res.ok) aggiornaBottone(btn, "OK!", "var(--green)");
+                else aggiornaBottone(btn, "ERR", "var(--red)");
+            } catch (e) { console.error(e); }
         }
 
         async function rinominaProdotto(id, nomeAttuale, emailP) {
-            const nuovoNome = prompt("Inserisci il nuovo nome per il prodotto:", nomeAttuale);
+            const nuovoNome = prompt("Rinomina prodotto:", nomeAttuale);
             if (!nuovoNome || nuovoNome.trim() === "" || nuovoNome === nomeAttuale) return;
 
-            if (!emailP || emailP === "null" || emailP === "undefined") {
-                // Caso prodotto predefinito: creiamo copia e nascondiamo originale
-                await fetch(`${URL}/spesa_prodotti`, { 
-                    method: "POST", headers, 
-                    body: JSON.stringify({ nome: nuovoNome.trim(), categoria: categoriaCorrente, email: userEmail }) 
-                });
-                await fetch(`${URL}/spesa_prodottinascosti`, { 
-                    method: "POST", headers, 
-                    body: JSON.stringify({ prodotto_id: id, email_utente: userEmail }) 
-                });
-            } else {
-                // Caso prodotto utente: rinomina semplice
-                await fetch(`${URL}/spesa_prodotti?id=eq.${id}`, {
-                    method: "PATCH", headers,
-                    body: JSON.stringify({ nome: nuovoNome.trim() })
-                });
-            }
-            caricaProdotti();
-        }
-
-        function aggiornaBottone(btn, testo, sfondo) {
-            const icon = btn.innerHTML;
-            btn.innerHTML = `<span class="btn-feedback">${testo}</span>`;
-            btn.style.backgroundColor = sfondo;
-            btn.style.color = "white";
-            btn.style.borderColor = sfondo;
-            setTimeout(() => {
-                btn.innerHTML = icon;
-                btn.style = "";
-            }, 1200);
-        }
-
-        function apriModalCategoria() {
-            if(!document.getElementById("nuovoProdotto").value.trim()) return;
-            document.getElementById("catModal").style.display = "flex";
-        }
-
-        async function confermaInserimento() {
-            const nome = document.getElementById("nuovoProdotto").value.trim();
-            const categoria = document.getElementById("selectCatNuovo").value;
-            const res = await fetch(`${URL}/spesa_prodotti`, { 
-                method: "POST", headers, 
-                body: JSON.stringify({ nome, categoria, email: userEmail }) 
-            });
-            if(res.ok) {
-                document.getElementById("nuovoProdotto").value = "";
-                chiudiModal();
-                caricaProdotti();
-            }
-        }
-
-        async function eliminaProdotto(id, emailP) {
-            if (!confirm("Rimuovere questo prodotto dalla tua vista?")) return;
-            if (!emailP || emailP === "null" || emailP === "undefined") {
+            if (!emailP || emailP === "null") {
+                await fetch(`${URL}/spesa_prodotti`, { method: "POST", headers, body: JSON.stringify({ nome: nuovoNome.trim(), categoria: categoriaCorrente, email: userEmail }) });
                 await fetch(`${URL}/spesa_prodottinascosti`, { method: "POST", headers, body: JSON.stringify({ prodotto_id: id, email_utente: userEmail }) });
             } else {
-                await fetch(`${URL}/spesa_prodotti?id=eq.${id}`, { method: "DELETE", headers });
-            }
-            caricaProdotti();
-        }
-
-        function chiudiModal() { document.getElementById('catModal').style.display = 'none'; }
-        function logout() { localStorage.clear(); window.location.href = 'login.html'; }
-    </script>
-</body>
-</html>
+                await fetch(`${URL
