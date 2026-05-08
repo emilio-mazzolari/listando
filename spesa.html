@@ -18,7 +18,6 @@
         /* Card Principale Lista */
         .card { background: white; border-radius: 28px; padding: 10px 20px; border: 3px solid var(--grey); min-height: 150px; margin-bottom: 20px; }
 
-        /* Contenitore per il bottone sempre visibile in alto */
         .header-lista {
             padding: 15px 0;
             border-bottom: 2px solid #f2f2f7;
@@ -51,7 +50,6 @@
         .btn-action:active { background: var(--grey); }
         .btn-main-color { background: var(--blue); color: white; border-color: var(--blue); }
 
-        /* Stato Vuoto e Bottone Aggiungi */
         .empty-msg { text-align: center; padding: 30px 10px; color: #888; font-weight: 600; }
         .btn-empty { 
             display: inline-block; padding: 12px 25px; 
@@ -120,22 +118,22 @@
 
         async function caricaLista() {
             try {
-                const res = await fetch(`${URL}/lista_spesa?select=*,prodotti(nome)&email_utente=eq.${userEmail}`, { headers });
+                // AGGIORNATO: Punta alla nuova tabella spesa_prodotti per il join dei nomi
+                const res = await fetch(`${URL}/spesa_lista?select=*,spesa_prodotti(nome)&email_utente=eq.${userEmail}`, { headers });
                 const data = await res.json();
+                
                 const div = document.getElementById("contenitoreLista");
                 const headerAggiungi = document.getElementById("headerAggiungi");
                 const controlli = document.getElementById("controlliLista");
 
-                // Se la lista è VUOTA
                 if (!data || data.length === 0) {
-                    headerAggiungi.style.display = "none"; // Nascondi header
+                    headerAggiungi.style.display = "none";
                     div.innerHTML = `<div class="empty-msg">La lista è vuota<br><br><a href="spesa_prodotti.html" class="btn-empty">AGGIUNGI PRODOTTI</a></div>`;
                     controlli.style.display = "none";
                     return;
                 }
 
-                // Se ci sono prodotti
-                headerAggiungi.style.display = "block"; // Mostra il bottone in alto
+                headerAggiungi.style.display = "block";
                 controlli.style.display = "flex";
                 data.sort((a, b) => (a.completato === b.completato) ? 0 : a.completato ? 1 : -1);
 
@@ -143,7 +141,9 @@
                 data.forEach(item => {
                     const riga = document.createElement("div");
                     riga.className = "item";
-                    const nomeVisualizzato = item.nome || item.prodotti?.nome || "Prodotto";
+                    
+                    // AGGIORNATO: Prende il nome dalla nuova relazione spesa_prodotti
+                    const nomeVisualizzato = item.spesa_prodotti?.nome || item.nome || "Prodotto";
 
                     riga.innerHTML = `
                         <span class="testo-prodotto ${item.completato ? 'barrato' : ''}">${nomeVisualizzato}</span>
@@ -163,9 +163,8 @@
             } catch (e) { console.error(e); }
         }
 
-        // Le altre funzioni (toggle, elimina, ecc.) restano identiche
         async function toggle(id, stato) {
-            await fetch(`${URL}/lista_spesa?id=eq.${id}`, {
+            await fetch(`${URL}/spesa_lista?id=eq.${id}`, {
                 method: "PATCH", headers,
                 body: JSON.stringify({ completato: !stato })
             });
@@ -173,19 +172,19 @@
         }
 
         async function elimina(id) {
-            await fetch(`${URL}/lista_spesa?id=eq.${id}`, { method: "DELETE", headers });
+            await fetch(`${URL}/spesa_lista?id=eq.${id}`, { method: "DELETE", headers });
             caricaLista();
         }
 
         async function eliminaAcquistati() {
             if (confirm("Eliminare i prodotti già presi?")) {
-                await fetch(`${URL}/lista_spesa?email_utente=eq.${userEmail}&completato=eq.true`, { method: "DELETE", headers });
+                await fetch(`${URL}/spesa_lista?email_utente=eq.${userEmail}&completato=eq.true`, { method: "DELETE", headers });
                 caricaLista();
             }
         }
 
         async function ripristinaLista() {
-            await fetch(`${URL}/lista_spesa?email_utente=eq.${userEmail}`, {
+            await fetch(`${URL}/spesa_lista?email_utente=eq.${userEmail}`, {
                 method: "PATCH", headers,
                 body: JSON.stringify({ completato: false })
             });
@@ -196,7 +195,7 @@
         function chiudiModal() { document.getElementById('svuotaModal').style.display = 'none'; }
         
         async function confermaSvuota() {
-            await fetch(`${URL}/lista_spesa?email_utente=eq.${userEmail}`, { method: "DELETE", headers });
+            await fetch(`${URL}/spesa_lista?email_utente=eq.${userEmail}`, { method: "DELETE", headers });
             chiudiModal();
             caricaLista();
         }
