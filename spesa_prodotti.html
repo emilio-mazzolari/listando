@@ -184,4 +184,43 @@
                 await fetch(`${URL}/spesa_prodotti`, { method: "POST", headers, body: JSON.stringify({ nome: nuovoNome.trim(), categoria: categoriaCorrente, email: userEmail }) });
                 await fetch(`${URL}/spesa_prodottinascosti`, { method: "POST", headers, body: JSON.stringify({ prodotto_id: id, email_utente: userEmail }) });
             } else {
-                await fetch(`${URL
+                await fetch(`${URL}/spesa_prodotti?id=eq.${id}`, { method: "PATCH", headers, body: JSON.stringify({ nome: nuovoNome.trim() }) });
+            }
+            caricaProdotti();
+        }
+
+        async function eliminaProdotto(id, emailP) {
+            if (!confirm("Eliminare?")) return;
+            if (!emailP || emailP === "null") {
+                await fetch(`${URL}/spesa_prodottinascosti`, { method: "POST", headers, body: JSON.stringify({ prodotto_id: id, email_utente: userEmail }) });
+            } else {
+                await fetch(`${URL}/spesa_prodotti?id=eq.${id}`, { method: "DELETE", headers });
+            }
+            caricaProdotti();
+        }
+
+        function aggiornaBottone(btn, testo, sfondo) {
+            const icon = btn.innerHTML;
+            btn.innerHTML = `<span class="btn-feedback">${testo}</span>`;
+            btn.style.backgroundColor = sfondo;
+            btn.style.color = "white";
+            setTimeout(() => { btn.innerHTML = icon; btn.style = ""; }, 1200);
+        }
+
+        function apriModalCategoria() {
+            if(!document.getElementById("nuovoProdotto").value.trim()) return;
+            document.getElementById("catModal").style.display = "flex";
+        }
+
+        async function confermaInserimento() {
+            const nome = document.getElementById("nuovoProdotto").value.trim();
+            const categoria = document.getElementById("selectCatNuovo").value;
+            const res = await fetch(`${URL}/spesa_prodotti`, { method: "POST", headers, body: JSON.stringify({ nome, categoria, email: userEmail }) });
+            if(res.ok) { document.getElementById("nuovoProdotto").value = ""; chiudiModal(); caricaProdotti(); }
+        }
+
+        function chiudiModal() { document.getElementById('catModal').style.display = 'none'; }
+        function logout() { localStorage.clear(); window.location.href = 'login.html'; }
+    </script>
+</body>
+</html>
