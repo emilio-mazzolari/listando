@@ -93,7 +93,7 @@
     <div class="tab-bar">
         <a href="index.html" class="tab-item"><svg class="icon-tab" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>HOME</a>
         <a href="valigia.html" class="tab-item tab-active"><svg class="icon-tab" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>VALIGIA</a>
-        <a href="cosevaligia.html" class="tab-item"><svg class="icon-tab" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>COSE</a>
+        <a href="valigia_elencocose.html" class="tab-item"><svg class="icon-tab" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>COSE</a>
         <a href="#" class="tab-item" onclick="logout()"><svg class="icon-tab" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline></svg>ESCI</a>
     </div>
 
@@ -118,7 +118,7 @@
                     div.innerHTML = `
                         <div class="empty-msg">
                             La valigia è vuota<br>
-                            <a href="cosevaligia.html" class="btn-empty">AGGIUNGI OGGETTI</a>
+                            <a href="valigia_elencocose.html" class="btn-empty">AGGIUNGI OGGETTI</a>
                         </div>`;
                     controlli.style.display = "none";
                     return;
