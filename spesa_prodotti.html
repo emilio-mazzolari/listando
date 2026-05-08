@@ -35,27 +35,12 @@
             padding: 24px 20px 120px;
         }
 
-        /* ── Header ── */
-        .page-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 20px;
-        }
         .page-title {
             font-weight: 900;
             font-size: 26px;
             text-transform: uppercase;
             letter-spacing: -0.5px;
-            margin: 0;
-        }
-        .badge-count {
-            background: var(--blue);
-            color: white;
-            font-size: 13px;
-            font-weight: 800;
-            padding: 4px 12px;
-            border-radius: 20px;
+            margin: 0 0 20px 0;
         }
 
         /* ── Filtri categoria ── */
@@ -86,7 +71,7 @@
             border-color: var(--blue);
         }
 
-        /* ── Box Aggiungi ── */
+        /* ── Input card (aggiungi + cerca) ── */
         .input-card {
             background: var(--white);
             padding: 16px;
@@ -94,6 +79,11 @@
             border: 3px solid var(--grey);
             margin-bottom: 16px;
             box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .input-row {
             display: flex;
             gap: 10px;
             align-items: center;
@@ -108,9 +98,36 @@
             font-weight: 600;
             font-family: inherit;
             color: var(--dark);
+            background: var(--bg);
             transition: border-color 0.2s;
         }
         .input-card input:focus { border-color: var(--green); }
+
+        .input-card input.search-input:focus { border-color: var(--blue); }
+
+        .search-wrap {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        .search-wrap svg {
+            position: absolute;
+            left: 14px;
+            width: 16px; height: 16px;
+            stroke: #aaa; fill: none; stroke-width: 2.5;
+            pointer-events: none;
+        }
+        .search-wrap input {
+            padding-left: 40px !important;
+        }
+
+        .divider {
+            height: 2px;
+            background: var(--grey-light);
+            border-radius: 2px;
+            margin: 2px 0;
+        }
+
         .btn-save {
             padding: 12px 18px;
             border-radius: 14px;
@@ -123,31 +140,17 @@
             text-transform: uppercase;
             transition: opacity 0.15s;
             white-space: nowrap;
+            font-family: inherit;
         }
         .btn-save:active { opacity: 0.85; }
 
-        /* ── Card Lista ── */
+        /* ── Card lista ── */
         .card {
             background: var(--white);
             border-radius: 28px;
             border: 3px solid var(--grey);
             overflow: hidden;
             box-shadow: var(--shadow);
-        }
-
-        .card-header-row {
-            padding: 14px 20px;
-            border-bottom: 2px solid var(--grey-light);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        .card-header-label {
-            font-size: 11px;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-            color: #999;
         }
 
         /* ── Righe prodotto ── */
@@ -194,9 +197,9 @@
         .btn-ic:active { transform: scale(0.9); }
         .btn-ic svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 2.5; }
 
-        .btn-ic.add    { border-color: var(--blue);   color: var(--blue);   }
-        .btn-ic.edit   { border-color: var(--yellow);  color: var(--yellow); }
-        .btn-ic.del    { border-color: var(--red);     color: var(--red);    }
+        .btn-ic.add  { border-color: var(--blue);   color: var(--blue);   font-size: 22px; font-weight: 900; line-height: 1; }
+        .btn-ic.edit { border-color: var(--yellow);  color: var(--yellow); }
+        .btn-ic.del  { border-color: var(--red);     color: var(--red);    }
 
         .btn-ic.add:active  { background: #e8f3ff; }
         .btn-ic.edit:active { background: #fff8e6; }
@@ -231,7 +234,7 @@
         }
         .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-        /* ── Modal (base) ── */
+        /* ── Modal ── */
         .modal-overlay {
             position: fixed; top: 0; left: 0;
             width: 100%; height: 100%;
@@ -266,12 +269,11 @@
             font-weight: 700;
             font-family: inherit;
             outline: none;
-            margin-bottom: 16px;
+            margin-bottom: 14px;
             transition: border-color 0.2s;
         }
         .modal-input:focus { border-color: var(--blue); }
 
-        /* Selezione categoria nel modal */
         .cat-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -288,6 +290,7 @@
             cursor: pointer;
             text-transform: uppercase;
             transition: all 0.15s;
+            font-family: inherit;
         }
         .btn-cat.selected { background: var(--blue); color: white; border-color: var(--blue); }
 
@@ -328,27 +331,32 @@
 <body>
 
 <div class="app">
-    <div class="page-header">
-        <h2 class="page-title">Prodotti</h2>
-        <span class="badge-count" id="badgeCount">0</span>
-    </div>
+    <h2 class="page-title">Prodotti</h2>
 
-    <!-- Filtri categoria -->
+    <!-- Filtri categoria (senza icone) -->
     <div class="filter-container">
-        <button class="btn-filter active" onclick="setFilter('Cibo', this)">🍎 Cibo</button>
-        <button class="btn-filter" onclick="setFilter('Igiene', this)">🧴 Igiene</button>
-        <button class="btn-filter" onclick="setFilter('Casa', this)">🏠 Casa</button>
-        <button class="btn-filter" onclick="setFilter('Altro', this)">📦 Altro</button>
+        <button class="btn-filter active" onclick="setFilter('Cibo', this)">Cibo</button>
+        <button class="btn-filter" onclick="setFilter('Igiene', this)">Igiene</button>
+        <button class="btn-filter" onclick="setFilter('Casa', this)">Casa</button>
+        <button class="btn-filter" onclick="setFilter('Altro', this)">Altro</button>
     </div>
 
-    <!-- Box inserimento rapido -->
+    <!-- Box inserimento + ricerca -->
     <div class="input-card">
-        <input type="text" id="nuovoNome" placeholder="Nuovo prodotto..." 
-               onkeydown="if(event.key==='Enter') apriModalCategoria()">
-        <button class="btn-save" onclick="apriModalCategoria()">+ Aggiungi</button>
+        <div class="input-row">
+            <input type="text" id="nuovoNome" placeholder="Nuovo prodotto..."
+                   onkeydown="if(event.key==='Enter') apriModalCategoria()">
+            <button class="btn-save" onclick="apriModalCategoria()">+ Aggiungi</button>
+        </div>
+        <div class="divider"></div>
+        <div class="search-wrap">
+            <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" class="search-input" id="ricerca" placeholder="Cerca prodotto..."
+                   oninput="render()">
+        </div>
     </div>
 
-    <!-- Card Lista -->
+    <!-- Lista prodotti -->
     <div class="card" id="listaCard">
         <div class="empty-state">
             <div class="empty-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg></div>
@@ -357,7 +365,7 @@
     </div>
 </div>
 
-<!-- Toast notifica -->
+<!-- Toast -->
 <div class="toast" id="toast"></div>
 
 <!-- Modal: Scegli categoria nuovo prodotto -->
@@ -367,29 +375,29 @@
         <h3>Scegli categoria</h3>
         <p id="modalCatNome"></p>
         <div class="cat-grid">
-            <button class="btn-cat" onclick="selezionaCat('Cibo', this)">🍎 Cibo</button>
-            <button class="btn-cat" onclick="selezionaCat('Igiene', this)">🧴 Igiene</button>
-            <button class="btn-cat" onclick="selezionaCat('Casa', this)">🏠 Casa</button>
-            <button class="btn-cat" onclick="selezionaCat('Altro', this)">📦 Altro</button>
+            <button class="btn-cat" onclick="selezionaCat('Cibo', this)">Cibo</button>
+            <button class="btn-cat" onclick="selezionaCat('Igiene', this)">Igiene</button>
+            <button class="btn-cat" onclick="selezionaCat('Casa', this)">Casa</button>
+            <button class="btn-cat" onclick="selezionaCat('Altro', this)">Altro</button>
         </div>
         <button class="btn-modal" id="btnConfermaCategoria"
-                style="background:var(--green); color:white; opacity:0.4;" 
+                style="background:var(--green); color:white; opacity:0.4;"
                 disabled onclick="confermaSalvaNuovo()">Salva Prodotto</button>
         <button class="btn-modal" style="background:var(--grey-light);" onclick="chiudiModal('modalCategoria')">Annulla</button>
     </div>
 </div>
 
-<!-- Modal: Modifica nome prodotto -->
+<!-- Modal: Modifica prodotto -->
 <div id="modalModifica" class="modal-overlay">
     <div class="modal-box">
         <div class="modal-emoji">✏️</div>
         <h3>Modifica prodotto</h3>
         <input type="text" class="modal-input" id="inputModifica" placeholder="Nome prodotto...">
         <div class="cat-grid" id="catGridModifica">
-            <button class="btn-cat" onclick="selezionaCatModifica('Cibo', this)">🍎 Cibo</button>
-            <button class="btn-cat" onclick="selezionaCatModifica('Igiene', this)">🧴 Igiene</button>
-            <button class="btn-cat" onclick="selezionaCatModifica('Casa', this)">🏠 Casa</button>
-            <button class="btn-cat" onclick="selezionaCatModifica('Altro', this)">📦 Altro</button>
+            <button class="btn-cat" onclick="selezionaCatModifica('Cibo', this)">Cibo</button>
+            <button class="btn-cat" onclick="selezionaCatModifica('Igiene', this)">Igiene</button>
+            <button class="btn-cat" onclick="selezionaCatModifica('Casa', this)">Casa</button>
+            <button class="btn-cat" onclick="selezionaCatModifica('Altro', this)">Altro</button>
         </div>
         <button class="btn-modal" style="background:var(--yellow); color:white;" onclick="confermaModifica()">Salva Modifiche</button>
         <button class="btn-modal" style="background:var(--grey-light);" onclick="chiudiModal('modalModifica')">Annulla</button>
@@ -428,22 +436,21 @@
 </nav>
 
 <script>
-    const URL_BASE = "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1";
-    const KEY      = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
-    const headers  = { "apikey": KEY, "Content-Type": "application/json", "Authorization": "Bearer " + KEY };
+    const URL_BASE  = "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1";
+    const KEY       = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
+    const headers   = { "apikey": KEY, "Content-Type": "application/json", "Authorization": "Bearer " + KEY };
     const userEmail = localStorage.getItem('userEmail');
 
-    let prodottiBase      = [];
-    let categoriaCorrente = 'Cibo';
-    let categoriaScelta   = null;   // per modal nuovo prodotto
-    let catModificaScelta = null;   // per modal modifica
-    let idInModifica      = null;
-    let idInElimina       = null;
+    let prodottiBase       = [];
+    let categoriaCorrente  = 'Cibo';
+    let categoriaScelta    = null;
+    let catModificaScelta  = null;
+    let idInModifica       = null;
+    let idInElimina        = null;
 
     // ── Caricamento ──────────────────────────────────────────────
     async function caricaProdotti() {
         try {
-            // Prodotti globali (email_utente null) + prodotti propri, esclusi quelli nascosti
             const res = await fetch(
                 `${URL_BASE}/spesa_prodotti?select=*,spesa_prodottinascosti!left(prodotto_id)` +
                 `&or=(email_utente.is.null,email_utente.eq.${userEmail})` +
@@ -455,20 +462,25 @@
         } catch (e) { console.error(e); }
     }
 
-    // ── Filtro ───────────────────────────────────────────────────
+    // ── Filtro categoria ─────────────────────────────────────────
     function setFilter(cat, btn) {
         categoriaCorrente = cat;
         document.querySelectorAll('.btn-filter').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
+        // Resetta ricerca al cambio categoria
+        document.getElementById('ricerca').value = '';
         render();
     }
 
     // ── Render lista ─────────────────────────────────────────────
     function render() {
-        const div      = document.getElementById("listaCard");
-        const filtrati = prodottiBase.filter(p => p.categoria === categoriaCorrente);
+        const div    = document.getElementById("listaCard");
+        const query  = document.getElementById("ricerca").value.trim().toLowerCase();
 
-        document.getElementById("badgeCount").textContent = filtrati.length;
+        let filtrati = prodottiBase.filter(p => p.categoria === categoriaCorrente);
+        if (query) {
+            filtrati = filtrati.filter(p => p.nome.toLowerCase().includes(query));
+        }
 
         if (filtrati.length === 0) {
             div.innerHTML = `
@@ -476,28 +488,20 @@
                     <div class="empty-icon">
                         <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
                     </div>
-                    <div class="empty-title">Nessun prodotto</div>
-                    <div class="empty-sub">Aggiungi il primo prodotto in questa categoria</div>
+                    <div class="empty-title">${query ? 'Nessun risultato' : 'Nessun prodotto'}</div>
+                    <div class="empty-sub">${query ? `Nessun prodotto corrisponde a "${query}"` : 'Aggiungi il primo prodotto in questa categoria'}</div>
                 </div>`;
             return;
         }
 
-        div.innerHTML = `
-            <div class="card-header-row">
-                <span class="card-header-label">${filtrati.length} prodotto${filtrati.length !== 1 ? 'i' : ''}</span>
-            </div>`;
-
+        div.innerHTML = '';
         filtrati.forEach(p => {
-            const isMio    = p.email_utente === userEmail;   // prodotto creato da questo utente
-            const riga     = document.createElement("div");
+            const isMio = p.email_utente === userEmail;
+            const riga  = document.createElement("div");
             riga.className = "item";
 
-            // Badge "Mio" se il prodotto appartiene all'utente corrente
-            const badgeMio = isMio
-                ? `<span class="item-badge-custom">Mio</span>`
-                : '';
+            const badgeMio = isMio ? `<span class="item-badge-custom">Mio</span>` : '';
 
-            // Tasto modifica e cancella solo sui prodotti dell'utente
             const azioniExtra = isMio ? `
                 <button class="btn-ic edit" onclick="apriModifica(${p.id}, '${escHtml(p.nome)}', '${p.categoria}')" aria-label="Modifica">
                     <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -510,9 +514,7 @@
                 <span class="item-nome">${p.nome}</span>
                 ${badgeMio}
                 <div class="btn-actions">
-                    <button class="btn-ic add" onclick="mettiInLista(${p.id})" aria-label="Aggiungi alla lista">
-                        <svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
-                    </button>
+                    <button class="btn-ic add" onclick="mettiInLista(${p.id})" aria-label="Aggiungi alla lista">+</button>
                     ${azioniExtra}
                 </div>`;
             div.appendChild(riga);
@@ -526,28 +528,18 @@
                 method: "POST", headers,
                 body: JSON.stringify({ prodotto_id: id, email_utente: userEmail, completato: false })
             });
-            if (res.ok || res.status === 201) {
-                mostraToast("✓ Aggiunto alla lista!");
-            } else {
-                mostraToast("Già presente nella lista");
-            }
+            mostraToast(res.ok || res.status === 201 ? "✓ Aggiunto alla lista!" : "Già presente nella lista");
         } catch (e) { mostraToast("Errore di rete"); }
     }
 
-    // ── Nuovo prodotto: chiedi categoria ────────────────────────
+    // ── Nuovo prodotto → scegli categoria ───────────────────────
     function apriModalCategoria() {
         const nome = document.getElementById("nuovoNome").value.trim();
-        if (!nome) {
-            document.getElementById("nuovoNome").focus();
-            mostraToast("⚠️ Inserisci il nome del prodotto");
-            return;
-        }
+        if (!nome) { document.getElementById("nuovoNome").focus(); mostraToast("⚠️ Inserisci il nome del prodotto"); return; }
         categoriaScelta = null;
-        // Reset selezione visiva
         document.querySelectorAll('#modalCategoria .btn-cat').forEach(b => b.classList.remove('selected'));
         const btn = document.getElementById("btnConfermaCategoria");
-        btn.disabled = true;
-        btn.style.opacity = "0.4";
+        btn.disabled = true; btn.style.opacity = "0.4";
         document.getElementById("modalCatNome").textContent = `"${nome}"`;
         apriModal('modalCategoria');
     }
@@ -556,9 +548,8 @@
         categoriaScelta = cat;
         document.querySelectorAll('#modalCategoria .btn-cat').forEach(b => b.classList.remove('selected'));
         btn.classList.add('selected');
-        const btnConf = document.getElementById("btnConfermaCategoria");
-        btnConf.disabled = false;
-        btnConf.style.opacity = "1";
+        const b = document.getElementById("btnConfermaCategoria");
+        b.disabled = false; b.style.opacity = "1";
     }
 
     async function confermaSalvaNuovo() {
@@ -572,22 +563,20 @@
             document.getElementById("nuovoNome").value = "";
             chiudiModal('modalCategoria');
             await caricaProdotti();
-            // Porta il filtro sulla categoria appena usata
             const btnFiltro = [...document.querySelectorAll('.btn-filter')]
-                .find(b => b.textContent.includes(categoriaScelta));
+                .find(b => b.textContent === categoriaScelta);
             if (btnFiltro) setFilter(categoriaScelta, btnFiltro);
             mostraToast(`✓ "${nome}" aggiunto!`);
         } catch (e) { mostraToast("Errore nel salvataggio"); }
     }
 
-    // ── Modifica prodotto ────────────────────────────────────────
+    // ── Modifica ─────────────────────────────────────────────────
     function apriModifica(id, nome, categoria) {
-        idInModifica    = id;
+        idInModifica = id;
         catModificaScelta = categoria;
         document.getElementById("inputModifica").value = nome;
-        // Preseleziona categoria attuale
         document.querySelectorAll('#catGridModifica .btn-cat').forEach(b => {
-            b.classList.toggle('selected', b.textContent.includes(categoria));
+            b.classList.toggle('selected', b.textContent === categoria);
         });
         apriModal('modalModifica');
     }
@@ -602,7 +591,6 @@
         const nuovoNome = document.getElementById("inputModifica").value.trim();
         if (!nuovoNome || !idInModifica) return;
         try {
-            // PATCH solo se email_utente corrisponde all'utente (sicurezza lato client + RLS lato Supabase)
             await fetch(`${URL_BASE}/spesa_prodotti?id=eq.${idInModifica}&email_utente=eq.${userEmail}`, {
                 method: "PATCH", headers,
                 body: JSON.stringify({ nome: nuovoNome, categoria: catModificaScelta })
@@ -613,7 +601,7 @@
         } catch (e) { mostraToast("Errore nella modifica"); }
     }
 
-    // ── Elimina prodotto ─────────────────────────────────────────
+    // ── Elimina ──────────────────────────────────────────────────
     function apriElimina(id, nome) {
         idInElimina = id;
         document.getElementById("eliminaNome").textContent = `Vuoi eliminare "${nome}"?`;
@@ -623,7 +611,6 @@
     async function confermaElimina() {
         if (!idInElimina) return;
         try {
-            // DELETE solo se appartiene all'utente
             await fetch(`${URL_BASE}/spesa_prodotti?id=eq.${idInElimina}&email_utente=eq.${userEmail}`, {
                 method: "DELETE", headers
             });
@@ -634,10 +621,9 @@
     }
 
     // ── Utility ──────────────────────────────────────────────────
-    function apriModal(id)  { document.getElementById(id).style.display = 'flex'; }
-    function chiudiModal(id){ document.getElementById(id).style.display = 'none'; }
+    function apriModal(id)   { document.getElementById(id).style.display = 'flex'; }
+    function chiudiModal(id) { document.getElementById(id).style.display = 'none'; }
 
-    // Chiudi modal cliccando fuori
     document.querySelectorAll('.modal-overlay').forEach(m => {
         m.addEventListener('click', e => { if (e.target === m) m.style.display = 'none'; });
     });
@@ -651,10 +637,7 @@
         toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
     }
 
-    function escHtml(str) {
-        return str.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-    }
-
+    function escHtml(str) { return str.replace(/'/g, "\\'").replace(/"/g, '&quot;'); }
     function logout() { localStorage.clear(); window.location.href = 'login.html'; }
 
     window.onload = caricaProdotti;
