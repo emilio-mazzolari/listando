@@ -2,56 +2,33 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Listando - Prodotti Spesa</title>
+    <title>Listando - Catalogo Prodotti</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        :root {
-            --green: #0fba8d; --blue: #3384d4; --yellow: #feb310;
-            --red: #ff4d4d; --grey: #d8dddc; --dark: #000000; --bg: #fdfdfd;
-        }
-        body { margin: 0; font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--dark); display: flex; justify-content: center; }
+        :root { --green: #0fba8d; --blue: #3384d4; --yellow: #feb310; --red: #ff4d4d; --grey: #d8dddc; --dark: #000000; --bg: #fdfdfd; }
+        body { margin: 0; font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); display: flex; justify-content: center; }
         .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 110px; }
-        h2 { font-weight: 900; font-size: 24px; margin: 10px 0 20px 0; text-transform: uppercase; }
-        
-        .category-box { background: rgba(216, 221, 220, 0.3); padding: 15px; border-radius: 28px; margin-bottom: 25px; border: 1px solid rgba(216, 221, 220, 0.5); }
-        .filter-container { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .btn-filter { padding: 14px; border-radius: 20px; border: 3px solid var(--grey); background: white; font-weight: 800; font-size: 11px; cursor: pointer; transition: all 0.2s; text-transform: uppercase; }
+        h2 { font-weight: 900; font-size: 24px; text-transform: uppercase; }
+        .category-box { background: rgba(216,221,220,0.3); padding: 15px; border-radius: 28px; margin-bottom: 20px; }
+        .filter-container { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .btn-filter { padding: 12px; border-radius: 15px; border: 3px solid var(--grey); background: white; font-weight: 800; cursor: pointer; }
         .btn-filter.active { background: var(--blue); color: white; border-color: var(--blue); }
-
-        .input-group-main { background: white; padding: 20px; border-radius: 28px; border: 3px solid var(--grey); margin-bottom: 20px; display: flex; flex-direction: column; gap: 15px; }
-        .input-row { display: flex; align-items: center; gap: 10px; }
-        input { flex: 1; padding: 14px 18px; border-radius: 18px; border: 2px solid var(--grey); outline: none; font-size: 15px; background: #f9f9f9; }
-        
-        .btn-action-main { background: var(--blue); color: white; border: none; border-radius: 18px; width: 52px; height: 52px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-        .btn-action-main svg { width: 22px; height: 22px; stroke-width: 3.5; stroke: currentColor; fill: none; }
-
-        .card { background: white; border-radius: 28px; padding: 5px 18px; border: 3px solid var(--grey); min-height: 100px; }
-        .item { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 2px solid #f2f2f7; }
-        .testo-prodotto { font-weight: 700; font-size: 16px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-right: 10px; }
-        
-        .btn-actions { display: flex; gap: 6px; }
-        .btn-small { border: 2.5px solid var(--grey); border-radius: 12px; width: 40px; height: 40px; cursor: pointer; display: flex; align-items: center; justify-content: center; background: white; transition: all 0.1s; position: relative; }
-        .btn-small svg { width: 17px; height: 17px; stroke-width: 3; stroke: currentColor; fill: none; }
-        
-        .btn-small.plus { border-color: var(--blue); color: var(--blue); }
-        .btn-small.edit { border-color: var(--yellow); color: var(--yellow); }
-        .btn-small.delete { border-color: var(--red); color: var(--red); }
-        .btn-feedback { font-size: 8px !important; font-weight: 900; position: absolute; }
-
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 2000; backdrop-filter: blur(4px); }
-        .modal-box { background: white; padding: 25px; border-radius: 30px; width: 85%; max-width: 350px; text-align: center; border: 4px solid var(--grey); }
-        select { width: 100%; padding: 12px; border-radius: 15px; border: 2px solid var(--grey); margin: 15px 0; font-size: 16px; }
-
+        .input-group { background: white; padding: 15px; border-radius: 25px; border: 3px solid var(--grey); margin-bottom: 20px; }
+        input { width: 75%; padding: 12px; border-radius: 15px; border: 2px solid var(--grey); outline: none; }
+        .btn-add { background: var(--blue); color: white; border: none; border-radius: 15px; width: 45px; height: 45px; cursor: pointer; float: right; }
+        .card { background: white; border-radius: 28px; padding: 10px 20px; border: 3px solid var(--grey); }
+        .item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 2px solid #f2f2f7; }
+        .btn-small { border: 2px solid var(--grey); border-radius: 10px; width: 35px; height: 35px; cursor: pointer; background: white; margin-left: 4px; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 2000; }
+        .modal-box { background: white; padding: 25px; border-radius: 30px; width: 80%; text-align: center; border: 4px solid var(--grey); }
         .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 85px; background: white; display: flex; justify-content: space-around; align-items: center; border-top: 3px solid var(--grey); }
-        .tab-item { flex: 1; text-align: center; font-size: 10px; color: var(--dark); text-decoration: none; font-weight: 800; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+        .tab-item { flex: 1; text-align: center; font-size: 10px; text-decoration: none; font-weight: 800; color: var(--dark); display: flex; flex-direction: column; align-items: center; }
         .tab-active { color: var(--green); }
-        .icon-tab { width: 26px; height: 26px; stroke-width: 2.5; stroke: currentColor; fill: none; }
     </style>
 </head>
 <body>
-
     <div class="app">
-        <h2>Prodotti Spesa</h2>
+        <h2>Prodotti</h2>
         <div class="category-box">
             <div class="filter-container">
                 <button class="btn-filter active" onclick="setFilter('Cibo', this)">Cibo</button>
@@ -60,44 +37,29 @@
                 <button class="btn-filter" onclick="setFilter('Altro', this)">Altro</button>
             </div>
         </div>
-
-        <div class="input-group-main">
-            <div class="input-row">
-                <input type="text" id="nuovoProdotto" placeholder="Nuovo prodotto...">
-                <button class="btn-action-main" onclick="apriModalCategoria()">
-                    <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                </button>
-            </div>
-            <div class="input-row">
-                <input type="text" id="cercaProdotto" placeholder="Cerca prodotto..." onkeyup="renderizzaProdotti()">
-                <button class="btn-action-main">
-                    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                </button>
-            </div>
+        <div class="input-group">
+            <input type="text" id="nuovoProdotto" placeholder="Aggiungi nuovo...">
+            <button class="btn-add" onclick="apriModalCategoria()">+</button>
+            <input type="text" id="cercaProdotto" placeholder="Cerca..." onkeyup="renderizza()" style="width: 100%; margin-top: 10px;">
         </div>
-
         <div class="card" id="listaProdotti">Caricamento...</div>
     </div>
 
     <div id="catModal" class="modal-overlay">
         <div class="modal-box">
-            <h3>Scegli Categoria</h3>
-            <select id="selectCatNuovo">
-                <option value="Cibo">Cibo</option>
-                <option value="Igiene">Igiene</option>
-                <option value="Casa">Casa</option>
-                <option value="Altro">Altro</option>
+            <h3>Categoria?</h3>
+            <select id="selectCat" style="width:100%; padding:10px; margin-bottom:15px; border-radius:10px;">
+                <option value="Cibo">Cibo</option><option value="Igiene">Igiene</option><option value="Casa">Casa</option><option value="Altro">Altro</option>
             </select>
-            <button class="btn-action-main" style="width:100%; border-radius:15px; margin-bottom:10px" onclick="confermaInserimento()">CONFERMA</button>
-            <button class="btn-action-main" style="width:100%; border-radius:15px; background:var(--grey); color:black" onclick="chiudiModal()">ANNULLA</button>
+            <button class="btn-filter active" style="width:100%; margin-bottom:10px" onclick="confermaInserimento()">SALVA</button>
+            <button class="btn-filter" style="width:100%" onclick="chiudiModal()">ANNULLA</button>
         </div>
     </div>
 
     <div class="tab-bar">
-        <a href="index.html" class="tab-item"><svg class="icon-tab" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>HOME</a>
-        <a href="spesa.html" class="tab-item"><svg class="icon-tab" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>SPESA</a>
-        <a href="spesa_prodotti.html" class="tab-item tab-active"><svg class="icon-tab" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line></svg>PRODOTTI</a>
-        <a href="#" class="tab-item" onclick="logout()"><svg class="icon-tab" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline></svg>ESCI</a>
+        <a href="index.html" class="tab-item">HOME</a>
+        <a href="spesa.html" class="tab-item">SPESA</a>
+        <a href="spesa_prodotti.html" class="tab-item tab-active">PRODOTTI</a>
     </div>
 
     <script>
@@ -105,88 +67,48 @@
         const KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
         const headers = { "apikey": KEY, "Content-Type": "application/json", "Authorization": "Bearer " + KEY };
         const userEmail = localStorage.getItem('userEmail');
-        
         let prodottiBase = [];
         let categoriaCorrente = 'Cibo';
 
-        window.onload = () => { 
-            if(!userEmail) { window.location.href = 'login.html'; return; }
-            caricaProdotti(); 
-        };
-
         async function caricaProdotti() {
             try {
-                const res = await fetch(`${URL}/spesa_prodotti?select=*,spesa_prodottinascosti!left(prodotto_id)&or=(email.is.null,email.eq.${userEmail})&spesa_prodottinascosti.prodotto_id=is.null&order=nome.asc`, { headers });
-                const data = await res.json();
-                if(Array.isArray(data)) {
-                    prodottiBase = data;
-                    renderizzaProdotti();
-                }
-            } catch (e) { console.error("Errore caricamento:", e); }
+                const res = await fetch(`${URL}/spesa_prodotti?select=*,spesa_prodottinascosti!left(prodotto_id)&or=(email_utente.is.null,email_utente.eq.${userEmail})&spesa_prodottinascosti.prodotto_id=is.null&order=nome.asc`, { headers });
+                prodottiBase = await res.json();
+                renderizza();
+            } catch (e) { console.error(e); }
         }
 
         function setFilter(cat, btn) {
             categoriaCorrente = cat;
             document.querySelectorAll('.btn-filter').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            renderizzaProdotti();
+            renderizza();
         }
 
-        function renderizzaProdotti() {
+        function renderizza() {
             const query = document.getElementById("cercaProdotto").value.toLowerCase();
             const div = document.getElementById("listaProdotti");
             div.innerHTML = "";
             const filtrati = prodottiBase.filter(p => p.categoria === categoriaCorrente && p.nome.toLowerCase().includes(query));
-            
             filtrati.forEach(p => {
                 const riga = document.createElement("div");
                 riga.className = "item";
                 riga.innerHTML = `
-                    <span class="testo-prodotto">${p.nome}</span>
-                    <div class="btn-actions">
-                        <button class="btn-small plus" id="btn-p-${p.id}" onclick="mettiInLista(${p.id})">
-                            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                        </button>
-                        <button class="btn-small edit" onclick="rinominaProdotto(${p.id}, '${p.nome}', '${p.email}')">
-                            <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                        </button>
-                        <button class="btn-small delete" onclick="eliminaProdotto(${p.id}, '${p.email}')">
-                            <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                        </button>
+                    <span>${p.nome}</span>
+                    <div>
+                        <button class="btn-small" style="color:var(--blue)" onclick="mettiInLista(${p.id})">+</button>
+                        <button class="btn-small" style="color:var(--red)" onclick="eliminaProdotto(${p.id}, '${p.email_utente}')">🗑</button>
                     </div>`;
                 div.appendChild(riga);
             });
         }
 
-        async function mettiInLista(idProdotto) {
-            const btn = document.getElementById(`btn-p-${idProdotto}`);
-            try {
-                const check = await fetch(`${URL}/spesa_lista?prodotto_id=eq.${idProdotto}&email_utente=eq.${userEmail}&completato=eq.false`, { headers });
-                const esistente = await check.json();
-                if (esistente.length > 0) { aggiornaBottone(btn, "ESISTE", "#f39c12"); return; }
-
-                const res = await fetch(`${URL}/spesa_lista`, {
-                    method: "POST", 
-                    headers: { ...headers, "Prefer": "return=minimal" },
-                    body: JSON.stringify({ prodotto_id: idProdotto, email_utente: userEmail, completato: false })
-                });
-
-                if (res.ok) aggiornaBottone(btn, "OK!", "var(--green)");
-                else aggiornaBottone(btn, "ERR", "var(--red)");
-            } catch (e) { console.error(e); }
-        }
-
-        async function rinominaProdotto(id, nomeAttuale, emailP) {
-            const nuovoNome = prompt("Rinomina prodotto:", nomeAttuale);
-            if (!nuovoNome || nuovoNome.trim() === "" || nuovoNome === nomeAttuale) return;
-
-            if (!emailP || emailP === "null") {
-                await fetch(`${URL}/spesa_prodotti`, { method: "POST", headers, body: JSON.stringify({ nome: nuovoNome.trim(), categoria: categoriaCorrente, email: userEmail }) });
-                await fetch(`${URL}/spesa_prodottinascosti`, { method: "POST", headers, body: JSON.stringify({ prodotto_id: id, email_utente: userEmail }) });
-            } else {
-                await fetch(`${URL}/spesa_prodotti?id=eq.${id}`, { method: "PATCH", headers, body: JSON.stringify({ nome: nuovoNome.trim() }) });
-            }
-            caricaProdotti();
+        async function mettiInLista(id) {
+            const check = await fetch(`${URL}/spesa_lista?prodotto_id=eq.${id}&email_utente=eq.${userEmail}&completato=eq.false`, { headers });
+            const esistente = await check.json();
+            if (esistente.length > 0) { alert("Già in lista!"); return; }
+            await fetch(`${URL}/spesa_lista`, { method: "POST", headers, body: JSON.stringify({ prodotto_id: id, email_utente: userEmail, completato: false }) });
+            alert("Aggiunto!");
         }
 
         async function eliminaProdotto(id, emailP) {
@@ -199,28 +121,15 @@
             caricaProdotti();
         }
 
-        function aggiornaBottone(btn, testo, sfondo) {
-            const icon = btn.innerHTML;
-            btn.innerHTML = `<span class="btn-feedback">${testo}</span>`;
-            btn.style.backgroundColor = sfondo;
-            btn.style.color = "white";
-            setTimeout(() => { btn.innerHTML = icon; btn.style = ""; }, 1200);
-        }
-
-        function apriModalCategoria() {
-            if(!document.getElementById("nuovoProdotto").value.trim()) return;
-            document.getElementById("catModal").style.display = "flex";
-        }
-
+        function apriModalCategoria() { if(document.getElementById("nuovoProdotto").value.trim()) document.getElementById("catModal").style.display = "flex"; }
+        function chiudiModal() { document.getElementById('catModal').style.display = 'none'; }
         async function confermaInserimento() {
             const nome = document.getElementById("nuovoProdotto").value.trim();
-            const categoria = document.getElementById("selectCatNuovo").value;
-            const res = await fetch(`${URL}/spesa_prodotti`, { method: "POST", headers, body: JSON.stringify({ nome, categoria, email_utente: userEmail }) });
-            if(res.ok) { document.getElementById("nuovoProdotto").value = ""; chiudiModal(); caricaProdotti(); }
+            const categoria = document.getElementById("selectCat").value;
+            await fetch(`${URL}/spesa_prodotti`, { method: "POST", headers, body: JSON.stringify({ nome, categoria, email_utente: userEmail }) });
+            document.getElementById("nuovoProdotto").value = ""; chiudiModal(); caricaProdotti();
         }
-
-        function chiudiModal() { document.getElementById('catModal').style.display = 'none'; }
-        function logout() { localStorage.clear(); window.location.href = 'login.html'; }
+        window.onload = caricaProdotti;
     </script>
 </body>
 </html>
