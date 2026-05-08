@@ -2,104 +2,662 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Listando - Catalogo</title>
+    <title>Listando - Prodotti</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        :root { --green: #0fba8d; --blue: #3384d4; --yellow: #feb310; --red: #ff4d4d; --grey: #d8dddc; --dark: #000000; --bg: #fdfdfd; }
-        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--bg); display: flex; justify-content: center; }
-        .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 110px; }
-        h2 { font-weight: 900; text-transform: uppercase; }
-        .filter-container { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 20px; }
-        .btn-filter { padding: 12px; border-radius: 15px; border: 3px solid var(--grey); background: white; font-weight: 800; cursor: pointer; }
-        .btn-filter.active { background: var(--blue); color: white; border-color: var(--blue); }
-        .input-box { background: white; padding: 15px; border-radius: 25px; border: 3px solid var(--grey); margin-bottom: 20px; display: flex; gap: 10px; }
-        input { flex: 1; padding: 10px; border-radius: 10px; border: 2px solid var(--grey); outline: none; }
-        .card { background: white; border-radius: 28px; padding: 15px; border: 3px solid var(--grey); }
-        .item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 2px solid #f2f2f7; }
-        .btn-add-p { background: var(--blue); color: white; border: none; border-radius: 10px; width: 35px; height: 35px; cursor: pointer; font-weight: bold; }
-        .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 85px; background: white; display: flex; justify-content: space-around; align-items: center; border-top: 3px solid var(--grey); }
-        .tab-item { text-decoration: none; color: var(--dark); font-size: 10px; font-weight: 800; }
+        :root {
+            --green: #0fba8d;
+            --blue: #3384d4;
+            --yellow: #feb310;
+            --red: #ff4d4d;
+            --grey: #d8dddc;
+            --grey-light: #f2f2f7;
+            --dark: #111111;
+            --bg: #f5f6f8;
+            --white: #ffffff;
+            --shadow: 0 4px 20px rgba(0,0,0,0.07);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--dark);
+            display: flex;
+            justify-content: center;
+        }
+
+        .app {
+            width: 100%;
+            max-width: 420px;
+            padding: 24px 20px 120px;
+        }
+
+        /* ── Header ── */
+        .page-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .page-title {
+            font-weight: 900;
+            font-size: 26px;
+            text-transform: uppercase;
+            letter-spacing: -0.5px;
+            margin: 0;
+        }
+        .badge-count {
+            background: var(--blue);
+            color: white;
+            font-size: 13px;
+            font-weight: 800;
+            padding: 4px 12px;
+            border-radius: 20px;
+        }
+
+        /* ── Filtri categoria ── */
+        .filter-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .btn-filter {
+            padding: 13px;
+            border-radius: 18px;
+            border: 3px solid var(--grey);
+            background: var(--white);
+            font-weight: 800;
+            font-size: 13px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            color: var(--dark);
+            transition: all 0.15s;
+            box-shadow: var(--shadow);
+        }
+        .btn-filter:active { transform: scale(0.97); }
+        .btn-filter.active {
+            background: var(--blue);
+            color: white;
+            border-color: var(--blue);
+        }
+
+        /* ── Box Aggiungi ── */
+        .input-card {
+            background: var(--white);
+            padding: 16px;
+            border-radius: 24px;
+            border: 3px solid var(--grey);
+            margin-bottom: 16px;
+            box-shadow: var(--shadow);
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .input-card input {
+            flex: 1;
+            padding: 12px 16px;
+            border-radius: 14px;
+            border: 2.5px solid var(--grey);
+            outline: none;
+            font-size: 15px;
+            font-weight: 600;
+            font-family: inherit;
+            color: var(--dark);
+            transition: border-color 0.2s;
+        }
+        .input-card input:focus { border-color: var(--green); }
+        .btn-save {
+            padding: 12px 18px;
+            border-radius: 14px;
+            background: var(--green);
+            color: white;
+            border: none;
+            font-weight: 800;
+            font-size: 13px;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: opacity 0.15s;
+            white-space: nowrap;
+        }
+        .btn-save:active { opacity: 0.85; }
+
+        /* ── Card Lista ── */
+        .card {
+            background: var(--white);
+            border-radius: 28px;
+            border: 3px solid var(--grey);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+
+        .card-header-row {
+            padding: 14px 20px;
+            border-bottom: 2px solid var(--grey-light);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .card-header-label {
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: #999;
+        }
+
+        /* ── Righe prodotto ── */
+        .item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 13px 20px;
+            border-bottom: 2px solid var(--grey-light);
+            transition: background 0.15s;
+        }
+        .item:last-child { border-bottom: none; }
+
+        .item-nome {
+            flex: 1;
+            font-weight: 700;
+            font-size: 16px;
+            line-height: 1.3;
+        }
+
+        .item-badge-custom {
+            font-size: 10px;
+            font-weight: 800;
+            background: var(--grey-light);
+            color: #999;
+            padding: 2px 8px;
+            border-radius: 8px;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .btn-actions { display: flex; gap: 7px; }
+
+        .btn-ic {
+            width: 38px; height: 38px;
+            border-radius: 12px;
+            border: 2.5px solid var(--grey);
+            background: white;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.15s;
+            flex-shrink: 0;
+        }
+        .btn-ic:active { transform: scale(0.9); }
+        .btn-ic svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 2.5; }
+
+        .btn-ic.add    { border-color: var(--blue);   color: var(--blue);   }
+        .btn-ic.edit   { border-color: var(--yellow);  color: var(--yellow); }
+        .btn-ic.del    { border-color: var(--red);     color: var(--red);    }
+
+        .btn-ic.add:active  { background: #e8f3ff; }
+        .btn-ic.edit:active { background: #fff8e6; }
+        .btn-ic.del:active  { background: #fff0f0; }
+
+        /* ── Stato vuoto ── */
+        .empty-state {
+            text-align: center;
+            padding: 44px 20px;
+        }
+        .empty-icon {
+            width: 58px; height: 58px;
+            background: var(--grey-light);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 14px;
+        }
+        .empty-icon svg { width: 26px; height: 26px; stroke: #aaa; fill: none; stroke-width: 2; }
+        .empty-title { font-weight: 900; font-size: 16px; margin-bottom: 5px; }
+        .empty-sub   { color: #999; font-size: 13px; font-weight: 600; }
+
+        /* ── Toast ── */
+        .toast {
+            position: fixed;
+            bottom: 105px; left: 50%; transform: translateX(-50%) translateY(20px);
+            background: var(--dark); color: white;
+            padding: 12px 22px; border-radius: 20px;
+            font-size: 13px; font-weight: 700;
+            opacity: 0; pointer-events: none;
+            transition: all 0.3s ease;
+            z-index: 3000; white-space: nowrap;
+        }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        /* ── Modal (base) ── */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.45);
+            display: none; align-items: flex-end; justify-content: center;
+            z-index: 2000;
+            backdrop-filter: blur(6px);
+            padding-bottom: 30px;
+        }
+        .modal-box {
+            background: white;
+            padding: 32px 24px 24px;
+            border-radius: 32px 32px 24px 24px;
+            width: 92%; max-width: 380px;
+            border: 3px solid var(--grey);
+            animation: slideUp 0.25s ease;
+        }
+        @keyframes slideUp {
+            from { transform: translateY(40px); opacity: 0; }
+            to   { transform: translateY(0);    opacity: 1; }
+        }
+        .modal-emoji { font-size: 38px; text-align: center; margin-bottom: 8px; }
+        .modal-box h3 { font-weight: 900; font-size: 19px; margin: 0 0 6px; text-align: center; }
+        .modal-box p  { font-weight: 600; color: #777; font-size: 13px; margin: 0 0 18px; text-align: center; }
+
+        .modal-input {
+            width: 100%;
+            padding: 14px 16px;
+            border-radius: 16px;
+            border: 2.5px solid var(--grey);
+            font-size: 15px;
+            font-weight: 700;
+            font-family: inherit;
+            outline: none;
+            margin-bottom: 16px;
+            transition: border-color 0.2s;
+        }
+        .modal-input:focus { border-color: var(--blue); }
+
+        /* Selezione categoria nel modal */
+        .cat-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .btn-cat {
+            padding: 12px;
+            border-radius: 16px;
+            border: 2.5px solid var(--grey);
+            background: white;
+            font-weight: 800;
+            font-size: 13px;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: all 0.15s;
+        }
+        .btn-cat.selected { background: var(--blue); color: white; border-color: var(--blue); }
+
+        .btn-modal {
+            width: 100%; padding: 15px;
+            margin-top: 8px;
+            border-radius: 18px; border: none;
+            font-weight: 800; cursor: pointer;
+            font-size: 15px; transition: opacity 0.15s;
+            font-family: inherit;
+        }
+        .btn-modal:active { opacity: 0.85; }
+
+        /* ── Tab Bar ── */
+        .tab-bar {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            height: 88px;
+            background: white;
+            display: flex; justify-content: space-around; align-items: center;
+            border-top: 3px solid var(--grey);
+            z-index: 1000;
+            padding-bottom: env(safe-area-inset-bottom, 0);
+        }
+        .tab-item {
+            flex: 1; text-align: center;
+            font-size: 10px; color: #aaa;
+            text-decoration: none;
+            font-weight: 800;
+            display: flex; flex-direction: column;
+            align-items: center; gap: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
         .tab-active { color: var(--green); }
+        .icon-tab { width: 24px; height: 24px; stroke-width: 2.5; stroke: currentColor; fill: none; }
     </style>
 </head>
 <body>
-    <div class="app">
-        <h2>Prodotti</h2>
-        <div class="filter-container">
-            <button class="btn-filter active" onclick="setFilter('Cibo', this)">Cibo</button>
-            <button class="btn-filter" onclick="setFilter('Igiene', this)">Igiene</button>
-            <button class="btn-filter" onclick="setFilter('Casa', this)">Casa</button>
-            <button class="btn-filter" onclick="setFilter('Altro', this)">Altro</button>
-        </div>
-        <div class="input-box">
-            <input type="text" id="nuovoNome" placeholder="Nuovo prodotto...">
-            <button onclick="salvaNuovo()" style="padding:10px 20px; border-radius:10px; background:var(--green); color:white; border:none; font-weight:bold;">SALVA</button>
-        </div>
-        <div class="card" id="listaCard">Caricamento...</div>
+
+<div class="app">
+    <div class="page-header">
+        <h2 class="page-title">Prodotti</h2>
+        <span class="badge-count" id="badgeCount">0</span>
     </div>
 
-    <div class="tab-bar">
-        <a href="index.html" class="tab-item">HOME</a>
-        <a href="spesa.html" class="tab-item">SPESA</a>
-        <a href="spesa_prodotti.html" class="tab-item tab-active">PRODOTTI</a>
+    <!-- Filtri categoria -->
+    <div class="filter-container">
+        <button class="btn-filter active" onclick="setFilter('Cibo', this)">🍎 Cibo</button>
+        <button class="btn-filter" onclick="setFilter('Igiene', this)">🧴 Igiene</button>
+        <button class="btn-filter" onclick="setFilter('Casa', this)">🏠 Casa</button>
+        <button class="btn-filter" onclick="setFilter('Altro', this)">📦 Altro</button>
     </div>
 
-    <script>
-        const URL = "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1";
-        const KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
-        const headers = { "apikey": KEY, "Content-Type": "application/json", "Authorization": "Bearer " + KEY };
-        const userEmail = localStorage.getItem('userEmail');
-        let prodottiBase = [];
-        let categoriaCorrente = 'Cibo';
+    <!-- Box inserimento rapido -->
+    <div class="input-card">
+        <input type="text" id="nuovoNome" placeholder="Nuovo prodotto..." 
+               onkeydown="if(event.key==='Enter') apriModalCategoria()">
+        <button class="btn-save" onclick="apriModalCategoria()">+ Aggiungi</button>
+    </div>
 
-        async function caricaProdotti() {
-            try {
-                // Notare email_utente nella query
-                const res = await fetch(`${URL}/spesa_prodotti?select=*,spesa_prodottinascosti!left(prodotto_id)&or=(email_utente.is.null,email_utente.eq.${userEmail})&spesa_prodottinascosti.prodotto_id=is.null&order=nome.asc`, { headers });
-                prodottiBase = await res.json();
-                render();
-            } catch (e) { console.error(e); }
-        }
+    <!-- Card Lista -->
+    <div class="card" id="listaCard">
+        <div class="empty-state">
+            <div class="empty-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg></div>
+            <div class="empty-title">Caricamento…</div>
+        </div>
+    </div>
+</div>
 
-        function setFilter(cat, btn) {
-            categoriaCorrente = cat;
-            document.querySelectorAll('.btn-filter').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
+<!-- Toast notifica -->
+<div class="toast" id="toast"></div>
+
+<!-- Modal: Scegli categoria nuovo prodotto -->
+<div id="modalCategoria" class="modal-overlay">
+    <div class="modal-box">
+        <div class="modal-emoji">📂</div>
+        <h3>Scegli categoria</h3>
+        <p id="modalCatNome"></p>
+        <div class="cat-grid">
+            <button class="btn-cat" onclick="selezionaCat('Cibo', this)">🍎 Cibo</button>
+            <button class="btn-cat" onclick="selezionaCat('Igiene', this)">🧴 Igiene</button>
+            <button class="btn-cat" onclick="selezionaCat('Casa', this)">🏠 Casa</button>
+            <button class="btn-cat" onclick="selezionaCat('Altro', this)">📦 Altro</button>
+        </div>
+        <button class="btn-modal" id="btnConfermaCategoria"
+                style="background:var(--green); color:white; opacity:0.4;" 
+                disabled onclick="confermaSalvaNuovo()">Salva Prodotto</button>
+        <button class="btn-modal" style="background:var(--grey-light);" onclick="chiudiModal('modalCategoria')">Annulla</button>
+    </div>
+</div>
+
+<!-- Modal: Modifica nome prodotto -->
+<div id="modalModifica" class="modal-overlay">
+    <div class="modal-box">
+        <div class="modal-emoji">✏️</div>
+        <h3>Modifica prodotto</h3>
+        <input type="text" class="modal-input" id="inputModifica" placeholder="Nome prodotto...">
+        <div class="cat-grid" id="catGridModifica">
+            <button class="btn-cat" onclick="selezionaCatModifica('Cibo', this)">🍎 Cibo</button>
+            <button class="btn-cat" onclick="selezionaCatModifica('Igiene', this)">🧴 Igiene</button>
+            <button class="btn-cat" onclick="selezionaCatModifica('Casa', this)">🏠 Casa</button>
+            <button class="btn-cat" onclick="selezionaCatModifica('Altro', this)">📦 Altro</button>
+        </div>
+        <button class="btn-modal" style="background:var(--yellow); color:white;" onclick="confermaModifica()">Salva Modifiche</button>
+        <button class="btn-modal" style="background:var(--grey-light);" onclick="chiudiModal('modalModifica')">Annulla</button>
+    </div>
+</div>
+
+<!-- Modal: Conferma elimina -->
+<div id="modalElimina" class="modal-overlay">
+    <div class="modal-box">
+        <div class="modal-emoji">🗑️</div>
+        <h3>Elimina prodotto?</h3>
+        <p id="eliminaNome"></p>
+        <button class="btn-modal" style="background:var(--red); color:white;" onclick="confermaElimina()">Sì, elimina</button>
+        <button class="btn-modal" style="background:var(--grey-light);" onclick="chiudiModal('modalElimina')">Annulla</button>
+    </div>
+</div>
+
+<!-- Tab Bar -->
+<nav class="tab-bar">
+    <a href="index.html" class="tab-item">
+        <svg class="icon-tab" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+        Home
+    </a>
+    <a href="spesa.html" class="tab-item">
+        <svg class="icon-tab" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+        Spesa
+    </a>
+    <a href="spesa_prodotti.html" class="tab-item tab-active">
+        <svg class="icon-tab" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+        Prodotti
+    </a>
+    <a href="#" class="tab-item" onclick="logout()">
+        <svg class="icon-tab" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/></svg>
+        Esci
+    </a>
+</nav>
+
+<script>
+    const URL_BASE = "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1";
+    const KEY      = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
+    const headers  = { "apikey": KEY, "Content-Type": "application/json", "Authorization": "Bearer " + KEY };
+    const userEmail = localStorage.getItem('userEmail');
+
+    let prodottiBase      = [];
+    let categoriaCorrente = 'Cibo';
+    let categoriaScelta   = null;   // per modal nuovo prodotto
+    let catModificaScelta = null;   // per modal modifica
+    let idInModifica      = null;
+    let idInElimina       = null;
+
+    // ── Caricamento ──────────────────────────────────────────────
+    async function caricaProdotti() {
+        try {
+            // Prodotti globali (email_utente null) + prodotti propri, esclusi quelli nascosti
+            const res = await fetch(
+                `${URL_BASE}/spesa_prodotti?select=*,spesa_prodottinascosti!left(prodotto_id)` +
+                `&or=(email_utente.is.null,email_utente.eq.${userEmail})` +
+                `&spesa_prodottinascosti.prodotto_id=is.null&order=nome.asc`,
+                { headers }
+            );
+            prodottiBase = await res.json();
             render();
+        } catch (e) { console.error(e); }
+    }
+
+    // ── Filtro ───────────────────────────────────────────────────
+    function setFilter(cat, btn) {
+        categoriaCorrente = cat;
+        document.querySelectorAll('.btn-filter').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        render();
+    }
+
+    // ── Render lista ─────────────────────────────────────────────
+    function render() {
+        const div      = document.getElementById("listaCard");
+        const filtrati = prodottiBase.filter(p => p.categoria === categoriaCorrente);
+
+        document.getElementById("badgeCount").textContent = filtrati.length;
+
+        if (filtrati.length === 0) {
+            div.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">
+                        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+                    </div>
+                    <div class="empty-title">Nessun prodotto</div>
+                    <div class="empty-sub">Aggiungi il primo prodotto in questa categoria</div>
+                </div>`;
+            return;
         }
 
-        function render() {
-            const div = document.getElementById("listaCard");
-            div.innerHTML = "";
-            const filtrati = prodottiBase.filter(p => p.categoria === categoriaCorrente);
-            filtrati.forEach(p => {
-                const riga = document.createElement("div");
-                riga.className = "item";
-                riga.innerHTML = `<span>${p.nome}</span><button class="btn-add-p" onclick="mettiInLista(${p.id})">+</button>`;
-                div.appendChild(riga);
+        div.innerHTML = `
+            <div class="card-header-row">
+                <span class="card-header-label">${filtrati.length} prodotto${filtrati.length !== 1 ? 'i' : ''}</span>
+            </div>`;
+
+        filtrati.forEach(p => {
+            const isMio    = p.email_utente === userEmail;   // prodotto creato da questo utente
+            const riga     = document.createElement("div");
+            riga.className = "item";
+
+            // Badge "Mio" se il prodotto appartiene all'utente corrente
+            const badgeMio = isMio
+                ? `<span class="item-badge-custom">Mio</span>`
+                : '';
+
+            // Tasto modifica e cancella solo sui prodotti dell'utente
+            const azioniExtra = isMio ? `
+                <button class="btn-ic edit" onclick="apriModifica(${p.id}, '${escHtml(p.nome)}', '${p.categoria}')" aria-label="Modifica">
+                    <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                </button>
+                <button class="btn-ic del" onclick="apriElimina(${p.id}, '${escHtml(p.nome)}')" aria-label="Elimina">
+                    <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                </button>` : '';
+
+            riga.innerHTML = `
+                <span class="item-nome">${p.nome}</span>
+                ${badgeMio}
+                <div class="btn-actions">
+                    <button class="btn-ic add" onclick="mettiInLista(${p.id})" aria-label="Aggiungi alla lista">
+                        <svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+                    </button>
+                    ${azioniExtra}
+                </div>`;
+            div.appendChild(riga);
+        });
+    }
+
+    // ── Aggiungi alla lista spesa ────────────────────────────────
+    async function mettiInLista(id) {
+        try {
+            const res = await fetch(`${URL_BASE}/spesa_lista`, {
+                method: "POST", headers,
+                body: JSON.stringify({ prodotto_id: id, email_utente: userEmail, completato: false })
             });
-        }
+            if (res.ok || res.status === 201) {
+                mostraToast("✓ Aggiunto alla lista!");
+            } else {
+                mostraToast("Già presente nella lista");
+            }
+        } catch (e) { mostraToast("Errore di rete"); }
+    }
 
-        async function mettiInLista(id) {
-            await fetch(`${URL}/spesa_lista`, { 
-                method: "POST", headers, 
-                body: JSON.stringify({ prodotto_id: id, email_utente: userEmail, completato: false }) 
-            });
-            alert("Aggiunto!");
+    // ── Nuovo prodotto: chiedi categoria ────────────────────────
+    function apriModalCategoria() {
+        const nome = document.getElementById("nuovoNome").value.trim();
+        if (!nome) {
+            document.getElementById("nuovoNome").focus();
+            mostraToast("⚠️ Inserisci il nome del prodotto");
+            return;
         }
+        categoriaScelta = null;
+        // Reset selezione visiva
+        document.querySelectorAll('#modalCategoria .btn-cat').forEach(b => b.classList.remove('selected'));
+        const btn = document.getElementById("btnConfermaCategoria");
+        btn.disabled = true;
+        btn.style.opacity = "0.4";
+        document.getElementById("modalCatNome").textContent = `"${nome}"`;
+        apriModal('modalCategoria');
+    }
 
-        async function salvaNuovo() {
-            const nome = document.getElementById("nuovoNome").value;
-            if (!nome) return;
-            await fetch(`${URL}/spesa_prodotti`, { 
-                method: "POST", headers, 
-                body: JSON.stringify({ nome, categoria: categoriaCorrente, email_utente: userEmail }) 
+    function selezionaCat(cat, btn) {
+        categoriaScelta = cat;
+        document.querySelectorAll('#modalCategoria .btn-cat').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        const btnConf = document.getElementById("btnConfermaCategoria");
+        btnConf.disabled = false;
+        btnConf.style.opacity = "1";
+    }
+
+    async function confermaSalvaNuovo() {
+        const nome = document.getElementById("nuovoNome").value.trim();
+        if (!nome || !categoriaScelta) return;
+        try {
+            await fetch(`${URL_BASE}/spesa_prodotti`, {
+                method: "POST", headers,
+                body: JSON.stringify({ nome, categoria: categoriaScelta, email_utente: userEmail })
             });
             document.getElementById("nuovoNome").value = "";
-            caricaProdotti();
-        }
+            chiudiModal('modalCategoria');
+            await caricaProdotti();
+            // Porta il filtro sulla categoria appena usata
+            const btnFiltro = [...document.querySelectorAll('.btn-filter')]
+                .find(b => b.textContent.includes(categoriaScelta));
+            if (btnFiltro) setFilter(categoriaScelta, btnFiltro);
+            mostraToast(`✓ "${nome}" aggiunto!`);
+        } catch (e) { mostraToast("Errore nel salvataggio"); }
+    }
 
-        window.onload = caricaProdotti;
-    </script>
+    // ── Modifica prodotto ────────────────────────────────────────
+    function apriModifica(id, nome, categoria) {
+        idInModifica    = id;
+        catModificaScelta = categoria;
+        document.getElementById("inputModifica").value = nome;
+        // Preseleziona categoria attuale
+        document.querySelectorAll('#catGridModifica .btn-cat').forEach(b => {
+            b.classList.toggle('selected', b.textContent.includes(categoria));
+        });
+        apriModal('modalModifica');
+    }
+
+    function selezionaCatModifica(cat, btn) {
+        catModificaScelta = cat;
+        document.querySelectorAll('#catGridModifica .btn-cat').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+    }
+
+    async function confermaModifica() {
+        const nuovoNome = document.getElementById("inputModifica").value.trim();
+        if (!nuovoNome || !idInModifica) return;
+        try {
+            // PATCH solo se email_utente corrisponde all'utente (sicurezza lato client + RLS lato Supabase)
+            await fetch(`${URL_BASE}/spesa_prodotti?id=eq.${idInModifica}&email_utente=eq.${userEmail}`, {
+                method: "PATCH", headers,
+                body: JSON.stringify({ nome: nuovoNome, categoria: catModificaScelta })
+            });
+            chiudiModal('modalModifica');
+            await caricaProdotti();
+            mostraToast("✓ Prodotto modificato");
+        } catch (e) { mostraToast("Errore nella modifica"); }
+    }
+
+    // ── Elimina prodotto ─────────────────────────────────────────
+    function apriElimina(id, nome) {
+        idInElimina = id;
+        document.getElementById("eliminaNome").textContent = `Vuoi eliminare "${nome}"?`;
+        apriModal('modalElimina');
+    }
+
+    async function confermaElimina() {
+        if (!idInElimina) return;
+        try {
+            // DELETE solo se appartiene all'utente
+            await fetch(`${URL_BASE}/spesa_prodotti?id=eq.${idInElimina}&email_utente=eq.${userEmail}`, {
+                method: "DELETE", headers
+            });
+            chiudiModal('modalElimina');
+            await caricaProdotti();
+            mostraToast("🗑️ Prodotto eliminato");
+        } catch (e) { mostraToast("Errore nell'eliminazione"); }
+    }
+
+    // ── Utility ──────────────────────────────────────────────────
+    function apriModal(id)  { document.getElementById(id).style.display = 'flex'; }
+    function chiudiModal(id){ document.getElementById(id).style.display = 'none'; }
+
+    // Chiudi modal cliccando fuori
+    document.querySelectorAll('.modal-overlay').forEach(m => {
+        m.addEventListener('click', e => { if (e.target === m) m.style.display = 'none'; });
+    });
+
+    let toastTimer;
+    function mostraToast(msg) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+    }
+
+    function escHtml(str) {
+        return str.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    }
+
+    function logout() { localStorage.clear(); window.location.href = 'login.html'; }
+
+    window.onload = caricaProdotti;
+</script>
 </body>
 </html>
