@@ -18,6 +18,13 @@
         /* Card Principale Lista */
         .card { background: white; border-radius: 28px; padding: 10px 20px; border: 3px solid var(--grey); min-height: 150px; margin-bottom: 20px; }
 
+        /* Contenitore per il bottone sempre visibile in alto */
+        .header-lista {
+            padding: 15px 0;
+            border-bottom: 2px solid #f2f2f7;
+            text-align: center;
+        }
+
         .item { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 2px solid #f2f2f7; }
         .item:last-child { border-bottom: none; }
         
@@ -44,13 +51,15 @@
         .btn-action:active { background: var(--grey); }
         .btn-main-color { background: var(--blue); color: white; border-color: var(--blue); }
 
-        /* Stato Vuoto */
-        .empty-msg { text-align: center; padding: 40px 10px; color: #888; font-weight: 600; }
+        /* Stato Vuoto e Bottone Aggiungi */
+        .empty-msg { text-align: center; padding: 30px 10px; color: #888; font-weight: 600; }
         .btn-empty { 
-            display: inline-block; margin-top: 15px; padding: 12px 25px; 
+            display: inline-block; padding: 12px 25px; 
             background: var(--blue); color: white; border-radius: 15px; 
             text-decoration: none; font-weight: 800; font-size: 14px;
+            transition: transform 0.2s;
         }
+        .btn-empty:active { transform: scale(0.95); }
 
         /* Modal */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); display: none; align-items: center; justify-content: center; z-index: 2000; backdrop-filter: blur(5px); }
@@ -71,7 +80,13 @@
         <h2>Lista Spesa</h2>
         
         <div class="card" id="cardLista">
-            <div id="contenitoreLista" class="empty-msg">Caricamento in corso...</div>
+            <div id="headerAggiungi" class="header-lista" style="display:none;">
+                <a href="prodottispesa.html" class="btn-empty">AGGIUNGI PRODOTTI</a>
+            </div>
+
+            <div id="contenitoreLista">
+                <div class="empty-msg">Caricamento in corso...</div>
+            </div>
         </div>
 
         <div id="controlliLista" class="controls-group" style="display: none;">
@@ -108,14 +123,19 @@
                 const res = await fetch(`${URL}/lista_spesa?select=*,prodotti(nome)&email_utente=eq.${userEmail}`, { headers });
                 const data = await res.json();
                 const div = document.getElementById("contenitoreLista");
+                const headerAggiungi = document.getElementById("headerAggiungi");
                 const controlli = document.getElementById("controlliLista");
 
+                // Se la lista è VUOTA
                 if (!data || data.length === 0) {
-                    div.innerHTML = `<div class="empty-msg">La lista è vuota<br><a href="prodottispesa.html" class="btn-empty">AGGIUNGI PRODOTTI</a></div>`;
+                    headerAggiungi.style.display = "none"; // Nascondi header
+                    div.innerHTML = `<div class="empty-msg">La lista è vuota<br><br><a href="prodottispesa.html" class="btn-empty">AGGIUNGI PRODOTTI</a></div>`;
                     controlli.style.display = "none";
                     return;
                 }
 
+                // Se ci sono prodotti
+                headerAggiungi.style.display = "block"; // Mostra il bottone in alto
                 controlli.style.display = "flex";
                 data.sort((a, b) => (a.completato === b.completato) ? 0 : a.completato ? 1 : -1);
 
@@ -143,6 +163,7 @@
             } catch (e) { console.error(e); }
         }
 
+        // Le altre funzioni (toggle, elimina, ecc.) restano identiche
         async function toggle(id, stato) {
             await fetch(`${URL}/lista_spesa?id=eq.${id}`, {
                 method: "PATCH", headers,
