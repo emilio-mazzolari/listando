@@ -13,22 +13,22 @@
         .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 110px; }
         h2 { font-weight: 900; font-size: 24px; margin: 10px 0 20px 0; }
         
-        /* Categorie */
+        /* Filtri Categorie */
         .category-box { background: rgba(216, 221, 220, 0.3); padding: 15px; border-radius: 28px; margin-bottom: 25px; border: 1px solid rgba(216, 221, 220, 0.5); }
         .filter-container { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .btn-filter { padding: 14px; border-radius: 20px; border: 3px solid var(--grey); background: white; font-weight: 800; font-size: 12px; cursor: pointer; transition: all 0.2s; text-transform: uppercase; }
         .btn-filter.active { background: var(--blue); color: white; border-color: var(--blue); }
 
-        /* Nuova Struttura Input Group a 3 Righe */
+        /* Struttura a 2 Righe */
         .input-group { background: white; padding: 20px; border-radius: 28px; border: 3px solid var(--grey); margin-bottom: 20px; display: flex; flex-direction: column; gap: 15px; }
         .input-row { display: flex; align-items: center; gap: 10px; position: relative; }
-        input, select { padding: 12px 15px; border-radius: 16px; border: 2px solid var(--grey); outline: none; font-size: 14px; width: 100%; box-sizing: border-box; background: #f9f9f9; }
+        input { padding: 14px 18px; border-radius: 18px; border: 2px solid var(--grey); outline: none; font-size: 15px; width: 100%; box-sizing: border-box; background: #f9f9f9; }
         
-        .btn-action-main { background: var(--blue); color: white; border: none; border-radius: 16px; width: 48px; height: 48px; font-weight: 900; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-        .btn-action-main svg { width: 20px; height: 20px; stroke-width: 3.5; stroke: currentColor; fill: none; }
+        .btn-action-main { background: var(--blue); color: white; border: none; border-radius: 18px; width: 52px; height: 52px; font-weight: 900; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .btn-action-main svg { width: 22px; height: 22px; stroke-width: 3.5; stroke: currentColor; fill: none; }
 
-        /* Feedback Messaggi */
-        .feedback-msg { position: absolute; right: 60px; font-size: 12px; font-weight: 800; opacity: 0; transition: opacity 0.3s; pointer-events: none; white-space: nowrap; }
+        /* Feedback Scritte */
+        .feedback-msg { position: absolute; right: 65px; font-size: 12px; font-weight: 800; opacity: 0; transition: opacity 0.3s; pointer-events: none; white-space: nowrap; }
         .feedback-msg.show { opacity: 1; }
         .msg-green { color: var(--green); }
         .msg-red { color: var(--red); }
@@ -36,7 +36,7 @@
         /* Lista Prodotti */
         .card { background: white; border-radius: 28px; padding: 5px 18px; border: 3px solid var(--grey); min-height: 100px; }
         .item { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 2px solid #f2f2f7; position: relative; }
-        .testo-prodotto { font-weight: 700; font-size: 16px; flex: 1; margin-right: 10px; }
+        .testo-prodotto { font-weight: 700; font-size: 16px; flex: 1; }
         .btn-actions { display: flex; gap: 6px; align-items: center; }
         .btn-small { border: 2.5px solid var(--grey); border-radius: 12px; width: 38px; height: 38px; cursor: pointer; display: flex; align-items: center; justify-content: center; background: white; }
         .btn-small svg { width: 16px; height: 16px; stroke-width: 3; stroke: currentColor; fill: none; }
@@ -44,9 +44,13 @@
         .btn-small.edit { border-color: var(--yellow); color: var(--yellow); }
         .btn-small.delete { border-color: var(--red); color: var(--red); }
 
-        /* Modal e Tab Bar */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); display: none; align-items: center; justify-content: center; z-index: 2000; backdrop-filter: blur(5px); }
-        .modal-box { background: white; padding: 30px; border-radius: 32px; width: 85%; max-width: 380px; text-align: center; border: 4px solid var(--grey); }
+        /* Modali (Categoria e Modifica) */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 2000; backdrop-filter: blur(4px); }
+        .modal-box { background: white; padding: 25px; border-radius: 30px; width: 85%; max-width: 350px; text-align: center; border: 4px solid var(--grey); }
+        .modal-box h3 { margin-top: 0; font-weight: 900; }
+        select { width: 100%; padding: 12px; border-radius: 15px; border: 2px solid var(--grey); margin: 15px 0; font-size: 16px; font-weight: 600; }
+
+        /* Tab Bar */
         .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 85px; background: white; display: flex; justify-content: space-around; align-items: center; border-top: 3px solid var(--grey); }
         .tab-item { flex: 1; text-align: center; font-size: 10px; color: var(--dark); text-decoration: none; font-weight: 800; display: flex; flex-direction: column; align-items: center; gap: 6px; }
         .tab-active { color: var(--green); }
@@ -69,21 +73,10 @@
 
         <div class="input-group">
             <div class="input-row">
-                <input type="text" id="nuovoProdotto" placeholder="Nuovo prodotto...">
+                <input type="text" id="nuovoProdotto" placeholder="Inserisci nuovo prodotto...">
                 <span id="feedback-add" class="feedback-msg"></span>
-                <button class="btn-action-main" onclick="gestisciInserimento()">
+                <button class="btn-action-main" onclick="apriModalCategoria()">
                     <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                </button>
-            </div>
-            <div class="input-row">
-                <select id="nuovaCategoria">
-                    <option value="Cibo">Categoria: Cibo</option>
-                    <option value="Igiene">Categoria: Igiene</option>
-                    <option value="Casa">Categoria: Casa</option>
-                    <option value="Altro">Categoria: Altro</option>
-                </select>
-                <button class="btn-action-main" style="background:var(--grey); color:var(--dark)">
-                    <svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
                 </button>
             </div>
             <div class="input-row">
@@ -97,18 +90,33 @@
         <div class="card" id="listaProdotti">Caricamento...</div>
     </div>
 
-    <div id="editModal" class="modal-overlay">
+    <div id="catModal" class="modal-overlay">
         <div class="modal-box">
-            <h3>Modifica Prodotto</h3>
-            <input type="text" id="inputModifica" style="margin-bottom:15px">
-            <select id="selectModificaCat" style="margin-bottom:20px">
+            <h3>Scegli Categoria</h3>
+            <p>In quale categoria vuoi inserire il prodotto?</p>
+            <select id="selectCatNuovo">
                 <option value="Cibo">Cibo</option>
                 <option value="Igiene">Igiene</option>
                 <option value="Casa">Casa</option>
                 <option value="Altro">Altro</option>
             </select>
-            <button class="btn-action-main" style="width:100%; border-radius:12px; margin-bottom:10px" onclick="salvaModifica()">SALVA</button>
-            <button class="btn-action-main" style="width:100%; border-radius:12px; background:var(--grey); color:black" onclick="chiudiModal()">ANNULLA</button>
+            <button class="btn-action-main" style="width:100%; border-radius:15px; margin-bottom:10px" onclick="confermaInserimento()">CONFERMA</button>
+            <button class="btn-action-main" style="width:100%; border-radius:15px; background:var(--grey); color:black" onclick="chiudiModal('catModal')">ANNULLA</button>
+        </div>
+    </div>
+
+    <div id="editModal" class="modal-overlay">
+        <div class="modal-box">
+            <h3>Modifica Prodotto</h3>
+            <input type="text" id="inputModifica">
+            <select id="selectModificaCat">
+                <option value="Cibo">Cibo</option>
+                <option value="Igiene">Igiene</option>
+                <option value="Casa">Casa</option>
+                <option value="Altro">Altro</option>
+            </select>
+            <button class="btn-action-main" style="width:100%; border-radius:15px; margin-bottom:10px" onclick="salvaModifica()">SALVA</button>
+            <button class="btn-action-main" style="width:100%; border-radius:15px; background:var(--grey); color:black" onclick="chiudiModal('editModal')">ANNULLA</button>
         </div>
     </div>
 
@@ -150,69 +158,58 @@
             const query = document.getElementById("cercaProdotto").value.toLowerCase();
             const div = document.getElementById("listaProdotti");
             div.innerHTML = "";
-            const filtrati = prodottiBase.filter(p => (p.categoria === categoriaCorrente) && p.nome.toLowerCase().includes(query));
+            const filtrati = prodottiBase.filter(p => p.categoria === categoriaCorrente && p.nome.toLowerCase().includes(query));
             
             filtrati.forEach(p => {
                 const riga = document.createElement("div");
                 riga.className = "item";
-                riga.innerHTML = `
-                    <span class="testo-prodotto">${p.nome}</span>
+                riga.innerHTML = `<span class="testo-prodotto">${p.nome}</span>
                     <div class="btn-actions">
                         <span id="feed-${p.id}" class="feedback-msg"></span>
-                        <button class="btn-small plus" onclick="mettiInLista(${p.id})">
-                            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                        </button>
-                        <button class="btn-small edit" onclick="apriModalModifica(${p.id}, '${p.nome.replace(/'/g, "\\'")}', '${p.categoria}')">
-                            <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4L18.5 2.5z"></path></svg>
-                        </button>
-                        <button class="btn-small delete" onclick="gestisciEliminazione(${p.id}, '${p.email}')">
-                            <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                        </button>
+                        <button class="btn-small plus" onclick="mettiInLista(${p.id})"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></button>
+                        <button class="btn-small edit" onclick="apriModalModifica(${p.id}, '${p.nome.replace(/'/g, "\\'")}', '${p.categoria}')"><svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4L18.5 2.5z"></path></svg></button>
+                        <button class="btn-small delete" onclick="gestisciEliminazione(${p.id}, '${p.email}')"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
                     </div>`;
                 div.appendChild(riga);
             });
         }
 
-        // Funzione per mostrare il feedback visivo accanto al bottone
         function showFeedback(id, text, isError = false) {
-            const el = document.getElementById(id);
-            if(!el) return;
-            el.innerText = text;
-            el.className = `feedback-msg show ${isError ? 'msg-red' : 'msg-green'}`;
+            const el = document.getElementById(id); if(!el) return;
+            el.innerText = text; el.className = `feedback-msg show ${isError ? 'msg-red' : 'msg-green'}`;
             setTimeout(() => { el.className = 'feedback-msg'; }, 1500);
         }
 
-        window.mettiInLista = async (idProdotto) => {
-            // Verifica se è già in lista
-            const check = await fetch(`${URL}/spesa_lista?prodotto_id=eq.${idProdotto}&email_utente=eq.${userEmail}&completato=eq.false`, { headers });
-            const data = await check.json();
-
-            if (data.length > 0) {
-                showFeedback(`feed-${idProdotto}`, "Già in lista", true);
-                return;
-            }
-
-            const res = await fetch(`${URL}/spesa_lista`, { 
-                method: "POST", headers, 
-                body: JSON.stringify({ prodotto_id: idProdotto, email_utente: userEmail, completato: false }) 
-            });
-            if(res.ok) showFeedback(`feed-${idProdotto}`, "Aggiunto");
+        /* GESTIONE NUOVO PRODOTTO CON MODAL */
+        window.apriModalCategoria = () => {
+            const nome = document.getElementById("nuovoProdotto").value.trim();
+            if(!nome) return;
+            document.getElementById("catModal").style.display = "flex";
         }
 
-        window.gestisciInserimento = async () => {
+        window.confermaInserimento = async () => {
             const nome = document.getElementById("nuovoProdotto").value.trim();
-            const categoria = document.getElementById("nuovaCategoria").value;
-            if(!nome) return;
-
+            const categoria = document.getElementById("selectCatNuovo").value;
+            
             const res = await fetch(`${URL}/spesa_prodotti`, { 
                 method: "POST", headers, 
                 body: JSON.stringify({ nome, categoria, email: userEmail }) 
             });
             if(res.ok) {
                 document.getElementById("nuovoProdotto").value = "";
+                chiudiModal('catModal');
                 showFeedback("feedback-add", "Creato");
                 caricaProdotti();
             }
+        }
+
+        window.mettiInLista = async (id) => {
+            const check = await fetch(`${URL}/spesa_lista?prodotto_id=eq.${id}&email_utente=eq.${userEmail}&completato=eq.false`, { headers });
+            const data = await check.json();
+            if (data.length > 0) { showFeedback(`feed-${id}`, "Già in lista", true); return; }
+
+            const res = await fetch(`${URL}/spesa_lista`, { method: "POST", headers, body: JSON.stringify({ prodotto_id: id, email_utente: userEmail, completato: false }) });
+            if(res.ok) showFeedback(`feed-${id}`, "Aggiunto");
         }
 
         window.gestisciEliminazione = async (id, emailP) => {
@@ -237,10 +234,10 @@
                 method: "PATCH", headers, 
                 body: JSON.stringify({ nome: document.getElementById("inputModifica").value, categoria: document.getElementById("selectModificaCat").value }) 
             });
-            chiudiModal(); caricaProdotti();
+            chiudiModal('editModal'); caricaProdotti();
         }
 
-        window.chiudiModal = () => { document.getElementById('editModal').style.display = 'none'; };
+        window.chiudiModal = (id) => { document.getElementById(id).style.display = 'none'; };
         window.logout = () => { localStorage.clear(); window.location.href = 'login.html'; };
     </script>
 </body>
