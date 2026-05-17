@@ -121,8 +121,8 @@
 
         /* Checkbox custom */
         .check-circle {
-            width: 28px;
-            height: 28px;
+            width: 44px;
+            height: 44px;
             border-radius: 50%;
             border: 2.5px solid var(--grey);
             flex-shrink: 0;
@@ -159,7 +159,7 @@
         }
 
         .btn-delete {
-            width: 36px; height: 36px;
+            width: 44px; height: 44px;
             border-radius: 12px;
             border: 2px solid var(--grey-light);
             background: white;
@@ -333,6 +333,90 @@
         }
         .tab-active { color: var(--green); }
         .icon-tab { width: 24px; height: 24px; stroke-width: 2.5; stroke: currentColor; fill: none; }
+
+        /* ── Safe areas ── */
+        .app {
+            padding-left: max(20px, env(safe-area-inset-left, 20px));
+            padding-right: max(20px, env(safe-area-inset-right, 20px));
+        }
+
+        /* ── Focus styles ── */
+        button:focus-visible, a:focus-visible {
+            outline: 3px solid var(--blue);
+            outline-offset: 2px;
+        }
+
+        /* ── Tablet portrait (≥600px) ── */
+        @media (min-width: 600px) {
+            .app { max-width: 640px; padding-left: 28px; padding-right: 28px; }
+        }
+
+        /* ── iPad / tablet landscape (≥768px) ── */
+        @media (min-width: 768px) {
+            .app { max-width: 760px; padding-left: 36px; padding-right: 36px; }
+        }
+
+        /* ── Desktop (≥1024px): sidebar navigation ── */
+        @media (min-width: 1024px) {
+            body { display: block; }
+
+            .app {
+                margin-left: 240px;
+                max-width: 900px;
+                padding: 48px 56px 60px;
+            }
+
+            .tab-bar {
+                top: 0; bottom: 0; right: auto;
+                width: 240px;
+                height: 100vh;
+                flex-direction: column;
+                justify-content: flex-start;
+                align-items: stretch;
+                border-top: none;
+                border-right: 3px solid var(--grey);
+                padding: 28px 12px 24px;
+                overflow-y: auto;
+            }
+
+            .tab-bar::before {
+                content: "LISTANDO";
+                display: block;
+                font-weight: 900;
+                font-size: 20px;
+                letter-spacing: -0.8px;
+                color: var(--green);
+                padding: 0 8px 28px;
+                font-family: 'Segoe UI', system-ui, sans-serif;
+            }
+
+            .tab-item {
+                flex: none;
+                flex-direction: row;
+                justify-content: flex-start;
+                padding: 13px 16px;
+                font-size: 13px;
+                gap: 12px;
+                text-align: left;
+                border-radius: 14px;
+                letter-spacing: 0;
+                min-height: 44px;
+                margin-bottom: 2px;
+            }
+
+            .tab-active { background: rgba(15, 186, 141, 0.1); }
+
+            .icon-tab { width: 20px; height: 20px; flex-shrink: 0; }
+
+            .modal-overlay { align-items: center; padding-bottom: 0; }
+            .modal-box { border-radius: 28px; }
+        }
+
+        /* ── Wide desktop (≥1280px) ── */
+        @media (min-width: 1280px) {
+            .tab-bar { width: 260px; }
+            .app { margin-left: 260px; max-width: 940px; }
+        }
     </style>
 </head>
 <body>
@@ -429,11 +513,18 @@
     async function caricaLista() {
         if (!userEmail) return;
         try {
-            const res = await fetch(
-                `${URL_BASE}/spesa_lista?select=*,spesa_prodotti(nome)&email_utente=eq.${userEmail}`,
-                { headers }
-            );
-            const data = await res.json();
+            const [{ data: listaData, error: errLista }, { data: prodottiData }] = await Promise.all([
+                supabaseClient.from('spesa_lista').select('*').eq('email_utente', userEmail),
+                supabaseClient.from('spesa_prodotti').select('id, nome')
+            ]);
+
+            if (errLista) { console.error("Errore SELECT spesa_lista:", errLista); return; }
+
+            const data = listaData || [];
+            const prodottiMap = {};
+            if (Array.isArray(prodottiData)) {
+                prodottiData.forEach(p => { prodottiMap[p.id] = p.nome; });
+            }
 
             const div       = document.getElementById("contenitoreLista");
             const cardHeader = document.getElementById("cardHeader");
@@ -484,7 +575,7 @@
 
             div.innerHTML = "";
             data.forEach(item => {
-                const nome = item.spesa_prodotti?.nome || "Prodotto";
+                const nome = prodottiMap[item.prodotto_id] || item.nome || "Prodotto";
                 const riga = document.createElement("div");
                 riga.className = `item${item.completato ? ' completato-row' : ''}`;
                 riga.innerHTML = `
