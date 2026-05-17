@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>Listando - Lista Spesa</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
             --green: #0fba8d;
@@ -411,8 +412,12 @@
 </nav>
 
 <script>
-    const URL_BASE = "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1";
+    const SUPABASE_URL = "https://eejdpophfxsrqdvsucye.supabase.co";
+    const URL_BASE = SUPABASE_URL + "/rest/v1";
     const KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlamRwb3BoZnhzcnFkdnN1Y3llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2NTMzMDQsImV4cCI6MjA5MzIyOTMwNH0.mpxbwlJyIdZgqKIdutHbLd85JR1P11yiglbYeApi17k";
+
+    const supabaseClient = supabase.createClient(SUPABASE_URL, KEY);
+
     const headers = {
         "apikey": KEY,
         "Content-Type": "application/json",
@@ -498,32 +503,29 @@
     }
 
     async function toggle(id, stato) {
-        await fetch(`${URL_BASE}/spesa_lista?id=eq.${id}`, {
-            method: "PATCH", headers,
-            body: JSON.stringify({ completato: !stato })
-        });
+        await supabaseClient.from('spesa_lista').update({ completato: !stato }).eq('id', id);
         caricaLista();
     }
 
     async function elimina(id) {
-        await fetch(`${URL_BASE}/spesa_lista?id=eq.${id}`, { method: "DELETE", headers });
+        await supabaseClient.from('spesa_lista').delete().eq('id', id);
         caricaLista();
     }
 
     async function eliminaAcquistati() {
         if (confirm("Eliminare i prodotti già presi?")) {
-            await fetch(`${URL_BASE}/spesa_lista?email_utente=eq.${userEmail}&completato=eq.true`, {
-                method: "DELETE", headers
-            });
+            await supabaseClient.from('spesa_lista')
+                .delete()
+                .eq('email_utente', userEmail)
+                .eq('completato', true);
             caricaLista();
         }
     }
 
     async function ripristinaLista() {
-        await fetch(`${URL_BASE}/spesa_lista?email_utente=eq.${userEmail}`, {
-            method: "PATCH", headers,
-            body: JSON.stringify({ completato: false })
-        });
+        await supabaseClient.from('spesa_lista')
+            .update({ completato: false })
+            .eq('email_utente', userEmail);
         caricaLista();
     }
 
@@ -531,9 +533,7 @@
     function chiudiModal()      { document.getElementById('svuotaModal').style.display = 'none'; }
 
     async function confermaSvuota() {
-        await fetch(`${URL_BASE}/spesa_lista?email_utente=eq.${userEmail}`, {
-            method: "DELETE", headers
-        });
+        await supabaseClient.from('spesa_lista').delete().eq('email_utente', userEmail);
         chiudiModal();
         caricaLista();
     }

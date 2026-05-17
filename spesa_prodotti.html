@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>Listando - Prodotti</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
             --green: #0fba8d;
@@ -386,18 +387,15 @@
 </nav>
 
 <script>
-    const URL_BASE  = "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1";
+    const SUPABASE_URL = "https://eejdpophfxsrqdvsucye.supabase.co";
+    const URL_BASE  = SUPABASE_URL + "/rest/v1";
     const KEY       = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlamRwb3BoZnhzcnFkdnN1Y3llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2NTMzMDQsImV4cCI6MjA5MzIyOTMwNH0.mpxbwlJyIdZgqKIdutHbLd85JR1P11yiglbYeApi17k";
+
+    const supabaseClient = supabase.createClient(SUPABASE_URL, KEY);
 
     const headersRead = {
         "apikey": KEY,
         "Authorization": "Bearer " + KEY
-    };
-    const headersWrite = {
-        "apikey": KEY,
-        "Authorization": "Bearer " + KEY,
-        "Content-Type": "application/json",
-        "Prefer": "return=minimal"
     };
 
     const userEmail = localStorage.getItem('userEmail');
@@ -488,29 +486,25 @@
         });
     }
 
-    // ── Aggiungi alla lista spesa (FIX) ──────────────────────────
+    // ── Aggiungi alla lista spesa ──────────────────────────────────
     async function mettiInLista(prodottoId, btnEl) {
-        // Feedback visivo immediato
         btnEl.textContent = '…';
         btnEl.disabled = true;
 
         try {
-            const res = await fetch(`${URL_BASE}/spesa_lista`, {
-                method: "POST",
-                headers: headersWrite,
-                body: JSON.stringify({
+            const { error } = await supabaseClient
+                .from('spesa_lista')
+                .insert({
                     prodotto_id: prodottoId,
                     email_utente: userEmail,
                     completato: false
-                })
-            });
+                });
 
-            if (res.ok || res.status === 201 || res.status === 204) {
+            if (!error) {
                 btnEl.textContent = '✓';
                 btnEl.style.borderColor = 'var(--green)';
                 btnEl.style.color = 'var(--green)';
                 mostraToast("✓ Aggiunto alla lista!");
-                // Ripristina dopo 1.5s
                 setTimeout(() => {
                     btnEl.textContent = '+';
                     btnEl.style.borderColor = '';
@@ -518,10 +512,8 @@
                     btnEl.disabled = false;
                 }, 1500);
             } else {
-                // Leggi il body dell'errore per debug
-                const errBody = await res.text();
-                console.error("Errore POST spesa_lista:", res.status, errBody);
-                mostraToast(`Errore ${res.status}: controlla la console`);
+                console.error("Errore insert spesa_lista:", error);
+                mostraToast(`Errore: ${error.message}`);
                 btnEl.textContent = '+';
                 btnEl.disabled = false;
             }
@@ -563,15 +555,12 @@
         const nome = document.getElementById("nuovoNome").value.trim();
         if (!nome || !categoriaScelta) return;
         try {
-            const res = await fetch(`${URL_BASE}/spesa_prodotti`, {
-                method: "POST",
-                headers: headersWrite,
-                body: JSON.stringify({ nome, categoria: categoriaScelta, email_utente: userEmail })
-            });
-            if (!res.ok && res.status !== 201 && res.status !== 204) {
-                const err = await res.text();
-                console.error("Errore POST prodotto:", res.status, err);
-                mostraToast("Errore nel salvataggio");
+            const { error } = await supabaseClient
+                .from('spesa_prodotti')
+                .insert({ nome, categoria: categoriaScelta, email_utente: userEmail });
+            if (error) {
+                console.error("Errore insert prodotto:", error);
+                mostraToast(`Errore: ${error.message}`);
                 return;
             }
             document.getElementById("nuovoNome").value = "";
@@ -608,18 +597,13 @@
         const nuovoNome = document.getElementById("inputModifica").value.trim();
         if (!nuovoNome || !idInModifica) return;
         try {
-            const res = await fetch(
-                `${URL_BASE}/spesa_prodotti?id=eq.${idInModifica}`,
-                {
-                    method: "PATCH",
-                    headers: headersWrite,
-                    body: JSON.stringify({ nome: nuovoNome, categoria: catModificaScelta })
-                }
-            );
-            if (!res.ok && res.status !== 204) {
-                const err = await res.text();
-                console.error("Errore PATCH prodotto:", res.status, err);
-                mostraToast("Errore nella modifica");
+            const { error } = await supabaseClient
+                .from('spesa_prodotti')
+                .update({ nome: nuovoNome, categoria: catModificaScelta })
+                .eq('id', idInModifica);
+            if (error) {
+                console.error("Errore update prodotto:", error);
+                mostraToast(`Errore: ${error.message}`);
                 return;
             }
             chiudiModal('modalModifica');
@@ -641,19 +625,18 @@
     async function confermaElimina() {
         if (!idInElimina) return;
         try {
-            const res = await fetch(
-                `${URL_BASE}/spesa_prodotti?id=eq.${idInElimina}`,
-                { method: "DELETE", headers: headersWrite }
-            );
-            if (!res.ok && res.status !== 204) {
-                const err = await res.text();
-                console.error("Errore DELETE prodotto:", res.status, err);
-                mostraToast("Errore nell'eliminazione");
+            const { error } = await supabaseClient
+                .from('spesa_prodotti')
+                .delete()
+                .eq('id', idInElimina);
+            if (error) {
+                console.error("Errore delete prodotto:", error);
+                mostraToast(`Errore: ${error.message}`);
                 return;
             }
             chiudiModal('modalElimina');
             await caricaProdotti();
-            mostraToast("🗑️ Prodotto eliminato");
+            mostraToast("Prodotto eliminato");
         } catch (e) {
             console.error("confermaElimina:", e);
             mostraToast("Errore di rete");
