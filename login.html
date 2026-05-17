@@ -132,6 +132,19 @@
 
         .error { color: #ff3b30; }
         .success { color: var(--green); }
+
+        /* ── Focus styles ── */
+        button:focus-visible, a:focus-visible {
+            outline: 3px solid var(--blue);
+            outline-offset: 2px;
+        }
+
+        @media (min-width: 768px) {
+            .card { max-width: 420px; }
+        }
+        @media (min-width: 1024px) {
+            .card { max-width: 460px; }
+        }
     </style>
 </head>
 <body>
