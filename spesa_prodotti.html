@@ -21,6 +21,8 @@
 
         * { box-sizing: border-box; }
 
+        html, body { overflow-x: hidden; max-width: 100%; }
+
         body {
             margin: 0;
             font-family: 'Segoe UI', system-ui, sans-serif;
@@ -197,7 +199,10 @@
             font-size: 13px; font-weight: 700;
             opacity: 0; pointer-events: none;
             transition: all 0.3s ease;
-            z-index: 3000; white-space: nowrap;
+            z-index: 3000;
+            max-width: calc(100vw - 40px);
+            white-space: normal;
+            text-align: center;
         }
         .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
@@ -360,6 +365,12 @@
         @media (min-width: 1280px) {
             .tab-bar { width: 260px; }
             .app { margin-left: 260px; max-width: 940px; }
+        }
+
+        /* ── Small mobile overflow fix (≤400px) ── */
+        @media (max-width: 400px) {
+            .item { padding: 13px 12px; }
+            .item-nome { word-break: break-word; min-width: 0; }
         }
     </style>
 </head>
