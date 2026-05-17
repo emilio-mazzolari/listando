@@ -21,6 +21,8 @@
 
         * { box-sizing: border-box; }
 
+        html, body { overflow-x: hidden; max-width: 100%; }
+
         body {
             margin: 0;
             font-family: 'Segoe UI', system-ui, sans-serif;
@@ -416,6 +418,12 @@
         @media (min-width: 1280px) {
             .tab-bar { width: 260px; }
             .app { margin-left: 260px; max-width: 940px; }
+        }
+
+        /* ── Small mobile overflow fix (≤400px) ── */
+        @media (max-width: 400px) {
+            .item { padding: 12px 14px; }
+            .testo-prodotto { word-break: break-word; min-width: 0; }
         }
     </style>
 </head>
