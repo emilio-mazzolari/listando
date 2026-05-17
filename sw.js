@@ -1,9 +1,13 @@
-const CACHE_NAME = "lista-spesa-cache-v3";
+const CACHE_NAME = "lista-spesa-cache-v4";
 
 const FILES = [
   "/",
   "/index.html",
-  "/prodotti.html",
+  "/login.html",
+  "/spesa.html",
+  "/spesa_prodotti.html",
+  "/valigia.html",
+  "/valigia_elencocose.html",
   "/manifest.json",
   "/logolistando.png",
 ];

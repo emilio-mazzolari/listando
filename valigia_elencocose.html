@@ -6,258 +6,474 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         :root {
-            --green: #0fba8d; --blue: #3384d4; --yellow: #feb310;
-            --grey: #d8dddc; --dark: #000000; --bg: #fdfdfd;
-            --soft-blue: #aec6cf;
+            --green: #0fba8d;
+            --blue: #3384d4;
+            --yellow: #feb310;
+            --red: #ff4d4d;
+            --grey: #d8dddc;
+            --grey-light: #f2f2f7;
+            --dark: #111111;
+            --bg: #f5f6f8;
+            --white: #ffffff;
+            --shadow: 0 4px 20px rgba(0,0,0,0.07);
         }
 
-        body { margin: 0; font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--dark); display: flex; justify-content: center; }
-        .app { width: 100%; max-width: 420px; padding: 20px; padding-bottom: 110px; }
+        * { box-sizing: border-box; }
 
-        h2 { font-weight: 900; font-size: 24px; margin: 10px 0 20px 0; text-transform: uppercase; }
-
-        /* Box Inserimento Categoria */
-        .category-input-box { 
-            background: rgba(216, 221, 220, 0.3); 
-            padding: 15px; 
-            border-radius: 28px; 
-            margin-bottom: 25px;
-            border: 1px solid rgba(216, 221, 220, 0.5);
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--dark);
+            display: flex;
+            justify-content: center;
         }
 
-        .input-group { display: flex; gap: 10px; }
-        input { 
-            flex: 1; padding: 12px; border-radius: 16px; border: 2px solid var(--grey); 
-            outline: none; font-size: 14px; background: white; transition: border-color 0.2s;
+        .app {
+            width: 100%;
+            max-width: 420px;
+            padding: 24px 20px 120px;
         }
-        input:focus { border-color: var(--blue); }
 
-        .btn-action-main { 
-            background: var(--blue); color: white; border: none; border-radius: 16px; 
-            width: 50px; height: 50px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+        .page-title {
+            font-weight: 900;
+            font-size: 26px;
+            text-transform: uppercase;
+            letter-spacing: -0.5px;
+            margin: 0 0 20px 0;
         }
-        .btn-action-main svg { width: 22px; height: 22px; stroke-width: 3.5; stroke: currentColor; fill: none; }
 
-        /* Card Categoria */
-        .card { background: white; border-radius: 28px; padding: 18px; border: 3px solid var(--grey); margin-bottom: 25px; }
-        
-        .cat-title { 
-            font-weight: 900; font-size: 14px; color: var(--blue); 
-            margin-bottom: 15px; text-transform: uppercase; 
-            display: flex; justify-content: space-between; align-items: center;
+        /* ── Input categoria ── */
+        .input-card {
+            background: var(--white);
+            padding: 16px;
+            border-radius: 24px;
+            border: 3px solid var(--grey);
+            margin-bottom: 16px;
+            box-shadow: var(--shadow);
         }
-        .btn-del-cat { color: #ff4d4d; cursor: pointer; font-size: 18px; }
+        .input-row { display: flex; gap: 10px; align-items: center; }
+        .input-card input {
+            flex: 1;
+            padding: 12px 16px;
+            border-radius: 14px;
+            border: 2.5px solid var(--grey);
+            outline: none;
+            font-size: 15px;
+            font-weight: 600;
+            font-family: inherit;
+            color: var(--dark);
+            background: var(--bg);
+            transition: border-color 0.2s;
+        }
+        .input-card input:focus { border-color: var(--yellow); }
 
-        /* Lista Articoli */
-        .item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 2px solid #f2f2f7; }
+        .btn-save {
+            padding: 12px 18px;
+            border-radius: 14px;
+            background: var(--yellow);
+            color: white;
+            border: none;
+            font-weight: 800;
+            font-size: 13px;
+            cursor: pointer;
+            text-transform: uppercase;
+            white-space: nowrap;
+            font-family: inherit;
+            transition: opacity 0.15s;
+        }
+        .btn-save:active { opacity: 0.85; }
+
+        /* ── Card categoria ── */
+        .card {
+            background: var(--white);
+            border-radius: 28px;
+            border: 3px solid var(--grey);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            margin-bottom: 16px;
+        }
+
+        .card-cat-header {
+            padding: 14px 20px 12px;
+            border-bottom: 2px solid var(--grey-light);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .cat-title {
+            font-weight: 900;
+            font-size: 12px;
+            color: var(--yellow);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+        .btn-del-cat {
+            color: var(--red);
+            cursor: pointer;
+            font-size: 20px;
+            line-height: 1;
+            background: none;
+            border: none;
+            padding: 0;
+            font-family: inherit;
+        }
+
+        .card-add-row {
+            display: flex;
+            gap: 8px;
+            padding: 10px 16px;
+            border-bottom: 2px solid var(--grey-light);
+        }
+        .card-add-row input {
+            flex: 1;
+            padding: 10px 14px;
+            border-radius: 12px;
+            border: 2px solid var(--grey);
+            outline: none;
+            font-size: 14px;
+            font-weight: 600;
+            font-family: inherit;
+            color: var(--dark);
+            background: var(--bg);
+            transition: border-color 0.2s;
+        }
+        .card-add-row input:focus { border-color: var(--yellow); }
+        .btn-add-row {
+            padding: 10px 14px;
+            border-radius: 12px;
+            background: var(--yellow);
+            color: white;
+            border: none;
+            font-weight: 800;
+            font-size: 13px;
+            cursor: pointer;
+            white-space: nowrap;
+            font-family: inherit;
+            transition: opacity 0.15s;
+        }
+        .btn-add-row:active { opacity: 0.85; }
+
+        /* ── Righe articolo ── */
+        .item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 13px 20px;
+            border-bottom: 2px solid var(--grey-light);
+        }
         .item:last-child { border-bottom: none; }
-        .testo-prodotto { font-weight: 700; font-size: 15px; }
 
-        .btn-actions { display: flex; gap: 8px; }
-        .btn-small { 
-            border: 2.5px solid var(--grey); border-radius: 12px; width: 40px; height: 40px; 
-            cursor: pointer; display: flex; align-items: center; justify-content: center; background: white; 
+        .testo-prodotto {
+            flex: 1;
+            font-weight: 700;
+            font-size: 15px;
+            line-height: 1.3;
         }
-        .btn-small svg { width: 18px; height: 18px; stroke-width: 3; stroke: currentColor; fill: none; }
-        .btn-small.plus { border-color: var(--blue); color: var(--blue); }
-        .btn-small.delete { border-color: #ff4d4d; color: #ff4d4d; }
 
-        /* Feedback stato pulsante */
-        .btn-feedback { font-size: 10px !important; font-weight: 800; text-transform: uppercase; width: auto !important; padding: 0 10px; }
+        .btn-actions { display: flex; gap: 7px; }
 
-        /* Tab Bar */
-        .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 85px; background: white; display: flex; justify-content: space-around; align-items: center; border-top: 3px solid var(--grey); z-index: 1000; }
-        .tab-item { flex: 1; text-align: center; font-size: 10px; color: var(--dark); text-decoration: none; font-weight: 800; display: flex; flex-direction: column; align-items: center; gap: 6px; }
-        .tab-active { color: var(--soft-blue); }
-        .icon-tab { width: 26px; height: 26px; stroke-width: 2.5; stroke: currentColor; fill: none; }
+        .btn-ic {
+            width: 38px; height: 38px;
+            border-radius: 12px;
+            border: 2.5px solid var(--grey);
+            background: white;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.15s;
+            flex-shrink: 0;
+            font-family: inherit;
+        }
+        .btn-ic:active { transform: scale(0.9); }
+        .btn-ic svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 2.5; }
+
+        .btn-ic.add { border-color: var(--yellow); color: var(--yellow); font-size: 22px; font-weight: 900; line-height: 1; }
+        .btn-ic.del { border-color: var(--red);    color: var(--red);    }
+
+        .btn-ic.add:active { background: #fff8e6; }
+        .btn-ic.del:active { background: #fff0f0; }
+
+        /* ── Toast ── */
+        .toast {
+            position: fixed;
+            bottom: 105px; left: 50%; transform: translateX(-50%) translateY(20px);
+            background: var(--dark); color: white;
+            padding: 12px 22px; border-radius: 20px;
+            font-size: 13px; font-weight: 700;
+            opacity: 0; pointer-events: none;
+            transition: all 0.3s ease;
+            z-index: 3000; white-space: nowrap;
+        }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        /* ── Tab Bar ── */
+        .tab-bar {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            height: 88px;
+            background: white;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            border-top: 3px solid var(--grey);
+            z-index: 1000;
+            padding-bottom: env(safe-area-inset-bottom, 0);
+        }
+        .tab-item {
+            flex: 1; text-align: center;
+            font-size: 10px; color: #aaa;
+            text-decoration: none;
+            font-weight: 800;
+            display: flex; flex-direction: column;
+            align-items: center; gap: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            transition: color 0.15s;
+        }
+        .tab-active { color: var(--yellow); }
+        .icon-tab { width: 24px; height: 24px; stroke-width: 2.5; stroke: currentColor; fill: none; }
     </style>
 </head>
 <body>
 
-    <div class="app">
-        <h2>📋 Le mie cose</h2>
+<div class="app">
+    <h2 class="page-title">Le mie cose</h2>
 
-        <div class="category-input-box">
-            <div class="input-group">
-                <input type="text" id="nuovaCategoria" placeholder="Aggiungi nuova categoria...">
-                <button class="btn-action-main" onclick="creaCategoria()">
-                    <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                </button>
-            </div>
-        </div>
-
-        <div id="contenitoreMaster">
-            <p style="text-align:center; padding:20px; font-weight:700; color:var(--grey);">Caricamento...</p>
+    <div class="input-card">
+        <div class="input-row">
+            <input type="text" id="nuovaCategoria" placeholder="Nuova categoria..."
+                   onkeydown="if(event.key==='Enter') creaCategoria()">
+            <button class="btn-save" onclick="creaCategoria()">+ Categoria</button>
         </div>
     </div>
 
-    <div class="tab-bar">
-        <a href="index.html" class="tab-item"><svg class="icon-tab" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>HOME</a>
-        <a href="valigia.html" class="tab-item"><svg class="icon-tab" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>VALIGIA</a>
-        <a href="cosevaligia.html" class="tab-item tab-active"><svg class="icon-tab" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>COSE</a>
-        <a href="#" class="tab-item" onclick="logout()"><svg class="icon-tab" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline></svg>ESCI</a>
+    <div id="contenitoreMaster">
+        <div style="text-align:center; padding:40px 20px; color:#aaa; font-weight:700;">Caricamento…</div>
     </div>
+</div>
 
-    <script>
-        const URL_SUPA = "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1";
-        const KEY = "sb_publishable_A7ZE5MzG6TtUrTKNo3SebA_qOk3_n4v";
-        const headers = { "apikey": KEY, "Content-Type": "application/json", "Authorization": "Bearer " + KEY };
-        const userEmail = localStorage.getItem('userEmail');
+<div class="toast" id="toast"></div>
 
-        const DATI_DEFAULT = {
-            "Abbigliamento": ["t-shirt", "stivali per pioggia", "spazzola scarpe", "sciarpa", "scarpe trakking", "scarpe da ballo", "scarpe", "poncho", "pigiama", "pantaloni", "pantaloncini", "pail", "mutande", "monospalla", "maglioni", "giubbino catarifrangente", "giaccone", "giacca a vento", "felpe", "detergente scarpe", "costume", "cinture", "ciabatte", "cappello", "camicie", "calze antiscivolo", "calze", "bretelle"],
-            "Igiene": ["accappatoio", "asciugamano", "bagnodoccia", "carta igienica", "cera", "cerotti", "cotton fioc", "dentifricio", "deodorante", "disinfettante mani", "fazzolettini", "filo interdentale", "mascherina", "pettine", "preservativi", "rasoio", "salviette", "salviette umide", "sapone marsiglia", "spazzolino"],
-            "Campeggio": ["antizanzare", "borraccia", "cuscino", "federa", "forbici", "lenzuolo", "materassino", "pile", "plaid", "pompetta", "sacchi spazzatura", "sacco a pelo", "scatola plastica", "scopettino tenda", "telo", "tenda", "torcia"],
-            "Cucina": ["accendino", "bicchieri", "bombola", "colino", "detersivo", "fornellino", "moka", "pentola", "piatti", "posate", "spugnetta", "vaschetta"],
-            "Extra": ["arnica", "auricolari", "caricabatterie", "carta identità", "carta imbarco", "cavigliera", "cellulare", "chiavi di casa", "coltellino svizzero", "comped", "cuffie audio", "cuscino aereo", "custodia occhiali", "guaranà", "ketoprofene", "kit contenitori x aereo", "lasonil", "lenti contatto", "libri", "magnesio potassio", "ombrello", "portafoglio", "powerbank", "prenotazione hotel", "prenotazione parcheggio", "quaderno", "sveglia", "tenda cambusa", "zainetto"],
-            "Mare": ["calotta", "costume", "crema solare", "salviettone"],
-            "Cibo": ["biscotti", "caffè", "frutta", "latte", "marmellata", "muesli", "olio", "pane", "pasta", "sale", "sughi", "zucchero"]
-        };
+<!-- Tab Bar -->
+<nav class="tab-bar">
+    <a href="index.html" class="tab-item">
+        <svg class="icon-tab" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+        Home
+    </a>
+    <a href="valigia.html" class="tab-item">
+        <svg class="icon-tab" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+        Valigia
+    </a>
+    <a href="valigia_elencocose.html" class="tab-item tab-active">
+        <svg class="icon-tab" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        Cose
+    </a>
+    <a href="#" class="tab-item" onclick="logout()">
+        <svg class="icon-tab" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/></svg>
+        Esci
+    </a>
+</nav>
 
-        async function caricaDati() {
-            try {
-                const resCat = await fetch(`${URL_SUPA}/categorie_valigia?email_utente=eq.${userEmail}&order=nome.asc`, { headers });
-                const categorie = await resCat.json();
-                const resArt = await fetch(`${URL_SUPA}/catalogo_valigia?email_utente=eq.${userEmail}&order=nome.asc`, { headers });
-                const articoli = await resArt.json();
+<script>
+    const URL_SUPA = "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1";
+    const KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlamRwb3BoZnhzcnFkdnN1Y3llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2NTMzMDQsImV4cCI6MjA5MzIyOTMwNH0.mpxbwlJyIdZgqKIdutHbLd85JR1P11yiglbYeApi17k";
+    const headers = {
+        "apikey": KEY,
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + KEY,
+        "Prefer": "return=minimal"
+    };
+    const headersRead = {
+        "apikey": KEY,
+        "Authorization": "Bearer " + KEY
+    };
+    const userEmail = localStorage.getItem('userEmail');
+    if (!userEmail) window.location.href = 'login.html';
 
-                if (categorie.length === 0) {
-                    renderizzaDati(Object.keys(DATI_DEFAULT).map(n => ({nome: n, id: n, isDefault: true})), []);
-                } else {
-                    renderizzaDati(categorie, articoli);
-                }
-            } catch (e) { console.error(e); }
-        }
+    const DATI_DEFAULT = {
+        "Abbigliamento": ["t-shirt", "stivali per pioggia", "spazzola scarpe", "sciarpa", "scarpe trakking", "scarpe da ballo", "scarpe", "poncho", "pigiama", "pantaloni", "pantaloncini", "pail", "mutande", "monospalla", "maglioni", "giubbino catarifrangente", "giaccone", "giacca a vento", "felpe", "detergente scarpe", "costume", "cinture", "ciabatte", "cappello", "camicie", "calze antiscivolo", "calze", "bretelle"],
+        "Igiene": ["accappatoio", "asciugamano", "bagnodoccia", "carta igienica", "cera", "cerotti", "cotton fioc", "dentifricio", "deodorante", "disinfettante mani", "fazzolettini", "filo interdentale", "mascherina", "pettine", "preservativi", "rasoio", "salviette", "salviette umide", "sapone marsiglia", "spazzolino"],
+        "Campeggio": ["antizanzare", "borraccia", "cuscino", "federa", "forbici", "lenzuolo", "materassino", "pile", "plaid", "pompetta", "sacchi spazzatura", "sacco a pelo", "scatola plastica", "scopettino tenda", "telo", "tenda", "torcia"],
+        "Cucina": ["accendino", "bicchieri", "bombola", "colino", "detersivo", "fornellino", "moka", "pentola", "piatti", "posate", "spugnetta", "vaschetta"],
+        "Extra": ["arnica", "auricolari", "caricabatterie", "carta identità", "carta imbarco", "cavigliera", "cellulare", "chiavi di casa", "coltellino svizzero", "comped", "cuffie audio", "cuscino aereo", "custodia occhiali", "guaranà", "ketoprofene", "kit contenitori x aereo", "lasonil", "lenti contatto", "libri", "magnesio potassio", "ombrello", "portafoglio", "powerbank", "prenotazione hotel", "prenotazione parcheggio", "quaderno", "sveglia", "tenda cambusa", "zainetto"],
+        "Mare": ["calotta", "costume", "crema solare", "salviettone"],
+        "Cibo": ["biscotti", "caffè", "frutta", "latte", "marmellata", "muesli", "olio", "pane", "pasta", "sale", "sughi", "zucchero"]
+    };
 
-        function renderizzaDati(categorie, articoli) {
-            const master = document.getElementById("contenitoreMaster");
-            master.innerHTML = "";
+    async function caricaDati() {
+        try {
+            const resCat = await fetch(`${URL_SUPA}/categorie_valigia?email_utente=eq.${userEmail}&order=nome.asc`, { headers: headersRead });
+            const categorie = await resCat.json();
+            const resArt = await fetch(`${URL_SUPA}/catalogo_valigia?email_utente=eq.${userEmail}&order=nome.asc`, { headers: headersRead });
+            const articoli = await resArt.json();
 
-            categorie.forEach(cat => {
-                const card = document.createElement("div");
-                card.className = "card";
-                
-                card.innerHTML = `
-                    <div class="cat-title">
-                        <span>${cat.nome}</span>
-                        ${!cat.isDefault ? `<span class="btn-del-cat" onclick="eliminaCategoria(${cat.id})">×</span>` : ''}
-                    </div>
-                    <div class="input-group" style="margin-bottom:15px">
-                        <input type="text" id="input-cat-${cat.id}" placeholder="Aggiungi cosa...">
-                        <button class="btn-action-main" onclick="aggiungiArticolo('${cat.id}', ${cat.isDefault || false})">
-                            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                        </button>
-                    </div>
-                    <div id="lista-${cat.id}"></div>
-                `;
+            if (categorie.length === 0) {
+                renderizzaDati(Object.keys(DATI_DEFAULT).map(n => ({ nome: n, id: n, isDefault: true })), []);
+            } else {
+                renderizzaDati(categorie, articoli);
+            }
+        } catch (e) { console.error(e); }
+    }
 
-                const listDiv = card.querySelector(`#lista-${cat.id}`);
-                const prods = cat.isDefault ? DATI_DEFAULT[cat.nome] : articoli.filter(a => a.categoria_id == cat.id);
-                
-                prods.forEach(p => {
-                    const nomeProdotto = cat.isDefault ? p : p.nome;
-                    const idProdotto = cat.isDefault ? `def-${nomeProdotto.replace(/\s+/g, '')}` : p.id;
-                    
-                    const item = document.createElement("div");
-                    item.className = "item";
-                    item.innerHTML = `
-                        <span class="testo-prodotto">${nomeProdotto}</span>
-                        <div class="btn-actions">
-                            <button class="btn-small plus" id="btn-${idProdotto}" onclick="mettiInValigia('${idProdotto}', '${nomeProdotto.replace(/'/g, "\\'")}')">
-                                <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                            </button>
-                            ${!cat.isDefault ? `
-                            <button class="btn-small delete" onclick="eliminaArticolo(${p.id})">
-                                <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                            </button>` : ''}
-                        </div>
-                    `;
-                    listDiv.appendChild(item);
-                });
-                master.appendChild(card);
+    function renderizzaDati(categorie, articoli) {
+        const master = document.getElementById("contenitoreMaster");
+        master.innerHTML = "";
+
+        categorie.forEach(cat => {
+            const card = document.createElement("div");
+            card.className = "card";
+
+            card.innerHTML = `
+                <div class="card-cat-header">
+                    <span class="cat-title">${cat.nome}</span>
+                    ${!cat.isDefault ? `<button class="btn-del-cat" onclick="eliminaCategoria(${cat.id})" aria-label="Elimina categoria">×</button>` : ''}
+                </div>
+                <div class="card-add-row">
+                    <input type="text" id="input-cat-${cat.id}" placeholder="Aggiungi cosa..."
+                           onkeydown="if(event.key==='Enter') aggiungiArticolo('${cat.id}', ${cat.isDefault || false})">
+                    <button class="btn-add-row" onclick="aggiungiArticolo('${cat.id}', ${cat.isDefault || false})">+ Aggiungi</button>
+                </div>
+                <div id="lista-${cat.id}"></div>
+            `;
+
+            const listDiv = card.querySelector(`#lista-${cat.id}`);
+            const prods = cat.isDefault ? DATI_DEFAULT[cat.nome] : articoli.filter(a => a.categoria_id == cat.id);
+
+            prods.forEach(p => {
+                const nomeProdotto = cat.isDefault ? p : p.nome;
+                const idProdotto = cat.isDefault ? `def-${nomeProdotto.replace(/\s+/g, '')}` : p.id;
+
+                const item = document.createElement("div");
+                item.className = "item";
+                item.innerHTML = `
+                    <span class="testo-prodotto">${nomeProdotto}</span>
+                    <div class="btn-actions">
+                        <button class="btn-ic add" id="btn-${idProdotto}"
+                                onclick="mettiInValigia('${idProdotto}', '${nomeProdotto.replace(/'/g, "\\'")}')"
+                                aria-label="Aggiungi alla valigia">+</button>
+                        ${!cat.isDefault ? `
+                        <button class="btn-ic del" onclick="eliminaArticolo(${p.id})" aria-label="Elimina">
+                            <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                        </button>` : ''}
+                    </div>`;
+                listDiv.appendChild(item);
             });
-        }
 
-        async function mettiInValigia(btnId, nome) {
-            const btn = document.getElementById(`btn-${btnId}`);
-            const res = await fetch(`${URL_SUPA}/cose_valigia?nome=eq.${nome}&email_utente=eq.${userEmail}`, { headers });
+            master.appendChild(card);
+        });
+    }
+
+    async function mettiInValigia(btnId, nome) {
+        const btn = document.getElementById(`btn-${btnId}`);
+        btn.disabled = true;
+
+        try {
+            const res = await fetch(
+                `${URL_SUPA}/cose_valigia?nome=eq.${encodeURIComponent(nome)}&email_utente=eq.${userEmail}`,
+                { headers: headersRead }
+            );
             const esistente = await res.json();
 
             if (esistente.length > 0) {
-                aggiornaBottone(btn, "GIÀ IN LISTA", "var(--red)", "white");
+                mostraFeedbackBottone(btn, "GIÀ IN LISTA", "var(--grey)", "var(--dark)");
                 return;
             }
 
             const add = await fetch(`${URL_SUPA}/cose_valigia`, {
-                method: "POST", headers,
-                body: JSON.stringify({ nome: nome, email_utente: userEmail, completato: false })
+                method: "POST",
+                headers,
+                body: JSON.stringify({ nome, email_utente: userEmail, completato: false })
             });
 
-            if (add.ok) aggiornaBottone(btn, "AGGIUNTO", "var(--blue)", "white");
-        }
-
-        function aggiornaBottone(btn, testo, sfondo, coloreTesto) {
-            const originalHTML = btn.innerHTML;
-            btn.innerHTML = `<span class="btn-feedback">${testo}</span>`;
-            btn.style.backgroundColor = sfondo;
-            btn.style.color = coloreTesto;
-            btn.classList.add('btn-feedback');
-            setTimeout(() => {
-                btn.innerHTML = originalHTML;
-                btn.style.backgroundColor = "";
-                btn.style.color = "";
-                btn.classList.remove('btn-feedback');
-            }, 1200);
-        }
-
-        async function creaCategoria() {
-            const nome = document.getElementById("nuovaCategoria").value.trim();
-            if (!nome) return;
-            await fetch(`${URL_SUPA}/categorie_valigia`, {
-                method: "POST", headers,
-                body: JSON.stringify({ nome: nome, email_utente: userEmail })
-            });
-            document.getElementById("nuovaCategoria").value = "";
-            caricaDati();
-        }
-
-        async function aggiungiArticolo(catId, isDefault) {
-            const input = document.getElementById(`input-cat-${catId}`);
-            const nome = input.value.trim();
-            if (!nome) return;
-
-            if (isDefault) {
-                await fetch(`${URL_SUPA}/categorie_valigia`, {
-                    method: "POST", headers,
-                    body: JSON.stringify({ nome: catId, email_utente: userEmail })
-                });
-                const nuovaCat = await fetch(`${URL_SUPA}/categorie_valigia?nome=eq.${catId}&email_utente=eq.${userEmail}`, { headers }).then(r => r.json());
-                catId = nuovaCat[0].id;
+            if (add.ok || add.status === 201 || add.status === 204) {
+                mostraFeedbackBottone(btn, "✓", "var(--yellow)", "white");
+                mostraToast("✓ Aggiunto alla valigia!");
+            } else {
+                btn.disabled = false;
+                mostraToast("Errore nell'aggiunta");
             }
-
-            await fetch(`${URL_SUPA}/catalogo_valigia`, {
-                method: "POST", headers,
-                body: JSON.stringify({ nome: nome, categoria_id: catId, email_utente: userEmail })
-            });
-            input.value = "";
-            caricaDati();
+        } catch (e) {
+            console.error("mettiInValigia:", e);
+            btn.disabled = false;
+            mostraToast("Errore di rete");
         }
+    }
 
-        async function eliminaCategoria(id) {
-            if(confirm("Eliminare categoria e prodotti contenuti?")) {
-                await fetch(`${URL_SUPA}/categorie_valigia?id=eq.${id}`, { method: "DELETE", headers });
-                caricaDati();
-            }
-        }
+    function mostraFeedbackBottone(btn, testo, sfondo, colore) {
+        const testoOriginale = btn.textContent;
+        btn.textContent = testo;
+        btn.style.background = sfondo;
+        btn.style.color = colore;
+        btn.style.borderColor = sfondo;
+        setTimeout(() => {
+            btn.textContent = testoOriginale;
+            btn.style.background = "";
+            btn.style.color = "";
+            btn.style.borderColor = "";
+            btn.disabled = false;
+        }, 1400);
+    }
 
-        async function eliminaArticolo(id) {
-            await fetch(`${URL_SUPA}/catalogo_valigia?id=eq.${id}`, { method: "DELETE", headers });
-            caricaDati();
-        }
-
-        function logout() { localStorage.clear(); window.location.href = 'login.html'; }
-        if (!userEmail) window.location.href = 'login.html';
+    async function creaCategoria() {
+        const nome = document.getElementById("nuovaCategoria").value.trim();
+        if (!nome) return;
+        await fetch(`${URL_SUPA}/categorie_valigia`, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({ nome, email_utente: userEmail })
+        });
+        document.getElementById("nuovaCategoria").value = "";
         caricaDati();
-    </script>
+    }
+
+    async function aggiungiArticolo(catId, isDefault) {
+        const input = document.getElementById(`input-cat-${catId}`);
+        const nome = input.value.trim();
+        if (!nome) return;
+
+        if (isDefault) {
+            await fetch(`${URL_SUPA}/categorie_valigia`, {
+                method: "POST",
+                headers,
+                body: JSON.stringify({ nome: catId, email_utente: userEmail })
+            });
+            const r = await fetch(`${URL_SUPA}/categorie_valigia?nome=eq.${encodeURIComponent(catId)}&email_utente=eq.${userEmail}`, { headers: headersRead });
+            const nuovaCat = await r.json();
+            catId = nuovaCat[0].id;
+        }
+
+        await fetch(`${URL_SUPA}/catalogo_valigia`, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({ nome, categoria_id: catId, email_utente: userEmail })
+        });
+        input.value = "";
+        caricaDati();
+    }
+
+    async function eliminaCategoria(id) {
+        if (confirm("Eliminare categoria e prodotti contenuti?")) {
+            await fetch(`${URL_SUPA}/categorie_valigia?id=eq.${id}`, { method: "DELETE", headers });
+            caricaDati();
+        }
+    }
+
+    async function eliminaArticolo(id) {
+        await fetch(`${URL_SUPA}/catalogo_valigia?id=eq.${id}`, { method: "DELETE", headers });
+        caricaDati();
+    }
+
+    let toastTimer;
+    function mostraToast(msg) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+    }
+
+    function logout() { localStorage.clear(); window.location.href = 'login.html'; }
+
+    caricaDati();
+</script>
 </body>
 </html>
