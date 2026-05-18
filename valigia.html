@@ -62,6 +62,67 @@
             margin-bottom: 16px;
         }
 
+        .card-header {
+            padding: 16px 20px;
+            border-bottom: 2px solid var(--grey-light);
+            display: none;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .card-header-label {
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: #999;
+        }
+        .btn-add-inline {
+            background: var(--yellow);
+            color: white;
+            border: none;
+            border-radius: 14px;
+            padding: 8px 16px;
+            font-size: 12px;
+            font-weight: 800;
+            text-transform: uppercase;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: opacity 0.2s;
+        }
+        .btn-add-inline:active { opacity: 0.8; }
+        .btn-add-inline svg { width: 14px; height: 14px; stroke: white; fill: none; stroke-width: 3; }
+
+        /* ── Barra progresso ── */
+        .progress-wrap {
+            padding: 0 20px 16px;
+            display: none;
+        }
+        .progress-bar-bg {
+            background: var(--grey-light);
+            border-radius: 10px;
+            height: 8px;
+            overflow: hidden;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--yellow), #ffd64f);
+            border-radius: 10px;
+            transition: width 0.4s ease;
+            width: 0%;
+        }
+        .progress-label {
+            font-size: 12px;
+            font-weight: 700;
+            color: #999;
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .progress-label span { color: var(--yellow); }
+
         /* ── Righe ── */
         .item {
             display: flex;
@@ -104,13 +165,13 @@
         .btn-small:active { transform: scale(0.9); }
         .btn-small svg { width: 18px; height: 18px; stroke-width: 2.5; stroke: currentColor; fill: none; }
 
-        .btn-small.check   { border-color: var(--green); color: var(--green); }
-        .btn-small.restore { border-color: var(--blue);  color: var(--blue);  }
-        .btn-small.delete  { border-color: var(--red);   color: var(--red);   }
+        .btn-small.check  { border-color: var(--green); color: var(--green); }
+        .btn-small.delete { border-color: var(--red);   color: var(--red);   }
 
-        .btn-small.check:active   { background: #e6faf5; }
-        .btn-small.restore:active { background: #e8f3ff; }
-        .btn-small.delete:active  { background: #fff0f0; }
+        .btn-small.check.done        { background: var(--green); border-color: var(--green); color: white; }
+        .btn-small.check:active      { background: #e6faf5; }
+        .btn-small.check.done:active { opacity: 0.85; background: var(--green); }
+        .btn-small.delete:active     { background: #fff0f0; }
 
         /* ── Stato vuoto ── */
         .empty-state {
@@ -339,12 +400,30 @@
         <h2 class="page-title">Lista Valigia</h2>
     </div>
 
-    <div class="card" id="contenitoreLista">
-        <div class="empty-state">
-            <div class="empty-icon">
-                <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+    <div class="card" id="cardLista">
+        <div id="cardHeader" class="card-header">
+            <span class="card-header-label" id="labelProgresso">0 oggetti</span>
+            <a href="valigia_elencocose.html" class="btn-add-inline">
+                <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Aggiungi
+            </a>
+        </div>
+        <div id="progressWrap" class="progress-wrap">
+            <div class="progress-label">
+                <span id="progressText">Avanzamento</span>
+                <span id="progressPct">0%</span>
             </div>
-            <div class="empty-title">Caricamento…</div>
+            <div class="progress-bar-bg">
+                <div class="progress-bar-fill" id="progressFill"></div>
+            </div>
+        </div>
+        <div id="contenitoreLista">
+            <div class="empty-state">
+                <div class="empty-icon">
+                    <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+                </div>
+                <div class="empty-title">Caricamento…</div>
+            </div>
         </div>
     </div>
 
@@ -403,8 +482,13 @@
             const dati = await res.json();
             const div = document.getElementById("contenitoreLista");
             const controlli = document.getElementById("controlliLista");
+            const cardHeader = document.getElementById("cardHeader");
+            const progressWrap = document.getElementById("progressWrap");
 
             if (!Array.isArray(dati) || dati.length === 0) {
+                cardHeader.style.display = "none";
+                progressWrap.style.display = "none";
+                controlli.style.display = "none";
                 div.innerHTML = `
                     <div class="empty-state">
                         <div class="empty-icon">
@@ -414,35 +498,39 @@
                         <div class="empty-sub">Aggiungi gli oggetti da portare</div>
                         <a href="valigia_elencocose.html" class="btn-empty">+ Aggiungi oggetti</a>
                     </div>`;
-                controlli.style.display = "none";
                 return;
             }
 
+            const totale = dati.length;
+            const completati = dati.filter(i => i.completato).length;
+            const pct = Math.round((completati / totale) * 100);
+
+            document.getElementById("labelProgresso").textContent = `${totale} oggetto${totale !== 1 ? 'i' : ''}`;
+            document.getElementById("progressText").textContent = `${completati} di ${totale} messi`;
+            document.getElementById("progressPct").textContent = `${pct}%`;
+            document.getElementById("progressFill").style.width = `${pct}%`;
+
+            cardHeader.style.display = "flex";
+            progressWrap.style.display = "block";
             controlli.style.display = "flex";
 
-            dati.sort((a, b) => (a.completato === b.completato) ? 0 : a.completato ? 1 : -1);
+            dati.sort((a, b) => {
+                if (a.completato !== b.completato) return a.completato ? 1 : -1;
+                return a.nome.localeCompare(b.nome, 'it');
+            });
 
             div.innerHTML = "";
             dati.forEach(item => {
                 const riga = document.createElement("div");
                 riga.className = `item${item.completato ? ' completato-row' : ''}`;
-
-                const btnStatus = item.completato
-                    ? `<button class="btn-small restore" onclick="toggleStatus(${item.id}, ${item.completato})" aria-label="Ripristina">
-                         <svg viewBox="0 0 24 24"><path d="M9 14l-4-4 4-4M5 10h11a4 4 0 1 1 0 8h-1"/></svg>
-                       </button>`
-                    : `<button class="btn-small check" onclick="toggleStatus(${item.id}, ${item.completato})" aria-label="Metti in valigia">
-                         <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-                       </button>`;
-
                 riga.innerHTML = `
+                    <button class="btn-small check ${item.completato ? 'done' : ''}" onclick="toggleStatus(${item.id}, ${item.completato})" aria-label="${item.completato ? 'Ripristina' : 'Metti in valigia'}">
+                        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                    </button>
                     <span class="testo-prodotto ${item.completato ? 'barrato' : ''}">${item.nome}</span>
-                    <div class="btn-actions">
-                        ${btnStatus}
-                        <button class="btn-small delete" onclick="eliminaSingolo(${item.id})" aria-label="Elimina">
-                            <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                        </button>
-                    </div>`;
+                    <button class="btn-small delete" onclick="eliminaSingolo(${item.id})" aria-label="Elimina">
+                        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>`;
                 div.appendChild(riga);
             });
         } catch (e) { console.error("Errore caricamento:", e); }
