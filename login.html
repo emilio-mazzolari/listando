@@ -209,9 +209,12 @@ function loginManuale() {
 }
 
 supabaseClient.auth.onAuthStateChange((event, session) => {
-    if (event === "SIGNED_IN" && session) {
+    if ((event === "SIGNED_IN" || event === "TOKEN_REFRESHED") && session) {
         localStorage.setItem('userEmail', session.user.email);
         window.location.assign('index.html');
+    }
+    if (event === "SIGNED_OUT") {
+        localStorage.removeItem('userEmail');
     }
 });
 </script>

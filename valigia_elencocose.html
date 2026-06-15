@@ -415,7 +415,13 @@
             } else {
                 renderizzaDati(categorie, articoli);
             }
-        } catch (e) { console.error(e); }
+        } catch (e) {
+            console.error(e);
+            document.getElementById("contenitoreMaster").innerHTML =
+                `<div style="text-align:center;padding:40px 20px;color:#eb445a;font-weight:700;">
+                    Errore di caricamento — <a href="" style="color:var(--yellow);text-decoration:underline">Riprova</a>
+                </div>`;
+        }
     }
 
     function renderizzaDati(categorie, articoli) {
@@ -578,6 +584,10 @@
     function logout() { localStorage.clear(); window.location.href = 'login.html'; }
 
     caricaDati();
+
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) caricaDati();
+    });
 </script>
 </body>
 </html>

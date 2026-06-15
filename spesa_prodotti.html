@@ -509,20 +509,34 @@
     let idInElimina       = null;
 
     // ── Caricamento ──────────────────────────────────────────────
+    function withTimeout(promise, ms) {
+        return Promise.race([
+            promise,
+            new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))
+        ]);
+    }
+
     async function caricaProdotti() {
         try {
-            const res = await fetch(
-                `${URL_BASE}/spesa_prodotti?select=*,spesa_prodottinascosti!left(prodotto_id)` +
-                `&or=(email_utente.is.null,email_utente.eq.${userEmail})` +
-                `&spesa_prodottinascosti.prodotto_id=is.null&order=nome.asc`,
-                { headers: headersRead }
+            const res = await withTimeout(
+                fetch(
+                    `${URL_BASE}/spesa_prodotti?select=*,spesa_prodottinascosti!left(prodotto_id)` +
+                    `&or=(email_utente.is.null,email_utente.eq.${userEmail})` +
+                    `&spesa_prodottinascosti.prodotto_id=is.null&order=nome.asc`,
+                    { headers: headersRead }
+                ),
+                12000
             );
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             prodottiBase = await res.json();
             render();
         } catch (e) {
             console.error("caricaProdotti:", e);
-            mostraToast("Errore nel caricamento");
+            document.getElementById("listaCard").innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-title">Errore di caricamento</div>
+                    <div class="empty-sub">Controlla la connessione e <a href="" style="color:var(--blue);text-decoration:underline">ricarica</a></div>
+                </div>`;
         }
     }
 
@@ -767,6 +781,10 @@
     function logout() { localStorage.clear(); window.location.href = 'login.html'; }
 
     window.onload = caricaProdotti;
+
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) caricaProdotti();
+    });
 </script>
 </body>
 </html>

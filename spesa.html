@@ -500,15 +500,33 @@
     const userEmail = localStorage.getItem('userEmail');
     if (!userEmail) window.location.href = 'login.html';
 
+    function withTimeout(promise, ms) {
+        return Promise.race([
+            promise,
+            new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))
+        ]);
+    }
+
     async function caricaLista() {
         if (!userEmail) return;
+        const div = document.getElementById("contenitoreLista");
         try {
-            const [{ data: listaData, error: errLista }, { data: prodottiData }] = await Promise.all([
-                supabaseClient.from('spesa_lista').select('*').eq('email_utente', userEmail),
-                supabaseClient.from('spesa_prodotti').select('id, nome')
-            ]);
+            const [{ data: listaData, error: errLista }, { data: prodottiData }] = await withTimeout(
+                Promise.all([
+                    supabaseClient.from('spesa_lista').select('*').eq('email_utente', userEmail),
+                    supabaseClient.from('spesa_prodotti').select('id, nome')
+                ]),
+                12000
+            );
 
-            if (errLista) { console.error("Errore SELECT spesa_lista:", errLista); return; }
+            if (errLista) {
+                console.error("Errore SELECT spesa_lista:", errLista);
+                div.innerHTML = `<div class="empty-state">
+                    <div class="empty-title">Errore di caricamento</div>
+                    <div class="empty-sub">Controlla la connessione e <a href="" style="color:var(--blue);text-decoration:underline">ricarica</a></div>
+                </div>`;
+                return;
+            }
 
             const data = listaData || [];
             const prodottiMap = {};
@@ -585,7 +603,13 @@
                 div.appendChild(riga);
             });
 
-        } catch (e) { console.error(e); }
+        } catch (e) {
+            console.error(e);
+            div.innerHTML = `<div class="empty-state">
+                <div class="empty-title">Errore di rete</div>
+                <div class="empty-sub">Controlla la connessione e <a href="" style="color:var(--blue);text-decoration:underline">ricarica</a></div>
+            </div>`;
+        }
     }
 
     async function toggle(id, stato) {
@@ -627,6 +651,10 @@
     function logout() { localStorage.clear(); window.location.href = 'login.html'; }
 
     caricaLista();
+
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) caricaLista();
+    });
 </script>
 </body>
 </html>
