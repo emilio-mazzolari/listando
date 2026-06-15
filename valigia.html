@@ -517,10 +517,7 @@
             progressWrap.style.display = "block";
             controlli.style.display = "flex";
 
-            dati.sort((a, b) => {
-                if (a.completato !== b.completato) return a.completato ? 1 : -1;
-                return a.nome.localeCompare(b.nome, 'it');
-            });
+            dati.sort((a, b) => a.nome.localeCompare(b.nome, 'it'));
 
             div.innerHTML = "";
             dati.forEach(item => {
