@@ -578,9 +578,7 @@
             progressWrap.style.display  = "block";
             controlli.style.display     = "flex";
 
-            // Ordina: non completati prima, poi alfabeticamente
             data.sort((a, b) => {
-                if (a.completato !== b.completato) return a.completato ? 1 : -1;
                 const nomeA = prodottiMap[a.prodotto_id] || a.nome || '';
                 const nomeB = prodottiMap[b.prodotto_id] || b.nome || '';
                 return nomeA.localeCompare(nomeB, 'it');

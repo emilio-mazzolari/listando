@@ -606,6 +606,27 @@
         btnEl.disabled = true;
 
         try {
+            const { data: esistente } = await supabaseClient
+                .from('spesa_lista')
+                .select('id')
+                .eq('prodotto_id', prodottoId)
+                .eq('email_utente', userEmail)
+                .limit(1);
+
+            if (esistente && esistente.length > 0) {
+                btnEl.textContent = '✓';
+                btnEl.style.borderColor = 'var(--grey)';
+                btnEl.style.color = '#999';
+                mostraToast("Già in lista!");
+                setTimeout(() => {
+                    btnEl.textContent = '+';
+                    btnEl.style.borderColor = '';
+                    btnEl.style.color = '';
+                    btnEl.disabled = false;
+                }, 1500);
+                return;
+            }
+
             const { error } = await supabaseClient
                 .from('spesa_lista')
                 .insert({
