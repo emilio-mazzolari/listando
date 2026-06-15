@@ -478,7 +478,10 @@
 
     async function caricaLista() {
         try {
-            const res = await fetch(`${URL_SUPA}?email_utente=eq.${userEmail}&order=nome.asc`, { headers });
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), 12000);
+            const res = await fetch(`${URL_SUPA}?email_utente=eq.${userEmail}&order=nome.asc`, { headers, signal: controller.signal });
+            clearTimeout(timer);
             const dati = await res.json();
             const div = document.getElementById("contenitoreLista");
             const controlli = document.getElementById("controlliLista");
@@ -533,7 +536,14 @@
                     </button>`;
                 div.appendChild(riga);
             });
-        } catch (e) { console.error("Errore caricamento:", e); }
+        } catch (e) {
+            console.error("Errore caricamento:", e);
+            document.getElementById("contenitoreLista").innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-title">Errore di caricamento</div>
+                    <div class="empty-sub">Controlla la connessione e <a href="" style="color:var(--yellow);text-decoration:underline">ricarica</a></div>
+                </div>`;
+        }
     }
 
     async function toggleStatus(id, stato) {
@@ -576,6 +586,10 @@
     function logout() { localStorage.clear(); window.location.href = 'login.html'; }
 
     caricaLista();
+
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) caricaLista();
+    });
 </script>
 </body>
 </html>

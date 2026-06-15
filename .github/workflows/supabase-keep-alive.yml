@@ -1,0 +1,23 @@
+name: Supabase Keep Alive
+
+on:
+  schedule:
+    - cron: '0 9 */3 * *'  # ogni 3 giorni alle 9:00 UTC
+  workflow_dispatch:        # eseguibile anche a mano dal dashboard GitHub
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1/spesa_lista?limit=1" \
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}")
+          echo "Supabase status: $STATUS"
+          if [ "$STATUS" != "200" ] && [ "$STATUS" != "401" ] && [ "$STATUS" != "406" ]; then
+            echo "ATTENZIONE: risposta inattesa ($STATUS)"
+            exit 1
+          fi
+          echo "OK — progetto attivo"
