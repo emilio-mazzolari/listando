@@ -144,25 +144,9 @@
         .foto-cell.sel .foto-check::after { content: '✓'; color: white; font-size: 12px; font-weight: 900; }
         .foto-cell.sel > img { opacity: 0.72; }
 
-        /* Riordina */
-        .drag-handle {
-            display: none; position: absolute; top: 5px; right: 5px;
-            width: 28px; height: 28px; border-radius: 8px; background: rgba(0,0,0,0.55);
-            align-items: center; justify-content: center; cursor: grab; touch-action: none;
-            color: white; font-size: 16px; z-index: 10;
-        }
-        .reorder-mode .drag-handle { display: flex; }
-        .reorder-arrows {
-            display: none; position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%);
-            gap: 3px;
-        }
-        .reorder-mode .reorder-arrows { display: flex; }
-        .btn-arr {
-            width: 26px; height: 26px; border-radius: 7px; border: none;
-            background: rgba(0,0,0,0.55); color: white; font-size: 11px;
-            cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;
-        }
-        .btn-arr:active { opacity: 0.7; }
+        /* Sortable drag feedback */
+        .sortable-ghost  { opacity: 0.35; }
+        .sortable-chosen { box-shadow: 0 0 0 3px var(--purple); border-radius: 6px; }
 
         /* Action bar selezione */
         .action-bar {
@@ -409,7 +393,6 @@
 
     <div class="foto-toolbar" id="fotoToolbar" style="display:none">
         <button class="btn-foto-tool" id="btnSeleziona" onclick="toggleSelectMode()">☑ Seleziona</button>
-        <button class="btn-foto-tool" id="btnRiordina" onclick="toggleReorderMode()">↕ Riordina</button>
         <button class="btn-foto-tool save" id="btnSalvaOrdine" onclick="salvaOrdine()" style="display:none">✓ Salva ordine</button>
     </div>
 
@@ -540,10 +523,10 @@
     let subAlbums = [];
     let subCountMap = {};
     let lightboxIdx = 0;
-    let selectionMode = false;
-    let reorderMode   = false;
-    let selected      = new Set();
-    let sortableInst  = null;
+    let selectionMode  = false;
+    let reorderDirty   = false;
+    let selected       = new Set();
+    let sortableInst   = null;
 
     // ── Caricamento ─────────────────────────────────────────────────
     async function caricaAlbum() {
@@ -675,15 +658,6 @@
                 cell.dataset.id = f.id;
                 cell.innerHTML = `<img src="${f.url}" alt="foto" loading="lazy"><div class="foto-check"></div>`;
                 cell.onclick = () => toggleSelectFoto(f.id);
-            } else if (reorderMode) {
-                cell.className = 'foto-cell reorder-mode';
-                cell.innerHTML = `
-                    <img src="${f.url}" alt="foto" loading="lazy">
-                    <div class="drag-handle">⠿</div>
-                    <div class="reorder-arrows">
-                        <button class="btn-arr" onclick="event.stopPropagation();movePhoto(${f.id},-1)">▲</button>
-                        <button class="btn-arr" onclick="event.stopPropagation();movePhoto(${f.id},1)">▼</button>
-                    </div>`;
             } else {
                 cell.className = 'foto-cell';
                 cell.innerHTML = `
@@ -693,16 +667,23 @@
             grid.appendChild(cell);
         });
 
-        if (reorderMode) {
+        if (!selectionMode) {
             sortableInst = Sortable.create(grid, {
-                handle: '.drag-handle',
                 animation: 150,
+                delay: 600,
+                delayOnTouchOnly: true,
+                touchStartThreshold: 4,
+                ghostClass: 'sortable-ghost',
+                chosenClass: 'sortable-chosen',
+                filter: '.btn-del-foto',
+                onStart: () => {
+                    document.getElementById('btnSalvaOrdine').style.display = '';
+                    reorderDirty = true;
+                },
                 onEnd: (evt) => {
                     if (evt.oldIndex === evt.newIndex) return;
                     const moved = foto.splice(evt.oldIndex, 1)[0];
                     foto.splice(evt.newIndex, 0, moved);
-                    sortableInst.destroy(); sortableInst = null;
-                    renderFoto();
                 }
             });
         }
@@ -974,33 +955,15 @@
     }
 
     // ── Riordina ─────────────────────────────────────────────────────
-    function toggleReorderMode() {
-        reorderMode = !reorderMode;
-        document.getElementById('btnRiordina').classList.toggle('active', reorderMode);
-        document.getElementById('btnSalvaOrdine').style.display = reorderMode ? '' : 'none';
-        if (!reorderMode && sortableInst) { sortableInst.destroy(); sortableInst = null; }
-        renderFoto();
-    }
-    function movePhoto(fotoId, dir) {
-        const idx = foto.findIndex(f => f.id === fotoId);
-        if (idx === -1) return;
-        const newIdx = idx + dir;
-        if (newIdx < 0 || newIdx >= foto.length) return;
-        [foto[idx], foto[newIdx]] = [foto[newIdx], foto[idx]];
-        renderFoto();
-    }
     async function salvaOrdine() {
         const btn = document.getElementById('btnSalvaOrdine');
         btn.textContent = '…';
         await Promise.all(foto.map((f, i) =>
             supabaseClient.from('foto').update({ sort_order: i + 1 }).eq('id', f.id)
         ));
-        reorderMode = false;
-        document.getElementById('btnRiordina').classList.remove('active');
+        reorderDirty = false;
         btn.style.display = 'none';
         btn.textContent = '✓ Salva ordine';
-        if (sortableInst) { sortableInst.destroy(); sortableInst = null; }
-        renderFoto();
         mostraToast('✓ Ordine salvato');
     }
 
