@@ -308,21 +308,27 @@
     const STORAGE_MAX_MB = 1000;
     let tuttiAlbum = [];
     let countMap = {};
+    let subCountMap = {};
     let filtroCorrente = 'tutti';
 
     async function caricaAlbum() {
         try {
-            const [{ data: albums }, { data: fotoRows }] = await Promise.all([
-                supabaseClient.from('foto_album').select('*').eq('email_utente', userEmail).order('created_at', { ascending: false }),
-                supabaseClient.from('foto').select('album_id, size_bytes').eq('email_utente', userEmail)
+            const [{ data: albums }, { data: fotoRows }, { data: subRows }] = await Promise.all([
+                supabaseClient.from('foto_album').select('*').eq('email_utente', userEmail).is('parent_id', null).order('created_at', { ascending: false }),
+                supabaseClient.from('foto').select('album_id, size_bytes').eq('email_utente', userEmail),
+                supabaseClient.from('foto_album').select('id, parent_id').eq('email_utente', userEmail).not('parent_id', 'is', null)
             ]);
 
             tuttiAlbum = albums || [];
             countMap = {};
+            subCountMap = {};
             let totalBytes = 0;
             (fotoRows || []).forEach(f => {
                 countMap[f.album_id] = (countMap[f.album_id] || 0) + 1;
                 totalBytes += f.size_bytes || 0;
+            });
+            (subRows || []).forEach(a => {
+                subCountMap[a.parent_id] = (subCountMap[a.parent_id] || 0) + 1;
             });
 
             const usedMB = (totalBytes / (1024 * 1024)).toFixed(1);
@@ -400,7 +406,7 @@
                         ${album.luogo ? `<span>📍 ${album.luogo}</span>` : ''}
                         ${album.persone ? `<span>👤 ${album.persone}</span>` : ''}
                     </div>
-                    <div class="album-count">${count} foto</div>
+                    <div class="album-count">${count} foto${(subCountMap[album.id] || 0) > 0 ? ` · ${subCountMap[album.id]} sub-album` : ''}</div>
                 </div>`;
             grid.appendChild(card);
         });

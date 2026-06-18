@@ -32,7 +32,9 @@
         }
         .btn-back:active { background: var(--grey-light); }
         .btn-back svg { width: 18px; height: 18px; stroke: var(--dark); fill: none; stroke-width: 2.5; }
-        .header-title { flex: 1; font-weight: 900; font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .header-title-wrap { flex: 1; min-width: 0; overflow: hidden; }
+        .header-title { font-weight: 900; font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .header-breadcrumb { font-size: 11px; color: #999; font-weight: 600; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .header-actions { display: flex; gap: 8px; flex-shrink: 0; }
         .btn-icon {
             width: 40px; height: 40px; border-radius: 12px;
@@ -68,6 +70,41 @@
             padding-right: max(20px, env(safe-area-inset-right, 20px));
         }
 
+        /* Sub-albums section */
+        .section-hdr {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .section-hdr-title { font-weight: 900; font-size: 15px; text-transform: uppercase; letter-spacing: 0.3px; }
+        .btn-sub-new {
+            background: var(--purple); color: white; border: none;
+            border-radius: 12px; padding: 7px 14px;
+            font-size: 12px; font-weight: 800; cursor: pointer;
+            font-family: inherit; transition: opacity 0.15s;
+        }
+        .btn-sub-new:active { opacity: 0.85; }
+
+        .sub-album-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 24px; }
+        .sub-album-card {
+            background: var(--white); border-radius: 16px;
+            border: 2.5px solid var(--grey); overflow: hidden;
+            cursor: pointer; transition: transform 0.15s; text-decoration: none; color: inherit;
+            display: flex; align-items: center; gap: 10px; padding: 10px;
+        }
+        .sub-album-card:active { transform: scale(0.97); }
+        .sub-album-thumb {
+            width: 48px; height: 48px; border-radius: 10px; overflow: hidden; flex-shrink: 0;
+            background: linear-gradient(135deg, #e8e0f5, #d4c8ed);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .sub-album-thumb img { width: 100%; height: 100%; object-fit: cover; }
+        .sub-album-thumb svg { width: 22px; height: 22px; stroke: #9b86d0; fill: none; stroke-width: 1.5; }
+        .sub-album-info { min-width: 0; }
+        .sub-album-name { font-weight: 800; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .sub-album-count { font-size: 11px; color: var(--purple); font-weight: 700; margin-top: 2px; }
+
+        .divider-section { border: none; border-top: 2px solid var(--grey-light); margin: 4px 0 16px; }
+
         /* Photo grid */
         .foto-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 3px; }
         .foto-cell { position: relative; aspect-ratio: 1; overflow: hidden; cursor: pointer; background: var(--grey-light); }
@@ -82,7 +119,6 @@
             opacity: 0; transition: opacity 0.2s;
         }
         .foto-cell:hover .btn-del-foto { opacity: 1; }
-        /* always visible on touch devices */
         @media (hover: none) { .btn-del-foto { opacity: 1; } }
 
         /* Upload progress */
@@ -105,11 +141,19 @@
         .fab:active { transform: scale(0.92); }
 
         /* Empty state */
-        .empty-state { text-align: center; padding: 60px 20px; }
+        .empty-state { text-align: center; padding: 50px 20px; grid-column: 1/-1; }
         .empty-icon { width: 70px; height: 70px; background: var(--grey-light); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; }
         .empty-icon svg { width: 32px; height: 32px; stroke: #aaa; fill: none; stroke-width: 1.5; }
         .empty-title { font-weight: 900; font-size: 18px; margin-bottom: 8px; }
-        .empty-sub { color: #999; font-size: 14px; font-weight: 600; }
+        .empty-sub { color: #999; font-size: 14px; font-weight: 600; margin-bottom: 24px; }
+        .btn-import {
+            display: inline-flex; align-items: center; gap: 8px;
+            background: var(--purple); color: white; border: none;
+            border-radius: 18px; padding: 14px 28px;
+            font-size: 15px; font-weight: 800; cursor: pointer;
+            font-family: inherit; transition: opacity 0.15s;
+        }
+        .btn-import:active { opacity: 0.85; }
 
         /* Lightbox */
         .lightbox {
@@ -158,7 +202,6 @@
         }
         .modal-input:focus { border-color: var(--purple); }
 
-        /* Share link */
         .share-link-row { display: flex; gap: 8px; align-items: center; margin: 16px 0; }
         .share-link-input {
             flex: 1; padding: 11px 14px; border-radius: 14px;
@@ -203,7 +246,7 @@
         }
         .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-        @media (min-width: 600px) { .foto-grid { grid-template-columns: repeat(4, 1fr); } }
+        @media (min-width: 600px) { .foto-grid { grid-template-columns: repeat(4, 1fr); } .sub-album-grid { grid-template-columns: repeat(3, 1fr); } }
         @media (min-width: 768px) { .foto-grid { grid-template-columns: repeat(5, 1fr); } }
         @media (min-width: 1024px) {
             .tab-bar {
@@ -229,6 +272,7 @@
             .meta-bar { padding-left: 260px; }
             .fab { right: 40px; }
             .foto-grid { grid-template-columns: repeat(6, 1fr); }
+            .sub-album-grid { grid-template-columns: repeat(4, 1fr); }
             .modal-overlay { align-items: center; padding-bottom: 0; }
             .modal-box { border-radius: 28px; }
         }
@@ -240,10 +284,13 @@
 <div class="upload-bar" id="uploadBar">⏳ Caricamento…</div>
 
 <header class="page-header">
-    <button class="btn-back" onclick="history.back()">
+    <button class="btn-back" id="btnBack">
         <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
     </button>
-    <span class="header-title" id="headerTitle">Album</span>
+    <div class="header-title-wrap">
+        <div class="header-title" id="headerTitle">Album</div>
+        <div class="header-breadcrumb" id="headerBreadcrumb" style="display:none"></div>
+    </div>
     <div class="header-actions">
         <button class="btn-icon share" onclick="apriShare()" title="Condividi">
             <svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
@@ -260,6 +307,16 @@
 <div class="meta-bar" id="metaBar"></div>
 
 <div class="app">
+    <!-- Sub-albums section (shown only when sub-albums exist) -->
+    <div id="subAlbumSection" style="display:none">
+        <div class="section-hdr">
+            <span class="section-hdr-title">Sub-album</span>
+            <button class="btn-sub-new" onclick="apriModalSubAlbum()">+ Nuovo</button>
+        </div>
+        <div class="sub-album-grid" id="subAlbumGrid"></div>
+        <hr class="divider-section">
+    </div>
+
     <div class="foto-grid" id="fotoGrid">
         <div class="empty-state" style="grid-column:1/-1">
             <div class="empty-title">Caricamento…</div>
@@ -308,6 +365,20 @@
     </div>
 </div>
 
+<!-- Modal Sub-album -->
+<div id="modalSubAlbum" class="modal-overlay">
+    <div class="modal-box">
+        <p class="modal-title">📁 Nuovo Sub-album</p>
+        <div class="field-group"><div class="field-label">Nome *</div><input type="text" class="modal-input" id="subNome" placeholder="Es. Estate 2001" onkeydown="if(event.key==='Enter') creaSubAlbum()"></div>
+        <div class="field-group"><div class="field-label">Data</div><input type="date" class="modal-input" id="subData"></div>
+        <div class="field-group"><div class="field-label">Luogo</div><input type="text" class="modal-input" id="subLuogo" placeholder="Es. Roma, Italia"></div>
+        <div class="field-group"><div class="field-label">Argomento</div><input type="text" class="modal-input" id="subArgomento" placeholder="Es. Vacanza, Compleanno…"></div>
+        <div class="field-group"><div class="field-label">Persone (separate da virgola)</div><input type="text" class="modal-input" id="subPersone" placeholder="Es. Marco, Giulia"></div>
+        <button class="btn-modal" style="background:var(--purple);color:white;" onclick="creaSubAlbum()">Crea Sub-album</button>
+        <button class="btn-modal" style="background:var(--grey-light);" onclick="chiudiModale('modalSubAlbum')">Annulla</button>
+    </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <nav class="tab-bar">
@@ -338,6 +409,8 @@
 
     let album = null;
     let foto  = [];
+    let subAlbums = [];
+    let subCountMap = {};
     let lightboxIdx = 0;
 
     // ── Caricamento ─────────────────────────────────────────────────
@@ -349,8 +422,24 @@
         album = data;
         document.getElementById('headerTitle').textContent = album.nome;
         document.title = `Listando — ${album.nome}`;
+
+        document.getElementById('btnBack').onclick = () => {
+            if (album.parent_id) location.href = `foto_album.html?id=${album.parent_id}`;
+            else location.href = 'foto.html';
+        };
+
+        if (album.parent_id) {
+            const { data: parent } = await supabaseClient
+                .from('foto_album').select('nome').eq('id', album.parent_id).single();
+            if (parent) {
+                const bc = document.getElementById('headerBreadcrumb');
+                bc.textContent = `in ${parent.nome}`;
+                bc.style.display = 'block';
+            }
+        }
+
         renderMeta();
-        await caricaFoto();
+        await Promise.all([caricaFoto(), caricaSubAlbum()]);
     }
 
     async function caricaFoto() {
@@ -359,6 +448,25 @@
             .eq('album_id', albumId).order('created_at', { ascending: false });
         foto = data || [];
         renderFoto();
+    }
+
+    async function caricaSubAlbum() {
+        const { data } = await supabaseClient
+            .from('foto_album').select('*')
+            .eq('parent_id', albumId).eq('email_utente', userEmail)
+            .order('created_at', { ascending: true });
+        subAlbums = data || [];
+
+        if (subAlbums.length > 0) {
+            const ids = subAlbums.map(a => a.id);
+            const { data: fotoData } = await supabaseClient
+                .from('foto').select('album_id').in('album_id', ids);
+            subCountMap = {};
+            (fotoData || []).forEach(f => {
+                subCountMap[f.album_id] = (subCountMap[f.album_id] || 0) + 1;
+            });
+        }
+        renderSubAlbum();
     }
 
     function renderMeta() {
@@ -376,13 +484,43 @@
         if (!bar.innerHTML) bar.style.display = 'none';
     }
 
+    function renderSubAlbum() {
+        const section = document.getElementById('subAlbumSection');
+        const grid = document.getElementById('subAlbumGrid');
+        if (subAlbums.length === 0) { section.style.display = 'none'; return; }
+
+        section.style.display = 'block';
+        grid.innerHTML = '';
+        subAlbums.forEach(sub => {
+            const count = subCountMap[sub.id] || 0;
+            const card = document.createElement('a');
+            card.href = `foto_album.html?id=${sub.id}`;
+            card.className = 'sub-album-card';
+            card.innerHTML = `
+                <div class="sub-album-thumb">
+                    ${sub.cover_url
+                        ? `<img src="${sub.cover_url}" alt="">`
+                        : `<svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>`}
+                </div>
+                <div class="sub-album-info">
+                    <div class="sub-album-name">${sub.nome}</div>
+                    <div class="sub-album-count">${count} foto</div>
+                </div>`;
+            grid.appendChild(card);
+        });
+    }
+
     function renderFoto() {
         const grid = document.getElementById('fotoGrid');
         if (foto.length === 0) {
-            grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+            grid.innerHTML = `<div class="empty-state">
                 <div class="empty-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>
                 <div class="empty-title">Nessuna foto</div>
-                <div class="empty-sub">Tocca + per aggiungere le prime foto</div>
+                <div class="empty-sub">Importa le tue foto dalla galleria</div>
+                <button class="btn-import" onclick="document.getElementById('fileInput').click()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    Importa foto
+                </button>
             </div>`;
             return;
         }
@@ -395,6 +533,32 @@
                 <button class="btn-del-foto" onclick="event.stopPropagation(); eliminaFoto(${f.id}, '${f.storage_path}')">✕</button>`;
             grid.appendChild(cell);
         });
+    }
+
+    // ── Sub-album ────────────────────────────────────────────────────
+    function apriModalSubAlbum() {
+        ['subNome','subData','subLuogo','subArgomento','subPersone'].forEach(id => {
+            document.getElementById(id).value = '';
+        });
+        document.getElementById('modalSubAlbum').style.display = 'flex';
+        setTimeout(() => document.getElementById('subNome').focus(), 50);
+    }
+
+    async function creaSubAlbum() {
+        const nome = document.getElementById('subNome').value.trim();
+        if (!nome) { mostraToast('⚠️ Inserisci un nome'); return; }
+        const { data, error } = await supabaseClient.from('foto_album').insert({
+            email_utente: userEmail,
+            nome,
+            parent_id:   Number(albumId),
+            data_album:  document.getElementById('subData').value || null,
+            luogo:       document.getElementById('subLuogo').value.trim() || null,
+            argomento:   document.getElementById('subArgomento').value.trim() || null,
+            persone:     document.getElementById('subPersone').value.trim() || null,
+        }).select().single();
+        if (error) { mostraToast('Errore nella creazione'); console.error(error); return; }
+        chiudiModale('modalSubAlbum');
+        location.href = `foto_album.html?id=${data.id}`;
     }
 
     // ── Compressione ────────────────────────────────────────────────
@@ -487,13 +651,25 @@
         mostraToast('Foto eliminata');
     }
 
-    // ── Elimina album ────────────────────────────────────────────────
+    // ── Elimina album (ricorsivo sui sub-album) ───────────────────────
     async function eliminaAlbum() {
-        if (!confirm(`Eliminare l'album "${album.nome}" e tutte le sue foto?`)) return;
-        const paths = foto.map(f => f.storage_path);
+        const msg = subAlbums.length > 0
+            ? `Eliminare l'album "${album.nome}" con tutte le sue foto e i suoi ${subAlbums.length} sub-album?`
+            : `Eliminare l'album "${album.nome}" e tutte le sue foto?`;
+        if (!confirm(msg)) return;
+
+        const subIds = subAlbums.map(s => s.id);
+        const allIds = [Number(albumId), ...subIds];
+
+        const { data: allFoto } = await supabaseClient
+            .from('foto').select('storage_path').in('album_id', allIds);
+        const paths = (allFoto || []).map(f => f.storage_path);
         if (paths.length) await supabaseClient.storage.from('foto').remove(paths);
+
         await supabaseClient.from('foto_album').delete().eq('id', albumId);
-        location.href = 'foto.html';
+
+        if (album.parent_id) location.href = `foto_album.html?id=${album.parent_id}`;
+        else location.href = 'foto.html';
     }
 
     // ── Lightbox ─────────────────────────────────────────────────────
