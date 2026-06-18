@@ -3,220 +3,318 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Listando</title>
+    <title>Listando</title>
     <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Listando">
-<meta name="mobile-web-app-capable" content="yes">
-<link rel="apple-touch-icon" href="logolistando.png">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Listando">
+    <meta name="mobile-web-app-capable" content="yes">
+    <link rel="apple-touch-icon" href="logolistando.png">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
-            --green: #0fba8d;
-            --blue: #3384d4;
-            --yellow: #feb310;
-            --grey: #d8dddc;
-            --dark: #1c1c1e;
-            --bg: #fdfdfd;
+            --green: #0fba8d; --blue: #3384d4; --grey: #d8dddc;
+            --dark: #1c1c1e; --bg: #fdfdfd;
         }
-
-        html, body { overflow-x: hidden; max-width: 100%; }
-
+        html, body { overflow-x: hidden; max-width: 100%; margin: 0; }
         body {
-            margin: 0;
             font-family: 'Segoe UI', system-ui, sans-serif;
             background: var(--bg);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            color: var(--dark);
+            display: flex; justify-content: center; align-items: center;
+            min-height: 100vh; color: var(--dark);
         }
 
-        .card { 
-            background: white; 
-            padding: 40px 30px; 
-            border-radius: 32px; 
-            box-shadow: 0 10px 25px rgba(0,0,0,0.05); 
-            width: 100%; 
-            max-width: 350px; 
-            text-align: center; 
+        /* ── Card base ── */
+        .card {
+            background: white; padding: 40px 30px;
+            border-radius: 32px; box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            width: 100%; max-width: 350px; text-align: center;
             border: 4px solid var(--grey);
         }
+        .logo-img { width: 100%; max-width: 220px; height: auto; margin-bottom: 24px; display: block; margin-left: auto; margin-right: auto; }
 
-        .logo-img {
-    width: 100%;       /* Prende la larghezza del contenitore */
-    max-width: 320px;  /* Dimensione raddoppiata */
-    height: auto;
-    margin-bottom: 20px;
-    display: block;
-    margin-left: auto;
-    margin-right: auto;
-}
+        /* ── Schermata biometrica ── */
+        #screenBio { display: none; flex-direction: column; align-items: center; }
 
-        p { 
-            font-weight: 600; 
-            color: #000000; 
-            margin-bottom: 30px; 
-            font-size: 16px;
+        .bio-icon-wrap {
+            width: 88px; height: 88px; border-radius: 50%;
+            background: linear-gradient(135deg, #e8f8f3, #d0f0e7);
+            border: 3px solid #b2e8d6;
+            display: flex; align-items: center; justify-content: center;
+            margin-bottom: 20px;
+            animation: pulseGreen 2.5s ease-in-out infinite;
         }
-
-        input { 
-            width: 100%; 
-            padding: 16px; 
-            margin-bottom: 15px; 
-            border-radius: 18px; 
-            border: 3px solid var(--grey); 
-            box-sizing: border-box; 
-            font-size: 16px;
-            outline: none;
-            transition: border-color 0.2s;
+        @keyframes pulseGreen {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(15,186,141,0.25); }
+            50%       { box-shadow: 0 0 0 14px rgba(15,186,141,0); }
         }
+        .bio-icon-wrap svg { width: 44px; height: 44px; stroke: var(--green); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 
-        input:focus {
-            border-color: var(--blue);
+        .bio-title { font-weight: 900; font-size: 22px; margin: 0 0 8px; }
+        .bio-email  { font-size: 13px; color: #999; font-weight: 600; margin-bottom: 28px; }
+
+        .btn-bio {
+            width: 100%; padding: 18px; border-radius: 20px; border: none;
+            background: var(--green); color: white;
+            font-weight: 900; font-size: 17px; cursor: pointer;
+            font-family: inherit; letter-spacing: 0.3px;
+            transition: transform 0.1s, opacity 0.15s;
+            margin-bottom: 14px;
         }
+        .btn-bio:active { transform: scale(0.97); opacity: 0.88; }
 
-        button { 
-            width: 100%; 
-            padding: 16px; 
-            border-radius: 18px; 
-            border: none; 
-            font-weight: 800; 
-            font-size: 16px;
-            cursor: pointer; 
-            transition: transform 0.1s, opacity 0s; 
+        .link-altro {
+            font-size: 13px; color: #aaa; font-weight: 700;
+            cursor: pointer; text-decoration: underline; background: none;
+            border: none; font-family: inherit; padding: 0;
         }
+        .link-altro:hover { color: var(--dark); }
 
-        button:active {
-            transform: scale(0.98);
+        /* ── Schermata email ── */
+        #screenEmail { display: none; flex-direction: column; width: 100%; }
+
+        .subtitle { font-weight: 600; color: #000; margin-bottom: 28px; font-size: 16px; }
+
+        input {
+            width: 100%; padding: 16px; margin-bottom: 14px;
+            border-radius: 18px; border: 3px solid var(--grey);
+            box-sizing: border-box; font-size: 16px; outline: none;
+            transition: border-color 0.2s; font-family: inherit;
         }
+        input:focus { border-color: var(--blue); }
 
-        .btn-email { 
-            background: var(--blue); 
-            color: white; 
-            margin-bottom: 10px; 
+        .btn-email {
+            width: 100%; padding: 16px; border-radius: 18px; border: none;
+            font-weight: 800; font-size: 16px; cursor: pointer;
+            background: var(--blue); color: white; margin-bottom: 10px;
+            font-family: inherit; transition: transform 0.1s;
         }
+        .btn-email:active { transform: scale(0.98); }
 
-        .btn-google { 
-            background: white; 
-            border: 3px solid var(--grey); 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            gap: 12px; 
-            color: var(--dark);
+        .divider {
+            margin: 22px 0; color: var(--grey); font-size: 12px; font-weight: 800;
+            display: flex; align-items: center; gap: 10px;
         }
+        .divider::before, .divider::after { content: ""; flex: 1; height: 2px; background: var(--grey); }
 
-        .divider { 
-            margin: 25px 0; 
-            color: var(--grey); 
-            font-size: 12px; 
-            font-weight: 800;
-            display: flex;
-            align-items: center;
-            gap: 10px;
+        .btn-google {
+            width: 100%; padding: 16px; border-radius: 18px;
+            border: 3px solid var(--grey); background: white;
+            display: flex; align-items: center; justify-content: center;
+            gap: 12px; color: var(--dark); font-weight: 800; font-size: 15px;
+            cursor: pointer; font-family: inherit; transition: transform 0.1s;
         }
+        .btn-google:active { transform: scale(0.98); }
 
-        .divider::before, .divider::after {
-            content: "";
-            flex: 1;
-            height: 2px;
-            background: var(--grey);
-        }
-
-        #status { 
-            margin-top: 20px; 
-            font-size: 13px; 
-            font-weight: 700; 
-            min-height: 20px; 
-        }
-
-        .error { color: #ff3b30; }
+        /* ── Status ── */
+        #status { margin-top: 18px; font-size: 13px; font-weight: 700; min-height: 20px; }
+        .error   { color: #ff3b30; }
         .success { color: var(--green); }
 
-        /* ── Focus styles ── */
-        button:focus-visible, a:focus-visible {
-            outline: 3px solid var(--blue);
-            outline-offset: 2px;
-        }
+        button:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
 
-        @media (min-width: 768px) {
-            .card { max-width: 420px; }
-        }
-        @media (min-width: 1024px) {
-            .card { max-width: 460px; }
-        }
+        @media (min-width: 768px)  { .card { max-width: 420px; } }
+        @media (min-width: 1024px) { .card { max-width: 460px; } }
     </style>
 </head>
 <body>
-
 <div class="card">
     <img src="logolistando.png" alt="Listando" class="logo-img">
-    
-    <p>Accedi alle tue liste</p>
 
-    <input type="email" id="emailInput" placeholder="La tua email">
-    <button class="btn-email" onclick="loginManuale()">ENTRA CON EMAIL</button>
+    <!-- Schermata biometrica (ritorno) -->
+    <div id="screenBio">
+        <div class="bio-icon-wrap">
+            <!-- Fingerprint icon -->
+            <svg viewBox="0 0 24 24">
+                <path d="M12 1C8.5 1 5.5 3 4 6"/>
+                <path d="M20 6c-1.5-3-4.5-5-8-5"/>
+                <path d="M4 10a8 8 0 0 1 8-4 8 8 0 0 1 8 4"/>
+                <path d="M6 14a6 6 0 0 1 6-6"/>
+                <path d="M18 14a6 6 0 0 0-6-6"/>
+                <path d="M8 17.5A4.5 4.5 0 0 1 12 14"/>
+                <path d="M16 17.5A4.5 4.5 0 0 0 12 14"/>
+                <path d="M12 14v8"/>
+            </svg>
+        </div>
+        <div class="bio-title">Bentornato</div>
+        <div class="bio-email" id="bioEmailLabel"></div>
+        <button class="btn-bio" onclick="accediConBiometria()">🔐 SBLOCCA</button>
+        <button class="link-altro" onclick="usaAltroAccount()">Usa un altro account</button>
+    </div>
 
-    <div class="divider">OPPURE</div>
-
-    <button class="btn-google" id="btnGoogle">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" width="20" alt="G">
-        Accedi con Google
-    </button>
+    <!-- Schermata email/Google (prima volta) -->
+    <div id="screenEmail">
+        <p class="subtitle">Accedi alle tue liste</p>
+        <input type="email" id="emailInput" placeholder="La tua email"
+               onkeydown="if(event.key==='Enter') loginManuale()">
+        <button class="btn-email" onclick="loginManuale()">ENTRA CON EMAIL</button>
+        <div class="divider">OPPURE</div>
+        <button class="btn-google" id="btnGoogle">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" width="20" alt="G">
+            Accedi con Google
+        </button>
+    </div>
 
     <div id="status"></div>
 </div>
 
 <script>
-const SUPABASE_URL = "https://eejdpophfxsrqdvsucye.supabase.co"; 
+const SUPABASE_URL = "https://eejdpophfxsrqdvsucye.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlamRwb3BoZnhzcnFkdnN1Y3llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2NTMzMDQsImV4cCI6MjA5MzIyOTMwNH0.mpxbwlJyIdZgqKIdutHbLd85JR1P11yiglbYeApi17k";
-
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const statusDiv = document.getElementById('status');
 
-document.getElementById('btnGoogle').addEventListener('click', async () => {
-    statusDiv.innerHTML = 'Connessione a Google...';
-    
-    const { error } = await supabaseClient.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-            redirectTo: "https://listando.it/login.html", // URL pulito
-            queryParams: {
-                access_type: 'offline',
-                prompt: 'consent'
-            }
-        }
-    });
+const BIO_KEY   = 'bioCredId';
+const BIO_EMAIL = 'bioEmail';
 
-    if (error) {
-        statusDiv.innerHTML = `<span class="error">${error.message}</span>`;
+// ── Rilevamento supporto ────────────────────────────────────────────
+async function bioSupportato() {
+    return !!(window.PublicKeyCredential &&
+              await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable());
+}
+
+// ── Inizializzazione ────────────────────────────────────────────────
+window.addEventListener('load', () => {
+    const credId = localStorage.getItem(BIO_KEY);
+    const email  = localStorage.getItem(BIO_EMAIL);
+
+    if (credId && email) {
+        mostraSchermaBio(email);
+        setTimeout(accediConBiometria, 400);
+    } else {
+        mostraSchermaEmail();
     }
 });
 
-function loginManuale() {
-    const email = document.getElementById('emailInput').value.trim();
-    if (email.includes('@')) {
-        localStorage.setItem('userEmail', email);
-        statusDiv.innerHTML = '<span class="success">Accesso in corso...</span>';
-        setTimeout(() => {
-            window.location.href = 'index.html';
-        }, 500);
-    } else {
-        statusDiv.innerHTML = '<span class="error">Inserisci un\'email valida.</span>';
+function mostraSchermaBio(email) {
+    document.getElementById('bioEmailLabel').textContent = email;
+    document.getElementById('screenBio').style.display   = 'flex';
+    document.getElementById('screenEmail').style.display = 'none';
+}
+function mostraSchermaEmail() {
+    document.getElementById('screenBio').style.display   = 'none';
+    document.getElementById('screenEmail').style.display = 'flex';
+}
+
+// ── Autenticazione biometrica ───────────────────────────────────────
+async function accediConBiometria() {
+    const credIdStr = localStorage.getItem(BIO_KEY);
+    if (!credIdStr) { mostraSchermaEmail(); return; }
+
+    const credId = Uint8Array.from(atob(credIdStr), c => c.charCodeAt(0));
+    statusDiv.innerHTML = 'Verifica in corso…';
+
+    try {
+        const assertion = await navigator.credentials.get({
+            publicKey: {
+                challenge: crypto.getRandomValues(new Uint8Array(32)),
+                allowCredentials: [{ type: 'public-key', id: credId }],
+                userVerification: 'required',
+                timeout: 60000
+            }
+        });
+        if (assertion) {
+            localStorage.setItem('userEmail', localStorage.getItem(BIO_EMAIL));
+            window.location.assign('index.html');
+        }
+    } catch (e) {
+        if (e.name === 'NotAllowedError') {
+            statusDiv.innerHTML = '<span class="error">Verifica annullata. Riprova.</span>';
+        } else {
+            console.error(e);
+            statusDiv.innerHTML = '<span class="error">Errore biometrico. Usa email.</span>';
+            setTimeout(mostraSchermaEmail, 1500);
+        }
     }
 }
 
-supabaseClient.auth.onAuthStateChange((event, session) => {
-    if ((event === "SIGNED_IN" || event === "TOKEN_REFRESHED") && session) {
-        localStorage.setItem('userEmail', session.user.email);
+// ── Registrazione biometrica (silenziosa dopo il primo login) ────────
+async function registraBiometria(email) {
+    if (!(await bioSupportato())) return false;
+    try {
+        const cred = await navigator.credentials.create({
+            publicKey: {
+                challenge: crypto.getRandomValues(new Uint8Array(32)),
+                rp: { name: 'Listando', id: location.hostname },
+                user: {
+                    id: crypto.getRandomValues(new Uint8Array(16)),
+                    name: email,
+                    displayName: email
+                },
+                pubKeyCredParams: [
+                    { type: 'public-key', alg: -7   },  // ES256
+                    { type: 'public-key', alg: -257 }   // RS256 fallback
+                ],
+                authenticatorSelection: {
+                    authenticatorAttachment: 'platform',
+                    userVerification: 'required'
+                },
+                timeout: 60000
+            }
+        });
+        if (cred) {
+            localStorage.setItem(BIO_KEY,   btoa(String.fromCharCode(...new Uint8Array(cred.rawId))));
+            localStorage.setItem(BIO_EMAIL, email);
+            return true;
+        }
+    } catch (e) {
+        // L'utente ha rifiutato o il dispositivo non supporta: non è un errore bloccante
+        console.info('Biometric registration skipped:', e.name);
+    }
+    return false;
+}
+
+// ── Login manuale ───────────────────────────────────────────────────
+async function loginManuale() {
+    const email = document.getElementById('emailInput').value.trim();
+    if (!email.includes('@')) {
+        statusDiv.innerHTML = '<span class="error">Inserisci un\'email valida.</span>';
+        return;
+    }
+    localStorage.setItem('userEmail', email);
+    statusDiv.innerHTML = '<span class="success">Accesso in corso…</span>';
+
+    const ok = await registraBiometria(email);
+    if (ok) statusDiv.innerHTML = '<span class="success">✓ Face ID / Touch ID configurato!</span>';
+
+    setTimeout(() => window.location.assign('index.html'), ok ? 700 : 300);
+}
+
+// ── Google OAuth ────────────────────────────────────────────────────
+document.getElementById('btnGoogle').addEventListener('click', async () => {
+    statusDiv.innerHTML = 'Connessione a Google…';
+    const { error } = await supabaseClient.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+            redirectTo: 'https://listando.it/login.html',
+            queryParams: { access_type: 'offline', prompt: 'consent' }
+        }
+    });
+    if (error) statusDiv.innerHTML = `<span class="error">${error.message}</span>`;
+});
+
+supabaseClient.auth.onAuthStateChange(async (event, session) => {
+    if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session) {
+        const email = session.user.email;
+        localStorage.setItem('userEmail', email);
+        if (!localStorage.getItem(BIO_KEY)) {
+            statusDiv.innerHTML = 'Configuro Face ID / Touch ID…';
+            await registraBiometria(email);
+        }
         window.location.assign('index.html');
     }
-    if (event === "SIGNED_OUT") {
+    if (event === 'SIGNED_OUT') {
         localStorage.removeItem('userEmail');
     }
 });
+
+// ── Cambio account ──────────────────────────────────────────────────
+function usaAltroAccount() {
+    localStorage.removeItem(BIO_KEY);
+    localStorage.removeItem(BIO_EMAIL);
+    localStorage.removeItem('userEmail');
+    mostraSchermaEmail();
+    statusDiv.innerHTML = '';
+}
 </script>
 </body>
 </html>
