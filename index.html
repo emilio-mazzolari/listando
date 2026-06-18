@@ -345,7 +345,7 @@
 
         async function logout() {
             try { await supabaseClient.auth.signOut(); } catch (err) {}
-            localStorage.clear();
+            localStorage.removeItem('userEmail');
             window.location.href = 'login.html';
         }
     </script>

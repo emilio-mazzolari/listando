@@ -748,7 +748,7 @@
         clearTimeout(toastTimer);
         toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
     }
-    function logout() { localStorage.clear(); location.href = 'login.html'; }
+    function logout() { localStorage.removeItem('userEmail'); location.href = 'login.html'; }
 
     caricaAlbum();
     document.addEventListener('visibilitychange', () => { if (!document.hidden) caricaFoto(); });
