@@ -136,9 +136,9 @@
             </svg>
         </div>
         <div class="bio-title">Bentornato</div>
-        <div class="bio-email" id="bioEmailLabel"></div>
         <button class="btn-bio" onclick="accediConBiometria()">🔐 SBLOCCA</button>
-        <button class="link-altro" onclick="usaAltroAccount()">Usa un altro account</button>
+        <button class="link-altro" onclick="mostraSchermaEmail()">Accedi con email</button>
+        <button class="link-altro" style="margin-top:6px;font-size:11px;color:#ccc" onclick="usaAltroAccount()">Cambia account</button>
     </div>
 
     <!-- Schermata email/Google (prima volta) -->
@@ -178,21 +178,22 @@ window.addEventListener('load', () => {
     const email  = localStorage.getItem(BIO_EMAIL);
 
     if (credId && email) {
-        mostraSchermaBio(email);
+        mostraSchermaBio();
         setTimeout(accediConBiometria, 400);
     } else {
         mostraSchermaEmail();
     }
 });
 
-function mostraSchermaBio(email) {
-    document.getElementById('bioEmailLabel').textContent = email;
+function mostraSchermaBio() {
     document.getElementById('screenBio').style.display   = 'flex';
     document.getElementById('screenEmail').style.display = 'none';
 }
 function mostraSchermaEmail() {
     document.getElementById('screenBio').style.display   = 'none';
     document.getElementById('screenEmail').style.display = 'flex';
+    const saved = localStorage.getItem(BIO_EMAIL);
+    if (saved) document.getElementById('emailInput').value = saved;
 }
 
 // ── Autenticazione biometrica ───────────────────────────────────────
@@ -221,8 +222,7 @@ async function accediConBiometria() {
             statusDiv.innerHTML = '<span class="error">Verifica annullata. Riprova.</span>';
         } else {
             console.error(e);
-            statusDiv.innerHTML = '<span class="error">Errore biometrico. Usa email.</span>';
-            setTimeout(mostraSchermaEmail, 1500);
+            statusDiv.innerHTML = '<span class="error">Touch ID non riuscito. Riprova o usa email.</span>';
         }
     }
 }
