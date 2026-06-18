@@ -5,6 +5,7 @@
     <title>Listando - Album</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
     <style>
         :root {
             --green: #0fba8d; --blue: #3384d4; --yellow: #feb310;
@@ -120,6 +121,79 @@
         }
         .foto-cell:hover .btn-del-foto { opacity: 1; }
         @media (hover: none) { .btn-del-foto { opacity: 1; } }
+
+        /* Foto toolbar */
+        .foto-toolbar { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+        .btn-foto-tool {
+            padding: 7px 14px; border-radius: 12px; border: 2.5px solid var(--grey);
+            background: var(--white); font-size: 12px; font-weight: 800; cursor: pointer;
+            font-family: inherit; transition: all 0.15s;
+        }
+        .btn-foto-tool.active { background: var(--purple); color: white; border-color: var(--purple); }
+        .btn-foto-tool.save { background: var(--green); color: white; border-color: var(--green); }
+
+        /* Selezione */
+        .foto-cell .foto-check {
+            display: none; position: absolute; top: 5px; left: 5px;
+            width: 22px; height: 22px; border-radius: 50%;
+            border: 2.5px solid white; background: rgba(0,0,0,0.3);
+            align-items: center; justify-content: center; pointer-events: none;
+        }
+        .sel-mode .foto-check { display: flex; }
+        .foto-cell.sel .foto-check { background: var(--purple); border-color: var(--purple); }
+        .foto-cell.sel .foto-check::after { content: '✓'; color: white; font-size: 12px; font-weight: 900; }
+        .foto-cell.sel > img { opacity: 0.72; }
+
+        /* Riordina */
+        .drag-handle {
+            display: none; position: absolute; top: 5px; right: 5px;
+            width: 28px; height: 28px; border-radius: 8px; background: rgba(0,0,0,0.55);
+            align-items: center; justify-content: center; cursor: grab; touch-action: none;
+            color: white; font-size: 16px; z-index: 10;
+        }
+        .reorder-mode .drag-handle { display: flex; }
+        .reorder-arrows {
+            display: none; position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%);
+            gap: 3px;
+        }
+        .reorder-mode .reorder-arrows { display: flex; }
+        .btn-arr {
+            width: 26px; height: 26px; border-radius: 7px; border: none;
+            background: rgba(0,0,0,0.55); color: white; font-size: 11px;
+            cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;
+        }
+        .btn-arr:active { opacity: 0.7; }
+
+        /* Action bar selezione */
+        .action-bar {
+            position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
+            background: #1c1c1e; color: white; border-radius: 20px;
+            display: none; align-items: center; gap: 5px;
+            padding: 8px; z-index: 2000;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+            max-width: calc(100vw - 32px); flex-wrap: wrap; justify-content: center;
+        }
+        .action-bar.show { display: flex; }
+        .action-bar-count { font-weight: 900; font-size: 13px; padding: 2px 8px; white-space: nowrap; }
+        .btn-ab {
+            padding: 9px 13px; border-radius: 14px; border: none;
+            font-weight: 800; font-size: 12px; cursor: pointer; font-family: inherit;
+            white-space: nowrap; transition: opacity 0.15s;
+        }
+        .btn-ab:active { opacity: 0.7; }
+        .btn-ab.sposta   { background: var(--blue);   color: white; }
+        .btn-ab.condivid { background: var(--green);  color: white; }
+        .btn-ab.elimina  { background: var(--red);    color: white; }
+        .btn-ab.chiudi   { background: rgba(255,255,255,0.15); color: white; }
+
+        /* Sposta list */
+        .sposta-album-btn {
+            width: 100%; padding: 13px 16px; margin-bottom: 6px;
+            border-radius: 14px; border: 2.5px solid var(--grey);
+            background: var(--grey-light); font-weight: 800; font-size: 14px;
+            cursor: pointer; font-family: inherit; text-align: left; transition: background 0.15s;
+        }
+        .sposta-album-btn:hover, .sposta-album-btn:active { background: #e0d8f5; }
 
         /* Upload progress */
         .upload-bar {
@@ -333,6 +407,12 @@
         <hr class="divider-section">
     </div>
 
+    <div class="foto-toolbar" id="fotoToolbar" style="display:none">
+        <button class="btn-foto-tool" id="btnSeleziona" onclick="toggleSelectMode()">☑ Seleziona</button>
+        <button class="btn-foto-tool" id="btnRiordina" onclick="toggleReorderMode()">↕ Riordina</button>
+        <button class="btn-foto-tool save" id="btnSalvaOrdine" onclick="salvaOrdine()" style="display:none">✓ Salva ordine</button>
+    </div>
+
     <div class="foto-grid" id="fotoGrid">
         <div class="empty-state" style="grid-column:1/-1">
             <div class="empty-title">Caricamento…</div>
@@ -396,6 +476,24 @@
     </div>
 </div>
 
+<!-- Action bar selezione -->
+<div class="action-bar" id="actionBar">
+    <span class="action-bar-count" id="actionBarCount">0 selezionate</span>
+    <button class="btn-ab sposta"   onclick="apriSposta()">📁 Sposta</button>
+    <button class="btn-ab condivid" onclick="condividiFoto()">↗ Condividi</button>
+    <button class="btn-ab elimina"  onclick="eliminaFotoSelezionate()">🗑 Elimina</button>
+    <button class="btn-ab chiudi"   onclick="esciSelectionMode()">✕</button>
+</div>
+
+<!-- Modal Sposta foto -->
+<div id="modalSposta" class="modal-overlay">
+    <div class="modal-box">
+        <p class="modal-title">📁 Sposta Foto</p>
+        <div id="spostaList" style="max-height:55vh;overflow-y:auto"></div>
+        <button class="btn-modal" style="background:var(--grey-light);margin-top:8px" onclick="chiudiModale('modalSposta')">Annulla</button>
+    </div>
+</div>
+
 <!-- Modal Copertina -->
 <div id="modalCopertina" class="modal-overlay">
     <div class="modal-box">
@@ -442,6 +540,10 @@
     let subAlbums = [];
     let subCountMap = {};
     let lightboxIdx = 0;
+    let selectionMode = false;
+    let reorderMode   = false;
+    let selected      = new Set();
+    let sortableInst  = null;
 
     // ── Caricamento ─────────────────────────────────────────────────
     async function caricaAlbum() {
@@ -475,7 +577,7 @@
     async function caricaFoto() {
         const { data } = await supabaseClient
             .from('foto').select('*')
-            .eq('album_id', albumId).order('created_at', { ascending: false });
+            .eq('album_id', albumId).order('sort_order', { ascending: true });
         foto = data || [];
         renderFoto();
     }
@@ -546,8 +648,10 @@
     }
 
     function renderFoto() {
-        const grid = document.getElementById('fotoGrid');
+        const grid    = document.getElementById('fotoGrid');
+        const toolbar = document.getElementById('fotoToolbar');
         if (foto.length === 0) {
+            toolbar.style.display = 'none';
             grid.innerHTML = `<div class="empty-state">
                 <div class="empty-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>
                 <div class="empty-title">Nessuna foto</div>
@@ -559,15 +663,49 @@
             </div>`;
             return;
         }
+        toolbar.style.display = 'flex';
+
+        if (sortableInst) { sortableInst.destroy(); sortableInst = null; }
         grid.innerHTML = '';
+
         foto.forEach((f, idx) => {
             const cell = document.createElement('div');
-            cell.className = 'foto-cell';
-            cell.innerHTML = `
-                <img src="${f.url}" alt="foto" loading="lazy" onclick="apriLightbox(${idx})">
-                <button class="btn-del-foto" onclick="event.stopPropagation(); eliminaFoto(${f.id}, '${f.storage_path}')">✕</button>`;
+            if (selectionMode) {
+                cell.className = 'foto-cell sel-mode' + (selected.has(f.id) ? ' sel' : '');
+                cell.dataset.id = f.id;
+                cell.innerHTML = `<img src="${f.url}" alt="foto" loading="lazy"><div class="foto-check"></div>`;
+                cell.onclick = () => toggleSelectFoto(f.id);
+            } else if (reorderMode) {
+                cell.className = 'foto-cell reorder-mode';
+                cell.innerHTML = `
+                    <img src="${f.url}" alt="foto" loading="lazy">
+                    <div class="drag-handle">⠿</div>
+                    <div class="reorder-arrows">
+                        <button class="btn-arr" onclick="event.stopPropagation();movePhoto(${f.id},-1)">▲</button>
+                        <button class="btn-arr" onclick="event.stopPropagation();movePhoto(${f.id},1)">▼</button>
+                    </div>`;
+            } else {
+                cell.className = 'foto-cell';
+                cell.innerHTML = `
+                    <img src="${f.url}" alt="foto" loading="lazy" onclick="apriLightbox(${idx})">
+                    <button class="btn-del-foto" onclick="event.stopPropagation(); eliminaFoto(${f.id}, '${f.storage_path}')">✕</button>`;
+            }
             grid.appendChild(cell);
         });
+
+        if (reorderMode) {
+            sortableInst = Sortable.create(grid, {
+                handle: '.drag-handle',
+                animation: 150,
+                onEnd: (evt) => {
+                    if (evt.oldIndex === evt.newIndex) return;
+                    const moved = foto.splice(evt.oldIndex, 1)[0];
+                    foto.splice(evt.newIndex, 0, moved);
+                    sortableInst.destroy(); sortableInst = null;
+                    renderFoto();
+                }
+            });
+        }
     }
 
     // ── Sub-album ────────────────────────────────────────────────────
@@ -648,7 +786,8 @@
                     email_utente: userEmail,
                     storage_path: path,
                     url: publicUrl,
-                    size_bytes: blob.size
+                    size_bytes: blob.size,
+                    sort_order: Date.now() + ok
                 });
                 if (dbErr) throw dbErr;
 
@@ -804,6 +943,117 @@
                 bc.style.display = 'none';
             }
         }
+    }
+
+    // ── Selezione ────────────────────────────────────────────────────
+    function toggleSelectMode() {
+        selectionMode = !selectionMode;
+        selected.clear();
+        document.getElementById('btnSeleziona').classList.toggle('active', selectionMode);
+        renderFoto();
+        aggiornaActionBar();
+    }
+    function esciSelectionMode() {
+        selectionMode = false;
+        selected.clear();
+        document.getElementById('btnSeleziona').classList.remove('active');
+        renderFoto();
+        aggiornaActionBar();
+    }
+    function toggleSelectFoto(id) {
+        if (selected.has(id)) selected.delete(id);
+        else selected.add(id);
+        const cell = document.querySelector(`.foto-cell[data-id="${id}"]`);
+        if (cell) cell.classList.toggle('sel', selected.has(id));
+        aggiornaActionBar();
+    }
+    function aggiornaActionBar() {
+        const bar = document.getElementById('actionBar');
+        document.getElementById('actionBarCount').textContent = `${selected.size} selezionate`;
+        bar.classList.toggle('show', selectionMode && selected.size > 0);
+    }
+
+    // ── Riordina ─────────────────────────────────────────────────────
+    function toggleReorderMode() {
+        reorderMode = !reorderMode;
+        document.getElementById('btnRiordina').classList.toggle('active', reorderMode);
+        document.getElementById('btnSalvaOrdine').style.display = reorderMode ? '' : 'none';
+        if (!reorderMode && sortableInst) { sortableInst.destroy(); sortableInst = null; }
+        renderFoto();
+    }
+    function movePhoto(fotoId, dir) {
+        const idx = foto.findIndex(f => f.id === fotoId);
+        if (idx === -1) return;
+        const newIdx = idx + dir;
+        if (newIdx < 0 || newIdx >= foto.length) return;
+        [foto[idx], foto[newIdx]] = [foto[newIdx], foto[idx]];
+        renderFoto();
+    }
+    async function salvaOrdine() {
+        const btn = document.getElementById('btnSalvaOrdine');
+        btn.textContent = '…';
+        await Promise.all(foto.map((f, i) =>
+            supabaseClient.from('foto').update({ sort_order: i + 1 }).eq('id', f.id)
+        ));
+        reorderMode = false;
+        document.getElementById('btnRiordina').classList.remove('active');
+        btn.style.display = 'none';
+        btn.textContent = '✓ Salva ordine';
+        if (sortableInst) { sortableInst.destroy(); sortableInst = null; }
+        renderFoto();
+        mostraToast('✓ Ordine salvato');
+    }
+
+    // ── Azioni selezione ─────────────────────────────────────────────
+    async function apriSposta() {
+        const { data: albums } = await supabaseClient
+            .from('foto_album').select('id, nome')
+            .eq('email_utente', userEmail)
+            .neq('id', Number(albumId))
+            .order('nome');
+        const list = document.getElementById('spostaList');
+        if (!albums || albums.length === 0) {
+            list.innerHTML = '<p style="text-align:center;color:#999;padding:20px;font-weight:600">Nessun altro album</p>';
+        } else {
+            list.innerHTML = albums.map(a =>
+                `<button class="sposta-album-btn" onclick="spostaInAlbum(${a.id})">📁 ${a.nome}</button>`
+            ).join('');
+        }
+        document.getElementById('modalSposta').style.display = 'flex';
+    }
+    async function spostaInAlbum(targetId) {
+        const ids = [...selected];
+        const { error } = await supabaseClient.from('foto').update({ album_id: targetId }).in('id', ids);
+        if (error) { mostraToast('Errore spostamento'); return; }
+        foto = foto.filter(f => !selected.has(f.id));
+        chiudiModale('modalSposta');
+        esciSelectionMode();
+        mostraToast(`✓ ${ids.length} foto spostate`);
+    }
+    async function condividiFoto() {
+        const selFoto = foto.filter(f => selected.has(f.id));
+        if (!selFoto.length) return;
+        const testo = selFoto.map(f => f.url).join('\n');
+        if (navigator.share) {
+            try {
+                await navigator.share({ title: album.nome, text: testo });
+            } catch (e) {
+                if (e.name !== 'AbortError') mostraToast('Condivisione non riuscita');
+            }
+        } else {
+            await navigator.clipboard.writeText(testo);
+            mostraToast(`✓ ${selFoto.length} link copiati`);
+        }
+    }
+    async function eliminaFotoSelezionate() {
+        const count = selected.size;
+        if (!confirm(`Eliminare ${count} foto selezionate?`)) return;
+        const selFoto = foto.filter(f => selected.has(f.id));
+        await supabaseClient.storage.from('foto').remove(selFoto.map(f => f.storage_path));
+        await supabaseClient.from('foto').delete().in('id', [...selected]);
+        foto = foto.filter(f => !selected.has(f.id));
+        esciSelectionMode();
+        mostraToast(`✓ ${count} foto eliminate`);
     }
 
     // ── Copertina ────────────────────────────────────────────────────
