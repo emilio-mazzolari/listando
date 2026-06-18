@@ -145,8 +145,10 @@
         .foto-cell.sel > img { opacity: 0.72; }
 
         /* Sortable drag feedback */
-        .sortable-ghost  { opacity: 0.35; }
-        .sortable-chosen { box-shadow: 0 0 0 3px var(--purple); border-radius: 6px; }
+        .foto-grid { -webkit-touch-callout: none; }
+        .foto-cell { -webkit-user-select: none; user-select: none; }
+        .sortable-ghost  { opacity: 0.3; }
+        .sortable-chosen { outline: 3px solid var(--purple); outline-offset: -3px; }
 
         /* Action bar selezione */
         .action-bar {
@@ -668,14 +670,18 @@
         });
 
         if (!selectionMode) {
+            grid.addEventListener('contextmenu', e => e.preventDefault(), { once: false });
             sortableInst = Sortable.create(grid, {
                 animation: 150,
-                delay: 600,
+                delay: 400,
                 delayOnTouchOnly: true,
-                touchStartThreshold: 4,
+                touchStartThreshold: 15,
+                forceFallback: true,
+                fallbackTolerance: 8,
                 ghostClass: 'sortable-ghost',
                 chosenClass: 'sortable-chosen',
                 filter: '.btn-del-foto',
+                preventOnFilter: false,
                 onStart: () => {
                     document.getElementById('btnSalvaOrdine').style.display = '';
                     reorderDirty = true;
@@ -684,6 +690,10 @@
                     if (evt.oldIndex === evt.newIndex) return;
                     const moved = foto.splice(evt.oldIndex, 1)[0];
                     foto.splice(evt.newIndex, 0, moved);
+                    grid.querySelectorAll('.foto-cell').forEach((cell, i) => {
+                        const img = cell.querySelector('img');
+                        if (img) img.onclick = (e) => { e.stopPropagation(); apriLightbox(i); };
+                    });
                 }
             });
         }
