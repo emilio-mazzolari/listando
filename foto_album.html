@@ -307,7 +307,7 @@
 <div class="meta-bar" id="metaBar"></div>
 
 <div class="app">
-    <!-- Sub-albums section (shown only when sub-albums exist) -->
+    <!-- Sub-albums section -->
     <div id="subAlbumSection" style="display:none">
         <div class="section-hdr">
             <span class="section-hdr-title">Sub-album</span>
@@ -360,6 +360,7 @@
         <div class="field-group"><div class="field-label">Luogo</div><input type="text" class="modal-input" id="editLuogo"></div>
         <div class="field-group"><div class="field-label">Argomento</div><input type="text" class="modal-input" id="editArgomento"></div>
         <div class="field-group"><div class="field-label">Persone (separate da virgola)</div><input type="text" class="modal-input" id="editPersone"></div>
+        <div class="field-group"><div class="field-label">Sposta dentro</div><select class="modal-input" id="editParent" style="cursor:pointer"></select></div>
         <button class="btn-modal" style="background:var(--purple);color:white;" onclick="salvaEdit()">Salva</button>
         <button class="btn-modal" style="background:var(--grey-light);" onclick="chiudiModale('modalEdit')">Annulla</button>
     </div>
@@ -487,10 +488,9 @@
     function renderSubAlbum() {
         const section = document.getElementById('subAlbumSection');
         const grid = document.getElementById('subAlbumGrid');
-        if (subAlbums.length === 0) { section.style.display = 'none'; return; }
-
         section.style.display = 'block';
         grid.innerHTML = '';
+        if (subAlbums.length === 0) return;
         subAlbums.forEach(sub => {
             const count = subCountMap[sub.id] || 0;
             const card = document.createElement('a');
@@ -707,32 +707,68 @@
     }
 
     // ── Edit ─────────────────────────────────────────────────────────
-    function apriEdit() {
+    async function apriEdit() {
         document.getElementById('editNome').value      = album.nome || '';
         document.getElementById('editData').value      = album.data_album || '';
         document.getElementById('editLuogo').value     = album.luogo || '';
         document.getElementById('editArgomento').value = album.argomento || '';
         document.getElementById('editPersone').value   = album.persone || '';
+        await caricaSelectParent();
         document.getElementById('modalEdit').style.display = 'flex';
     }
+
+    async function caricaSelectParent() {
+        const select = document.getElementById('editParent');
+        const { data: tutti } = await supabaseClient
+            .from('foto_album').select('id, nome')
+            .eq('email_utente', userEmail).order('nome', { ascending: true });
+        const excludeIds = new Set([Number(albumId), ...subAlbums.map(s => s.id)]);
+        select.innerHTML = '<option value="">— Nessuno (album radice) —</option>';
+        (tutti || []).filter(a => !excludeIds.has(a.id)).forEach(a => {
+            const opt = document.createElement('option');
+            opt.value = a.id;
+            opt.textContent = a.nome;
+            if (album.parent_id && a.id === album.parent_id) opt.selected = true;
+            select.appendChild(opt);
+        });
+    }
+
     async function salvaEdit() {
         const nome = document.getElementById('editNome').value.trim();
         if (!nome) { mostraToast('⚠️ Il nome è obbligatorio'); return; }
+        const parentVal = document.getElementById('editParent').value;
+        const newParentId = parentVal ? Number(parentVal) : null;
         const updates = {
             nome,
             data_album:  document.getElementById('editData').value || null,
             luogo:       document.getElementById('editLuogo').value.trim() || null,
             argomento:   document.getElementById('editArgomento').value.trim() || null,
             persone:     document.getElementById('editPersone').value.trim() || null,
+            parent_id:   newParentId,
         };
         const { error } = await supabaseClient.from('foto_album').update(updates).eq('id', albumId);
         if (error) { mostraToast('Errore salvataggio'); return; }
+        const parentChanged = newParentId !== album.parent_id;
         Object.assign(album, updates);
         document.getElementById('headerTitle').textContent = album.nome;
         document.title = `Listando — ${album.nome}`;
         renderMeta();
         chiudiModale('modalEdit');
         mostraToast('✓ Album aggiornato');
+        if (parentChanged) {
+            document.getElementById('btnBack').onclick = () => {
+                if (album.parent_id) location.href = `foto_album.html?id=${album.parent_id}`;
+                else location.href = 'foto.html';
+            };
+            const bc = document.getElementById('headerBreadcrumb');
+            if (album.parent_id) {
+                const { data: parent } = await supabaseClient
+                    .from('foto_album').select('nome').eq('id', album.parent_id).single();
+                if (parent) { bc.textContent = `in ${parent.nome}`; bc.style.display = 'block'; }
+            } else {
+                bc.style.display = 'none';
+            }
+        }
     }
 
     // ── Utility ──────────────────────────────────────────────────────
