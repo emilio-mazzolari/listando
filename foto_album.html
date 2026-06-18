@@ -395,6 +395,7 @@
 
     <div class="foto-toolbar" id="fotoToolbar" style="display:none">
         <button class="btn-foto-tool" id="btnSeleziona" onclick="toggleSelectMode()">☑ Seleziona</button>
+        <button class="btn-foto-tool" id="btnTutte" onclick="selezionaTutte()" style="display:none">Tutte</button>
         <button class="btn-foto-tool save" id="btnSalvaOrdine" onclick="salvaOrdine()" style="display:none">✓ Salva ordine</button>
     </div>
 
@@ -467,7 +468,6 @@
     <button class="btn-ab sposta"   onclick="apriSposta()">📁 Sposta</button>
     <button class="btn-ab condivid" onclick="condividiFoto()">↗ Condividi</button>
     <button class="btn-ab elimina"  onclick="eliminaFotoSelezionate()">🗑 Elimina</button>
-    <button class="btn-ab chiudi"   onclick="esciSelectionMode()">✕</button>
 </div>
 
 <!-- Modal Sposta foto -->
@@ -941,6 +941,7 @@
         selectionMode = !selectionMode;
         selected.clear();
         document.getElementById('btnSeleziona').classList.toggle('active', selectionMode);
+        document.getElementById('btnTutte').style.display = selectionMode ? '' : 'none';
         renderFoto();
         aggiornaActionBar();
     }
@@ -948,7 +949,19 @@
         selectionMode = false;
         selected.clear();
         document.getElementById('btnSeleziona').classList.remove('active');
+        document.getElementById('btnTutte').style.display = 'none';
         renderFoto();
+        aggiornaActionBar();
+    }
+    function selezionaTutte() {
+        const tutteSelezionate = selected.size === foto.length;
+        selected.clear();
+        if (!tutteSelezionate) foto.forEach(f => selected.add(f.id));
+        document.getElementById('btnTutte').textContent = tutteSelezionate ? 'Tutte' : 'Nessuna';
+        document.querySelectorAll('.foto-cell.sel-mode').forEach(cell => {
+            const id = Number(cell.dataset.id);
+            cell.classList.toggle('sel', selected.has(id));
+        });
         aggiornaActionBar();
     }
     function toggleSelectFoto(id) {
