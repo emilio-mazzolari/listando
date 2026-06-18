@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Listando - Album</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --green: #0fba8d; --blue: #3384d4; --yellow: #feb310;
+            --purple: #7c5cbf; --red: #ff4d4d;
+            --grey: #d8dddc; --grey-light: #f2f2f7;
+            --dark: #111111; --bg: #f5f6f8; --white: #ffffff;
+            --shadow: 0 4px 20px rgba(0,0,0,0.07);
+        }
+        * { box-sizing: border-box; }
+        html, body { overflow-x: hidden; max-width: 100%; }
+        body { margin: 0; font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--dark); }
+
+        /* Header */
+        .page-header {
+            position: sticky; top: 0; z-index: 100;
+            background: var(--white); border-bottom: 2px solid var(--grey-light);
+            display: flex; align-items: center; gap: 10px;
+            padding: 14px 20px; padding-top: max(14px, env(safe-area-inset-top, 14px));
+        }
+        .btn-back {
+            width: 40px; height: 40px; border-radius: 12px;
+            border: 2.5px solid var(--grey); background: var(--white);
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; flex-shrink: 0; transition: background 0.15s;
+        }
+        .btn-back:active { background: var(--grey-light); }
+        .btn-back svg { width: 18px; height: 18px; stroke: var(--dark); fill: none; stroke-width: 2.5; }
+        .header-title { flex: 1; font-weight: 900; font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .header-actions { display: flex; gap: 8px; flex-shrink: 0; }
+        .btn-icon {
+            width: 40px; height: 40px; border-radius: 12px;
+            border: 2.5px solid var(--grey); background: var(--white);
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: all 0.15s;
+        }
+        .btn-icon svg { width: 18px; height: 18px; fill: none; stroke-width: 2.5; }
+        .btn-icon.share { border-color: var(--purple); }
+        .btn-icon.share svg { stroke: var(--purple); }
+        .btn-icon.edit  { border-color: var(--yellow); }
+        .btn-icon.edit  svg { stroke: var(--yellow); }
+        .btn-icon.del   { border-color: var(--red); }
+        .btn-icon.del   svg { stroke: var(--red); }
+        .btn-icon:active { opacity: 0.75; }
+
+        /* Meta */
+        .meta-bar {
+            display: flex; flex-wrap: wrap; gap: 8px;
+            padding: 14px 20px; background: var(--white);
+            border-bottom: 2px solid var(--grey-light);
+        }
+        .meta-chip {
+            background: var(--grey-light); border-radius: 20px;
+            padding: 5px 12px; font-size: 12px; font-weight: 700; color: #555;
+        }
+        .meta-chip.persona { background: #ede8f8; color: var(--purple); }
+
+        /* Main content */
+        .app {
+            padding: 16px 20px 140px;
+            padding-left: max(20px, env(safe-area-inset-left, 20px));
+            padding-right: max(20px, env(safe-area-inset-right, 20px));
+        }
+
+        /* Photo grid */
+        .foto-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 3px; }
+        .foto-cell { position: relative; aspect-ratio: 1; overflow: hidden; cursor: pointer; background: var(--grey-light); }
+        .foto-cell img { width: 100%; height: 100%; object-fit: cover; display: block; transition: opacity 0.2s; }
+        .foto-cell img:active { opacity: 0.8; }
+        .btn-del-foto {
+            position: absolute; top: 4px; right: 4px;
+            width: 26px; height: 26px; border-radius: 50%;
+            background: rgba(0,0,0,0.55); color: white; border: none;
+            font-size: 16px; line-height: 1; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; transition: opacity 0.2s;
+        }
+        .foto-cell:hover .btn-del-foto { opacity: 1; }
+        /* always visible on touch devices */
+        @media (hover: none) { .btn-del-foto { opacity: 1; } }
+
+        /* Upload progress */
+        .upload-bar {
+            display: none; position: fixed; top: 0; left: 0; right: 0;
+            background: var(--purple); color: white; text-align: center;
+            font-size: 13px; font-weight: 800; padding: 10px;
+            z-index: 9999;
+        }
+
+        /* Upload FAB */
+        .fab {
+            position: fixed; bottom: 110px; right: 20px;
+            width: 58px; height: 58px; border-radius: 50%;
+            background: var(--purple); color: white; border: none;
+            font-size: 28px; cursor: pointer; box-shadow: 0 6px 20px rgba(124,92,191,0.45);
+            display: flex; align-items: center; justify-content: center;
+            transition: transform 0.15s; z-index: 500;
+        }
+        .fab:active { transform: scale(0.92); }
+
+        /* Empty state */
+        .empty-state { text-align: center; padding: 60px 20px; }
+        .empty-icon { width: 70px; height: 70px; background: var(--grey-light); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; }
+        .empty-icon svg { width: 32px; height: 32px; stroke: #aaa; fill: none; stroke-width: 1.5; }
+        .empty-title { font-weight: 900; font-size: 18px; margin-bottom: 8px; }
+        .empty-sub { color: #999; font-size: 14px; font-weight: 600; }
+
+        /* Lightbox */
+        .lightbox {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.95); z-index: 5000;
+            flex-direction: column; align-items: center; justify-content: center;
+        }
+        .lightbox.open { display: flex; }
+        .lightbox img { max-width: 100%; max-height: calc(100vh - 80px); object-fit: contain; }
+        .lightbox-close {
+            position: absolute; top: 16px; right: 16px;
+            color: white; background: rgba(255,255,255,0.15); border: none;
+            border-radius: 50%; width: 44px; height: 44px; font-size: 22px;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
+        .lightbox-nav {
+            position: absolute; top: 50%; transform: translateY(-50%);
+            color: white; background: rgba(255,255,255,0.15); border: none;
+            border-radius: 50%; width: 44px; height: 44px; font-size: 22px;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
+        .lightbox-prev { left: 12px; }
+        .lightbox-next { right: 12px; }
+        .lightbox-counter { position: absolute; bottom: 20px; color: rgba(255,255,255,0.7); font-size: 13px; font-weight: 700; }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+            display: none; align-items: flex-end; justify-content: center;
+            z-index: 3000; backdrop-filter: blur(6px); padding-bottom: 30px;
+        }
+        .modal-box {
+            background: white; padding: 28px 24px 20px;
+            border-radius: 32px 32px 24px 24px; width: 92%; max-width: 400px;
+            border: 3px solid var(--grey); animation: slideUp 0.25s ease;
+            max-height: 88vh; overflow-y: auto;
+        }
+        @keyframes slideUp { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .modal-title { font-weight: 900; font-size: 19px; margin: 0 0 18px; text-align: center; }
+        .field-group { margin-bottom: 13px; }
+        .field-label { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: #888; margin-bottom: 6px; }
+        .modal-input {
+            width: 100%; padding: 12px 16px; border-radius: 14px;
+            border: 2.5px solid var(--grey); font-size: 15px; font-weight: 600;
+            font-family: inherit; outline: none; transition: border-color 0.2s;
+        }
+        .modal-input:focus { border-color: var(--purple); }
+
+        /* Share link */
+        .share-link-row { display: flex; gap: 8px; align-items: center; margin: 16px 0; }
+        .share-link-input {
+            flex: 1; padding: 11px 14px; border-radius: 14px;
+            border: 2px solid var(--grey); font-size: 12px;
+            font-family: inherit; background: var(--grey-light);
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap; outline: none;
+        }
+        .btn-copy {
+            padding: 11px 14px; border-radius: 14px; background: var(--purple);
+            color: white; border: none; font-weight: 800; font-size: 12px;
+            cursor: pointer; font-family: inherit; white-space: nowrap; flex-shrink: 0;
+        }
+
+        .btn-modal {
+            width: 100%; padding: 14px; margin-top: 8px; border-radius: 18px; border: none;
+            font-weight: 800; cursor: pointer; font-size: 15px; font-family: inherit;
+        }
+        .btn-modal:active { opacity: 0.85; }
+
+        /* Tab Bar */
+        .tab-bar {
+            position: fixed; bottom: 0; left: 0; right: 0; height: 88px;
+            background: white; display: flex; justify-content: space-around; align-items: center;
+            border-top: 3px solid var(--grey); z-index: 1000;
+            padding-bottom: env(safe-area-inset-bottom, 0);
+        }
+        .tab-item {
+            flex: 1; text-align: center; font-size: 10px; color: #aaa;
+            text-decoration: none; font-weight: 800;
+            display: flex; flex-direction: column; align-items: center; gap: 5px;
+            text-transform: uppercase; letter-spacing: 0.3px;
+        }
+        .tab-active { color: var(--purple); }
+        .icon-tab { width: 24px; height: 24px; stroke-width: 2.5; stroke: currentColor; fill: none; }
+
+        /* Toast */
+        .toast {
+            position: fixed; bottom: 105px; left: 50%; transform: translateX(-50%) translateY(20px);
+            background: var(--dark); color: white; padding: 12px 22px; border-radius: 20px;
+            font-size: 13px; font-weight: 700; opacity: 0; pointer-events: none;
+            transition: all 0.3s ease; z-index: 6000; max-width: calc(100vw - 40px); text-align: center;
+        }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        @media (min-width: 600px) { .foto-grid { grid-template-columns: repeat(4, 1fr); } }
+        @media (min-width: 768px) { .foto-grid { grid-template-columns: repeat(5, 1fr); } }
+        @media (min-width: 1024px) {
+            .tab-bar {
+                top: 0; bottom: 0; right: auto; width: 240px; height: 100vh;
+                flex-direction: column; justify-content: flex-start; align-items: stretch;
+                border-top: none; border-right: 3px solid var(--grey);
+                padding: 28px 12px 24px; overflow-y: auto;
+            }
+            .tab-bar::before {
+                content: "LISTANDO"; display: block; font-weight: 900; font-size: 20px;
+                letter-spacing: -0.8px; color: var(--green); padding: 0 8px 28px;
+                font-family: 'Segoe UI', system-ui, sans-serif;
+            }
+            .tab-item {
+                flex: none; flex-direction: row; justify-content: flex-start;
+                padding: 13px 16px; font-size: 13px; gap: 12px;
+                text-align: left; border-radius: 14px; min-height: 44px; margin-bottom: 2px;
+            }
+            .tab-active { background: rgba(124, 92, 191, 0.1); }
+            .icon-tab { width: 20px; height: 20px; flex-shrink: 0; }
+            .app { padding-left: 260px; }
+            .page-header { padding-left: 260px; }
+            .meta-bar { padding-left: 260px; }
+            .fab { right: 40px; }
+            .foto-grid { grid-template-columns: repeat(6, 1fr); }
+            .modal-overlay { align-items: center; padding-bottom: 0; }
+            .modal-box { border-radius: 28px; }
+        }
+        @media (min-width: 1280px) { .tab-bar { width: 260px; } }
+    </style>
+</head>
+<body>
+
+<div class="upload-bar" id="uploadBar">⏳ Caricamento…</div>
+
+<header class="page-header">
+    <button class="btn-back" onclick="history.back()">
+        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <span class="header-title" id="headerTitle">Album</span>
+    <div class="header-actions">
+        <button class="btn-icon share" onclick="apriShare()" title="Condividi">
+            <svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        </button>
+        <button class="btn-icon edit" onclick="apriEdit()" title="Modifica">
+            <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </button>
+        <button class="btn-icon del" onclick="eliminaAlbum()" title="Elimina album">
+            <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        </button>
+    </div>
+</header>
+
+<div class="meta-bar" id="metaBar"></div>
+
+<div class="app">
+    <div class="foto-grid" id="fotoGrid">
+        <div class="empty-state" style="grid-column:1/-1">
+            <div class="empty-title">Caricamento…</div>
+        </div>
+    </div>
+</div>
+
+<button class="fab" onclick="document.getElementById('fileInput').click()" title="Aggiungi foto">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+</button>
+<input type="file" id="fileInput" accept="image/*" multiple style="display:none" onchange="handleFiles(this.files)">
+
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox" onclick="chiudiLightbox()">
+    <button class="lightbox-close" onclick="chiudiLightbox()">✕</button>
+    <button class="lightbox-nav lightbox-prev" onclick="event.stopPropagation(); navLightbox(-1)">‹</button>
+    <img id="lightboxImg" src="" alt="">
+    <button class="lightbox-nav lightbox-next" onclick="event.stopPropagation(); navLightbox(1)">›</button>
+    <span class="lightbox-counter" id="lightboxCounter"></span>
+</div>
+
+<!-- Modal Share -->
+<div id="modalShare" class="modal-overlay">
+    <div class="modal-box">
+        <p class="modal-title">🔗 Condividi Album</p>
+        <p style="font-size:13px;color:#777;font-weight:600;text-align:center;margin:0 0 4px">Chiunque abbia questo link può vedere le foto senza login.</p>
+        <div class="share-link-row">
+            <input class="share-link-input" id="shareUrl" readonly>
+            <button class="btn-copy" onclick="copiaLink()">Copia</button>
+        </div>
+        <button class="btn-modal" style="background:var(--grey-light);" onclick="chiudiModale('modalShare')">Chiudi</button>
+    </div>
+</div>
+
+<!-- Modal Edit -->
+<div id="modalEdit" class="modal-overlay">
+    <div class="modal-box">
+        <p class="modal-title">✏️ Modifica Album</p>
+        <div class="field-group"><div class="field-label">Nome *</div><input type="text" class="modal-input" id="editNome"></div>
+        <div class="field-group"><div class="field-label">Data</div><input type="date" class="modal-input" id="editData"></div>
+        <div class="field-group"><div class="field-label">Luogo</div><input type="text" class="modal-input" id="editLuogo"></div>
+        <div class="field-group"><div class="field-label">Argomento</div><input type="text" class="modal-input" id="editArgomento"></div>
+        <div class="field-group"><div class="field-label">Persone (separate da virgola)</div><input type="text" class="modal-input" id="editPersone"></div>
+        <button class="btn-modal" style="background:var(--purple);color:white;" onclick="salvaEdit()">Salva</button>
+        <button class="btn-modal" style="background:var(--grey-light);" onclick="chiudiModale('modalEdit')">Annulla</button>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<nav class="tab-bar">
+    <a href="index.html" class="tab-item">
+        <svg class="icon-tab" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+        Home
+    </a>
+    <a href="foto.html" class="tab-item tab-active">
+        <svg class="icon-tab" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        Foto
+    </a>
+    <a href="#" class="tab-item" onclick="logout()">
+        <svg class="icon-tab" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/></svg>
+        Esci
+    </a>
+</nav>
+
+<script>
+    const SUPABASE_URL = "https://eejdpophfxsrqdvsucye.supabase.co";
+    const KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlamRwb3BoZnhzcnFkdnN1Y3llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2NTMzMDQsImV4cCI6MjA5MzIyOTMwNH0.mpxbwlJyIdZgqKIdutHbLd85JR1P11yiglbYeApi17k";
+    const supabaseClient = supabase.createClient(SUPABASE_URL, KEY);
+    const userEmail = localStorage.getItem('userEmail');
+    if (!userEmail) window.location.href = 'login.html';
+
+    const params = new URLSearchParams(location.search);
+    const albumId = params.get('id');
+    if (!albumId) location.href = 'foto.html';
+
+    let album = null;
+    let foto  = [];
+    let lightboxIdx = 0;
+
+    // ── Caricamento ─────────────────────────────────────────────────
+    async function caricaAlbum() {
+        const { data, error } = await supabaseClient
+            .from('foto_album').select('*')
+            .eq('id', albumId).eq('email_utente', userEmail).single();
+        if (error || !data) { location.href = 'foto.html'; return; }
+        album = data;
+        document.getElementById('headerTitle').textContent = album.nome;
+        document.title = `Listando — ${album.nome}`;
+        renderMeta();
+        await caricaFoto();
+    }
+
+    async function caricaFoto() {
+        const { data } = await supabaseClient
+            .from('foto').select('*')
+            .eq('album_id', albumId).order('created_at', { ascending: false });
+        foto = data || [];
+        renderFoto();
+    }
+
+    function renderMeta() {
+        const bar = document.getElementById('metaBar');
+        const chips = [];
+        if (album.data_album) chips.push(`📅 ${new Date(album.data_album + 'T00:00:00').toLocaleDateString('it', { day: '2-digit', month: 'long', year: 'numeric' })}`);
+        if (album.luogo)      chips.push(`📍 ${album.luogo}`);
+        if (album.argomento)  chips.push(`🏷️ ${album.argomento}`);
+        bar.innerHTML = chips.map(c => `<span class="meta-chip">${c}</span>`).join('');
+        if (album.persone) {
+            album.persone.split(',').map(p => p.trim()).filter(Boolean).forEach(p => {
+                bar.innerHTML += `<span class="meta-chip persona">👤 ${p}</span>`;
+            });
+        }
+        if (!bar.innerHTML) bar.style.display = 'none';
+    }
+
+    function renderFoto() {
+        const grid = document.getElementById('fotoGrid');
+        if (foto.length === 0) {
+            grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+                <div class="empty-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>
+                <div class="empty-title">Nessuna foto</div>
+                <div class="empty-sub">Tocca + per aggiungere le prime foto</div>
+            </div>`;
+            return;
+        }
+        grid.innerHTML = '';
+        foto.forEach((f, idx) => {
+            const cell = document.createElement('div');
+            cell.className = 'foto-cell';
+            cell.innerHTML = `
+                <img src="${f.url}" alt="foto" loading="lazy" onclick="apriLightbox(${idx})">
+                <button class="btn-del-foto" onclick="event.stopPropagation(); eliminaFoto(${f.id}, '${f.storage_path}')">✕</button>`;
+            grid.appendChild(cell);
+        });
+    }
+
+    // ── Compressione ────────────────────────────────────────────────
+    function compressImage(file) {
+        return new Promise(resolve => {
+            const img = new Image();
+            const url = URL.createObjectURL(file);
+            img.onload = () => {
+                URL.revokeObjectURL(url);
+                const MAX = 1280;
+                let w = img.naturalWidth, h = img.naturalHeight;
+                if (w > MAX || h > MAX) {
+                    const r = Math.min(MAX / w, MAX / h);
+                    w = Math.round(w * r); h = Math.round(h * r);
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width = w; canvas.height = h;
+                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                canvas.toBlob(blob => resolve(blob), 'image/jpeg', 0.80);
+            };
+            img.src = url;
+        });
+    }
+
+    // ── Upload ──────────────────────────────────────────────────────
+    async function handleFiles(fileList) {
+        const files = Array.from(fileList).filter(f => f.type.startsWith('image/'));
+        if (!files.length) return;
+
+        const bar = document.getElementById('uploadBar');
+        bar.style.display = 'block';
+        let ok = 0;
+
+        for (let i = 0; i < files.length; i++) {
+            bar.textContent = `⏳ Comprimo foto ${i + 1} di ${files.length}…`;
+            try {
+                const blob = await compressImage(files[i]);
+                const slug  = userEmail.replace(/[^a-zA-Z0-9]/g, '_');
+                const fname = `${Date.now()}_${Math.random().toString(36).slice(2)}.jpg`;
+                const path  = `${slug}/${albumId}/${fname}`;
+
+                bar.textContent = `⬆️ Carico foto ${i + 1} di ${files.length}…`;
+
+                const { error: upErr } = await supabaseClient.storage.from('foto')
+                    .upload(path, blob, { contentType: 'image/jpeg' });
+                if (upErr) throw upErr;
+
+                const { data: { publicUrl } } = supabaseClient.storage.from('foto').getPublicUrl(path);
+
+                const { error: dbErr } = await supabaseClient.from('foto').insert({
+                    album_id: Number(albumId),
+                    email_utente: userEmail,
+                    storage_path: path,
+                    url: publicUrl,
+                    size_bytes: blob.size
+                });
+                if (dbErr) throw dbErr;
+
+                if (!album.cover_url) {
+                    await supabaseClient.from('foto_album').update({ cover_url: publicUrl }).eq('id', albumId);
+                    album.cover_url = publicUrl;
+                }
+                ok++;
+            } catch(e) {
+                console.error(e);
+                mostraToast('Errore upload: ' + (e.message || 'riprova'));
+            }
+        }
+
+        bar.style.display = 'none';
+        document.getElementById('fileInput').value = '';
+        await caricaFoto();
+        if (ok > 0) mostraToast(`✓ ${ok} foto caricate!`);
+    }
+
+    // ── Elimina foto ─────────────────────────────────────────────────
+    async function eliminaFoto(id, storagePath) {
+        if (!confirm('Eliminare questa foto?')) return;
+        const f = foto.find(x => x.id === id);
+        const wasCover = f && album.cover_url && f.url === album.cover_url;
+        await supabaseClient.storage.from('foto').remove([storagePath]);
+        await supabaseClient.from('foto').delete().eq('id', id);
+        foto = foto.filter(x => x.id !== id);
+        if (wasCover) {
+            const newCover = foto.length > 0 ? foto[0].url : null;
+            await supabaseClient.from('foto_album').update({ cover_url: newCover }).eq('id', albumId);
+            album.cover_url = newCover;
+        }
+        renderFoto();
+        mostraToast('Foto eliminata');
+    }
+
+    // ── Elimina album ────────────────────────────────────────────────
+    async function eliminaAlbum() {
+        if (!confirm(`Eliminare l'album "${album.nome}" e tutte le sue foto?`)) return;
+        const paths = foto.map(f => f.storage_path);
+        if (paths.length) await supabaseClient.storage.from('foto').remove(paths);
+        await supabaseClient.from('foto_album').delete().eq('id', albumId);
+        location.href = 'foto.html';
+    }
+
+    // ── Lightbox ─────────────────────────────────────────────────────
+    function apriLightbox(idx) {
+        lightboxIdx = idx;
+        document.getElementById('lightbox').classList.add('open');
+        aggiornaLightbox();
+    }
+    function chiudiLightbox() { document.getElementById('lightbox').classList.remove('open'); }
+    function navLightbox(dir) {
+        lightboxIdx = (lightboxIdx + dir + foto.length) % foto.length;
+        aggiornaLightbox();
+    }
+    function aggiornaLightbox() {
+        document.getElementById('lightboxImg').src = foto[lightboxIdx].url;
+        document.getElementById('lightboxCounter').textContent = `${lightboxIdx + 1} / ${foto.length}`;
+    }
+    document.addEventListener('keydown', e => {
+        if (!document.getElementById('lightbox').classList.contains('open')) return;
+        if (e.key === 'ArrowLeft')  navLightbox(-1);
+        if (e.key === 'ArrowRight') navLightbox(1);
+        if (e.key === 'Escape')     chiudiLightbox();
+    });
+
+    // ── Share ────────────────────────────────────────────────────────
+    function apriShare() {
+        const url = `${location.origin}/foto_condivisa.html?token=${album.share_token}`;
+        document.getElementById('shareUrl').value = url;
+        document.getElementById('modalShare').style.display = 'flex';
+    }
+    function copiaLink() {
+        navigator.clipboard.writeText(document.getElementById('shareUrl').value)
+            .then(() => mostraToast('✓ Link copiato!'))
+            .catch(() => mostraToast('Seleziona il link manualmente'));
+    }
+
+    // ── Edit ─────────────────────────────────────────────────────────
+    function apriEdit() {
+        document.getElementById('editNome').value      = album.nome || '';
+        document.getElementById('editData').value      = album.data_album || '';
+        document.getElementById('editLuogo').value     = album.luogo || '';
+        document.getElementById('editArgomento').value = album.argomento || '';
+        document.getElementById('editPersone').value   = album.persone || '';
+        document.getElementById('modalEdit').style.display = 'flex';
+    }
+    async function salvaEdit() {
+        const nome = document.getElementById('editNome').value.trim();
+        if (!nome) { mostraToast('⚠️ Il nome è obbligatorio'); return; }
+        const updates = {
+            nome,
+            data_album:  document.getElementById('editData').value || null,
+            luogo:       document.getElementById('editLuogo').value.trim() || null,
+            argomento:   document.getElementById('editArgomento').value.trim() || null,
+            persone:     document.getElementById('editPersone').value.trim() || null,
+        };
+        const { error } = await supabaseClient.from('foto_album').update(updates).eq('id', albumId);
+        if (error) { mostraToast('Errore salvataggio'); return; }
+        Object.assign(album, updates);
+        document.getElementById('headerTitle').textContent = album.nome;
+        document.title = `Listando — ${album.nome}`;
+        renderMeta();
+        chiudiModale('modalEdit');
+        mostraToast('✓ Album aggiornato');
+    }
+
+    // ── Utility ──────────────────────────────────────────────────────
+    function chiudiModale(id) { document.getElementById(id).style.display = 'none'; }
+    document.querySelectorAll('.modal-overlay').forEach(m => {
+        m.addEventListener('click', e => { if (e.target === m) m.style.display = 'none'; });
+    });
+
+    let toastTimer;
+    function mostraToast(msg) {
+        const t = document.getElementById('toast');
+        t.textContent = msg; t.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+    }
+    function logout() { localStorage.clear(); location.href = 'login.html'; }
+
+    caricaAlbum();
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) caricaFoto(); });
+</script>
+</body>
+</html>
