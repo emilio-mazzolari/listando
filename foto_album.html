@@ -155,6 +155,19 @@
         }
         .btn-import:active { opacity: 0.85; }
 
+        /* Cover picker */
+        .btn-icon.cover { border-color: var(--green); }
+        .btn-icon.cover svg { stroke: var(--green); }
+        .cover-tab-row { display: flex; gap: 8px; margin-bottom: 16px; }
+        .cover-tab-btn { flex: 1; padding: 10px; border-radius: 12px; border: 2.5px solid var(--grey); background: var(--white); font-weight: 800; font-size: 13px; cursor: pointer; font-family: inherit; transition: all 0.15s; }
+        .cover-tab-btn.active { background: var(--purple); color: white; border-color: var(--purple); }
+        .cover-pick-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; max-height: 52vh; overflow-y: auto; }
+        .cover-pick-item { aspect-ratio: 1; border-radius: 12px; overflow: hidden; cursor: pointer; border: 3px solid transparent; transition: border-color 0.15s; }
+        .cover-pick-item.selected { border-color: var(--purple); }
+        .cover-pick-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .cover-pick-preset { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 24px; }
+        .cover-pick-preset small { font-size: 9px; font-weight: 900; color: rgba(255,255,255,0.85); text-transform: uppercase; }
+
         /* Lightbox */
         .lightbox {
             display: none; position: fixed; inset: 0;
@@ -295,6 +308,9 @@
         <button class="btn-icon share" onclick="apriShare()" title="Condividi">
             <svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
         </button>
+        <button class="btn-icon cover" onclick="apriCopertina()" title="Copertina">
+            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        </button>
         <button class="btn-icon edit" onclick="apriEdit()" title="Modifica">
             <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
         </button>
@@ -377,6 +393,19 @@
         <div class="field-group"><div class="field-label">Persone (separate da virgola)</div><input type="text" class="modal-input" id="subPersone" placeholder="Es. Marco, Giulia"></div>
         <button class="btn-modal" style="background:var(--purple);color:white;" onclick="creaSubAlbum()">Crea Sub-album</button>
         <button class="btn-modal" style="background:var(--grey-light);" onclick="chiudiModale('modalSubAlbum')">Annulla</button>
+    </div>
+</div>
+
+<!-- Modal Copertina -->
+<div id="modalCopertina" class="modal-overlay">
+    <div class="modal-box">
+        <p class="modal-title">🖼️ Scegli Copertina</p>
+        <div class="cover-tab-row">
+            <button class="cover-tab-btn active" id="tabBtnFoto" onclick="setCoverTab('foto')">📷 Le tue foto</button>
+            <button class="cover-tab-btn" id="tabBtnIcone" onclick="setCoverTab('icone')">✨ Icone</button>
+        </div>
+        <div class="cover-pick-grid" id="coverPickGrid"></div>
+        <button class="btn-modal" style="background:var(--grey-light);" onclick="chiudiModale('modalCopertina')">Annulla</button>
     </div>
 </div>
 
@@ -496,11 +525,17 @@
             const card = document.createElement('a');
             card.href = `foto_album.html?id=${sub.id}`;
             card.className = 'sub-album-card';
+            const subThumb = (() => {
+                if (!sub.cover_url) return `<svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>`;
+                if (sub.cover_url.startsWith('cover:')) {
+                    const c = COVERS[sub.cover_url.slice(6)];
+                    return c ? `<div style="width:100%;height:100%;background:linear-gradient(135deg,${c.g});display:flex;align-items:center;justify-content:center;font-size:22px">${c.emoji}</div>` : `<svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>`;
+                }
+                return `<img src="${sub.cover_url}" alt="">`;
+            })();
             card.innerHTML = `
                 <div class="sub-album-thumb">
-                    ${sub.cover_url
-                        ? `<img src="${sub.cover_url}" alt="">`
-                        : `<svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>`}
+                    ${subThumb}
                 </div>
                 <div class="sub-album-info">
                     <div class="sub-album-name">${sub.nome}</div>
@@ -769,6 +804,74 @@
                 bc.style.display = 'none';
             }
         }
+    }
+
+    // ── Copertina ────────────────────────────────────────────────────
+    const COVERS = {
+        viaggio:    { emoji: '✈️',  g: '#667eea,#764ba2', label: 'Viaggio' },
+        famiglia:   { emoji: '👪',  g: '#f093fb,#f5576c', label: 'Famiglia' },
+        natura:     { emoji: '🌿',  g: '#43e97b,#38f9d7', label: 'Natura' },
+        sport:      { emoji: '⚽',  g: '#1d976c,#93f9b9', label: 'Sport' },
+        musica:     { emoji: '🎵',  g: '#fa709a,#fee140', label: 'Musica' },
+        compleanno: { emoji: '🎂',  g: '#ee9ca7,#ffdde1', label: 'Compleanno' },
+        lavoro:     { emoji: '💼',  g: '#2c3e50,#4ca1af', label: 'Lavoro' },
+        mare:       { emoji: '🏖️', g: '#00b4db,#0083b0', label: 'Mare' },
+        montagna:   { emoji: '⛰️', g: '#134e5e,#71b280', label: 'Montagna' },
+        città:      { emoji: '🏙️', g: '#373b44,#4286f4', label: 'Città' },
+        cibo:       { emoji: '🍕',  g: '#f7971e,#ffd200', label: 'Cibo' },
+        amici:      { emoji: '👫',  g: '#ee0979,#ff6a00', label: 'Amici' },
+        arte:       { emoji: '🎨',  g: '#fc466b,#3f5efb', label: 'Arte' },
+        inverno:    { emoji: '❄️',  g: '#83a4d4,#b6fbff', label: 'Inverno' },
+        primavera:  { emoji: '🌸',  g: '#f9d423,#ff4e50', label: 'Primavera' },
+        notte:      { emoji: '🌙',  g: '#0f0c29,#302b63', label: 'Notte' },
+    };
+    let coverTabCorrente = 'foto';
+    function apriCopertina() {
+        coverTabCorrente = 'foto';
+        document.getElementById('tabBtnFoto').classList.add('active');
+        document.getElementById('tabBtnIcone').classList.remove('active');
+        renderCoverPicker();
+        document.getElementById('modalCopertina').style.display = 'flex';
+    }
+    function setCoverTab(tab) {
+        coverTabCorrente = tab;
+        document.getElementById('tabBtnFoto').classList.toggle('active', tab === 'foto');
+        document.getElementById('tabBtnIcone').classList.toggle('active', tab === 'icone');
+        renderCoverPicker();
+    }
+    function renderCoverPicker() {
+        const grid = document.getElementById('coverPickGrid');
+        grid.innerHTML = '';
+        if (coverTabCorrente === 'foto') {
+            if (foto.length === 0) {
+                grid.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:#999;font-size:13px;font-weight:600;padding:24px 0">Nessuna foto nell\'album</p>';
+                return;
+            }
+            foto.forEach(f => {
+                const item = document.createElement('div');
+                item.className = 'cover-pick-item' + (album.cover_url === f.url ? ' selected' : '');
+                item.innerHTML = `<img src="${f.url}" loading="lazy">`;
+                item.onclick = () => salvaCover(f.url);
+                grid.appendChild(item);
+            });
+        } else {
+            Object.entries(COVERS).forEach(([key, c]) => {
+                const coverKey = `cover:${key}`;
+                const item = document.createElement('div');
+                item.className = 'cover-pick-item' + (album.cover_url === coverKey ? ' selected' : '');
+                item.style.cssText = `background:linear-gradient(135deg,${c.g})`;
+                item.innerHTML = `<div class="cover-pick-preset">${c.emoji}<small>${c.label}</small></div>`;
+                item.onclick = () => salvaCover(coverKey);
+                grid.appendChild(item);
+            });
+        }
+    }
+    async function salvaCover(url) {
+        const { error } = await supabaseClient.from('foto_album').update({ cover_url: url }).eq('id', albumId);
+        if (error) { mostraToast('Errore salvataggio'); return; }
+        album.cover_url = url;
+        chiudiModale('modalCopertina');
+        mostraToast('✓ Copertina aggiornata');
     }
 
     // ── Utility ──────────────────────────────────────────────────────
