@@ -31,7 +31,7 @@
         .header-title { font-weight: 900; font-size: 18px; flex: 1; }
         .btn-add-hdr {
             width: 40px; height: 40px; border-radius: 12px;
-            border: none; background: var(--green); color: white;
+            border: none; background: var(--red); color: white;
             font-size: 22px; font-weight: 300; cursor: pointer;
             display: flex; align-items: center; justify-content: center;
         }
@@ -42,26 +42,33 @@
             background: var(--dark); border-radius: 24px;
             padding: 20px 24px; color: white;
         }
-        .balance-row { display: flex; justify-content: space-between; gap: 12px; }
+        .balance-row { display: flex; justify-content: space-between; gap: 8px; }
         .balance-item { flex: 1; text-align: center; }
-        .balance-label { font-size: 11px; font-weight: 700; opacity: 0.6; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
-        .balance-val { font-size: 22px; font-weight: 900; }
+        .balance-label { font-size: 10px; font-weight: 700; opacity: 0.6; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+        .balance-val { font-size: 20px; font-weight: 900; }
         .balance-val.debito { color: #ff6b6b; }
         .balance-val.credito { color: #51cf66; }
+        .balance-val.pagare { color: #ffa94d; }
+        .balance-val.ricevere { color: #74c0fc; }
         .balance-val.saldo-pos { color: #51cf66; }
         .balance-val.saldo-neg { color: #ff6b6b; }
         .balance-val.saldo-zero { color: rgba(255,255,255,0.7); }
         .balance-divider { width: 1px; background: rgba(255,255,255,0.15); align-self: stretch; }
+        .balance-sep { height: 1px; background: rgba(255,255,255,0.12); margin: 14px 0; }
+        .balance-row.mini .balance-val { font-size: 16px; }
 
-        /* Tabs */
-        .tabs { display: flex; margin: 16px 16px 0; gap: 8px; }
+        /* Tabs 2x2 */
+        .tabs-grid { margin: 14px 16px 0; display: flex; flex-direction: column; gap: 8px; }
+        .tabs-row { display: flex; gap: 8px; }
         .tab {
-            flex: 1; padding: 12px; border-radius: 16px; border: 2.5px solid var(--grey);
-            background: var(--white); font-weight: 800; font-size: 14px; cursor: pointer;
+            flex: 1; padding: 11px 8px; border-radius: 14px; border: 2.5px solid var(--grey);
+            background: var(--white); font-weight: 800; font-size: 13px; cursor: pointer;
             text-align: center; transition: all 0.15s;
         }
         .tab.active.debiti { border-color: var(--red); color: var(--red); background: #fff5f5; }
         .tab.active.crediti { border-color: var(--green); color: var(--green); background: #f0fdf8; }
+        .tab.active.pagare { border-color: var(--orange); color: var(--orange); background: #fff8f0; }
+        .tab.active.ricevere { border-color: var(--blue); color: var(--blue); background: #f0f6ff; }
         .tab:not(.active) { color: #999; }
 
         /* List */
@@ -77,6 +84,8 @@
         }
         .entry-card.debito { border-left-color: var(--red); }
         .entry-card.credito { border-left-color: var(--green); }
+        .entry-card.pagare { border-left-color: var(--orange); }
+        .entry-card.ricevere { border-left-color: var(--blue); }
         .entry-card.pagato { opacity: 0.5; }
 
         .entry-avatar {
@@ -86,6 +95,8 @@
         }
         .entry-avatar.debito { background: var(--red); }
         .entry-avatar.credito { background: var(--green); }
+        .entry-avatar.pagare { background: var(--orange); }
+        .entry-avatar.ricevere { background: var(--blue); }
 
         .entry-body { flex: 1; min-width: 0; }
         .entry-persona { font-weight: 900; font-size: 15px; }
@@ -102,6 +113,8 @@
         .entry-amount { font-weight: 900; font-size: 20px; }
         .entry-amount.debito { color: var(--red); }
         .entry-amount.credito { color: var(--green); }
+        .entry-amount.pagare { color: var(--orange); }
+        .entry-amount.ricevere { color: var(--blue); }
 
         .btn-paid {
             font-size: 11px; font-weight: 800; padding: 5px 10px; border-radius: 10px;
@@ -133,20 +146,27 @@
             border: 2.5px solid var(--grey); font-size: 15px; font-family: inherit;
             outline: none; transition: border-color 0.2s;
         }
-        .form-input:focus { border-color: var(--blue); }
+        .form-input:focus { border-color: var(--red); }
         .form-row { display: flex; gap: 10px; }
         .form-row .form-group { flex: 1; }
-        .tipo-selector { display: flex; gap: 8px; }
+
+        .tipo-selector {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px;
+        }
         .tipo-btn {
-            flex: 1; padding: 12px; border-radius: 14px; border: 2.5px solid var(--grey);
-            font-weight: 800; font-size: 14px; cursor: pointer; background: var(--white);
-            transition: all 0.15s;
+            padding: 11px 8px; border-radius: 14px; border: 2.5px solid var(--grey);
+            font-weight: 800; font-size: 13px; cursor: pointer; background: var(--white);
+            transition: all 0.15s; text-align: center;
         }
         .tipo-btn.active.debito { border-color: var(--red); background: #fff5f5; color: var(--red); }
         .tipo-btn.active.credito { border-color: var(--green); background: #f0fdf8; color: var(--green); }
+        .tipo-btn.active.pagare { border-color: var(--orange); background: #fff8f0; color: var(--orange); }
+        .tipo-btn.active.ricevere { border-color: var(--blue); background: #f0f6ff; color: var(--blue); }
+        .tipo-btn:not(.active) { color: #999; }
+
         .btn-save-modal {
             width: 100%; padding: 16px; border-radius: 18px; border: none;
-            background: var(--green); color: white; font-weight: 900; font-size: 16px;
+            background: var(--red); color: white; font-weight: 900; font-size: 16px;
             cursor: pointer; font-family: inherit; margin-top: 8px;
         }
         .btn-delete-modal {
@@ -198,11 +218,29 @@
             <div class="balance-val saldo-zero" id="saldoNetto">€0</div>
         </div>
     </div>
+    <div class="balance-sep"></div>
+    <div class="balance-row mini">
+        <div class="balance-item">
+            <div class="balance-label">Da pagare</div>
+            <div class="balance-val pagare" id="totPagare">€0</div>
+        </div>
+        <div class="balance-divider"></div>
+        <div class="balance-item">
+            <div class="balance-label">Da ricevere</div>
+            <div class="balance-val ricevere" id="totRicevere">€0</div>
+        </div>
+    </div>
 </div>
 
-<div class="tabs">
-    <button class="tab active debiti" id="tabDebiti" onclick="setTab('debiti')">💸 I miei debiti</button>
-    <button class="tab crediti" id="tabCrediti" onclick="setTab('crediti')">💰 Mi devono</button>
+<div class="tabs-grid">
+    <div class="tabs-row">
+        <button class="tab active debiti" id="tabDebiti" onclick="setTab('debiti')">💸 Debiti</button>
+        <button class="tab crediti" id="tabCrediti" onclick="setTab('crediti')">💰 Crediti</button>
+    </div>
+    <div class="tabs-row">
+        <button class="tab pagare" id="tabPagare" onclick="setTab('pagare')">📋 Da pagare</button>
+        <button class="tab ricevere" id="tabRicevere" onclick="setTab('ricevere')">📬 Da ricevere</button>
+    </div>
 </div>
 
 <div class="list-section" id="listSection"></div>
@@ -212,12 +250,14 @@
     <div class="modal-box">
         <div class="modal-handle"></div>
         <div class="modal-title" id="modalTitle">Nuovo</div>
-        <div class="tipo-selector" style="margin-bottom:16px">
+        <div class="tipo-selector">
             <button class="tipo-btn active debito" id="tipoDebito" onclick="setTipo('debito')">💸 Mio debito</button>
             <button class="tipo-btn credito" id="tipoCredito" onclick="setTipo('credito')">💰 Mi devono</button>
+            <button class="tipo-btn pagare" id="tipoPagare" onclick="setTipo('pagare')">📋 Da pagare</button>
+            <button class="tipo-btn ricevere" id="tipoRicevere" onclick="setTipo('ricevere')">📬 Da ricevere</button>
         </div>
         <div class="form-group">
-            <label class="form-label">Persona *</label>
+            <label class="form-label" id="labelPersona">Persona *</label>
             <input class="form-input" id="fPersona" placeholder="Nome" type="text">
         </div>
         <div class="form-row">
@@ -226,13 +266,13 @@
                 <input class="form-input" id="fImporto" placeholder="0.00" type="number" min="0" step="0.01">
             </div>
             <div class="form-group">
-                <label class="form-label">Scadenza</label>
+                <label class="form-label" id="labelScadenza">Scadenza</label>
                 <input class="form-input" id="fScadenza" type="date">
             </div>
         </div>
         <div class="form-group">
-            <label class="form-label">Descrizione</label>
-            <input class="form-input" id="fDesc" placeholder="Motivo, dettagli…" type="text">
+            <label class="form-label">Note</label>
+            <input class="form-input" id="fDesc" placeholder="Dettagli, motivo…" type="text">
         </div>
         <button class="btn-save-modal" onclick="salva()">SALVA</button>
         <button class="btn-delete-modal" id="btnElimina" style="display:none" onclick="elimina()">ELIMINA</button>
@@ -255,6 +295,15 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const userEmail = localStorage.getItem('userEmail');
 if (!userEmail) location.href = 'login.html';
 
+const TABS = ['debiti', 'crediti', 'pagare', 'ricevere'];
+const TAB_TIPO = { debiti: 'debito', crediti: 'credito', pagare: 'pagare', ricevere: 'ricevere' };
+const TIPO_TAB = { debito: 'debiti', credito: 'crediti', pagare: 'pagare', ricevere: 'ricevere' };
+
+const LABELS_PERSONA = { debito: 'A chi devo *', credito: 'Da chi *', pagare: 'Ente / Cosa *', ricevere: 'Da chi / Fonte *' };
+const LABELS_SCAD = { debito: 'Scadenza', credito: 'Scadenza', pagare: 'Data pagamento', ricevere: 'Data attesa' };
+const BTN_PAGATO = { debito: 'Saldato', credito: 'Ricevuto', pagare: 'Pagato', ricevere: 'Ricevuto' };
+const EMPTY_MSG = { debiti: 'Nessun debito 🎉', crediti: 'Nessun credito', pagare: 'Nessuna spesa da pagare', ricevere: 'Nessun pagamento atteso' };
+
 let tab = 'debiti';
 let voci = [];
 let editId = null;
@@ -271,23 +320,25 @@ function aggiornaBilancio() {
     const attive = voci.filter(v => !v.pagato);
     const totD = attive.filter(v => v.tipo === 'debito').reduce((s, v) => s + Number(v.importo), 0);
     const totC = attive.filter(v => v.tipo === 'credito').reduce((s, v) => s + Number(v.importo), 0);
+    const totP = attive.filter(v => v.tipo === 'pagare').reduce((s, v) => s + Number(v.importo), 0);
+    const totR = attive.filter(v => v.tipo === 'ricevere').reduce((s, v) => s + Number(v.importo), 0);
     const saldo = totC - totD;
     document.getElementById('totDebiti').textContent = '€' + totD.toFixed(2);
     document.getElementById('totCrediti').textContent = '€' + totC.toFixed(2);
+    document.getElementById('totPagare').textContent = '€' + totP.toFixed(2);
+    document.getElementById('totRicevere').textContent = '€' + totR.toFixed(2);
     const el = document.getElementById('saldoNetto');
     el.textContent = (saldo >= 0 ? '+' : '') + '€' + saldo.toFixed(2);
     el.className = 'balance-val ' + (saldo > 0 ? 'saldo-pos' : saldo < 0 ? 'saldo-neg' : 'saldo-zero');
 }
 
 function render() {
-    const filtrate = voci.filter(v => v.tipo === tab.slice(0, -1) === 'debiti' ? false : true);
-    const filtered = tab === 'debiti'
-        ? voci.filter(v => v.tipo === 'debito')
-        : voci.filter(v => v.tipo === 'credito');
-
+    const tipo = TAB_TIPO[tab];
+    const filtered = voci.filter(v => v.tipo === tipo);
     const list = document.getElementById('listSection');
+
     if (!filtered.length) {
-        list.innerHTML = `<div class="empty-msg">${tab === 'debiti' ? 'Nessun debito 🎉' : 'Nessun credito'}</div>`;
+        list.innerHTML = `<div class="empty-msg">${EMPTY_MSG[tab]}</div>`;
         return;
     }
 
@@ -301,7 +352,8 @@ function render() {
             const label = d.toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: '2-digit' });
             scadHtml = `<span class="badge-scad${scaduto ? ' scaduto' : ''}">${scaduto ? '⚠️ ' : '📅 '}${label}</span>`;
         }
-        const pagatoHtml = v.pagato ? '<span class="badge-pagato">✓ Saldato</span>' : '';
+        const pagatoLabel = BTN_PAGATO[v.tipo] || 'Saldato';
+        const pagatoHtml = v.pagato ? `<span class="badge-pagato">✓ ${pagatoLabel}</span>` : '';
         return `<div class="entry-card ${v.tipo}${v.pagato ? ' pagato' : ''}">
             <div class="entry-avatar ${v.tipo}">${initiale}</div>
             <div class="entry-body">
@@ -311,7 +363,7 @@ function render() {
             </div>
             <div class="entry-right">
                 <div class="entry-amount ${v.tipo}">€${Number(v.importo).toFixed(2)}</div>
-                <button class="btn-paid${v.pagato ? ' pagato' : ''}" onclick="togglePagato(${v.id})">${v.pagato ? 'Riapri' : 'Saldato'}</button>
+                <button class="btn-paid${v.pagato ? ' pagato' : ''}" onclick="togglePagato(${v.id})">${v.pagato ? 'Riapri' : pagatoLabel}</button>
                 <button class="btn-edit-entry" onclick="apriModifica(${v.id})">Modifica</button>
             </div>
         </div>`;
@@ -320,8 +372,10 @@ function render() {
 
 function setTab(t) {
     tab = t;
-    document.getElementById('tabDebiti').className = 'tab' + (t === 'debiti' ? ' active debiti' : '');
-    document.getElementById('tabCrediti').className = 'tab' + (t === 'crediti' ? ' active crediti' : '');
+    TABS.forEach(id => {
+        const el = document.getElementById('tab' + id.charAt(0).toUpperCase() + id.slice(1));
+        el.className = 'tab' + (t === id ? ' active ' + id : '');
+    });
     render();
 }
 
@@ -332,12 +386,13 @@ async function togglePagato(id) {
     await sb.from('debiti_crediti').update({ pagato: nuovoPagato }).eq('id', id);
     v.pagato = nuovoPagato;
     aggiornaBilancio(); render();
-    toast(nuovoPagato ? '✓ Segnato come saldato' : 'Riaperto');
+    const label = BTN_PAGATO[v.tipo] || 'Saldato';
+    toast(nuovoPagato ? `✓ ${label}` : 'Riaperto');
 }
 
 function apriModale() {
     editId = null;
-    tipoCorrente = tab === 'debiti' ? 'debito' : 'credito';
+    tipoCorrente = TAB_TIPO[tab];
     document.getElementById('modalTitle').textContent = 'Nuovo';
     document.getElementById('fPersona').value = '';
     document.getElementById('fImporto').value = '';
@@ -365,14 +420,18 @@ function apriModifica(id) {
 
 function setTipo(t) {
     tipoCorrente = t;
-    document.getElementById('tipoDebito').className = 'tipo-btn' + (t === 'debito' ? ' active debito' : '');
-    document.getElementById('tipoCredito').className = 'tipo-btn' + (t === 'credito' ? ' active credito' : '');
+    ['debito', 'credito', 'pagare', 'ricevere'].forEach(tipo => {
+        const id = 'tipo' + tipo.charAt(0).toUpperCase() + tipo.slice(1);
+        document.getElementById(id).className = 'tipo-btn' + (t === tipo ? ' active ' + tipo : '');
+    });
+    document.getElementById('labelPersona').textContent = LABELS_PERSONA[t] || 'Persona *';
+    document.getElementById('labelScadenza').textContent = LABELS_SCAD[t] || 'Scadenza';
 }
 
 async function salva() {
     const persona = document.getElementById('fPersona').value.trim();
     const importo = parseFloat(document.getElementById('fImporto').value);
-    if (!persona || isNaN(importo) || importo <= 0) { toast('Compila persona e importo'); return; }
+    if (!persona || isNaN(importo) || importo <= 0) { toast('Compila tutti i campi obbligatori'); return; }
     const row = {
         email_utente: userEmail,
         tipo: tipoCorrente,
@@ -389,7 +448,9 @@ async function salva() {
         toast('✓ Aggiunto');
     }
     document.getElementById('modaleEntry').classList.remove('open');
+    tab = TIPO_TAB[tipoCorrente];
     await carica();
+    setTab(tab);
 }
 
 async function elimina() {

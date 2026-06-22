@@ -25,12 +25,12 @@
         .btn-back { width: 40px; height: 40px; border-radius: 12px; border: 2.5px solid var(--grey); background: var(--white); display: flex; align-items: center; justify-content: center; cursor: pointer; }
         .btn-back svg { width: 18px; height: 18px; stroke: var(--dark); fill: none; stroke-width: 2.5; }
         .header-title { font-weight: 900; font-size: 18px; flex: 1; }
-        .btn-add-hdr { width: 40px; height: 40px; border-radius: 12px; border: none; background: var(--orange); color: white; font-size: 22px; font-weight: 300; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .btn-add-hdr { width: 40px; height: 40px; border-radius: 12px; border: none; background: var(--green); color: white; font-size: 22px; font-weight: 300; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 
         /* Tabs */
         .tabs { display: flex; margin: 14px 16px 0; gap: 8px; }
         .tab { flex: 1; padding: 12px; border-radius: 16px; border: 2.5px solid var(--grey); background: var(--white); font-weight: 800; font-size: 14px; cursor: pointer; text-align: center; transition: all 0.15s; color: #999; }
-        .tab.active.visitare { border-color: var(--orange); color: var(--orange); background: #fff9f0; }
+        .tab.active.visitare { border-color: var(--green); color: var(--green); background: #f0fdf8; }
         .tab.active.visitati { border-color: var(--green); color: var(--green); background: #f0fdf8; }
 
         /* List */
@@ -43,7 +43,7 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.06);
             border-left: 5px solid transparent;
         }
-        .place-card.visitare { border-left-color: var(--orange); }
+        .place-card.visitare { border-left-color: var(--green); }
         .place-card.visitati { border-left-color: var(--green); }
 
         .place-head { display: flex; align-items: center; gap: 12px; padding: 14px 16px; }
@@ -60,7 +60,7 @@
         .btn-act { padding: 8px 14px; border-radius: 12px; border: 2px solid var(--grey); background: white; font-weight: 800; font-size: 13px; cursor: pointer; }
         .btn-act.maps { border-color: var(--blue); color: var(--blue); }
         .btn-act.album { border-color: var(--green); color: var(--green); }
-        .btn-act.move { border-color: var(--orange); color: var(--orange); }
+        .btn-act.move { border-color: var(--green); color: var(--green); }
         .btn-act.edit { color: #777; }
 
         .album-badge { display: inline-flex; align-items: center; gap: 6px; background: #f0fdf8; border: 1.5px solid var(--green); border-radius: 10px; padding: 5px 10px; font-size: 13px; font-weight: 700; color: var(--green); margin-bottom: 10px; cursor: pointer; text-decoration: none; }
@@ -74,15 +74,15 @@
         .form-group { margin-bottom: 12px; }
         .form-label { font-size: 12px; font-weight: 800; color: #666; margin-bottom: 5px; display: block; text-transform: uppercase; letter-spacing: 0.4px; }
         .form-input { width: 100%; padding: 12px 14px; border-radius: 14px; border: 2.5px solid var(--grey); font-size: 15px; font-family: inherit; outline: none; transition: border-color 0.2s; }
-        .form-input:focus { border-color: var(--orange); }
+        .form-input:focus { border-color: var(--green); }
         .form-row { display: flex; gap: 8px; }
         .form-row .form-group { flex: 1; }
         .stato-selector { display: flex; gap: 8px; margin-bottom: 14px; }
         .stato-btn { flex: 1; padding: 11px; border-radius: 14px; border: 2.5px solid var(--grey); font-weight: 800; font-size: 13px; cursor: pointer; background: var(--white); transition: all 0.15s; color: #999; }
-        .stato-btn.active.visitare { border-color: var(--orange); background: #fff9f0; color: var(--orange); }
+        .stato-btn.active.visitare { border-color: var(--green); background: #f0fdf8; color: var(--green); }
         .stato-btn.active.visitati { border-color: var(--green); background: #f0fdf8; color: var(--green); }
 
-        .btn-save-modal { width: 100%; padding: 16px; border-radius: 18px; border: none; background: var(--orange); color: white; font-weight: 900; font-size: 16px; cursor: pointer; font-family: inherit; margin-top: 8px; }
+        .btn-save-modal { width: 100%; padding: 16px; border-radius: 18px; border: none; background: var(--green); color: white; font-weight: 900; font-size: 16px; cursor: pointer; font-family: inherit; margin-top: 8px; }
         .btn-delete-modal { width: 100%; padding: 14px; border-radius: 18px; border: none; background: #fff0f0; color: var(--red); font-weight: 800; font-size: 14px; cursor: pointer; font-family: inherit; margin-top: 8px; }
 
         .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 70px; background: white; display: flex; justify-content: space-around; align-items: center; border-top: 2px solid var(--grey-light); padding-bottom: env(safe-area-inset-bottom); z-index: 100; }
@@ -170,7 +170,62 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const userEmail = localStorage.getItem('userEmail');
 if (!userEmail) location.href = 'login.html';
 
-const EMOJI_PAESE = { Italia: '🇮🇹', Francia: '🇫🇷', Spagna: '🇪🇸', Germania: '🇩🇪', 'Regno Unito': '🇬🇧', USA: '🇺🇸', Giappone: '🇯🇵', Portogallo: '🇵🇹', Grecia: '🇬🇷', Olanda: '🇳🇱' };
+const EMOJI_PAESE = {
+    'Italia': '🇮🇹', 'France': '🇫🇷', 'Francia': '🇫🇷',
+    'Spagna': '🇪🇸', 'Spain': '🇪🇸',
+    'Germania': '🇩🇪', 'Germany': '🇩🇪',
+    'Regno Unito': '🇬🇧', 'UK': '🇬🇧', 'England': '🇬🇧',
+    'USA': '🇺🇸', 'Stati Uniti': '🇺🇸',
+    'Giappone': '🇯🇵', 'Japan': '🇯🇵',
+    'Portogallo': '🇵🇹', 'Portugal': '🇵🇹',
+    'Grecia': '🇬🇷', 'Greece': '🇬🇷',
+    'Olanda': '🇳🇱', 'Paesi Bassi': '🇳🇱', 'Netherlands': '🇳🇱',
+    'Svizzera': '🇨🇭', 'Switzerland': '🇨🇭',
+    'Austria': '🇦🇹',
+    'Belgio': '🇧🇪', 'Belgium': '🇧🇪',
+    'Svezia': '🇸🇪', 'Sweden': '🇸🇪',
+    'Norvegia': '🇳🇴', 'Norway': '🇳🇴',
+    'Danimarca': '🇩🇰', 'Denmark': '🇩🇰',
+    'Finlandia': '🇫🇮', 'Finland': '🇫🇮',
+    'Polonia': '🇵🇱', 'Poland': '🇵🇱',
+    'Repubblica Ceca': '🇨🇿', 'Czech Republic': '🇨🇿',
+    'Ungheria': '🇭🇺', 'Hungary': '🇭🇺',
+    'Croazia': '🇭🇷', 'Croatia': '🇭🇷',
+    'Slovenia': '🇸🇮',
+    'Montenegro': '🇲🇪',
+    'Albania': '🇦🇱',
+    'Turchia': '🇹🇷', 'Turkey': '🇹🇷',
+    'Marocco': '🇲🇦', 'Morocco': '🇲🇦',
+    'Egitto': '🇪🇬', 'Egypt': '🇪🇬',
+    'Messico': '🇲🇽', 'Mexico': '🇲🇽',
+    'Brasile': '🇧🇷', 'Brazil': '🇧🇷',
+    'Argentina': '🇦🇷',
+    'Cina': '🇨🇳', 'China': '🇨🇳',
+    'India': '🇮🇳',
+    'Tailandia': '🇹🇭', 'Thailand': '🇹🇭',
+    'Vietnam': '🇻🇳',
+    'Indonesia': '🇮🇩',
+    'Australia': '🇦🇺',
+    'Nuova Zelanda': '🇳🇿', 'New Zealand': '🇳🇿',
+    'Canada': '🇨🇦',
+    'Irlanda': '🇮🇪', 'Ireland': '🇮🇪',
+    'Scozia': '🏴󠁧󠁢󠁳󠁣󠁴󠁿', 'Scotland': '🏴󠁧󠁢󠁳󠁣󠁴󠁿',
+    'Islanda': '🇮🇸', 'Iceland': '🇮🇸',
+    'Malta': '🇲🇹',
+    'Cipro': '🇨🇾', 'Cyprus': '🇨🇾',
+    'Romania': '🇷🇴',
+    'Bulgaria': '🇧🇬',
+    'Serbia': '🇷🇸',
+    'Slovacchia': '🇸🇰', 'Slovakia': '🇸🇰',
+    'Lussemburgo': '🇱🇺', 'Luxembourg': '🇱🇺',
+    'Israele': '🇮🇱', 'Israel': '🇮🇱',
+    'Giordania': '🇯🇴', 'Jordan': '🇯🇴',
+    'Emirati Arabi': '🇦🇪', 'UAE': '🇦🇪',
+    'Cuba': '🇨🇺',
+    'Colombia': '🇨🇴',
+    'Perù': '🇵🇪', 'Peru': '🇵🇪',
+    'Cile': '🇨🇱', 'Chile': '🇨🇱',
+};
 
 let tab = 'da_visitare';
 let luoghi = [];
