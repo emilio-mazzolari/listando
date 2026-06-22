@@ -179,10 +179,11 @@ let editId = null;
 let statoCorrente = 'da_visitare';
 
 async function carica() {
-    const [{ data: l }, { data: a }] = await Promise.all([
+    const [{ data: l, error: errL }, { data: a }] = await Promise.all([
         sb.from('luoghi').select('*').eq('email_utente', userEmail).order('nome'),
         sb.from('foto_album').select('id, nome').eq('email_utente', userEmail).is('parent_id', null).order('nome')
     ]);
+    if (errL) { console.error('luoghi error:', errL); toast('Errore DB: ' + errL.message); }
     luoghi = l || [];
     albums = a || [];
     render();
@@ -193,7 +194,7 @@ function render() {
     const body = document.getElementById('listBody');
     if (!filtered.length) {
         const msg = tab === 'da_visitare' ? '🗺️ Nessun luogo da visitare' : '✅ Nessun luogo visitato ancora';
-        body.innerHTML = `<div class="empty-msg">${msg}</div>`;
+        body.innerHTML = `<div class="empty-msg">${msg}<br><span style="font-size:11px;color:#ccc;font-weight:600">email: ${userEmail}</span></div>`;
         return;
     }
     body.innerHTML = filtered.map(l => placeHtml(l)).join('');
