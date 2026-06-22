@@ -927,6 +927,80 @@
     }
 
     // ── Compressione ────────────────────────────────────────────────
+    async function computeHash(file) {
+        try {
+            const MAX_SLICE = 10 * 1024 * 1024;
+            const slice = file.size > MAX_SLICE ? file.slice(0, MAX_SLICE) : file;
+            const buf = await slice.arrayBuffer();
+            const combined = new Uint8Array(buf.byteLength + 8);
+            combined.set(new Uint8Array(buf));
+            new DataView(combined.buffer).setBigUint64(buf.byteLength, BigInt(file.size));
+            const digest = await crypto.subtle.digest('SHA-256', combined);
+            return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2,'0')).join('');
+        } catch { return null; }
+    }
+
+    function compressVideo(file, onProgress) {
+        return new Promise((resolve) => {
+            const MAX_DIM = 1280;
+            const MAX_MB  = 150;
+            const needsResize = () => vid.videoWidth > MAX_DIM || vid.videoHeight > MAX_DIM;
+            const tooBig = file.size > MAX_MB * 1024 * 1024;
+            const objUrl = URL.createObjectURL(file);
+            const vid = document.createElement('video');
+            vid.src = objUrl;
+            vid.preload = 'metadata';
+            vid.muted = false;
+            vid.onerror = () => { URL.revokeObjectURL(objUrl); resolve(file); };
+            vid.onloadedmetadata = () => {
+                const { videoWidth: w, videoHeight: h, duration } = vid;
+                if (!needsResize() && !tooBig) {
+                    URL.revokeObjectURL(objUrl);
+                    resolve(file);
+                    return;
+                }
+                let tw = w, th = h;
+                if (w > MAX_DIM || h > MAX_DIM) {
+                    const r = Math.min(MAX_DIM / w, MAX_DIM / h);
+                    tw = Math.round(w * r); th = Math.round(h * r);
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width = tw; canvas.height = th;
+                const ctx = canvas.getContext('2d');
+                const mimeType = ['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm']
+                    .find(m => MediaRecorder.isTypeSupported(m)) ?? 'video/webm';
+                let stream;
+                try {
+                    const src = (vid.captureStream || vid.mozCaptureStream).call(vid);
+                    const audioTracks = src.getAudioTracks();
+                    const canvasStream = canvas.captureStream(30);
+                    stream = new MediaStream([...canvasStream.getVideoTracks(), ...audioTracks]);
+                } catch { stream = canvas.captureStream(30); }
+                const bitsPerSec = tw > 960 ? 1_800_000 : 1_000_000;
+                const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: bitsPerSec });
+                const chunks = [];
+                recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+                recorder.onstop = () => {
+                    URL.revokeObjectURL(objUrl);
+                    resolve(new Blob(chunks, { type: mimeType }));
+                };
+                vid.ontimeupdate = () => {
+                    if (duration > 0) onProgress?.(Math.round((vid.currentTime / duration) * 100));
+                };
+                const draw = () => {
+                    if (!vid.ended && !vid.paused) {
+                        ctx.drawImage(vid, 0, 0, tw, th);
+                        requestAnimationFrame(draw);
+                    }
+                };
+                vid.onplay = () => requestAnimationFrame(draw);
+                vid.onended = () => recorder.stop();
+                recorder.start(500);
+                vid.play().catch(() => { URL.revokeObjectURL(objUrl); resolve(file); });
+            };
+        });
+    }
+
     function compressImage(file) {
         return new Promise(resolve => {
             const img = new Image();
@@ -961,18 +1035,37 @@
             const file = files[i];
             const isVideo = file.type.startsWith('video/');
             try {
+                // Duplicate detection
+                const hash = await computeHash(file);
+                if (hash) {
+                    const { data: dup } = await supabaseClient.from('foto')
+                        .select('id, foto_album(nome)')
+                        .eq('file_hash', hash)
+                        .eq('email_utente', userEmail)
+                        .limit(1)
+                        .maybeSingle();
+                    if (dup) {
+                        const nomeAlbum = dup.foto_album?.nome || 'un altro album';
+                        const procedi = confirm(`Questo file esiste già in "${nomeAlbum}".\nCaricarlo comunque?`);
+                        if (!procedi) continue;
+                    }
+                }
+
                 let blob, contentType, ext, mediaType;
 
                 if (isVideo) {
-                    if (file.size > 500 * 1024 * 1024) {
-                        mostraToast(`Video troppo grande (max 500 MB): ${file.name}`);
+                    if (file.size > 2 * 1024 * 1024 * 1024) {
+                        mostraToast(`Video troppo grande (max 2 GB): ${file.name}`);
                         continue;
                     }
-                    bar.textContent = `⬆️ Carico video ${i + 1} di ${files.length}…`;
-                    blob = file;
-                    contentType = file.type;
-                    ext = file.name.split('.').pop().toLowerCase() || 'mp4';
+                    bar.textContent = `⏳ Comprimo video ${i + 1} di ${files.length}… 0%`;
+                    blob = await compressVideo(file, pct => {
+                        bar.textContent = `⏳ Comprimo video ${i + 1} di ${files.length}… ${pct}%`;
+                    });
+                    contentType = blob.type || 'video/webm';
+                    ext = blob === file ? (file.name.split('.').pop().toLowerCase() || 'mp4') : 'webm';
                     mediaType = 'video';
+                    bar.textContent = `⬆️ Carico video ${i + 1} di ${files.length}…`;
                 } else {
                     bar.textContent = `⏳ Comprimo foto ${i + 1} di ${files.length}…`;
                     blob = await compressImage(file);
@@ -999,7 +1092,8 @@
                     url: publicUrl,
                     size_bytes: blob.size,
                     sort_order: Date.now() + ok,
-                    media_type: mediaType
+                    media_type: mediaType,
+                    file_hash: hash
                 });
                 if (dbErr) throw dbErr;
 
