@@ -267,25 +267,11 @@
         }
         .btn-rot:active { background: #444; }
 
-        /* Edit button in lightbox */
-        .lightbox-edit {
-            position: absolute; bottom: 20px; right: 20px;
-            background: rgba(255,255,255,0.15); color: white; border: none;
-            border-radius: 50%; width: 44px; height: 44px; font-size: 18px;
-            cursor: pointer; display: flex; align-items: center; justify-content: center;
-            backdrop-filter: blur(8px);
-        }
-        .lightbox-rename {
-            position: absolute; bottom: 20px; left: 20px;
-            background: rgba(255,255,255,0.15); color: white; border: none;
-            border-radius: 22px; height: 44px; padding: 0 16px; font-size: 13px; font-weight: 800;
-            cursor: pointer; display: flex; align-items: center; gap: 6px;
-            backdrop-filter: blur(8px); font-family: inherit;
-        }
         .lightbox-title-bar {
-            position: absolute; bottom: 74px; left: 0; right: 0; text-align: center;
+            position: absolute; bottom: 80px; left: 0; right: 0; text-align: center;
             color: rgba(255,255,255,0.85); font-size: 14px; font-weight: 700;
-            padding: 0 80px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;
+            padding: 0 60px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;
+            pointer-events: none;
         }
         .cell-caption {
             position: absolute; bottom: 0; left: 0; right: 0;
@@ -348,7 +334,8 @@
             flex-direction: column; align-items: center; justify-content: center;
         }
         .lightbox.open { display: flex; }
-        .lightbox img { max-width: 100%; max-height: calc(100vh - 80px); object-fit: contain; }
+        .lightbox img { max-width: 100%; max-height: calc(100vh - 130px); object-fit: contain; pointer-events: none; }
+        .lightbox video { max-width: 100%; max-height: calc(100vh - 130px); }
         .lightbox-close {
             position: absolute; top: 16px; right: 16px;
             color: white; background: rgba(255,255,255,0.15); border: none;
@@ -363,7 +350,26 @@
         }
         .lightbox-prev { left: 12px; }
         .lightbox-next { right: 12px; }
-        .lightbox-counter { position: absolute; bottom: 20px; color: rgba(255,255,255,0.7); font-size: 13px; font-weight: 700; }
+        .lightbox-counter { position: absolute; top: 16px; left: 0; right: 0; text-align: center; color: rgba(255,255,255,0.7); font-size: 13px; font-weight: 700; pointer-events: none; }
+
+        /* Lightbox toolbar */
+        .lightbox-toolbar {
+            position: absolute; bottom: 0; left: 0; right: 0;
+            padding: 12px 20px;
+            padding-bottom: max(16px, env(safe-area-inset-bottom));
+            display: flex; justify-content: space-around; align-items: center; gap: 10px;
+            background: linear-gradient(transparent, rgba(0,0,0,0.65));
+        }
+        .lightbox-btn {
+            background: rgba(255,255,255,0.15); backdrop-filter: blur(8px);
+            color: white; border: none; cursor: pointer;
+            border-radius: 22px; height: 44px; padding: 0 18px;
+            font-size: 13px; font-weight: 800;
+            display: flex; align-items: center; justify-content: center; gap: 6px;
+            font-family: inherit; white-space: nowrap;
+        }
+        .lightbox-btn.lb-delete { background: rgba(255,59,48,0.45); }
+        .lightbox-btn.lb-icon { border-radius: 50%; width: 44px; padding: 0; font-size: 18px; }
 
         /* Modal */
         .modal-overlay {
@@ -531,16 +537,19 @@
 <input type="file" id="fileInput" accept="image/*,video/*" multiple style="display:none" onchange="handleFiles(this.files)">
 
 <!-- Lightbox -->
-<div class="lightbox" id="lightbox" onclick="chiudiLightbox()">
-    <button class="lightbox-close" onclick="chiudiLightbox()">✕</button>
+<div class="lightbox" id="lightbox">
+    <button class="lightbox-close" onclick="event.stopPropagation(); chiudiLightbox()">✕</button>
     <button class="lightbox-nav lightbox-prev" onclick="event.stopPropagation(); navLightbox(-1)">‹</button>
     <img id="lightboxImg" src="" alt="">
     <video id="lightboxVideo" controls playsinline></video>
     <button class="lightbox-nav lightbox-next" onclick="event.stopPropagation(); navLightbox(1)">›</button>
     <span class="lightbox-counter" id="lightboxCounter"></span>
     <div class="lightbox-title-bar" id="lightboxTitleBar"></div>
-    <button class="lightbox-rename" onclick="event.stopPropagation(); rinominaLightbox()">✏️ Rinomina</button>
-    <button class="lightbox-edit" onclick="event.stopPropagation(); apriEditorDaLightbox()" title="Modifica">✏️</button>
+    <div class="lightbox-toolbar" onclick="event.stopPropagation()">
+        <button class="lightbox-btn" onclick="rinominaLightbox()">✏️ Rinomina</button>
+        <button class="lightbox-btn lb-delete" onclick="eliminaFotoLightbox()">🗑 Elimina</button>
+        <button class="lightbox-btn lb-icon" id="btnLightboxEdit" onclick="apriEditorDaLightbox()" title="Modifica">✏️</button>
+    </div>
 </div>
 
 <!-- Editor overlay -->
@@ -1157,6 +1166,29 @@
         mostraToast('Foto eliminata');
     }
 
+    async function eliminaFotoLightbox() {
+        const f = fotoVisualizzate[lightboxIdx];
+        if (!f || !confirm('Eliminare questa foto?')) return;
+        const wasCover = album.cover_url && f.url === album.cover_url;
+        await supabaseClient.storage.from('foto').remove([f.storage_path]);
+        await supabaseClient.from('foto').delete().eq('id', f.id);
+        foto = foto.filter(x => x.id !== f.id);
+        fotoVisualizzate = fotoVisualizzate.filter(x => x.id !== f.id);
+        if (wasCover) {
+            const newCover = foto.length > 0 ? foto[0].url : null;
+            await supabaseClient.from('foto_album').update({ cover_url: newCover }).eq('id', albumId);
+            album.cover_url = newCover;
+        }
+        if (fotoVisualizzate.length === 0) {
+            chiudiLightbox();
+        } else {
+            lightboxIdx = Math.min(lightboxIdx, fotoVisualizzate.length - 1);
+            aggiornaLightbox();
+        }
+        renderFoto();
+        mostraToast('Foto eliminata');
+    }
+
     // ── Elimina album (ricorsivo sui sub-album) ───────────────────────
     async function eliminaAlbum() {
         const msg = subAlbums.length > 0
@@ -1204,14 +1236,41 @@
             vid.style.display = ''; vid.src = f.url;
             vid.style.filter = cssFilter; vid.style.transform = cssTransform;
             vid.play();
+            document.getElementById('btnLightboxEdit').style.display = 'none';
         } else {
             vid.style.display = 'none'; vid.pause(); vid.src = '';
             img.style.display = ''; img.src = f.url;
             img.style.filter = cssFilter; img.style.transform = cssTransform;
+            document.getElementById('btnLightboxEdit').style.display = '';
         }
         document.getElementById('lightboxCounter').textContent = `${lightboxIdx + 1} / ${fotoVisualizzate.length}`;
         document.getElementById('lightboxTitleBar').textContent = f.titolo || '';
     }
+
+    // Close on backdrop click (not on image/toolbar)
+    document.getElementById('lightbox').addEventListener('click', e => {
+        if (lbSwiped) { lbSwiped = false; return; }
+        const tag = e.target.tagName.toLowerCase();
+        if (tag === 'img' || tag === 'video' || tag === 'button' || e.target.closest('.lightbox-toolbar')) return;
+        chiudiLightbox();
+    });
+
+    // Swipe left/right to navigate
+    let lbTouchX = 0, lbTouchY = 0, lbSwiped = false;
+    document.getElementById('lightbox').addEventListener('touchstart', e => {
+        lbTouchX = e.touches[0].clientX;
+        lbTouchY = e.touches[0].clientY;
+        lbSwiped = false;
+    }, { passive: true });
+    document.getElementById('lightbox').addEventListener('touchend', e => {
+        const dx = e.changedTouches[0].clientX - lbTouchX;
+        const dy = e.changedTouches[0].clientY - lbTouchY;
+        if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.3) {
+            lbSwiped = true;
+            navLightbox(dx < 0 ? 1 : -1);
+        }
+    }, { passive: true });
+
     document.addEventListener('keydown', e => {
         if (!document.getElementById('lightbox').classList.contains('open')) return;
         if (e.key === 'ArrowLeft')  navLightbox(-1);
