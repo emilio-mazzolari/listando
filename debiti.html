@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Listando - Debiti & Crediti</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --green: #0fba8d; --blue: #3384d4; --red: #ff3b30; --orange: #ff9500;
+            --grey: #d8dddc; --grey-light: #f2f2f7;
+            --dark: #111; --bg: #f5f6f8; --white: #fff;
+        }
+        * { box-sizing: border-box; }
+        html, body { overflow-x: hidden; max-width: 100%; margin: 0; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--dark); }
+
+        .page-header {
+            position: sticky; top: 0; z-index: 100;
+            background: var(--white); border-bottom: 2px solid var(--grey-light);
+            display: flex; align-items: center; gap: 10px;
+            padding: 14px 20px; padding-top: max(14px, env(safe-area-inset-top, 14px));
+        }
+        .btn-back {
+            width: 40px; height: 40px; border-radius: 12px;
+            border: 2.5px solid var(--grey); background: var(--white);
+            display: flex; align-items: center; justify-content: center; cursor: pointer;
+        }
+        .btn-back svg { width: 18px; height: 18px; stroke: var(--dark); fill: none; stroke-width: 2.5; }
+        .header-title { font-weight: 900; font-size: 18px; flex: 1; }
+        .btn-add-hdr {
+            width: 40px; height: 40px; border-radius: 12px;
+            border: none; background: var(--green); color: white;
+            font-size: 22px; font-weight: 300; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        /* Balance card */
+        .balance-card {
+            margin: 16px 16px 0;
+            background: var(--dark); border-radius: 24px;
+            padding: 20px 24px; color: white;
+        }
+        .balance-row { display: flex; justify-content: space-between; gap: 12px; }
+        .balance-item { flex: 1; text-align: center; }
+        .balance-label { font-size: 11px; font-weight: 700; opacity: 0.6; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+        .balance-val { font-size: 22px; font-weight: 900; }
+        .balance-val.debito { color: #ff6b6b; }
+        .balance-val.credito { color: #51cf66; }
+        .balance-val.saldo-pos { color: #51cf66; }
+        .balance-val.saldo-neg { color: #ff6b6b; }
+        .balance-val.saldo-zero { color: rgba(255,255,255,0.7); }
+        .balance-divider { width: 1px; background: rgba(255,255,255,0.15); align-self: stretch; }
+
+        /* Tabs */
+        .tabs { display: flex; margin: 16px 16px 0; gap: 8px; }
+        .tab {
+            flex: 1; padding: 12px; border-radius: 16px; border: 2.5px solid var(--grey);
+            background: var(--white); font-weight: 800; font-size: 14px; cursor: pointer;
+            text-align: center; transition: all 0.15s;
+        }
+        .tab.active.debiti { border-color: var(--red); color: var(--red); background: #fff5f5; }
+        .tab.active.crediti { border-color: var(--green); color: var(--green); background: #f0fdf8; }
+        .tab:not(.active) { color: #999; }
+
+        /* List */
+        .list-section { padding: 12px 16px 100px; }
+        .empty-msg { text-align: center; padding: 48px 24px; color: #aaa; font-weight: 700; font-size: 15px; }
+
+        .entry-card {
+            background: var(--white); border-radius: 20px;
+            padding: 16px 18px; margin-bottom: 10px;
+            border-left: 5px solid transparent;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            display: flex; align-items: flex-start; gap: 14px;
+        }
+        .entry-card.debito { border-left-color: var(--red); }
+        .entry-card.credito { border-left-color: var(--green); }
+        .entry-card.pagato { opacity: 0.5; }
+
+        .entry-avatar {
+            width: 44px; height: 44px; border-radius: 14px; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 900; font-size: 18px; color: white;
+        }
+        .entry-avatar.debito { background: var(--red); }
+        .entry-avatar.credito { background: var(--green); }
+
+        .entry-body { flex: 1; min-width: 0; }
+        .entry-persona { font-weight: 900; font-size: 15px; }
+        .entry-desc { font-size: 13px; color: #777; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .entry-meta { display: flex; gap: 8px; margin-top: 6px; align-items: center; flex-wrap: wrap; }
+        .badge-scad {
+            font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 8px;
+            background: var(--grey-light); color: #666;
+        }
+        .badge-scad.scaduto { background: #fff0f0; color: var(--red); }
+        .badge-pagato { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 8px; background: #f0fdf8; color: var(--green); }
+
+        .entry-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; flex-shrink: 0; }
+        .entry-amount { font-weight: 900; font-size: 20px; }
+        .entry-amount.debito { color: var(--red); }
+        .entry-amount.credito { color: var(--green); }
+
+        .btn-paid {
+            font-size: 11px; font-weight: 800; padding: 5px 10px; border-radius: 10px;
+            border: 2px solid var(--green); color: var(--green); background: white; cursor: pointer;
+            white-space: nowrap;
+        }
+        .btn-paid.pagato { background: var(--grey-light); border-color: var(--grey); color: #999; }
+        .btn-edit-entry {
+            font-size: 11px; font-weight: 800; padding: 5px 10px; border-radius: 10px;
+            border: 2px solid var(--grey); color: #666; background: white; cursor: pointer;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none; position: fixed; inset: 0; z-index: 200;
+            background: rgba(0,0,0,0.5); align-items: flex-end; justify-content: center;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal-box {
+            background: var(--white); border-radius: 28px 28px 0 0;
+            padding: 24px 20px; padding-bottom: max(24px, env(safe-area-inset-bottom, 24px));
+            width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto;
+        }
+        .modal-title { font-weight: 900; font-size: 18px; margin-bottom: 20px; }
+        .form-group { margin-bottom: 14px; }
+        .form-label { font-size: 12px; font-weight: 800; color: #666; margin-bottom: 6px; display: block; text-transform: uppercase; letter-spacing: 0.4px; }
+        .form-input {
+            width: 100%; padding: 14px 16px; border-radius: 16px;
+            border: 2.5px solid var(--grey); font-size: 15px; font-family: inherit;
+            outline: none; transition: border-color 0.2s;
+        }
+        .form-input:focus { border-color: var(--blue); }
+        .form-row { display: flex; gap: 10px; }
+        .form-row .form-group { flex: 1; }
+        .tipo-selector { display: flex; gap: 8px; }
+        .tipo-btn {
+            flex: 1; padding: 12px; border-radius: 14px; border: 2.5px solid var(--grey);
+            font-weight: 800; font-size: 14px; cursor: pointer; background: var(--white);
+            transition: all 0.15s;
+        }
+        .tipo-btn.active.debito { border-color: var(--red); background: #fff5f5; color: var(--red); }
+        .tipo-btn.active.credito { border-color: var(--green); background: #f0fdf8; color: var(--green); }
+        .btn-save-modal {
+            width: 100%; padding: 16px; border-radius: 18px; border: none;
+            background: var(--green); color: white; font-weight: 900; font-size: 16px;
+            cursor: pointer; font-family: inherit; margin-top: 8px;
+        }
+        .btn-delete-modal {
+            width: 100%; padding: 14px; border-radius: 18px; border: none;
+            background: #fff0f0; color: var(--red); font-weight: 800; font-size: 14px;
+            cursor: pointer; font-family: inherit; margin-top: 8px;
+        }
+        .modal-handle { width: 40px; height: 4px; background: var(--grey); border-radius: 4px; margin: 0 auto 20px; }
+
+        /* Tab bar */
+        .tab-bar {
+            position: fixed; bottom: 0; left: 0; right: 0; height: 70px;
+            background: white; display: flex; justify-content: space-around; align-items: center;
+            border-top: 2px solid var(--grey-light);
+            padding-bottom: env(safe-area-inset-bottom); z-index: 100;
+        }
+        .tab-item { flex: 1; text-align: center; font-size: 11px; color: var(--dark); text-decoration: none; font-weight: 800; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .icon-tab { width: 24px; height: 24px; stroke-width: 2.5px; stroke: var(--dark); fill: none; }
+
+        /* Toast */
+        .toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--dark); color: white; padding: 12px 20px; border-radius: 14px; font-weight: 700; font-size: 14px; opacity: 0; transition: all 0.25s; white-space: nowrap; z-index: 999; pointer-events: none; }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    </style>
+</head>
+<body>
+
+<div class="page-header">
+    <button class="btn-back" onclick="history.back()">
+        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div class="header-title">DEBITI & CREDITI</div>
+    <button class="btn-add-hdr" onclick="apriModale()">+</button>
+</div>
+
+<div class="balance-card" id="balanceCard">
+    <div class="balance-row">
+        <div class="balance-item">
+            <div class="balance-label">Devo</div>
+            <div class="balance-val debito" id="totDebiti">€0</div>
+        </div>
+        <div class="balance-divider"></div>
+        <div class="balance-item">
+            <div class="balance-label">Mi devono</div>
+            <div class="balance-val credito" id="totCrediti">€0</div>
+        </div>
+        <div class="balance-divider"></div>
+        <div class="balance-item">
+            <div class="balance-label">Saldo</div>
+            <div class="balance-val saldo-zero" id="saldoNetto">€0</div>
+        </div>
+    </div>
+</div>
+
+<div class="tabs">
+    <button class="tab active debiti" id="tabDebiti" onclick="setTab('debiti')">💸 I miei debiti</button>
+    <button class="tab crediti" id="tabCrediti" onclick="setTab('crediti')">💰 Mi devono</button>
+</div>
+
+<div class="list-section" id="listSection"></div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modaleEntry">
+    <div class="modal-box">
+        <div class="modal-handle"></div>
+        <div class="modal-title" id="modalTitle">Nuovo</div>
+        <div class="tipo-selector" style="margin-bottom:16px">
+            <button class="tipo-btn active debito" id="tipoDebito" onclick="setTipo('debito')">💸 Mio debito</button>
+            <button class="tipo-btn credito" id="tipoCredito" onclick="setTipo('credito')">💰 Mi devono</button>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Persona *</label>
+            <input class="form-input" id="fPersona" placeholder="Nome" type="text">
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label">Importo (€) *</label>
+                <input class="form-input" id="fImporto" placeholder="0.00" type="number" min="0" step="0.01">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Scadenza</label>
+                <input class="form-input" id="fScadenza" type="date">
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Descrizione</label>
+            <input class="form-input" id="fDesc" placeholder="Motivo, dettagli…" type="text">
+        </div>
+        <button class="btn-save-modal" onclick="salva()">SALVA</button>
+        <button class="btn-delete-modal" id="btnElimina" style="display:none" onclick="elimina()">ELIMINA</button>
+    </div>
+</div>
+
+<div class="tab-bar">
+    <a href="index.html" class="tab-item">
+        <svg class="icon-tab" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 15 22"/></svg>
+        HOME
+    </a>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = "https://eejdpophfxsrqdvsucye.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlamRwb3BoZnhzcnFkdnN1Y3llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2NTMzMDQsImV4cCI6MjA5MzIyOTMwNH0.mpxbwlJyIdZgqKIdutHbLd85JR1P11yiglbYeApi17k";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const userEmail = localStorage.getItem('userEmail');
+if (!userEmail) location.href = 'login.html';
+
+let tab = 'debiti';
+let voci = [];
+let editId = null;
+let tipoCorrente = 'debito';
+
+async function carica() {
+    const { data } = await sb.from('debiti_crediti').select('*').eq('email_utente', userEmail).order('created_at', { ascending: false });
+    voci = data || [];
+    aggiornaBilancio();
+    render();
+}
+
+function aggiornaBilancio() {
+    const attive = voci.filter(v => !v.pagato);
+    const totD = attive.filter(v => v.tipo === 'debito').reduce((s, v) => s + Number(v.importo), 0);
+    const totC = attive.filter(v => v.tipo === 'credito').reduce((s, v) => s + Number(v.importo), 0);
+    const saldo = totC - totD;
+    document.getElementById('totDebiti').textContent = '€' + totD.toFixed(2);
+    document.getElementById('totCrediti').textContent = '€' + totC.toFixed(2);
+    const el = document.getElementById('saldoNetto');
+    el.textContent = (saldo >= 0 ? '+' : '') + '€' + saldo.toFixed(2);
+    el.className = 'balance-val ' + (saldo > 0 ? 'saldo-pos' : saldo < 0 ? 'saldo-neg' : 'saldo-zero');
+}
+
+function render() {
+    const filtrate = voci.filter(v => v.tipo === tab.slice(0, -1) === 'debiti' ? false : true);
+    const filtered = tab === 'debiti'
+        ? voci.filter(v => v.tipo === 'debito')
+        : voci.filter(v => v.tipo === 'credito');
+
+    const list = document.getElementById('listSection');
+    if (!filtered.length) {
+        list.innerHTML = `<div class="empty-msg">${tab === 'debiti' ? 'Nessun debito 🎉' : 'Nessun credito'}</div>`;
+        return;
+    }
+
+    const oggi = new Date(); oggi.setHours(0,0,0,0);
+    list.innerHTML = filtered.map(v => {
+        const initiale = (v.persona || '?')[0].toUpperCase();
+        let scadHtml = '';
+        if (v.data_scadenza) {
+            const d = new Date(v.data_scadenza + 'T00:00:00');
+            const scaduto = !v.pagato && d < oggi;
+            const label = d.toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: '2-digit' });
+            scadHtml = `<span class="badge-scad${scaduto ? ' scaduto' : ''}">${scaduto ? '⚠️ ' : '📅 '}${label}</span>`;
+        }
+        const pagatoHtml = v.pagato ? '<span class="badge-pagato">✓ Saldato</span>' : '';
+        return `<div class="entry-card ${v.tipo}${v.pagato ? ' pagato' : ''}">
+            <div class="entry-avatar ${v.tipo}">${initiale}</div>
+            <div class="entry-body">
+                <div class="entry-persona">${v.persona}</div>
+                ${v.descrizione ? `<div class="entry-desc">${v.descrizione}</div>` : ''}
+                <div class="entry-meta">${scadHtml}${pagatoHtml}</div>
+            </div>
+            <div class="entry-right">
+                <div class="entry-amount ${v.tipo}">€${Number(v.importo).toFixed(2)}</div>
+                <button class="btn-paid${v.pagato ? ' pagato' : ''}" onclick="togglePagato(${v.id})">${v.pagato ? 'Riapri' : 'Saldato'}</button>
+                <button class="btn-edit-entry" onclick="apriModifica(${v.id})">Modifica</button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function setTab(t) {
+    tab = t;
+    document.getElementById('tabDebiti').className = 'tab' + (t === 'debiti' ? ' active debiti' : '');
+    document.getElementById('tabCrediti').className = 'tab' + (t === 'crediti' ? ' active crediti' : '');
+    render();
+}
+
+async function togglePagato(id) {
+    const v = voci.find(x => x.id === id);
+    if (!v) return;
+    const nuovoPagato = !v.pagato;
+    await sb.from('debiti_crediti').update({ pagato: nuovoPagato }).eq('id', id);
+    v.pagato = nuovoPagato;
+    aggiornaBilancio(); render();
+    toast(nuovoPagato ? '✓ Segnato come saldato' : 'Riaperto');
+}
+
+function apriModale() {
+    editId = null;
+    tipoCorrente = tab === 'debiti' ? 'debito' : 'credito';
+    document.getElementById('modalTitle').textContent = 'Nuovo';
+    document.getElementById('fPersona').value = '';
+    document.getElementById('fImporto').value = '';
+    document.getElementById('fScadenza').value = '';
+    document.getElementById('fDesc').value = '';
+    document.getElementById('btnElimina').style.display = 'none';
+    setTipo(tipoCorrente);
+    document.getElementById('modaleEntry').classList.add('open');
+}
+
+function apriModifica(id) {
+    const v = voci.find(x => x.id === id);
+    if (!v) return;
+    editId = id;
+    tipoCorrente = v.tipo;
+    document.getElementById('modalTitle').textContent = 'Modifica';
+    document.getElementById('fPersona').value = v.persona;
+    document.getElementById('fImporto').value = v.importo;
+    document.getElementById('fScadenza').value = v.data_scadenza || '';
+    document.getElementById('fDesc').value = v.descrizione || '';
+    document.getElementById('btnElimina').style.display = '';
+    setTipo(v.tipo);
+    document.getElementById('modaleEntry').classList.add('open');
+}
+
+function setTipo(t) {
+    tipoCorrente = t;
+    document.getElementById('tipoDebito').className = 'tipo-btn' + (t === 'debito' ? ' active debito' : '');
+    document.getElementById('tipoCredito').className = 'tipo-btn' + (t === 'credito' ? ' active credito' : '');
+}
+
+async function salva() {
+    const persona = document.getElementById('fPersona').value.trim();
+    const importo = parseFloat(document.getElementById('fImporto').value);
+    if (!persona || isNaN(importo) || importo <= 0) { toast('Compila persona e importo'); return; }
+    const row = {
+        email_utente: userEmail,
+        tipo: tipoCorrente,
+        persona,
+        importo,
+        descrizione: document.getElementById('fDesc').value.trim() || null,
+        data_scadenza: document.getElementById('fScadenza').value || null,
+    };
+    if (editId) {
+        await sb.from('debiti_crediti').update(row).eq('id', editId);
+        toast('✓ Aggiornato');
+    } else {
+        await sb.from('debiti_crediti').insert({ ...row, pagato: false });
+        toast('✓ Aggiunto');
+    }
+    document.getElementById('modaleEntry').classList.remove('open');
+    await carica();
+}
+
+async function elimina() {
+    if (!editId || !confirm('Eliminare questa voce?')) return;
+    await sb.from('debiti_crediti').delete().eq('id', editId);
+    document.getElementById('modaleEntry').classList.remove('open');
+    toast('Eliminato');
+    await carica();
+}
+
+document.getElementById('modaleEntry').addEventListener('click', e => {
+    if (e.target === document.getElementById('modaleEntry')) document.getElementById('modaleEntry').classList.remove('open');
+});
+
+let toastTimer;
+function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+carica();
+</script>
+</body>
+</html>
