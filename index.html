@@ -338,8 +338,22 @@
         </a>
     </div>
 
+    <!-- Push notification banner -->
+    <div id="pushBanner" style="
+        display:none; position:fixed; bottom:85px; left:0; right:0; z-index:99;
+        background:#1c1c1e; color:white; padding:12px 16px;
+        flex-direction:row; align-items:center; justify-content:space-between; gap:12px;
+        padding-bottom: max(12px, calc(env(safe-area-inset-bottom) + 4px));
+    ">
+        <span style="font-size:13px; font-weight:700; line-height:1.3">🔔 Riepilogo settimanale ogni domenica</span>
+        <div style="display:flex; gap:8px; flex-shrink:0">
+            <button onclick="chiudiBanner()" style="background:transparent; color:rgba(255,255,255,0.5); border:none; font-size:13px; font-weight:700; cursor:pointer; padding:8px 4px">No</button>
+            <button onclick="iscriviPush()" style="background:#0fba8d; color:white; border:none; border-radius:10px; padding:8px 14px; font-weight:800; font-size:13px; cursor:pointer; white-space:nowrap">Attiva</button>
+        </div>
+    </div>
+
     <script>
-        const SUPABASE_URL = "https://eejdpophfxsrqdvsucye.supabase.co"; 
+        const SUPABASE_URL = "https://eejdpophfxsrqdvsucye.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlamRwb3BoZnhzcnFkdnN1Y3llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2NTMzMDQsImV4cCI6MjA5MzIyOTMwNH0.mpxbwlJyIdZgqKIdutHbLd85JR1P11yiglbYeApi17k";
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -352,4 +366,62 @@
             localStorage.removeItem('userEmail');
             window.location.href = 'login.html';
         }
+
+        // ── Service Worker + Push ─────────────────────────────────────────
+        const VAPID_PUBLIC_KEY = 'BATe8jx7GOX6w2NUFoMQoGI6l8BRyJEVcsDlwf3IdIa5AEENkxpSCNuhkl4PgDxR_8f-AJerrYxENnH0mb-MTys';
+
+        function urlBase64ToUint8Array(b64) {
+            const pad = '='.repeat((4 - b64.length % 4) % 4);
+            const base64 = (b64 + pad).replace(/-/g, '+').replace(/_/g, '/');
+            const raw = atob(base64);
+            return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+        }
+
+        async function initSW() {
+            if (!('serviceWorker' in navigator)) return;
+            const reg = await navigator.serviceWorker.register('/sw.js');
+
+            if (!('PushManager' in window)) return;
+            if (Notification.permission === 'denied') return;
+            if (localStorage.getItem('pushDismissed')) return;
+
+            await navigator.serviceWorker.ready;
+            const existing = await reg.pushManager.getSubscription();
+            if (existing) return; // già iscritto
+
+            if (Notification.permission === 'default') {
+                document.getElementById('pushBanner').style.display = 'flex';
+            }
+        }
+
+        async function iscriviPush() {
+            document.getElementById('pushBanner').style.display = 'none';
+            const userEmail = localStorage.getItem('userEmail');
+            if (!userEmail) return;
+
+            const perm = await Notification.requestPermission();
+            if (perm !== 'granted') return;
+
+            try {
+                const reg = await navigator.serviceWorker.ready;
+                const sub = await reg.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+                });
+                await fetch('/api/subscribe', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: userEmail, subscription: sub.toJSON() }),
+                });
+            } catch (err) {
+                console.error('Push subscription failed:', err);
+            }
+        }
+
+        function chiudiBanner() {
+            document.getElementById('pushBanner').style.display = 'none';
+            localStorage.setItem('pushDismissed', '1');
+        }
+
+        window.addEventListener('load', () => setTimeout(initSW, 800));
     </script>
