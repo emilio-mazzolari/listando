@@ -8,7 +8,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
-            --green: #0fba8d; --blue: #3384d4; --red: #ff3b30; --orange: #ff9500; --yellow: #ffcc00;
+            --green: #0fba8d; --blue: #3384d4; --teal: #30b0c7; --red: #ff3b30; --orange: #ff9500; --yellow: #ffcc00;
             --grey: #d8dddc; --grey-light: #f2f2f7;
             --dark: #111; --bg: #f5f6f8; --white: #fff;
             --alta: #ff3b30; --media: #ff9500; --bassa: #0fba8d;
@@ -27,14 +27,14 @@
         .btn-back svg { width: 18px; height: 18px; stroke: var(--dark); fill: none; stroke-width: 2.5; }
         .header-title { font-weight: 900; font-size: 18px; flex: 1; }
         .header-right { display: flex; gap: 8px; }
-        .btn-add-hdr { width: 40px; height: 40px; border-radius: 12px; border: none; background: var(--blue); color: white; font-size: 22px; font-weight: 300; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .btn-add-hdr { width: 40px; height: 40px; border-radius: 12px; border: none; background: var(--teal); color: white; font-size: 22px; font-weight: 300; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         .btn-filter-hdr { width: 40px; height: 40px; border-radius: 12px; border: 2.5px solid var(--grey); background: var(--white); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 18px; }
 
         /* Cats */
         .cats-scroll { overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
         .cats-scroll::-webkit-scrollbar { display: none; }
         .chip-cat { display: inline-block; padding: 7px 14px; border-radius: 20px; border: 2.5px solid var(--grey); background: var(--white); font-weight: 800; font-size: 13px; cursor: pointer; margin-right: 6px; transition: all 0.15s; }
-        .chip-cat.active { border-color: var(--blue); background: var(--blue); color: white; }
+        .chip-cat.active { border-color: var(--teal); background: var(--teal); color: white; }
 
         /* Progress bar */
         .progress-wrap { padding: 10px 16px 0; }
@@ -85,7 +85,7 @@
         .form-group { margin-bottom: 12px; }
         .form-label { font-size: 12px; font-weight: 800; color: #666; margin-bottom: 5px; display: block; text-transform: uppercase; letter-spacing: 0.4px; }
         .form-input { width: 100%; padding: 12px 14px; border-radius: 14px; border: 2.5px solid var(--grey); font-size: 15px; font-family: inherit; outline: none; transition: border-color 0.2s; }
-        .form-input:focus { border-color: var(--blue); }
+        .form-input:focus { border-color: var(--teal); }
         .form-row { display: flex; gap: 8px; }
         .form-row .form-group { flex: 1; }
 
@@ -95,7 +95,7 @@
         .prio-btn.active.media { border-color: var(--media); background: #fff9f0; color: var(--media); }
         .prio-btn.active.bassa { border-color: var(--bassa); background: #f0fdf8; color: var(--bassa); }
 
-        .btn-save-modal { width: 100%; padding: 16px; border-radius: 18px; border: none; background: var(--blue); color: white; font-weight: 900; font-size: 16px; cursor: pointer; font-family: inherit; margin-top: 8px; }
+        .btn-save-modal { width: 100%; padding: 16px; border-radius: 18px; border: none; background: var(--teal); color: white; font-weight: 900; font-size: 16px; cursor: pointer; font-family: inherit; margin-top: 8px; }
         .btn-delete-modal { width: 100%; padding: 14px; border-radius: 18px; border: none; background: #fff0f0; color: var(--red); font-weight: 800; font-size: 14px; cursor: pointer; font-family: inherit; margin-top: 8px; }
 
         .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 70px; background: white; display: flex; justify-content: space-around; align-items: center; border-top: 2px solid var(--grey-light); padding-bottom: env(safe-area-inset-bottom); z-index: 100; }
