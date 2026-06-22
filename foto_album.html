@@ -150,6 +150,30 @@
         .sortable-ghost  { opacity: 0.3; }
         .sortable-chosen { outline: 3px solid var(--purple); outline-offset: -3px; }
 
+        /* Filtro media */
+        .media-filter { display: flex; gap: 6px; margin-bottom: 10px; }
+        .chip-media {
+            padding: 6px 14px; border-radius: 20px; border: 2.5px solid var(--grey);
+            background: var(--white); font-size: 11px; font-weight: 800; cursor: pointer;
+            font-family: inherit; transition: all 0.15s; text-transform: uppercase;
+        }
+        .chip-media.active { background: var(--purple); color: white; border-color: var(--purple); }
+
+        /* Video in griglia */
+        .foto-cell-video { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
+        .video-badge {
+            position: absolute; bottom: 4px; left: 4px;
+            background: rgba(0,0,0,0.6); color: white;
+            border-radius: 6px; font-size: 10px; font-weight: 900;
+            padding: 2px 6px; pointer-events: none; letter-spacing: 0.3px;
+        }
+
+        /* Lightbox video */
+        #lightboxVideo {
+            display: none; max-width: 100%; max-height: calc(100vh - 80px);
+            object-fit: contain;
+        }
+
         /* Action bar selezione */
         .action-bar {
             position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
@@ -393,6 +417,12 @@
         <hr class="divider-section">
     </div>
 
+    <div class="media-filter" id="mediaFilter" style="display:none">
+        <button class="chip-media active" id="chipTutti" onclick="setMediaFilter('tutti')">Tutti</button>
+        <button class="chip-media" id="chipFoto"  onclick="setMediaFilter('foto')">Foto</button>
+        <button class="chip-media" id="chipVideo" onclick="setMediaFilter('video')">Video</button>
+    </div>
+
     <div class="foto-toolbar" id="fotoToolbar" style="display:none">
         <button class="btn-foto-tool" id="btnSeleziona" onclick="toggleSelectMode()">☑ Seleziona</button>
         <button class="btn-foto-tool" id="btnTutte" onclick="selezionaTutte()" style="display:none">Tutte</button>
@@ -409,13 +439,14 @@
 <button class="fab" onclick="document.getElementById('fileInput').click()" title="Aggiungi foto">
     <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
 </button>
-<input type="file" id="fileInput" accept="image/*" multiple style="display:none" onchange="handleFiles(this.files)">
+<input type="file" id="fileInput" accept="image/*,video/*" multiple style="display:none" onchange="handleFiles(this.files)">
 
 <!-- Lightbox -->
 <div class="lightbox" id="lightbox" onclick="chiudiLightbox()">
     <button class="lightbox-close" onclick="chiudiLightbox()">✕</button>
     <button class="lightbox-nav lightbox-prev" onclick="event.stopPropagation(); navLightbox(-1)">‹</button>
     <img id="lightboxImg" src="" alt="">
+    <video id="lightboxVideo" controls playsinline></video>
     <button class="lightbox-nav lightbox-next" onclick="event.stopPropagation(); navLightbox(1)">›</button>
     <span class="lightbox-counter" id="lightboxCounter"></span>
 </div>
@@ -501,7 +532,7 @@
     </a>
     <a href="foto.html" class="tab-item tab-active">
         <svg class="icon-tab" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-        Foto
+        Album
     </a>
     <a href="#" class="tab-item" onclick="logout()">
         <svg class="icon-tab" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/></svg>
@@ -525,10 +556,12 @@
     let subAlbums = [];
     let subCountMap = {};
     let lightboxIdx = 0;
-    let selectionMode  = false;
-    let reorderDirty   = false;
-    let selected       = new Set();
-    let sortableInst   = null;
+    let selectionMode    = false;
+    let reorderDirty     = false;
+    let selected         = new Set();
+    let sortableInst     = null;
+    let mediaFilter      = 'tutti';
+    let fotoVisualizzate = [];
 
     // ── Caricamento ─────────────────────────────────────────────────
     async function caricaAlbum() {
@@ -632,39 +665,73 @@
         });
     }
 
+    function setMediaFilter(f) {
+        mediaFilter = f;
+        ['tutti','foto','video'].forEach(k =>
+            document.getElementById('chip' + k.charAt(0).toUpperCase() + k.slice(1))
+                .classList.toggle('active', k === f)
+        );
+        renderFoto();
+    }
+
     function renderFoto() {
         const grid    = document.getElementById('fotoGrid');
         const toolbar = document.getElementById('fotoToolbar');
+        const mfDiv   = document.getElementById('mediaFilter');
+
         if (foto.length === 0) {
             toolbar.style.display = 'none';
+            mfDiv.style.display   = 'none';
             grid.innerHTML = `<div class="empty-state">
                 <div class="empty-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>
-                <div class="empty-title">Nessuna foto</div>
-                <div class="empty-sub">Importa le tue foto dalla galleria</div>
+                <div class="empty-title">Nessun contenuto</div>
+                <div class="empty-sub">Importa foto o video dalla galleria</div>
                 <button class="btn-import" onclick="document.getElementById('fileInput').click()">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                    Importa foto
+                    Importa
                 </button>
             </div>`;
             return;
         }
+
         toolbar.style.display = 'flex';
+        const hasVideo = foto.some(f => f.media_type === 'video');
+        mfDiv.style.display = hasVideo ? 'flex' : 'none';
+
+        fotoVisualizzate = mediaFilter === 'foto'  ? foto.filter(f => f.media_type !== 'video') :
+                           mediaFilter === 'video' ? foto.filter(f => f.media_type === 'video') :
+                           foto;
 
         if (sortableInst) { sortableInst.destroy(); sortableInst = null; }
         grid.innerHTML = '';
 
-        foto.forEach((f, idx) => {
+        fotoVisualizzate.forEach((f, idx) => {
             const cell = document.createElement('div');
+            const isVideo = f.media_type === 'video';
+
             if (selectionMode) {
                 cell.className = 'foto-cell sel-mode' + (selected.has(f.id) ? ' sel' : '');
                 cell.dataset.id = f.id;
-                cell.innerHTML = `<img src="${f.url}" alt="foto" loading="lazy"><div class="foto-check"></div>`;
+                if (isVideo) {
+                    cell.innerHTML = `<video src="${f.url}" class="foto-cell-video" preload="none" muted playsinline></video><div class="video-badge">▶ VIDEO</div><div class="foto-check"></div>`;
+                } else {
+                    cell.innerHTML = `<img src="${f.url}" alt="" loading="lazy"><div class="foto-check"></div>`;
+                }
                 cell.onclick = () => toggleSelectFoto(f.id);
             } else {
                 cell.className = 'foto-cell';
-                cell.innerHTML = `
-                    <img src="${f.url}" alt="foto" loading="lazy" onclick="apriLightbox(${idx})">
-                    <button class="btn-del-foto" onclick="event.stopPropagation(); eliminaFoto(${f.id}, '${f.storage_path}')">✕</button>`;
+                if (isVideo) {
+                    cell.innerHTML = `
+                        <video src="${f.url}" class="foto-cell-video" preload="metadata" muted playsinline></video>
+                        <div class="video-badge">▶ VIDEO</div>
+                        <button class="btn-del-foto" onclick="event.stopPropagation(); eliminaFoto(${f.id}, '${f.storage_path}')">✕</button>`;
+                    cell.querySelector('video').onclick = () => apriLightbox(idx);
+                    cell.querySelector('.video-badge').onclick = () => apriLightbox(idx);
+                } else {
+                    cell.innerHTML = `
+                        <img src="${f.url}" alt="" loading="lazy" onclick="apriLightbox(${idx})">
+                        <button class="btn-del-foto" onclick="event.stopPropagation(); eliminaFoto(${f.id}, '${f.storage_path}')">✕</button>`;
+                }
             }
             grid.appendChild(cell);
         });
@@ -688,11 +755,19 @@
                 },
                 onEnd: (evt) => {
                     if (evt.oldIndex === evt.newIndex) return;
-                    const moved = foto.splice(evt.oldIndex, 1)[0];
-                    foto.splice(evt.newIndex, 0, moved);
+                    const moved = fotoVisualizzate.splice(evt.oldIndex, 1)[0];
+                    fotoVisualizzate.splice(evt.newIndex, 0, moved);
+                    const movedInFoto = foto.indexOf(moved);
+                    // keep foto array consistent (approximate - reorder handles final save)
+                    if (movedInFoto !== -1) {
+                        foto.splice(movedInFoto, 1);
+                        foto.splice(evt.newIndex, 0, moved);
+                    }
                     grid.querySelectorAll('.foto-cell').forEach((cell, i) => {
-                        const img = cell.querySelector('img');
-                        if (img) img.onclick = (e) => { e.stopPropagation(); apriLightbox(i); };
+                        const el = cell.querySelector('img, video');
+                        if (el) el.onclick = () => apriLightbox(i);
+                        const vb = cell.querySelector('.video-badge');
+                        if (vb) vb.onclick = () => apriLightbox(i);
                     });
                 }
             });
@@ -749,7 +824,7 @@
 
     // ── Upload ──────────────────────────────────────────────────────
     async function handleFiles(fileList) {
-        const files = Array.from(fileList).filter(f => f.type.startsWith('image/'));
+        const files = Array.from(fileList).filter(f => f.type.startsWith('image/') || f.type.startsWith('video/'));
         if (!files.length) return;
 
         const bar = document.getElementById('uploadBar');
@@ -757,17 +832,36 @@
         let ok = 0;
 
         for (let i = 0; i < files.length; i++) {
-            bar.textContent = `⏳ Comprimo foto ${i + 1} di ${files.length}…`;
+            const file = files[i];
+            const isVideo = file.type.startsWith('video/');
             try {
-                const blob = await compressImage(files[i]);
+                let blob, contentType, ext, mediaType;
+
+                if (isVideo) {
+                    if (file.size > 500 * 1024 * 1024) {
+                        mostraToast(`Video troppo grande (max 500 MB): ${file.name}`);
+                        continue;
+                    }
+                    bar.textContent = `⬆️ Carico video ${i + 1} di ${files.length}…`;
+                    blob = file;
+                    contentType = file.type;
+                    ext = file.name.split('.').pop().toLowerCase() || 'mp4';
+                    mediaType = 'video';
+                } else {
+                    bar.textContent = `⏳ Comprimo foto ${i + 1} di ${files.length}…`;
+                    blob = await compressImage(file);
+                    contentType = 'image/jpeg';
+                    ext = 'jpg';
+                    mediaType = 'photo';
+                    bar.textContent = `⬆️ Carico foto ${i + 1} di ${files.length}…`;
+                }
+
                 const slug  = userEmail.replace(/[^a-zA-Z0-9]/g, '_');
-                const fname = `${Date.now()}_${Math.random().toString(36).slice(2)}.jpg`;
+                const fname = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
                 const path  = `${slug}/${albumId}/${fname}`;
 
-                bar.textContent = `⬆️ Carico foto ${i + 1} di ${files.length}…`;
-
                 const { error: upErr } = await supabaseClient.storage.from('foto')
-                    .upload(path, blob, { contentType: 'image/jpeg' });
+                    .upload(path, blob, { contentType });
                 if (upErr) throw upErr;
 
                 const { data: { publicUrl } } = supabaseClient.storage.from('foto').getPublicUrl(path);
@@ -778,11 +872,12 @@
                     storage_path: path,
                     url: publicUrl,
                     size_bytes: blob.size,
-                    sort_order: Date.now() + ok
+                    sort_order: Date.now() + ok,
+                    media_type: mediaType
                 });
                 if (dbErr) throw dbErr;
 
-                if (!album.cover_url) {
+                if (!album.cover_url && !isVideo) {
                     await supabaseClient.from('foto_album').update({ cover_url: publicUrl }).eq('id', albumId);
                     album.cover_url = publicUrl;
                 }
@@ -796,7 +891,7 @@
         bar.style.display = 'none';
         document.getElementById('fileInput').value = '';
         await caricaFoto();
-        if (ok > 0) mostraToast(`✓ ${ok} foto caricate!`);
+        if (ok > 0) mostraToast(`✓ ${ok} file caricati!`);
     }
 
     // ── Elimina foto ─────────────────────────────────────────────────
@@ -843,14 +938,27 @@
         document.getElementById('lightbox').classList.add('open');
         aggiornaLightbox();
     }
-    function chiudiLightbox() { document.getElementById('lightbox').classList.remove('open'); }
+    function chiudiLightbox() {
+        document.getElementById('lightbox').classList.remove('open');
+        const vid = document.getElementById('lightboxVideo');
+        vid.pause(); vid.src = '';
+    }
     function navLightbox(dir) {
-        lightboxIdx = (lightboxIdx + dir + foto.length) % foto.length;
+        lightboxIdx = (lightboxIdx + dir + fotoVisualizzate.length) % fotoVisualizzate.length;
         aggiornaLightbox();
     }
     function aggiornaLightbox() {
-        document.getElementById('lightboxImg').src = foto[lightboxIdx].url;
-        document.getElementById('lightboxCounter').textContent = `${lightboxIdx + 1} / ${foto.length}`;
+        const f   = fotoVisualizzate[lightboxIdx];
+        const img = document.getElementById('lightboxImg');
+        const vid = document.getElementById('lightboxVideo');
+        if (f.media_type === 'video') {
+            img.style.display = 'none'; img.src = '';
+            vid.style.display = ''; vid.src = f.url; vid.play();
+        } else {
+            vid.style.display = 'none'; vid.pause(); vid.src = '';
+            img.style.display = ''; img.src = f.url;
+        }
+        document.getElementById('lightboxCounter').textContent = `${lightboxIdx + 1} / ${fotoVisualizzate.length}`;
     }
     document.addEventListener('keydown', e => {
         if (!document.getElementById('lightbox').classList.contains('open')) return;
