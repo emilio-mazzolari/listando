@@ -262,13 +262,17 @@
         </div>
         <div class="form-row">
             <div class="form-group">
-                <label class="form-label">Importo (€) *</label>
+                <label class="form-label" id="labelImporto">Importo (€) *</label>
                 <input class="form-input" id="fImporto" placeholder="0.00" type="number" min="0" step="0.01">
             </div>
             <div class="form-group">
                 <label class="form-label" id="labelScadenza">Scadenza</label>
                 <input class="form-input" id="fScadenza" type="date">
             </div>
+        </div>
+        <div class="form-group" id="groupQuantita" style="display:none">
+            <label class="form-label">Quantità</label>
+            <input class="form-input" id="fQuantita" placeholder="1" type="number" min="1" step="1">
         </div>
         <div class="form-group">
             <label class="form-label">Note</label>
@@ -354,15 +358,19 @@ function render() {
         }
         const pagatoLabel = BTN_PAGATO[v.tipo] || 'Saldato';
         const pagatoHtml = v.pagato ? `<span class="badge-pagato">✓ ${pagatoLabel}</span>` : '';
+        const qtaBadge = (v.tipo === 'pagare' && v.quantita && v.quantita > 1)
+            ? `<span class="badge-scad">x${v.quantita}</span>` : '';
+        const importoHtml = v.importo != null
+            ? `<div class="entry-amount ${v.tipo}">€${Number(v.importo).toFixed(2)}</div>` : '';
         return `<div class="entry-card ${v.tipo}${v.pagato ? ' pagato' : ''}">
             <div class="entry-avatar ${v.tipo}">${initiale}</div>
             <div class="entry-body">
                 <div class="entry-persona">${v.persona}</div>
                 ${v.descrizione ? `<div class="entry-desc">${v.descrizione}</div>` : ''}
-                <div class="entry-meta">${scadHtml}${pagatoHtml}</div>
+                <div class="entry-meta">${qtaBadge}${scadHtml}${pagatoHtml}</div>
             </div>
             <div class="entry-right">
-                <div class="entry-amount ${v.tipo}">€${Number(v.importo).toFixed(2)}</div>
+                ${importoHtml}
                 <button class="btn-paid${v.pagato ? ' pagato' : ''}" onclick="togglePagato(${v.id})">${v.pagato ? 'Riapri' : pagatoLabel}</button>
                 <button class="btn-edit-entry" onclick="apriModifica(${v.id})">Modifica</button>
             </div>
@@ -398,6 +406,7 @@ function apriModale() {
     document.getElementById('fImporto').value = '';
     document.getElementById('fScadenza').value = '';
     document.getElementById('fDesc').value = '';
+    document.getElementById('fQuantita').value = '';
     document.getElementById('btnElimina').style.display = 'none';
     setTipo(tipoCorrente);
     document.getElementById('modaleEntry').classList.add('open');
@@ -410,9 +419,10 @@ function apriModifica(id) {
     tipoCorrente = v.tipo;
     document.getElementById('modalTitle').textContent = 'Modifica';
     document.getElementById('fPersona').value = v.persona;
-    document.getElementById('fImporto').value = v.importo;
+    document.getElementById('fImporto').value = v.importo ?? '';
     document.getElementById('fScadenza').value = v.data_scadenza || '';
     document.getElementById('fDesc').value = v.descrizione || '';
+    document.getElementById('fQuantita').value = v.quantita ?? '';
     document.getElementById('btnElimina').style.display = '';
     setTipo(v.tipo);
     document.getElementById('modaleEntry').classList.add('open');
@@ -426,17 +436,27 @@ function setTipo(t) {
     });
     document.getElementById('labelPersona').textContent = LABELS_PERSONA[t] || 'Persona *';
     document.getElementById('labelScadenza').textContent = LABELS_SCAD[t] || 'Scadenza';
+    const isPagare = t === 'pagare';
+    document.getElementById('groupQuantita').style.display = isPagare ? '' : 'none';
+    document.getElementById('labelImporto').textContent = isPagare ? 'Importo (€)' : 'Importo (€) *';
+    if (!isPagare) document.getElementById('fQuantita').value = '';
 }
 
 async function salva() {
     const persona = document.getElementById('fPersona').value.trim();
-    const importo = parseFloat(document.getElementById('fImporto').value);
-    if (!persona || isNaN(importo) || importo <= 0) { toast('Compila tutti i campi obbligatori'); return; }
+    const importoRaw = document.getElementById('fImporto').value;
+    const importo = importoRaw !== '' ? parseFloat(importoRaw) : null;
+    const quantitaRaw = document.getElementById('fQuantita').value;
+    const quantita = quantitaRaw !== '' ? parseInt(quantitaRaw, 10) : null;
+    const isPagare = tipoCorrente === 'pagare';
+    if (!persona) { toast('Inserisci un nome o descrizione'); return; }
+    if (!isPagare && (importo === null || isNaN(importo) || importo <= 0)) { toast('Inserisci un importo valido'); return; }
     const row = {
         email_utente: userEmail,
         tipo: tipoCorrente,
         persona,
-        importo,
+        importo: importo !== null && !isNaN(importo) && importo > 0 ? importo : null,
+        quantita,
         descrizione: document.getElementById('fDesc').value.trim() || null,
         data_scadenza: document.getElementById('fScadenza').value || null,
     };
