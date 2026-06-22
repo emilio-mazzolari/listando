@@ -205,6 +205,77 @@
         }
         .sposta-album-btn:hover, .sposta-album-btn:active { background: #e0d8f5; }
 
+        /* ── Editor ── */
+        .editor-overlay {
+            position: fixed; inset: 0; z-index: 8000; background: #000;
+            display: none; flex-direction: column;
+        }
+        .editor-overlay.open { display: flex; }
+        .editor-topbar {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 14px 16px; background: #1c1c1e; flex-shrink: 0;
+        }
+        .btn-ed { padding: 8px 16px; border-radius: 12px; border: none; font-weight: 800; font-size: 13px; cursor: pointer; font-family: inherit; }
+        .btn-ed.cancel { background: #2c2c2e; color: white; }
+        .btn-ed.reset  { background: transparent; color: #aaa; }
+        .btn-ed.save   { background: white; color: #000; }
+        .editor-preview {
+            flex: 1; display: flex; align-items: center; justify-content: center;
+            overflow: hidden; background: #111;
+        }
+        .editor-media { max-width: 100%; max-height: 100%; object-fit: contain; transition: filter 0.15s, transform 0.2s; display: block; }
+        .editor-toolbar { background: #1c1c1e; flex-shrink: 0; }
+        .editor-tabs { display: flex; border-bottom: 1px solid #333; }
+        .editor-tab {
+            flex: 1; padding: 12px 4px; text-align: center; color: #666;
+            font-size: 11px; font-weight: 800; cursor: pointer;
+            border-bottom: 2px solid transparent; margin-bottom: -1px;
+            text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.15s;
+        }
+        .editor-tab.active { color: white; border-bottom-color: white; }
+        .editor-panel { display: none; padding: 16px; max-height: 38vh; overflow-y: auto; }
+        .editor-panel.active { display: block; }
+
+        /* Preset filters */
+        .filter-presets { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 6px; scrollbar-width: none; }
+        .filter-presets::-webkit-scrollbar { display: none; }
+        .filter-preset { flex-shrink: 0; text-align: center; cursor: pointer; }
+        .filter-preset-thumb {
+            width: 68px; height: 68px; border-radius: 12px; overflow: hidden;
+            border: 3px solid transparent; transition: border-color 0.15s; display: block;
+        }
+        .filter-preset-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .filter-preset-thumb.preset-box { display: flex; align-items: center; justify-content: center; }
+        .filter-preset.sel .filter-preset-thumb { border-color: white; }
+        .filter-preset-name { font-size: 10px; color: #666; font-weight: 800; margin-top: 4px; text-transform: uppercase; }
+        .filter-preset.sel .filter-preset-name { color: white; }
+
+        /* Sliders */
+        .slider-row { margin-bottom: 18px; }
+        .slider-label { display: flex; justify-content: space-between; align-items: center; font-size: 11px; font-weight: 800; color: #666; margin-bottom: 8px; text-transform: uppercase; }
+        .slider-label span { color: white; font-size: 12px; min-width: 28px; text-align: right; }
+        input[type=range] { width: 100%; -webkit-appearance: none; appearance: none; height: 3px; border-radius: 3px; background: #444; outline: none; cursor: pointer; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%; background: white; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.4); }
+        input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 50%; background: white; cursor: pointer; border: none; }
+
+        /* Rotate */
+        .rotate-btns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; padding: 8px 0; }
+        .btn-rot {
+            padding: 14px 20px; border-radius: 16px; border: 2px solid #333;
+            background: #2c2c2e; color: white; font-size: 14px; font-weight: 800;
+            cursor: pointer; font-family: inherit; transition: background 0.15s; flex: 1; min-width: 120px;
+        }
+        .btn-rot:active { background: #444; }
+
+        /* Edit button in lightbox */
+        .lightbox-edit {
+            position: absolute; bottom: 20px; right: 20px;
+            background: rgba(255,255,255,0.15); color: white; border: none;
+            border-radius: 50%; width: 44px; height: 44px; font-size: 18px;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            backdrop-filter: blur(8px);
+        }
+
         /* Upload progress */
         .upload-bar {
             display: none; position: fixed; top: 0; left: 0; right: 0;
@@ -449,6 +520,57 @@
     <video id="lightboxVideo" controls playsinline></video>
     <button class="lightbox-nav lightbox-next" onclick="event.stopPropagation(); navLightbox(1)">›</button>
     <span class="lightbox-counter" id="lightboxCounter"></span>
+    <button class="lightbox-edit" onclick="event.stopPropagation(); apriEditorDaLightbox()" title="Modifica">✏️</button>
+</div>
+
+<!-- Editor overlay -->
+<div class="editor-overlay" id="editorOverlay">
+    <div class="editor-topbar">
+        <button class="btn-ed cancel" onclick="chiudiEditor()">Annulla</button>
+        <button class="btn-ed reset"  onclick="resetEdits()">Reset</button>
+        <button class="btn-ed save"   onclick="salvaEdits()">Salva</button>
+    </div>
+    <div class="editor-preview" id="editorPreview"></div>
+    <div class="editor-toolbar">
+        <div class="editor-tabs">
+            <div class="editor-tab active" data-tab="filtri" onclick="setEditorTab('filtri')">Filtri</div>
+            <div class="editor-tab"        data-tab="regola" onclick="setEditorTab('regola')">Regola</div>
+            <div class="editor-tab"        data-tab="ruota"  onclick="setEditorTab('ruota')">Ruota</div>
+        </div>
+        <div class="editor-panel active" data-panel="filtri" id="panelFiltri">
+            <div class="filter-presets" id="filterPresetsRow"></div>
+        </div>
+        <div class="editor-panel" data-panel="regola">
+            <div class="slider-row">
+                <div class="slider-label">Luminosità <span id="lbBright">100</span></div>
+                <input type="range" id="slBright" min="50" max="150" value="100" oninput="sliderChange()">
+            </div>
+            <div class="slider-row">
+                <div class="slider-label">Contrasto <span id="lbContrast">100</span></div>
+                <input type="range" id="slContrast" min="50" max="150" value="100" oninput="sliderChange()">
+            </div>
+            <div class="slider-row">
+                <div class="slider-label">Saturazione <span id="lbSaturate">100</span></div>
+                <input type="range" id="slSaturate" min="0" max="200" value="100" oninput="sliderChange()">
+            </div>
+            <div class="slider-row">
+                <div class="slider-label">Calore <span id="lbWarmth">0</span></div>
+                <input type="range" id="slWarmth" min="0" max="60" value="0" oninput="sliderChange()">
+            </div>
+            <div class="slider-row">
+                <div class="slider-label">Sfumatura <span id="lbFade">0</span></div>
+                <input type="range" id="slFade" min="0" max="50" value="0" oninput="sliderChange()">
+            </div>
+        </div>
+        <div class="editor-panel" data-panel="ruota">
+            <div class="rotate-btns">
+                <button class="btn-rot" onclick="rotateEd(-90)">↺ 90° sx</button>
+                <button class="btn-rot" onclick="rotateEd(90)">↻ 90° dx</button>
+                <button class="btn-rot" onclick="flipEdH()">⟺ Capovolgi</button>
+                <button class="btn-rot" onclick="flipEdV()">↕ Ribalta</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Modal Share -->
@@ -732,6 +854,10 @@
                         <img src="${f.url}" alt="" loading="lazy" onclick="apriLightbox(${idx})">
                         <button class="btn-del-foto" onclick="event.stopPropagation(); eliminaFoto(${f.id}, '${f.storage_path}')">✕</button>`;
                 }
+                if (f.edits) {
+                    const m = cell.querySelector('img, video');
+                    if (m) { m.style.filter = getCSSFilter(f.edits); m.style.transform = getCSSTransform(f.edits); }
+                }
             }
             grid.appendChild(cell);
         });
@@ -951,12 +1077,17 @@
         const f   = fotoVisualizzate[lightboxIdx];
         const img = document.getElementById('lightboxImg');
         const vid = document.getElementById('lightboxVideo');
+        const cssFilter    = getCSSFilter(f.edits);
+        const cssTransform = getCSSTransform(f.edits);
         if (f.media_type === 'video') {
             img.style.display = 'none'; img.src = '';
-            vid.style.display = ''; vid.src = f.url; vid.play();
+            vid.style.display = ''; vid.src = f.url;
+            vid.style.filter = cssFilter; vid.style.transform = cssTransform;
+            vid.play();
         } else {
             vid.style.display = 'none'; vid.pause(); vid.src = '';
             img.style.display = ''; img.src = f.url;
+            img.style.filter = cssFilter; img.style.transform = cssTransform;
         }
         document.getElementById('lightboxCounter').textContent = `${lightboxIdx + 1} / ${fotoVisualizzate.length}`;
     }
@@ -1216,6 +1347,166 @@
         album.cover_url = url;
         chiudiModale('modalCopertina');
         mostraToast('✓ Copertina aggiornata');
+    }
+
+    // ── Editor ───────────────────────────────────────────────────────
+    const PRESETS = [
+        { key: 'normale',   label: 'Normale',   f: '' },
+        { key: 'clarendon', label: 'Clarendon', f: 'contrast(1.2) saturate(1.35)' },
+        { key: 'gingham',   label: 'Gingham',   f: 'brightness(1.05) hue-rotate(350deg) saturate(0.9)' },
+        { key: 'moon',      label: 'Moon',      f: 'grayscale(1) contrast(1.1) brightness(1.1)' },
+        { key: 'lark',      label: 'Lark',      f: 'contrast(0.9) brightness(1.1) saturate(1.3)' },
+        { key: 'reyes',     label: 'Reyes',     f: 'sepia(0.22) brightness(1.1) contrast(0.85) saturate(0.75)' },
+        { key: 'juno',      label: 'Juno',      f: 'saturate(1.4) contrast(1.05)' },
+        { key: 'slumber',   label: 'Slumber',   f: 'saturate(0.66) brightness(1.05)' },
+        { key: 'crema',     label: 'Crema',     f: 'contrast(0.9) saturate(0.7) hue-rotate(352deg) sepia(0.1)' },
+        { key: 'aden',      label: 'Aden',      f: 'hue-rotate(20deg) saturate(0.85) brightness(1.15) contrast(0.9)' },
+        { key: 'perpetua',  label: 'Perpetua',  f: 'saturate(1.1) contrast(1.1) brightness(1.05)' },
+        { key: 'amaro',     label: 'Amaro',     f: 'hue-rotate(350deg) contrast(0.9) brightness(1.1) saturate(1.5)' },
+        { key: 'inkwell',   label: 'Inkwell',   f: 'sepia(0.3) contrast(1.1) brightness(1.1) grayscale(0.4)' },
+        { key: 'kelvin',    label: 'Kelvin',    f: 'sepia(0.5) brightness(1.1) contrast(1.1) saturate(1.7) hue-rotate(350deg)' },
+        { key: 'nashville', label: 'Nashville', f: 'sepia(0.2) contrast(1.2) brightness(1.05) saturate(1.2) hue-rotate(355deg)' },
+        { key: 'toaster',   label: 'Toaster',   f: 'contrast(1.5) brightness(0.9) sepia(0.3)' },
+    ];
+
+    let editorFoto = null;
+    let editorEdits = {};
+
+    function getCSSFilter(edits) {
+        if (!edits) return '';
+        const parts = [];
+        const p = PRESETS.find(x => x.key === edits.preset);
+        if (p?.f) parts.push(p.f);
+        if ((edits.bright  ?? 100) !== 100) parts.push(`brightness(${edits.bright}%)`);
+        if ((edits.contrast ?? 100) !== 100) parts.push(`contrast(${edits.contrast}%)`);
+        if ((edits.saturate ?? 100) !== 100) parts.push(`saturate(${edits.saturate}%)`);
+        if ((edits.warmth  ?? 0)   !== 0)   parts.push(`sepia(${edits.warmth}%)`);
+        if ((edits.fade    ?? 0)   !== 0)   parts.push(`opacity(${100 - edits.fade}%)`);
+        return parts.join(' ');
+    }
+    function getCSSTransform(edits) {
+        if (!edits) return '';
+        const parts = [];
+        if (edits.rot) parts.push(`rotate(${edits.rot}deg)`);
+        if (edits.flipH) parts.push('scaleX(-1)');
+        if (edits.flipV) parts.push('scaleY(-1)');
+        return parts.join(' ') || '';
+    }
+
+    function apriEditorDaLightbox() {
+        const f = fotoVisualizzate[lightboxIdx];
+        if (!f) return;
+        chiudiLightbox();
+        apriEditor(f.id);
+    }
+
+    function apriEditor(fotoId) {
+        const f = foto.find(x => x.id === fotoId);
+        if (!f) return;
+        editorFoto = f;
+        editorEdits = f.edits ? JSON.parse(JSON.stringify(f.edits))
+                               : { bright: 100, contrast: 100, saturate: 100, warmth: 0, fade: 0, preset: 'normale', rot: 0, flipH: false, flipV: false };
+
+        const prev = document.getElementById('editorPreview');
+        if (f.media_type === 'video') {
+            prev.innerHTML = `<video src="${f.url}" class="editor-media" id="editorMedia" muted playsinline controls></video>`;
+            document.getElementById('panelFiltri').innerHTML = '<p style="color:#666;font-size:13px;font-weight:600;text-align:center;padding:20px 0">Usa il tab Regola per i filtri colore</p>';
+        } else {
+            prev.innerHTML = `<img src="${f.url}" class="editor-media" id="editorMedia">`;
+            buildPresetRow(f.url);
+        }
+
+        document.getElementById('slBright').value   = editorEdits.bright   ?? 100;
+        document.getElementById('slContrast').value = editorEdits.contrast ?? 100;
+        document.getElementById('slSaturate').value = editorEdits.saturate ?? 100;
+        document.getElementById('slWarmth').value   = editorEdits.warmth   ?? 0;
+        document.getElementById('slFade').value     = editorEdits.fade     ?? 0;
+        aggiornaSliderLabels();
+        aggiornaEditorPreview();
+        setEditorTab('filtri');
+        document.getElementById('editorOverlay').classList.add('open');
+    }
+
+    function buildPresetRow(url) {
+        const row = document.getElementById('filterPresetsRow');
+        row.innerHTML = PRESETS.map(p => {
+            const sel = (editorEdits.preset || 'normale') === p.key ? ' sel' : '';
+            return `<div class="filter-preset${sel}" data-preset="${p.key}" onclick="setPreset('${p.key}')">
+                <div class="filter-preset-thumb"><img src="${url}" style="filter:${p.f}"></div>
+                <div class="filter-preset-name">${p.label}</div>
+            </div>`;
+        }).join('');
+    }
+
+    function chiudiEditor() { document.getElementById('editorOverlay').classList.remove('open'); }
+
+    function setEditorTab(tab) {
+        document.querySelectorAll('.editor-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+        document.querySelectorAll('.editor-panel').forEach(p => p.classList.toggle('active', p.dataset.panel === tab));
+    }
+
+    function aggiornaEditorPreview() {
+        const el = document.getElementById('editorMedia');
+        if (!el) return;
+        el.style.filter    = getCSSFilter(editorEdits);
+        el.style.transform = getCSSTransform(editorEdits);
+    }
+
+    function setPreset(key) {
+        editorEdits.preset = key;
+        document.querySelectorAll('.filter-preset').forEach(el =>
+            el.classList.toggle('sel', el.dataset.preset === key));
+        aggiornaEditorPreview();
+    }
+
+    function sliderChange() {
+        editorEdits.bright   = Number(document.getElementById('slBright').value);
+        editorEdits.contrast = Number(document.getElementById('slContrast').value);
+        editorEdits.saturate = Number(document.getElementById('slSaturate').value);
+        editorEdits.warmth   = Number(document.getElementById('slWarmth').value);
+        editorEdits.fade     = Number(document.getElementById('slFade').value);
+        aggiornaSliderLabels();
+        aggiornaEditorPreview();
+    }
+    function aggiornaSliderLabels() {
+        document.getElementById('lbBright').textContent   = document.getElementById('slBright').value;
+        document.getElementById('lbContrast').textContent = document.getElementById('slContrast').value;
+        document.getElementById('lbSaturate').textContent = document.getElementById('slSaturate').value;
+        document.getElementById('lbWarmth').textContent   = document.getElementById('slWarmth').value;
+        document.getElementById('lbFade').textContent     = document.getElementById('slFade').value;
+    }
+
+    function rotateEd(deg) {
+        editorEdits.rot = ((editorEdits.rot || 0) + deg + 360) % 360;
+        aggiornaEditorPreview();
+    }
+    function flipEdH() { editorEdits.flipH = !editorEdits.flipH; aggiornaEditorPreview(); }
+    function flipEdV() { editorEdits.flipV = !editorEdits.flipV; aggiornaEditorPreview(); }
+
+    function resetEdits() {
+        editorEdits = { bright: 100, contrast: 100, saturate: 100, warmth: 0, fade: 0, preset: 'normale', rot: 0, flipH: false, flipV: false };
+        document.getElementById('slBright').value   = 100;
+        document.getElementById('slContrast').value = 100;
+        document.getElementById('slSaturate').value = 100;
+        document.getElementById('slWarmth').value   = 0;
+        document.getElementById('slFade').value     = 0;
+        aggiornaSliderLabels();
+        if (editorFoto?.media_type !== 'video') buildPresetRow(editorFoto.url);
+        aggiornaEditorPreview();
+    }
+
+    async function salvaEdits() {
+        const isDefault = editorEdits.bright === 100 && editorEdits.contrast === 100 &&
+            editorEdits.saturate === 100 && editorEdits.warmth === 0 && editorEdits.fade === 0 &&
+            (!editorEdits.preset || editorEdits.preset === 'normale') &&
+            !editorEdits.rot && !editorEdits.flipH && !editorEdits.flipV;
+        const saveVal = isDefault ? null : editorEdits;
+        const { error } = await supabaseClient.from('foto').update({ edits: saveVal }).eq('id', editorFoto.id);
+        if (error) { mostraToast('Errore salvataggio'); return; }
+        editorFoto.edits = saveVal;
+        chiudiEditor();
+        renderFoto();
+        mostraToast('✓ Modifiche salvate');
     }
 
     // ── Utility ──────────────────────────────────────────────────────
