@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Listando - Profilo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --accent: #5856d6;
+            --red: #ff3b30; --green: #0fba8d;
+            --grey: #d8dddc; --grey-light: #f2f2f7;
+            --dark: #111; --bg: #f2f2f7; --white: #fff;
+        }
+        * { box-sizing: border-box; }
+        html, body { overflow-x: hidden; max-width: 100%; margin: 0; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--dark); }
+
+        /* Header */
+        .page-header {
+            position: sticky; top: 0; z-index: 100;
+            background: var(--white); border-bottom: 2px solid var(--grey-light);
+            display: flex; align-items: center; gap: 10px;
+            padding: 14px 20px; padding-top: max(14px, env(safe-area-inset-top, 14px));
+        }
+        .btn-back {
+            width: 40px; height: 40px; border-radius: 12px;
+            border: 2.5px solid var(--grey); background: var(--white);
+            display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;
+        }
+        .btn-back svg { width: 18px; height: 18px; stroke: var(--dark); fill: none; stroke-width: 2.5; }
+        .header-title { font-weight: 900; font-size: 18px; flex: 1; }
+
+        /* Avatar card */
+        .avatar-card {
+            background: var(--accent); margin: 0;
+            padding: 32px 20px 28px;
+            display: flex; flex-direction: column; align-items: center; gap: 12px;
+        }
+        .avatar-circle {
+            width: 80px; height: 80px; border-radius: 50%;
+            background: rgba(255,255,255,0.2); border: 3px solid rgba(255,255,255,0.4);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 32px; font-weight: 900; color: white;
+        }
+        .avatar-name { font-size: 20px; font-weight: 900; color: white; }
+        .avatar-email { font-size: 13px; color: rgba(255,255,255,0.75); font-weight: 600; }
+
+        /* Settings groups */
+        .content { padding: 20px 16px 120px; display: flex; flex-direction: column; gap: 24px; }
+
+        .settings-group {}
+        .group-label {
+            font-size: 11px; font-weight: 800; color: #888;
+            text-transform: uppercase; letter-spacing: 0.6px;
+            padding: 0 4px; margin-bottom: 8px;
+        }
+        .group-card {
+            background: var(--white); border-radius: 20px;
+            overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        /* Rows */
+        .row {
+            display: flex; align-items: center; gap: 14px;
+            padding: 16px 18px; border-bottom: 1px solid var(--grey-light);
+        }
+        .row:last-child { border-bottom: none; }
+        .row-icon {
+            width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center; font-size: 18px;
+        }
+        .row-body { flex: 1; min-width: 0; }
+        .row-label { font-size: 15px; font-weight: 700; }
+        .row-sub { font-size: 12px; color: #888; margin-top: 2px; font-weight: 500; }
+        .row-right { flex-shrink: 0; display: flex; align-items: center; gap: 8px; }
+
+        /* Editable row */
+        .row-input {
+            flex: 1; border: none; outline: none; font-size: 15px; font-weight: 700;
+            font-family: inherit; color: var(--dark); background: transparent;
+            text-align: right;
+        }
+        .row-input::placeholder { color: #bbb; font-weight: 500; }
+        .row-input:focus { color: var(--accent); }
+
+        /* Toggle switch */
+        .toggle-wrap { position: relative; width: 51px; height: 31px; flex-shrink: 0; }
+        .toggle-wrap input { opacity: 0; width: 0; height: 0; position: absolute; }
+        .toggle-slider {
+            position: absolute; inset: 0; border-radius: 31px;
+            background: var(--grey); cursor: pointer; transition: background 0.2s;
+        }
+        .toggle-slider::before {
+            content: ''; position: absolute;
+            height: 27px; width: 27px; left: 2px; bottom: 2px; border-radius: 50%;
+            background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            transition: transform 0.2s;
+        }
+        .toggle-wrap input:checked + .toggle-slider { background: var(--green); }
+        .toggle-wrap input:checked + .toggle-slider::before { transform: translateX(20px); }
+        .toggle-wrap input:disabled + .toggle-slider { opacity: 0.5; cursor: default; }
+
+        /* Status badge */
+        .status-badge {
+            font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 10px;
+        }
+        .status-badge.attive { background: #e8fdf4; color: var(--green); }
+        .status-badge.inattive { background: var(--grey-light); color: #888; }
+        .status-badge.bloccate { background: #fff0f0; color: var(--red); }
+
+        /* Buttons */
+        .btn-salva {
+            width: 100%; padding: 16px; border-radius: 18px; border: none;
+            background: var(--accent); color: white; font-weight: 900; font-size: 16px;
+            cursor: pointer; font-family: inherit;
+        }
+        .btn-test {
+            font-size: 12px; font-weight: 800; padding: 6px 12px; border-radius: 10px;
+            border: 2px solid var(--accent); color: var(--accent); background: white; cursor: pointer;
+        }
+        .btn-logout {
+            width: 100%; padding: 16px; border-radius: 18px; border: none;
+            background: #fff0f0; color: var(--red); font-weight: 900; font-size: 16px;
+            cursor: pointer; font-family: inherit;
+        }
+        .btn-delete-account {
+            width: 100%; padding: 14px; border-radius: 18px; border: none;
+            background: transparent; color: #aaa; font-weight: 700; font-size: 14px;
+            cursor: pointer; font-family: inherit;
+        }
+
+        /* Info box */
+        .info-box {
+            background: #f0f0ff; border-radius: 14px; padding: 12px 14px;
+            font-size: 12px; color: #5856d6; font-weight: 600; line-height: 1.5;
+            margin: 0 18px 14px;
+        }
+
+        /* Tab bar */
+        .tab-bar {
+            position: fixed; bottom: 0; left: 0; right: 0; height: 70px;
+            background: white; display: flex; justify-content: space-around; align-items: center;
+            border-top: 2px solid var(--grey-light);
+            padding-bottom: env(safe-area-inset-bottom); z-index: 100;
+        }
+        .tab-item { flex: 1; text-align: center; font-size: 11px; color: var(--dark); text-decoration: none; font-weight: 800; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .tab-item.active { color: var(--accent); }
+        .tab-item.active .icon-tab { stroke: var(--accent); }
+        .icon-tab { width: 24px; height: 24px; stroke-width: 2.5px; stroke: var(--dark); fill: none; }
+
+        /* Toast */
+        .toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--dark); color: white; padding: 12px 20px; border-radius: 14px; font-weight: 700; font-size: 14px; opacity: 0; transition: all 0.25s; white-space: nowrap; z-index: 999; pointer-events: none; }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    </style>
+</head>
+<body>
+
+<div class="page-header">
+    <button class="btn-back" onclick="history.back()">
+        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div class="header-title">PROFILO</div>
+</div>
+
+<div class="avatar-card">
+    <div class="avatar-circle" id="avatarCircle">?</div>
+    <div class="avatar-name" id="avatarName">—</div>
+    <div class="avatar-email" id="avatarEmail"></div>
+</div>
+
+<div class="content">
+
+    <!-- Dati personali -->
+    <div class="settings-group">
+        <div class="group-label">Dati personali</div>
+        <div class="group-card">
+            <div class="row">
+                <div class="row-icon" style="background:#eef2ff">👤</div>
+                <div class="row-body">
+                    <div class="row-label">Nome</div>
+                </div>
+                <input class="row-input" id="fNome" type="text" placeholder="Inserisci il tuo nome" autocomplete="off" oninput="onNomeChange()">
+            </div>
+            <div class="row">
+                <div class="row-icon" style="background:#fff8f0">✉️</div>
+                <div class="row-body">
+                    <div class="row-label">Email</div>
+                    <div class="row-sub" id="emailDisplay">—</div>
+                </div>
+            </div>
+        </div>
+        <div style="padding: 12px 0 0">
+            <button class="btn-salva" id="btnSalva" onclick="salvaProfilo()" disabled>SALVA</button>
+        </div>
+    </div>
+
+    <!-- Notifiche -->
+    <div class="settings-group">
+        <div class="group-label">Notifiche</div>
+        <div class="group-card">
+            <div class="row">
+                <div class="row-icon" style="background:#f0fff8">🔔</div>
+                <div class="row-body">
+                    <div class="row-label">Riepilogo settimanale</div>
+                    <div class="row-sub">Ogni domenica ~ ore 8:00</div>
+                </div>
+                <div class="row-right">
+                    <label class="toggle-wrap">
+                        <input type="checkbox" id="toggleNotifiche" onchange="onToggleNotifiche(this.checked)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+            <div class="row" id="rowStatoNotifiche" style="display:none">
+                <div class="row-icon" style="background:var(--grey-light)">📡</div>
+                <div class="row-body">
+                    <div class="row-label">Stato</div>
+                    <div class="row-sub" id="subStatoNotifiche">Controllo…</div>
+                </div>
+                <div class="row-right">
+                    <span class="status-badge inattive" id="badgeStato">—</span>
+                    <button class="btn-test" id="btnTest" onclick="testNotifica()" style="display:none">Test</button>
+                </div>
+            </div>
+        </div>
+        <div class="info-box" id="infoBlocco" style="display:none">
+            ⚠️ Le notifiche sono bloccate dal browser. Per attivarle vai nelle Impostazioni del browser → Sito → Notifiche → Consenti.
+        </div>
+    </div>
+
+    <!-- Account -->
+    <div class="settings-group">
+        <div class="group-label">Account</div>
+        <div class="group-card">
+            <div class="row" style="cursor:pointer" onclick="logout()">
+                <div class="row-icon" style="background:#fff0f0">🚪</div>
+                <div class="row-body">
+                    <div class="row-label" style="color:var(--red)">Disconnetti</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="tab-bar">
+    <a href="index.html" class="tab-item">
+        <svg class="icon-tab" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 15 22"/></svg>
+        HOME
+    </a>
+    <a href="profilo.html" class="tab-item active">
+        <svg class="icon-tab" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        PROFILO
+    </a>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = 'https://eejdpophfxsrqdvsucye.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlamRwb3BoZnhzcnFkdnN1Y3llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2NTMzMDQsImV4cCI6MjA5MzIyOTMwNH0.mpxbwlJyIdZgqKIdutHbLd85JR1P11yiglbYeApi17k';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const userEmail = localStorage.getItem('userEmail');
+if (!userEmail) location.href = 'login.html';
+
+const VAPID_PUBLIC_KEY = 'BATe8jx7GOX6w2NUFoMQoGI6l8BRyJEVcsDlwf3IdIa5AEENkxpSCNuhkl4PgDxR_8f-AJerrYxENnH0mb-MTys';
+
+let nomeOriginale = '';
+
+// ── Init ─────────────────────────────────────────────────────────────
+async function init() {
+    document.getElementById('avatarEmail').textContent = userEmail;
+    document.getElementById('emailDisplay').textContent = userEmail;
+
+    const { data } = await sb.from('profili').select('*').eq('email_utente', userEmail).maybeSingle();
+    const nome = data?.nome || '';
+    nomeOriginale = nome;
+    document.getElementById('fNome').value = nome;
+    aggiornaAvatar(nome || userEmail);
+
+    await aggiornaStatoNotifiche();
+}
+
+function aggiornaAvatar(testo) {
+    const iniziali = testo.split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase() || '?';
+    document.getElementById('avatarCircle').textContent = iniziali;
+    document.getElementById('avatarName').textContent = document.getElementById('fNome').value || userEmail.split('@')[0];
+}
+
+function onNomeChange() {
+    const val = document.getElementById('fNome').value;
+    aggiornaAvatar(val || userEmail);
+    document.getElementById('btnSalva').disabled = val.trim() === nomeOriginale;
+}
+
+async function salvaProfilo() {
+    const nome = document.getElementById('fNome').value.trim();
+    const { error } = await sb.from('profili').upsert({
+        email_utente: userEmail,
+        nome,
+    }, { onConflict: 'email_utente' });
+    if (error) { toast('Errore: ' + error.message); return; }
+    nomeOriginale = nome;
+    document.getElementById('btnSalva').disabled = true;
+    toast('✓ Profilo salvato');
+}
+
+// ── Notifiche ─────────────────────────────────────────────────────────
+async function aggiornaStatoNotifiche() {
+    const toggle = document.getElementById('toggleNotifiche');
+    const badge = document.getElementById('badgeStato');
+    const sub_row = document.getElementById('rowStatoNotifiche');
+    const btnTest = document.getElementById('btnTest');
+    const infoBlocco = document.getElementById('infoBlocco');
+    const subStato = document.getElementById('subStatoNotifiche');
+
+    sub_row.style.display = '';
+
+    if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+        toggle.disabled = true;
+        toggle.checked = false;
+        badge.textContent = 'Non supportato';
+        badge.className = 'status-badge bloccate';
+        subStato.textContent = 'Il tuo browser non supporta le notifiche push';
+        return;
+    }
+
+    const perm = Notification.permission;
+
+    if (perm === 'denied') {
+        toggle.disabled = true;
+        toggle.checked = false;
+        badge.textContent = 'Bloccate';
+        badge.className = 'status-badge bloccate';
+        subStato.textContent = 'Sblocca nelle impostazioni del browser';
+        infoBlocco.style.display = '';
+        btnTest.style.display = 'none';
+        return;
+    }
+
+    infoBlocco.style.display = 'none';
+
+    if (perm === 'default') {
+        toggle.checked = false;
+        badge.textContent = 'Non attive';
+        badge.className = 'status-badge inattive';
+        subStato.textContent = 'Tocca il toggle per attivare';
+        btnTest.style.display = 'none';
+        return;
+    }
+
+    // permission === 'granted' — check actual subscription
+    try {
+        const reg = await navigator.serviceWorker.ready;
+        const sub = await reg.pushManager.getSubscription();
+        if (sub) {
+            toggle.checked = true;
+            badge.textContent = 'Attive';
+            badge.className = 'status-badge attive';
+            subStato.textContent = 'Ricezione notifiche domenicali attiva';
+            btnTest.style.display = '';
+        } else {
+            toggle.checked = false;
+            badge.textContent = 'Non attive';
+            badge.className = 'status-badge inattive';
+            subStato.textContent = 'Permesso concesso ma non iscritto — attiva il toggle';
+            btnTest.style.display = 'none';
+        }
+    } catch (e) {
+        toggle.checked = false;
+        badge.textContent = 'Errore';
+        badge.className = 'status-badge bloccate';
+        subStato.textContent = e.message;
+    }
+}
+
+async function onToggleNotifiche(checked) {
+    if (checked) {
+        await attivaPush();
+    } else {
+        await disattivaPush();
+    }
+    await aggiornaStatoNotifiche();
+}
+
+function urlBase64ToUint8Array(b64) {
+    const pad = '='.repeat((4 - b64.length % 4) % 4);
+    const raw = atob((b64 + pad).replace(/-/g, '+').replace(/_/g, '/'));
+    return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+}
+
+async function attivaPush() {
+    if (!('serviceWorker' in navigator)) { toast('Non supportato dal browser'); return; }
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') { toast('Permesso negato'); return; }
+    try {
+        await navigator.serviceWorker.register('/sw.js');
+        const reg = await navigator.serviceWorker.ready;
+        const sub = await reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+        });
+        const res = await fetch('/api/subscribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: userEmail, subscription: sub.toJSON() }),
+        });
+        if (!res.ok) throw new Error('Errore server');
+        localStorage.removeItem('pushDismissed');
+        toast('✓ Notifiche attivate');
+    } catch (err) {
+        toast('Errore: ' + err.message);
+    }
+}
+
+async function disattivaPush() {
+    try {
+        const reg = await navigator.serviceWorker.ready;
+        const sub = await reg.pushManager.getSubscription();
+        if (sub) {
+            const endpoint = sub.endpoint;
+            await sub.unsubscribe();
+            await sb.from('push_subscriptions').delete().eq('endpoint', endpoint);
+        }
+        toast('Notifiche disattivate');
+    } catch (err) {
+        toast('Errore: ' + err.message);
+    }
+}
+
+async function testNotifica() {
+    if (Notification.permission !== 'granted') { toast('Abilita prima le notifiche'); return; }
+    try {
+        const reg = await navigator.serviceWorker.ready;
+        await reg.showNotification('📊 Riepilogo settimanale — Listando', {
+            body: '💸 Devo: €50,00 (1)\n💰 Mi devono: €200,00 (1)\nSaldo netto: +€150,00',
+            icon: '/logolistando.png',
+            badge: '/logolistando.png',
+            tag: 'listando-test',
+            data: { url: '/debiti.html' },
+        });
+        toast('Notifica di test inviata!');
+    } catch (err) {
+        toast('Errore: ' + err.message);
+    }
+}
+
+// ── Account ───────────────────────────────────────────────────────────
+async function logout() {
+    try {
+        const reg = await navigator.serviceWorker.ready;
+        const sub = await reg.pushManager.getSubscription();
+        if (sub) { await sub.unsubscribe(); }
+    } catch (e) {}
+    localStorage.removeItem('userEmail');
+    localStorage.removeItem('pushDismissed');
+    location.href = 'login.html';
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────
+let toastTimer;
+function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+init();
+</script>
+</body>
+</html>
