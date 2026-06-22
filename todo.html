@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Listando - Cose da Fare</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --green: #0fba8d; --blue: #3384d4; --red: #ff3b30; --orange: #ff9500; --yellow: #ffcc00;
+            --grey: #d8dddc; --grey-light: #f2f2f7;
+            --dark: #111; --bg: #f5f6f8; --white: #fff;
+            --alta: #ff3b30; --media: #ff9500; --bassa: #0fba8d;
+        }
+        * { box-sizing: border-box; }
+        html, body { overflow-x: hidden; max-width: 100%; margin: 0; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--dark); }
+
+        .page-header {
+            position: sticky; top: 0; z-index: 100;
+            background: var(--white); border-bottom: 2px solid var(--grey-light);
+            padding: 14px 16px; padding-top: max(14px, env(safe-area-inset-top, 14px));
+        }
+        .header-row1 { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .btn-back { width: 40px; height: 40px; border-radius: 12px; border: 2.5px solid var(--grey); background: var(--white); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .btn-back svg { width: 18px; height: 18px; stroke: var(--dark); fill: none; stroke-width: 2.5; }
+        .header-title { font-weight: 900; font-size: 18px; flex: 1; }
+        .header-right { display: flex; gap: 8px; }
+        .btn-add-hdr { width: 40px; height: 40px; border-radius: 12px; border: none; background: var(--blue); color: white; font-size: 22px; font-weight: 300; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .btn-filter-hdr { width: 40px; height: 40px; border-radius: 12px; border: 2.5px solid var(--grey); background: var(--white); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 18px; }
+
+        /* Cats */
+        .cats-scroll { overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
+        .cats-scroll::-webkit-scrollbar { display: none; }
+        .chip-cat { display: inline-block; padding: 7px 14px; border-radius: 20px; border: 2.5px solid var(--grey); background: var(--white); font-weight: 800; font-size: 13px; cursor: pointer; margin-right: 6px; transition: all 0.15s; }
+        .chip-cat.active { border-color: var(--blue); background: var(--blue); color: white; }
+
+        /* Progress bar */
+        .progress-wrap { padding: 10px 16px 0; }
+        .progress-bar-bg { background: var(--grey-light); border-radius: 8px; height: 6px; }
+        .progress-bar-fill { background: var(--green); border-radius: 8px; height: 6px; transition: width 0.4s; }
+        .progress-label { font-size: 12px; font-weight: 700; color: #888; margin-top: 4px; }
+
+        /* List */
+        .list-body { padding: 10px 16px 110px; }
+        .section-title { font-size: 12px; font-weight: 800; color: #aaa; text-transform: uppercase; letter-spacing: 0.8px; margin: 16px 0 6px; display: flex; align-items: center; justify-content: space-between; }
+        .btn-clear-done { font-size: 11px; font-weight: 800; color: var(--red); border: none; background: none; cursor: pointer; padding: 0; }
+        .empty-msg { text-align: center; padding: 64px 24px; color: #bbb; font-weight: 700; font-size: 15px; }
+
+        .task-card {
+            background: var(--white); border-radius: 18px;
+            margin-bottom: 8px; display: flex; align-items: flex-start; gap: 12px;
+            padding: 14px 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            border-left: 5px solid transparent; cursor: pointer;
+        }
+        .task-card.alta { border-left-color: var(--alta); }
+        .task-card.media { border-left-color: var(--media); }
+        .task-card.bassa { border-left-color: var(--bassa); }
+        .task-card.done { opacity: 0.5; }
+
+        .task-check {
+            width: 24px; height: 24px; border-radius: 8px; border: 2.5px solid var(--grey);
+            flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: all 0.15s; background: white;
+        }
+        .task-check.done { background: var(--green); border-color: var(--green); color: white; font-size: 14px; }
+
+        .task-body { flex: 1; min-width: 0; }
+        .task-title { font-weight: 800; font-size: 15px; }
+        .task-title.done { text-decoration: line-through; color: #aaa; }
+        .task-note { font-size: 13px; color: #888; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .task-meta { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; align-items: center; }
+        .badge-cat { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 8px; background: var(--grey-light); color: #666; }
+        .badge-scad { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 8px; background: var(--grey-light); color: #666; }
+        .badge-scad.scaduto { background: #fff0f0; color: var(--red); }
+        .badge-scad.oggi { background: #fff9f0; color: var(--orange); }
+
+        /* Modal */
+        .modal-overlay { display: none; position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.5); align-items: flex-end; justify-content: center; }
+        .modal-overlay.open { display: flex; }
+        .modal-box { background: var(--white); border-radius: 28px 28px 0 0; padding: 24px 20px; padding-bottom: max(24px, env(safe-area-inset-bottom, 24px)); width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; }
+        .modal-handle { width: 40px; height: 4px; background: var(--grey); border-radius: 4px; margin: 0 auto 20px; }
+        .modal-title { font-weight: 900; font-size: 18px; margin-bottom: 18px; }
+        .form-group { margin-bottom: 12px; }
+        .form-label { font-size: 12px; font-weight: 800; color: #666; margin-bottom: 5px; display: block; text-transform: uppercase; letter-spacing: 0.4px; }
+        .form-input { width: 100%; padding: 12px 14px; border-radius: 14px; border: 2.5px solid var(--grey); font-size: 15px; font-family: inherit; outline: none; transition: border-color 0.2s; }
+        .form-input:focus { border-color: var(--blue); }
+        .form-row { display: flex; gap: 8px; }
+        .form-row .form-group { flex: 1; }
+
+        .prio-selector { display: flex; gap: 6px; }
+        .prio-btn { flex: 1; padding: 10px 8px; border-radius: 12px; border: 2.5px solid var(--grey); font-weight: 800; font-size: 13px; cursor: pointer; background: var(--white); text-align: center; transition: all 0.15s; color: #999; }
+        .prio-btn.active.alta { border-color: var(--alta); background: #fff0f0; color: var(--alta); }
+        .prio-btn.active.media { border-color: var(--media); background: #fff9f0; color: var(--media); }
+        .prio-btn.active.bassa { border-color: var(--bassa); background: #f0fdf8; color: var(--bassa); }
+
+        .btn-save-modal { width: 100%; padding: 16px; border-radius: 18px; border: none; background: var(--blue); color: white; font-weight: 900; font-size: 16px; cursor: pointer; font-family: inherit; margin-top: 8px; }
+        .btn-delete-modal { width: 100%; padding: 14px; border-radius: 18px; border: none; background: #fff0f0; color: var(--red); font-weight: 800; font-size: 14px; cursor: pointer; font-family: inherit; margin-top: 8px; }
+
+        .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 70px; background: white; display: flex; justify-content: space-around; align-items: center; border-top: 2px solid var(--grey-light); padding-bottom: env(safe-area-inset-bottom); z-index: 100; }
+        .tab-item { flex: 1; text-align: center; font-size: 11px; color: var(--dark); text-decoration: none; font-weight: 800; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .icon-tab { width: 24px; height: 24px; stroke-width: 2.5px; stroke: var(--dark); fill: none; }
+        .toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--dark); color: white; padding: 12px 20px; border-radius: 14px; font-weight: 700; font-size: 14px; opacity: 0; transition: all 0.25s; white-space: nowrap; z-index: 999; pointer-events: none; }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    </style>
+</head>
+<body>
+
+<div class="page-header">
+    <div class="header-row1">
+        <button class="btn-back" onclick="history.back()">
+            <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div class="header-title">COSE DA FARE</div>
+        <div class="header-right">
+            <button class="btn-add-hdr" onclick="apriModale()">+</button>
+        </div>
+    </div>
+    <div class="cats-scroll" id="catsScroll"></div>
+</div>
+
+<div class="progress-wrap" id="progressWrap" style="display:none">
+    <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill" style="width:0%"></div></div>
+    <div class="progress-label" id="progressLabel"></div>
+</div>
+
+<div class="list-body" id="listBody"></div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modale">
+    <div class="modal-box">
+        <div class="modal-handle"></div>
+        <div class="modal-title" id="modalTitle">Nuova attività</div>
+
+        <div class="form-group">
+            <label class="form-label">Cosa devo fare? *</label>
+            <input class="form-input" id="fTitolo" placeholder="es. Chiamare il dentista…" type="text">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Note</label>
+            <textarea class="form-input" id="fNote" placeholder="Dettagli, link, numeri…" rows="2" style="resize:none"></textarea>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label">Scadenza</label>
+                <input class="form-input" id="fScadenza" type="date">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Categoria</label>
+                <input class="form-input" id="fCat" list="catList" placeholder="Generale">
+                <datalist id="catList"></datalist>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Priorità</label>
+            <div class="prio-selector">
+                <button class="prio-btn alta" id="prioAlta" onclick="setPrio('alta')">🔴 Alta</button>
+                <button class="prio-btn active media" id="prioMedia" onclick="setPrio('media')">🟠 Media</button>
+                <button class="prio-btn bassa" id="prioBassa" onclick="setPrio('bassa')">🟢 Bassa</button>
+            </div>
+        </div>
+
+        <button class="btn-save-modal" onclick="salva()">SALVA</button>
+        <button class="btn-delete-modal" id="btnElimina" style="display:none" onclick="elimina()">ELIMINA</button>
+    </div>
+</div>
+
+<div class="tab-bar">
+    <a href="index.html" class="tab-item">
+        <svg class="icon-tab" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 15 22"/></svg>
+        HOME
+    </a>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = "https://eejdpophfxsrqdvsucye.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlamRwb3BoZnhzcnFkdnN1Y3llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2NTMzMDQsImV4cCI6MjA5MzIyOTMwNH0.mpxbwlJyIdZgqKIdutHbLd85JR1P11yiglbYeApi17k";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const userEmail = localStorage.getItem('userEmail');
+if (!userEmail) location.href = 'login.html';
+
+let tasks = [];
+let catFiltro = 'Tutte';
+let prioCorrente = 'media';
+let editId = null;
+
+async function carica() {
+    const { data } = await sb.from('todo').select('*').eq('email_utente', userEmail).order('completato').order('created_at', { ascending: false });
+    tasks = data || [];
+    renderCats();
+    render();
+}
+
+function getCats() {
+    return ['Tutte', ...new Set(tasks.filter(t => t.categoria).map(t => t.categoria))];
+}
+
+function renderCats() {
+    const cats = getCats();
+    document.getElementById('catsScroll').innerHTML = cats.map(c =>
+        `<button class="chip-cat${catFiltro === c ? ' active' : ''}" onclick="setCat('${c}')">${c}</button>`
+    ).join('');
+    const dl = document.getElementById('catList');
+    if (dl) dl.innerHTML = [...new Set(tasks.map(t => t.categoria).filter(Boolean))].map(c => `<option value="${c}">`).join('');
+}
+
+function setCat(c) { catFiltro = c; renderCats(); render(); }
+
+function render() {
+    const filtered = tasks.filter(t => catFiltro === 'Tutte' || t.categoria === catFiltro);
+    const pending = filtered.filter(t => !t.completato);
+    const done = filtered.filter(t => t.completato);
+    const total = filtered.length;
+    const doneCount = done.length;
+
+    // Progress
+    const pw = document.getElementById('progressWrap');
+    if (total > 0) {
+        pw.style.display = '';
+        const pct = Math.round((doneCount / total) * 100);
+        document.getElementById('progressFill').style.width = pct + '%';
+        document.getElementById('progressLabel').textContent = `${doneCount} di ${total} completate`;
+    } else {
+        pw.style.display = 'none';
+    }
+
+    const body = document.getElementById('listBody');
+    if (!filtered.length) {
+        body.innerHTML = '<div class="empty-msg">✅ Nessuna attività</div>';
+        return;
+    }
+
+    const oggi = new Date(); oggi.setHours(0,0,0,0);
+    const domani = new Date(oggi); domani.setDate(domani.getDate() + 1);
+
+    const renderTask = t => {
+        let scadHtml = '';
+        if (t.scadenza) {
+            const d = new Date(t.scadenza + 'T00:00:00');
+            let cls = '', lbl = d.toLocaleDateString('it-IT', { day: '2-digit', month: 'short' });
+            if (!t.completato) {
+                if (d < oggi) { cls = ' scaduto'; lbl = '⚠️ Scaduto'; }
+                else if (d.getTime() === oggi.getTime()) { cls = ' oggi'; lbl = '⏰ Oggi'; }
+                else if (d.getTime() === domani.getTime()) { lbl = '📅 Domani'; }
+                else lbl = '📅 ' + lbl;
+            }
+            scadHtml = `<span class="badge-scad${cls}">${lbl}</span>`;
+        }
+        const catHtml = t.categoria && t.categoria !== 'Generale' ? `<span class="badge-cat">${t.categoria}</span>` : '';
+        return `<div class="task-card ${t.priorita}${t.completato ? ' done' : ''}" onclick="apriModifica(${t.id})">
+            <div class="task-check${t.completato ? ' done' : ''}" onclick="event.stopPropagation(); toggleDone(${t.id})">${t.completato ? '✓' : ''}</div>
+            <div class="task-body">
+                <div class="task-title${t.completato ? ' done' : ''}">${t.titolo}</div>
+                ${t.note ? `<div class="task-note">${t.note}</div>` : ''}
+                <div class="task-meta">${catHtml}${scadHtml}</div>
+            </div>
+        </div>`;
+    };
+
+    let html = '';
+    // Pending tasks — group by priority
+    const alta = pending.filter(t => t.priorita === 'alta');
+    const media = pending.filter(t => t.priorita === 'media');
+    const bassa = pending.filter(t => t.priorita === 'bassa');
+    if (alta.length) html += `<div class="section-title">🔴 Alta priorità</div>` + alta.map(renderTask).join('');
+    if (media.length) html += `<div class="section-title">🟠 Media priorità</div>` + media.map(renderTask).join('');
+    if (bassa.length) html += `<div class="section-title">🟢 Bassa priorità</div>` + bassa.map(renderTask).join('');
+    if (done.length) {
+        html += `<div class="section-title">✅ Completate <button class="btn-clear-done" onclick="event.stopPropagation(); clearDone()">Svuota</button></div>` + done.map(renderTask).join('');
+    }
+
+    body.innerHTML = html;
+}
+
+async function toggleDone(id) {
+    const t = tasks.find(x => x.id === id);
+    if (!t) return;
+    const nuovoStato = !t.completato;
+    await sb.from('todo').update({ completato: nuovoStato }).eq('id', id);
+    t.completato = nuovoStato;
+    render();
+    if (nuovoStato) toast('✓ Completato!');
+}
+
+async function clearDone() {
+    if (!confirm('Eliminare tutte le attività completate?')) return;
+    const ids = tasks.filter(t => t.completato).map(t => t.id);
+    if (!ids.length) return;
+    await sb.from('todo').delete().in('id', ids);
+    toast('✓ Eliminate');
+    await carica();
+}
+
+function setPrio(p) {
+    prioCorrente = p;
+    ['alta','media','bassa'].forEach(pp => {
+        document.getElementById('prio' + pp.charAt(0).toUpperCase() + pp.slice(1)).className =
+            'prio-btn' + (pp === p ? ' active ' : ' ') + pp;
+    });
+}
+
+function apriModale() {
+    editId = null;
+    document.getElementById('modalTitle').textContent = 'Nuova attività';
+    document.getElementById('fTitolo').value = '';
+    document.getElementById('fNote').value = '';
+    document.getElementById('fScadenza').value = '';
+    document.getElementById('fCat').value = '';
+    document.getElementById('btnElimina').style.display = 'none';
+    setPrio('media');
+    document.getElementById('modale').classList.add('open');
+}
+
+function apriModifica(id) {
+    const t = tasks.find(x => x.id === id);
+    if (!t) return;
+    editId = id;
+    document.getElementById('modalTitle').textContent = 'Modifica';
+    document.getElementById('fTitolo').value = t.titolo || '';
+    document.getElementById('fNote').value = t.note || '';
+    document.getElementById('fScadenza').value = t.scadenza || '';
+    document.getElementById('fCat').value = t.categoria || '';
+    document.getElementById('btnElimina').style.display = '';
+    setPrio(t.priorita || 'media');
+    document.getElementById('modale').classList.add('open');
+}
+
+async function salva() {
+    const titolo = document.getElementById('fTitolo').value.trim();
+    if (!titolo) { toast('Inserisci cosa devi fare'); return; }
+    const row = {
+        email_utente: userEmail,
+        titolo,
+        note: document.getElementById('fNote').value.trim() || null,
+        scadenza: document.getElementById('fScadenza').value || null,
+        categoria: document.getElementById('fCat').value.trim() || 'Generale',
+        priorita: prioCorrente,
+    };
+    if (editId) {
+        const { error } = await sb.from('todo').update(row).eq('id', editId);
+        if (error) { toast('Errore: ' + error.message); return; }
+        toast('✓ Aggiornato');
+    } else {
+        const { error } = await sb.from('todo').insert({ ...row, completato: false });
+        if (error) { toast('Errore: ' + error.message); return; }
+        toast('✓ Aggiunto');
+    }
+    document.getElementById('modale').classList.remove('open');
+    await carica();
+}
+
+async function elimina() {
+    if (!editId || !confirm('Eliminare questa attività?')) return;
+    await sb.from('todo').delete().eq('id', editId);
+    document.getElementById('modale').classList.remove('open');
+    toast('Eliminato');
+    await carica();
+}
+
+document.getElementById('modale').addEventListener('click', e => {
+    if (e.target === document.getElementById('modale')) document.getElementById('modale').classList.remove('open');
+});
+
+let toastTimer;
+function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+carica();
+</script>
+</body>
+</html>

@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Listando - Luoghi</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --green: #0fba8d; --blue: #3384d4; --orange: #ff9500; --red: #ff3b30;
+            --grey: #d8dddc; --grey-light: #f2f2f7;
+            --dark: #111; --bg: #f5f6f8; --white: #fff;
+        }
+        * { box-sizing: border-box; }
+        html, body { overflow-x: hidden; max-width: 100%; margin: 0; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--dark); }
+
+        .page-header {
+            position: sticky; top: 0; z-index: 100;
+            background: var(--white); border-bottom: 2px solid var(--grey-light);
+            display: flex; align-items: center; gap: 10px;
+            padding: 14px 16px; padding-top: max(14px, env(safe-area-inset-top, 14px));
+        }
+        .btn-back { width: 40px; height: 40px; border-radius: 12px; border: 2.5px solid var(--grey); background: var(--white); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .btn-back svg { width: 18px; height: 18px; stroke: var(--dark); fill: none; stroke-width: 2.5; }
+        .header-title { font-weight: 900; font-size: 18px; flex: 1; }
+        .btn-add-hdr { width: 40px; height: 40px; border-radius: 12px; border: none; background: var(--orange); color: white; font-size: 22px; font-weight: 300; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+        /* Tabs */
+        .tabs { display: flex; margin: 14px 16px 0; gap: 8px; }
+        .tab { flex: 1; padding: 12px; border-radius: 16px; border: 2.5px solid var(--grey); background: var(--white); font-weight: 800; font-size: 14px; cursor: pointer; text-align: center; transition: all 0.15s; color: #999; }
+        .tab.active.visitare { border-color: var(--orange); color: var(--orange); background: #fff9f0; }
+        .tab.active.visitati { border-color: var(--green); color: var(--green); background: #f0fdf8; }
+
+        /* List */
+        .list-body { padding: 12px 16px 100px; }
+        .empty-msg { text-align: center; padding: 64px 24px; color: #bbb; font-weight: 700; font-size: 15px; }
+
+        .place-card {
+            background: var(--white); border-radius: 20px;
+            margin-bottom: 10px; overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            border-left: 5px solid transparent;
+        }
+        .place-card.visitare { border-left-color: var(--orange); }
+        .place-card.visitati { border-left-color: var(--green); }
+
+        .place-head { display: flex; align-items: center; gap: 12px; padding: 14px 16px; }
+        .place-icon { font-size: 28px; flex-shrink: 0; line-height: 1; }
+        .place-info { flex: 1; min-width: 0; }
+        .place-nome { font-weight: 900; font-size: 16px; }
+        .place-loc { font-size: 13px; color: #888; margin-top: 2px; }
+        .place-date { font-size: 12px; color: var(--green); font-weight: 700; margin-top: 3px; }
+
+        .place-body { padding: 0 16px 14px; border-top: 1.5px solid var(--grey-light); }
+        .place-note { font-size: 14px; color: #555; margin: 10px 0 12px; line-height: 1.5; }
+
+        .place-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        .btn-act { padding: 8px 14px; border-radius: 12px; border: 2px solid var(--grey); background: white; font-weight: 800; font-size: 13px; cursor: pointer; }
+        .btn-act.maps { border-color: var(--blue); color: var(--blue); }
+        .btn-act.album { border-color: var(--green); color: var(--green); }
+        .btn-act.move { border-color: var(--orange); color: var(--orange); }
+        .btn-act.edit { color: #777; }
+
+        .album-badge { display: inline-flex; align-items: center; gap: 6px; background: #f0fdf8; border: 1.5px solid var(--green); border-radius: 10px; padding: 5px 10px; font-size: 13px; font-weight: 700; color: var(--green); margin-bottom: 10px; cursor: pointer; text-decoration: none; }
+
+        /* Modal */
+        .modal-overlay { display: none; position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.5); align-items: flex-end; justify-content: center; }
+        .modal-overlay.open { display: flex; }
+        .modal-box { background: var(--white); border-radius: 28px 28px 0 0; padding: 24px 20px; padding-bottom: max(24px, env(safe-area-inset-bottom, 24px)); width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; }
+        .modal-handle { width: 40px; height: 4px; background: var(--grey); border-radius: 4px; margin: 0 auto 20px; }
+        .modal-title { font-weight: 900; font-size: 18px; margin-bottom: 18px; }
+        .form-group { margin-bottom: 12px; }
+        .form-label { font-size: 12px; font-weight: 800; color: #666; margin-bottom: 5px; display: block; text-transform: uppercase; letter-spacing: 0.4px; }
+        .form-input { width: 100%; padding: 12px 14px; border-radius: 14px; border: 2.5px solid var(--grey); font-size: 15px; font-family: inherit; outline: none; transition: border-color 0.2s; }
+        .form-input:focus { border-color: var(--orange); }
+        .form-row { display: flex; gap: 8px; }
+        .form-row .form-group { flex: 1; }
+        .stato-selector { display: flex; gap: 8px; margin-bottom: 14px; }
+        .stato-btn { flex: 1; padding: 11px; border-radius: 14px; border: 2.5px solid var(--grey); font-weight: 800; font-size: 13px; cursor: pointer; background: var(--white); transition: all 0.15s; color: #999; }
+        .stato-btn.active.visitare { border-color: var(--orange); background: #fff9f0; color: var(--orange); }
+        .stato-btn.active.visitati { border-color: var(--green); background: #f0fdf8; color: var(--green); }
+
+        .btn-save-modal { width: 100%; padding: 16px; border-radius: 18px; border: none; background: var(--orange); color: white; font-weight: 900; font-size: 16px; cursor: pointer; font-family: inherit; margin-top: 8px; }
+        .btn-delete-modal { width: 100%; padding: 14px; border-radius: 18px; border: none; background: #fff0f0; color: var(--red); font-weight: 800; font-size: 14px; cursor: pointer; font-family: inherit; margin-top: 8px; }
+
+        .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 70px; background: white; display: flex; justify-content: space-around; align-items: center; border-top: 2px solid var(--grey-light); padding-bottom: env(safe-area-inset-bottom); z-index: 100; }
+        .tab-item { flex: 1; text-align: center; font-size: 11px; color: var(--dark); text-decoration: none; font-weight: 800; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .icon-tab { width: 24px; height: 24px; stroke-width: 2.5px; stroke: var(--dark); fill: none; }
+        .toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--dark); color: white; padding: 12px 20px; border-radius: 14px; font-weight: 700; font-size: 14px; opacity: 0; transition: all 0.25s; white-space: nowrap; z-index: 999; pointer-events: none; }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    </style>
+</head>
+<body>
+
+<div class="page-header">
+    <button class="btn-back" onclick="history.back()">
+        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div class="header-title">LUOGHI</div>
+    <button class="btn-add-hdr" onclick="apriModale()">+</button>
+</div>
+
+<div class="tabs">
+    <button class="tab active visitare" id="tabVisitare" onclick="setTab('da_visitare')">🗺️ Da visitare</button>
+    <button class="tab visitati" id="tabVisitati" onclick="setTab('visitato')">✅ Visitati</button>
+</div>
+
+<div class="list-body" id="listBody"></div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modale">
+    <div class="modal-box">
+        <div class="modal-handle"></div>
+        <div class="modal-title" id="modalTitle">Nuovo luogo</div>
+
+        <div class="stato-selector">
+            <button class="stato-btn active visitare" id="statoVisitare" onclick="setStato('da_visitare')">🗺️ Da visitare</button>
+            <button class="stato-btn visitati" id="statoVisitati" onclick="setStato('visitato')">✅ Visitato</button>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Nome del luogo *</label>
+            <input class="form-input" id="fNome" placeholder="es. Colosseo, Parigi…" type="text">
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label">Città</label>
+                <input class="form-input" id="fCitta" placeholder="Roma" type="text">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Paese</label>
+                <input class="form-input" id="fPaese" placeholder="Italia" type="text">
+            </div>
+        </div>
+        <div class="form-group" id="grpDataVisita" style="display:none">
+            <label class="form-label">Data visita</label>
+            <input class="form-input" id="fDataVisita" type="date">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Note</label>
+            <textarea class="form-input" id="fNote" placeholder="Descrizione, consigli, link…" rows="3" style="resize:none"></textarea>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Album collegato</label>
+            <select class="form-input" id="fAlbum">
+                <option value="">— Nessuno —</option>
+            </select>
+        </div>
+
+        <button class="btn-save-modal" onclick="salva()">SALVA</button>
+        <button class="btn-delete-modal" id="btnElimina" style="display:none" onclick="elimina()">ELIMINA</button>
+    </div>
+</div>
+
+<div class="tab-bar">
+    <a href="index.html" class="tab-item">
+        <svg class="icon-tab" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 15 22"/></svg>
+        HOME
+    </a>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = "https://eejdpophfxsrqdvsucye.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlamRwb3BoZnhzcnFkdnN1Y3llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2NTMzMDQsImV4cCI6MjA5MzIyOTMwNH0.mpxbwlJyIdZgqKIdutHbLd85JR1P11yiglbYeApi17k";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const userEmail = localStorage.getItem('userEmail');
+if (!userEmail) location.href = 'login.html';
+
+const EMOJI_PAESE = { Italia: '🇮🇹', Francia: '🇫🇷', Spagna: '🇪🇸', Germania: '🇩🇪', 'Regno Unito': '🇬🇧', USA: '🇺🇸', Giappone: '🇯🇵', Portogallo: '🇵🇹', Grecia: '🇬🇷', Olanda: '🇳🇱' };
+
+let tab = 'da_visitare';
+let luoghi = [];
+let albums = [];
+let editId = null;
+let statoCorrente = 'da_visitare';
+
+async function carica() {
+    const [{ data: l }, { data: a }] = await Promise.all([
+        sb.from('luoghi').select('*').eq('email_utente', userEmail).order('nome'),
+        sb.from('foto_album').select('id, nome').eq('email_utente', userEmail).is('parent_id', null).order('nome')
+    ]);
+    luoghi = l || [];
+    albums = a || [];
+    render();
+}
+
+function render() {
+    const filtered = luoghi.filter(l => l.stato === tab);
+    const body = document.getElementById('listBody');
+    if (!filtered.length) {
+        const msg = tab === 'da_visitare' ? '🗺️ Nessun luogo da visitare' : '✅ Nessun luogo visitato ancora';
+        body.innerHTML = `<div class="empty-msg">${msg}</div>`;
+        return;
+    }
+    body.innerHTML = filtered.map(l => placeHtml(l)).join('');
+}
+
+function placeHtml(l) {
+    const flag = EMOJI_PAESE[l.paese] || '📍';
+    const locParts = [l.citta, l.paese].filter(Boolean);
+    const album = l.album_id ? albums.find(a => a.id === l.album_id) : null;
+    const mapsQuery = encodeURIComponent([l.nome, l.citta, l.paese].filter(Boolean).join(', '));
+
+    return `<div class="place-card ${l.stato === 'da_visitare' ? 'visitare' : 'visitati'}">
+        <div class="place-head">
+            <div class="place-icon">${flag}</div>
+            <div class="place-info">
+                <div class="place-nome">${l.nome}</div>
+                ${locParts.length ? `<div class="place-loc">${locParts.join(', ')}</div>` : ''}
+                ${l.data_visita ? `<div class="place-date">Visitato il ${new Date(l.data_visita+'T00:00:00').toLocaleDateString('it-IT', {day:'2-digit',month:'long',year:'numeric'})}</div>` : ''}
+            </div>
+        </div>
+        <div class="place-body">
+            ${l.note ? `<div class="place-note">${l.note}</div>` : ''}
+            ${album ? `<a class="album-badge" href="foto_album.html?id=${album.id}">📷 ${album.nome}</a>` : ''}
+            <div class="place-actions">
+                <button class="btn-act maps" onclick="window.open('https://maps.google.com/?q=${mapsQuery}','_blank')">🗺️ Mappa</button>
+                <button class="btn-act move" onclick="sposta(${l.id})">${l.stato === 'da_visitare' ? '✅ Segna visitato' : '🗺️ Da visitare'}</button>
+                <button class="btn-act edit" onclick="apriModifica(${l.id})">✏️ Modifica</button>
+            </div>
+        </div>
+    </div>`;
+}
+
+function setTab(t) {
+    tab = t;
+    document.getElementById('tabVisitare').className = 'tab' + (t === 'da_visitare' ? ' active visitare' : '');
+    document.getElementById('tabVisitati').className = 'tab' + (t === 'visitato' ? ' active visitati' : '');
+    render();
+}
+
+async function sposta(id) {
+    const l = luoghi.find(x => x.id === id);
+    if (!l) return;
+    const nuovoStato = l.stato === 'da_visitare' ? 'visitato' : 'da_visitare';
+    const updates = { stato: nuovoStato };
+    if (nuovoStato === 'visitato' && !l.data_visita) updates.data_visita = new Date().toISOString().slice(0, 10);
+    await sb.from('luoghi').update(updates).eq('id', id);
+    toast(nuovoStato === 'visitato' ? '✓ Segnato come visitato!' : 'Spostato in da visitare');
+    await carica();
+}
+
+function apriModale() {
+    editId = null;
+    statoCorrente = tab;
+    document.getElementById('modalTitle').textContent = 'Nuovo luogo';
+    document.getElementById('fNome').value = '';
+    document.getElementById('fCitta').value = '';
+    document.getElementById('fPaese').value = '';
+    document.getElementById('fNote').value = '';
+    document.getElementById('fDataVisita').value = '';
+    document.getElementById('btnElimina').style.display = 'none';
+    setStato(tab);
+    popolaAlbum(null);
+    document.getElementById('modale').classList.add('open');
+}
+
+function apriModifica(id) {
+    const l = luoghi.find(x => x.id === id);
+    if (!l) return;
+    editId = id;
+    statoCorrente = l.stato;
+    document.getElementById('modalTitle').textContent = 'Modifica';
+    document.getElementById('fNome').value = l.nome || '';
+    document.getElementById('fCitta').value = l.citta || '';
+    document.getElementById('fPaese').value = l.paese || '';
+    document.getElementById('fNote').value = l.note || '';
+    document.getElementById('fDataVisita').value = l.data_visita || '';
+    document.getElementById('btnElimina').style.display = '';
+    setStato(l.stato);
+    popolaAlbum(l.album_id);
+    document.getElementById('modale').classList.add('open');
+}
+
+function setStato(s) {
+    statoCorrente = s;
+    document.getElementById('statoVisitare').className = 'stato-btn' + (s === 'da_visitare' ? ' active visitare' : '');
+    document.getElementById('statoVisitati').className = 'stato-btn' + (s === 'visitato' ? ' active visitati' : '');
+    document.getElementById('grpDataVisita').style.display = s === 'visitato' ? '' : 'none';
+}
+
+function popolaAlbum(selId) {
+    const sel = document.getElementById('fAlbum');
+    sel.innerHTML = '<option value="">— Nessuno —</option>' +
+        albums.map(a => `<option value="${a.id}"${a.id === selId ? ' selected' : ''}>${a.nome}</option>`).join('');
+}
+
+async function salva() {
+    const nome = document.getElementById('fNome').value.trim();
+    if (!nome) { toast('Inserisci il nome del luogo'); return; }
+    const row = {
+        email_utente: userEmail,
+        stato: statoCorrente,
+        nome,
+        citta: document.getElementById('fCitta').value.trim() || null,
+        paese: document.getElementById('fPaese').value.trim() || null,
+        note: document.getElementById('fNote').value.trim() || null,
+        data_visita: document.getElementById('fDataVisita').value || null,
+        album_id: document.getElementById('fAlbum').value ? Number(document.getElementById('fAlbum').value) : null,
+    };
+    if (editId) {
+        const { error } = await sb.from('luoghi').update(row).eq('id', editId);
+        if (error) { toast('Errore: ' + error.message); return; }
+        toast('✓ Aggiornato');
+    } else {
+        const { error } = await sb.from('luoghi').insert(row);
+        if (error) { toast('Errore: ' + error.message); return; }
+        toast('✓ Aggiunto');
+    }
+    document.getElementById('modale').classList.remove('open');
+    await carica();
+}
+
+async function elimina() {
+    if (!editId || !confirm('Eliminare questo luogo?')) return;
+    await sb.from('luoghi').delete().eq('id', editId);
+    document.getElementById('modale').classList.remove('open');
+    toast('Eliminato');
+    await carica();
+}
+
+document.getElementById('modale').addEventListener('click', e => {
+    if (e.target === document.getElementById('modale')) document.getElementById('modale').classList.remove('open');
+});
+
+let toastTimer;
+function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+carica();
+</script>
+</body>
+</html>

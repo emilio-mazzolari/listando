@@ -275,6 +275,24 @@
             cursor: pointer; display: flex; align-items: center; justify-content: center;
             backdrop-filter: blur(8px);
         }
+        .lightbox-rename {
+            position: absolute; bottom: 20px; left: 20px;
+            background: rgba(255,255,255,0.15); color: white; border: none;
+            border-radius: 22px; height: 44px; padding: 0 16px; font-size: 13px; font-weight: 800;
+            cursor: pointer; display: flex; align-items: center; gap: 6px;
+            backdrop-filter: blur(8px); font-family: inherit;
+        }
+        .lightbox-title-bar {
+            position: absolute; bottom: 74px; left: 0; right: 0; text-align: center;
+            color: rgba(255,255,255,0.85); font-size: 14px; font-weight: 700;
+            padding: 0 80px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;
+        }
+        .cell-caption {
+            position: absolute; bottom: 0; left: 0; right: 0;
+            background: linear-gradient(transparent, rgba(0,0,0,0.55));
+            color: white; font-size: 10px; font-weight: 700;
+            padding: 10px 6px 4px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;
+        }
 
         /* Upload progress */
         .upload-bar {
@@ -520,6 +538,8 @@
     <video id="lightboxVideo" controls playsinline></video>
     <button class="lightbox-nav lightbox-next" onclick="event.stopPropagation(); navLightbox(1)">›</button>
     <span class="lightbox-counter" id="lightboxCounter"></span>
+    <div class="lightbox-title-bar" id="lightboxTitleBar"></div>
+    <button class="lightbox-rename" onclick="event.stopPropagation(); rinominaLightbox()">✏️ Rinomina</button>
     <button class="lightbox-edit" onclick="event.stopPropagation(); apriEditorDaLightbox()" title="Modifica">✏️</button>
 </div>
 
@@ -846,13 +866,15 @@
                     cell.innerHTML = `
                         <video src="${f.url}" class="foto-cell-video" preload="metadata" muted playsinline></video>
                         <div class="video-badge">▶ VIDEO</div>
-                        <button class="btn-del-foto" onclick="event.stopPropagation(); eliminaFoto(${f.id}, '${f.storage_path}')">✕</button>`;
+                        <button class="btn-del-foto" onclick="event.stopPropagation(); eliminaFoto(${f.id}, '${f.storage_path}')">✕</button>
+                        ${f.titolo ? `<div class="cell-caption">${f.titolo}</div>` : ''}`;
                     cell.querySelector('video').onclick = () => apriLightbox(idx);
                     cell.querySelector('.video-badge').onclick = () => apriLightbox(idx);
                 } else {
                     cell.innerHTML = `
                         <img src="${f.url}" alt="" loading="lazy" onclick="apriLightbox(${idx})">
-                        <button class="btn-del-foto" onclick="event.stopPropagation(); eliminaFoto(${f.id}, '${f.storage_path}')">✕</button>`;
+                        <button class="btn-del-foto" onclick="event.stopPropagation(); eliminaFoto(${f.id}, '${f.storage_path}')">✕</button>
+                        ${f.titolo ? `<div class="cell-caption">${f.titolo}</div>` : ''}`;
                 }
                 if (f.edits) {
                     const m = cell.querySelector('img, video');
@@ -950,7 +972,7 @@
             const vid = document.createElement('video');
             vid.src = objUrl;
             vid.preload = 'metadata';
-            vid.muted = false;
+            vid.muted = true;
             vid.onerror = () => { URL.revokeObjectURL(objUrl); resolve(file); };
             vid.onloadedmetadata = () => {
                 const { videoWidth: w, videoHeight: h, duration } = vid;
@@ -1103,8 +1125,12 @@
                 }
                 ok++;
             } catch(e) {
-                console.error(e);
-                mostraToast('Errore upload: ' + (e.message || 'riprova'));
+                console.error('Upload error:', e);
+                let msg = e.message || 'Riprova';
+                if (msg.includes('Payload too large') || msg.includes('413')) msg = 'File troppo grande per il server';
+                else if (msg.includes('not allowed') || msg.includes('mime')) msg = 'Formato file non supportato';
+                else if (msg.includes('network') || msg.includes('fetch')) msg = 'Errore di rete – controlla la connessione';
+                mostraToast('Errore upload: ' + msg);
             }
         }
 
@@ -1184,6 +1210,7 @@
             img.style.filter = cssFilter; img.style.transform = cssTransform;
         }
         document.getElementById('lightboxCounter').textContent = `${lightboxIdx + 1} / ${fotoVisualizzate.length}`;
+        document.getElementById('lightboxTitleBar').textContent = f.titolo || '';
     }
     document.addEventListener('keydown', e => {
         if (!document.getElementById('lightbox').classList.contains('open')) return;
@@ -1487,6 +1514,21 @@
         return parts.join(' ') || '';
     }
 
+    async function rinominaLightbox() {
+        const f = fotoVisualizzate[lightboxIdx];
+        if (!f) return;
+        const nuovoNome = prompt('Rinomina:', f.titolo || '');
+        if (nuovoNome === null) return;
+        const { error } = await supabaseClient.from('foto').update({ titolo: nuovoNome.trim() || null }).eq('id', f.id);
+        if (error) { mostraToast('Errore: ' + error.message); return; }
+        f.titolo = nuovoNome.trim() || null;
+        const inFoto = foto.find(x => x.id === f.id);
+        if (inFoto) inFoto.titolo = f.titolo;
+        document.getElementById('lightboxTitleBar').textContent = f.titolo || '';
+        renderFoto();
+        mostraToast('✓ Rinominato');
+    }
+
     function apriEditorDaLightbox() {
         const f = fotoVisualizzate[lightboxIdx];
         if (!f) return;
@@ -1596,7 +1638,7 @@
             !editorEdits.rot && !editorEdits.flipH && !editorEdits.flipV;
         const saveVal = isDefault ? null : editorEdits;
         const { error } = await supabaseClient.from('foto').update({ edits: saveVal }).eq('id', editorFoto.id);
-        if (error) { mostraToast('Errore salvataggio'); return; }
+        if (error) { mostraToast('Errore: ' + (error.message || 'salvataggio fallito')); console.error('salvaEdits:', error); return; }
         editorFoto.edits = saveVal;
         chiudiEditor();
         renderFoto();
