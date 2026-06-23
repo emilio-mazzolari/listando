@@ -314,7 +314,8 @@ let editId = null;
 let tipoCorrente = 'debito';
 
 async function carica() {
-    const { data } = await sb.from('debiti_crediti').select('*').eq('email_utente', userEmail).order('created_at', { ascending: false });
+    const { data, error } = await sb.from('debiti_crediti').select('*').eq('email_utente', userEmail).order('created_at', { ascending: false });
+    if (error) { toast('Errore caricamento: ' + error.message); return; }
     voci = data || [];
     aggiornaBilancio();
     render();
@@ -460,11 +461,14 @@ async function salva() {
         descrizione: document.getElementById('fDesc').value.trim() || null,
         data_scadenza: document.getElementById('fScadenza').value || null,
     };
+    let err;
     if (editId) {
-        await sb.from('debiti_crediti').update(row).eq('id', editId);
+        ({ error: err } = await sb.from('debiti_crediti').update(row).eq('id', editId));
+        if (err) { toast('Errore: ' + err.message); return; }
         toast('✓ Aggiornato');
     } else {
-        await sb.from('debiti_crediti').insert({ ...row, pagato: false });
+        ({ error: err } = await sb.from('debiti_crediti').insert({ ...row, pagato: false }));
+        if (err) { toast('Errore: ' + err.message); return; }
         toast('✓ Aggiunto');
     }
     document.getElementById('modaleEntry').classList.remove('open');
