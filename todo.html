@@ -175,26 +175,30 @@
             </div>
         </div>
 
-        <!-- Sezione promemoria + periodicità — visibile solo se c'è una data -->
-        <div id="sezData" style="display:none">
-            <div class="form-section-sep"></div>
+        <div class="form-section-sep"></div>
 
+        <!-- Periodicità — sempre visibile -->
+        <div class="form-group">
+            <label class="form-label">🔄 Si ripete?</label>
+            <div class="period-scroll">
+                <button class="period-pill active" id="periodNo" onclick="setPeriod(null)">No</button>
+                <button class="period-pill"        id="periodG"  onclick="setPeriod('giornaliera')">Ogni giorno</button>
+                <button class="period-pill"        id="periodS"  onclick="setPeriod('settimanale')">Ogni settimana</button>
+                <button class="period-pill"        id="periodM"  onclick="setPeriod('mensile')">Ogni mese</button>
+                <button class="period-pill"        id="periodA"  onclick="setPeriod('annuale')">Ogni anno</button>
+            </div>
+            <div id="periodHint" style="display:none; font-size:12px; color:#999; font-weight:600; margin-top:6px; padding-left:2px">
+                ✓ Al completamento verrà creata la prossima occorrenza
+            </div>
+        </div>
+
+        <!-- Promemoria — visibile solo se c'è una data -->
+        <div id="sezData" style="display:none">
             <div class="form-group">
                 <label class="form-label">🔔 Promemoria</label>
                 <div class="notify-row">
                     <button class="notify-btn" id="btnPush" onclick="togglePush()">📱 Notifica</button>
                     <button class="notify-btn" id="btnMail" onclick="toggleMail()">📧 Email</button>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label class="form-label">🔄 Si ripete?</label>
-                <div class="period-scroll">
-                    <button class="period-pill active" id="periodNo"  onclick="setPeriod(null)">Non si ripete</button>
-                    <button class="period-pill"        id="periodG"   onclick="setPeriod('giornaliera')">Ogni giorno</button>
-                    <button class="period-pill"        id="periodS"   onclick="setPeriod('settimanale')">Ogni settimana</button>
-                    <button class="period-pill"        id="periodM"   onclick="setPeriod('mensile')">Ogni mese</button>
-                    <button class="period-pill"        id="periodA"   onclick="setPeriod('annuale')">Ogni anno</button>
                 </div>
             </div>
         </div>
@@ -389,14 +393,15 @@ function setPeriod(p) {
     PERIOD_OPTIONS.forEach((opt, i) => {
         document.getElementById(PERIOD_IDS[i]).className = 'period-pill' + (opt === periodicita ? ' active' : '');
     });
+    document.getElementById('periodHint').style.display = p ? '' : 'none';
 }
 
 function aggiornaSezData() {
     const hasDate = !!document.getElementById('fData').value;
     document.getElementById('sezData').style.display = hasDate ? '' : 'none';
     if (!hasDate) {
-        promemoriaPush = false; promemoriaMail = false; periodicita = null;
-        updateNotifyBtns(); setPeriod(null);
+        promemoriaPush = false; promemoriaMail = false;
+        updateNotifyBtns();
     }
 }
 
@@ -409,7 +414,7 @@ function apriModale() {
     document.getElementById('fOra').value = '';
     document.getElementById('fCat').value = '';
     document.getElementById('btnElimina').style.display = 'none';
-    promemoriaPush = false; promemoriaMail = false; periodicita = null;
+    promemoriaPush = false; promemoriaMail = false;
     setPrio('media'); updateNotifyBtns(); setPeriod(null); aggiornaSezData();
     document.getElementById('modale').classList.add('open');
 }
