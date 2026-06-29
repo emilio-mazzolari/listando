@@ -104,6 +104,22 @@
             font-size: 11px; font-weight: 900; color: var(--accent);
             text-transform: uppercase; letter-spacing: 0.8px; margin: 18px 0 10px;
         }
+        .porzioni-scaler {
+            display: flex; align-items: center; justify-content: space-between;
+            background: var(--grey-light); border-radius: 14px;
+            padding: 10px 14px; margin-bottom: 4px;
+        }
+        .porzioni-scaler-label { font-size: 13px; font-weight: 800; color: #555; }
+        .porzioni-ctrl { display: flex; align-items: center; gap: 12px; }
+        .porzioni-btn {
+            width: 32px; height: 32px; border-radius: 10px; border: none;
+            background: var(--white); color: var(--accent); font-size: 20px;
+            font-weight: 900; cursor: pointer; display: flex; align-items: center;
+            justify-content: center; box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+            line-height: 1;
+        }
+        .porzioni-btn:active { transform: scale(0.92); }
+        .porzioni-num { font-size: 18px; font-weight: 900; color: var(--dark); min-width: 28px; text-align: center; }
         .ingredient-row {
             display: flex; align-items: baseline; gap: 10px;
             padding: 9px 0; border-bottom: 1px solid var(--grey-light);
@@ -397,9 +413,65 @@ function render() {
 }
 
 // ── Detail ────────────────────────────────────────────────────────────
+let dettaglioRicId = null;
+let porzioniBase = 1;
+let porzioniCorrente = 1;
+
+function scalaQta(qtaStr, fattore) {
+    if (!qtaStr && qtaStr !== 0) return '';
+    const n = parseFloat(String(qtaStr).replace(',', '.'));
+    if (isNaN(n)) return qtaStr; // "q.b.", "a piacere" ecc.
+    const scaled = n * fattore;
+    if (scaled % 1 === 0) return String(scaled);
+    const r = Math.round(scaled * 10) / 10;
+    return r % 1 === 0 ? String(r) : r.toFixed(1);
+}
+
+function renderIngHtml(ings, fattore) {
+    if (!ings.length) return '';
+    const r = ricette.find(x => x.id === dettaglioRicId);
+    const hasPortions = r?.porzioni;
+    const scalerHtml = `
+        <div class="porzioni-scaler">
+            <span class="porzioni-scaler-label">👥 Porzioni</span>
+            <div class="porzioni-ctrl">
+                <button class="porzioni-btn" onclick="cambiaPortions(-1)">−</button>
+                <span class="porzioni-num" id="porzioniNum">${porzioniCorrente}</span>
+                <button class="porzioni-btn" onclick="cambiaPortions(+1)">+</button>
+            </div>
+        </div>`;
+    const rows = ings.map(i => {
+        const qtaScalata = scalaQta(i.quantita, fattore);
+        return `<div class="ingredient-row">
+            <div class="ing-qty">${[qtaScalata, i.unita].filter(Boolean).join(' ')}</div>
+            <div class="ing-nome">${i.nome}</div>
+        </div>`;
+    }).join('');
+    return `<div class="section-label">Ingredienti</div>${scalerHtml}<div id="ingList">${rows}</div>`;
+}
+
+function cambiaPortions(delta) {
+    porzioniCorrente = Math.max(1, porzioniCorrente + delta);
+    document.getElementById('porzioniNum').textContent = porzioniCorrente;
+    const fattore = porzioniCorrente / porzioniBase;
+    const r = ricette.find(x => x.id === dettaglioRicId);
+    const ings = Array.isArray(r?.ingredienti) ? r.ingredienti : [];
+    document.getElementById('ingList').innerHTML = ings.map(i => {
+        const qtaScalata = scalaQta(i.quantita, fattore);
+        return `<div class="ingredient-row">
+            <div class="ing-qty">${[qtaScalata, i.unita].filter(Boolean).join(' ')}</div>
+            <div class="ing-nome">${i.nome}</div>
+        </div>`;
+    }).join('');
+}
+
 function apriDettaglio(id) {
     const r = ricette.find(x => x.id === id);
     if (!r) return;
+    dettaglioRicId = id;
+    porzioniBase = r.porzioni || 1;
+    porzioniCorrente = porzioniBase;
+
     const col = CAT_COLOR[r.categoria] || '#999';
     const ings = Array.isArray(r.ingredienti) ? r.ingredienti : [];
 
@@ -411,7 +483,7 @@ function apriDettaglio(id) {
     }
 
     let metaHtml = '';
-    const metaParts = [r.tempo_prep?`⏱ ${r.tempo_prep} min`:'', r.porzioni?`👥 ${r.porzioni} porzioni`:''].filter(Boolean);
+    const metaParts = [r.tempo_prep ? `⏱ ${r.tempo_prep} min` : ''].filter(Boolean);
     if (metaParts.length) metaHtml = `<div class="detail-meta">${metaParts.map(p=>`<div class="detail-meta-item">${p}</div>`).join('')}</div>`;
 
     let fonteHtml = '';
@@ -420,14 +492,7 @@ function apriDettaglio(id) {
         fonteHtml = `<div class="fonte-box">📌 ${isUrl ? `<a href="${r.fonte}" target="_blank" rel="noopener">${r.fonte}</a>` : r.fonte}</div>`;
     }
 
-    let ingHtml = '';
-    if (ings.length) {
-        ingHtml = `<div class="section-label">Ingredienti</div>${ings.map(i =>
-            `<div class="ingredient-row">
-                <div class="ing-qty">${[i.quantita, i.unita].filter(Boolean).join(' ')}</div>
-                <div class="ing-nome">${i.nome}</div>
-            </div>`).join('')}`;
-    }
+    const ingHtml = renderIngHtml(ings, 1);
 
     let procHtml = '';
     if (r.procedura?.trim()) {
