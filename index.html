@@ -16,21 +16,20 @@
         }
 
         * { box-sizing: border-box; }
-        html, body { margin: 0; height: 100%; overflow: hidden; }
+        html, body { margin: 0; }
 
         body {
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
             background: var(--bg);
             color: var(--dark);
-            height: 100dvh;
             display: flex;
             justify-content: center;
+            min-height: 100dvh;
         }
 
         .app {
             width: 100%;
             max-width: 480px;
-            height: 100dvh;
             display: flex;
             flex-direction: column;
             padding: max(10px, env(safe-area-inset-top, 10px)) 12px 0;
@@ -47,16 +46,14 @@
         }
 
         .menu-container {
-            flex: 1;
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            grid-template-rows: repeat(4, 1fr);
             gap: 10px;
-            padding-bottom: calc(75px + env(safe-area-inset-bottom, 0px));
-            min-height: 0;
+            padding-bottom: calc(85px + env(safe-area-inset-bottom, 0px));
         }
 
         .btn-big {
+            aspect-ratio: 1;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -75,11 +72,15 @@
             line-height: 1.2;
             letter-spacing: 0.3px;
             cursor: pointer;
+            user-select: none;
+            -webkit-user-select: none;
         }
 
         .btn-big:active { transform: scale(0.93); background: #f5f5f5; }
+        .sortable-ghost { opacity: 0.35; }
+        .sortable-chosen { transform: scale(1.06); box-shadow: 0 8px 28px rgba(0,0,0,0.18); z-index: 10; }
 
-        .icon-svg { width: 30px; height: 30px; flex-shrink: 0; }
+        .icon-svg { width: 30px; height: 30px; flex-shrink: 0; pointer-events: none; }
 
         .tab-bar {
             position: fixed;
@@ -200,16 +201,16 @@
     <div class="app">
         <div class="app-title">LISTANDO</div>
 
-        <div class="menu-container">
-            <a href="spesa.html" class="btn-big btn-spesa">
+        <div class="menu-container" id="menuGrid">
+            <a href="spesa.html" class="btn-big" style="border-color:#3384d4" data-id="spesa">
                 <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="#3384d4" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle>
                     <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
                 </svg>
                 <span>SPESA</span>
             </a>
-            
-            <a href="valigia.html" class="btn-big btn-valigia">
+
+            <a href="valigia.html" class="btn-big" style="border-color:#feb310" data-id="valigia">
                 <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="#feb310" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="2" y="7" width="20" height="14" rx="2"/>
                     <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
@@ -217,7 +218,7 @@
                 <span>VALIGIA</span>
             </a>
 
-            <a href="foto.html" class="btn-big btn-foto">
+            <a href="foto.html" class="btn-big" style="border-color:#7c5cbf" data-id="album">
                 <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="#7c5cbf" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="3" y="3" width="18" height="18" rx="2"/>
                     <circle cx="8.5" cy="8.5" r="1.5"/>
@@ -226,47 +227,47 @@
                 <span>ALBUM</span>
             </a>
 
-            <a href="password.html" class="btn-big" style="border-color:#ff9500">
+            <a href="password.html" class="btn-big" style="border-color:#ff9500" data-id="password">
                 <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="#ff9500" stroke-width="2.5"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.778-7.778zm0 0L22 2m-2 2l-4-4"></path></svg>
                 <span>PASSWORD</span>
             </a>
 
-            <a href="debiti.html" class="btn-big" style="border-color:#ff3b30">
+            <a href="debiti.html" class="btn-big" style="border-color:#ff3b30" data-id="debiti">
                 <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="#ff3b30" stroke-width="2.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                 <span>DEBITI</span>
             </a>
 
-            <a href="todo.html" class="btn-big" style="border-color:#30b0c7">
+            <a href="todo.html" class="btn-big" style="border-color:#30b0c7" data-id="todo">
                 <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="#30b0c7" stroke-width="2.5"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
                 <span>DA FARE</span>
             </a>
 
-            <a href="luoghi.html" class="btn-big" style="border-color:#0fba8d">
+            <a href="luoghi.html" class="btn-big" style="border-color:#0fba8d" data-id="luoghi">
                 <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="#0fba8d" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
                 <span>LUOGHI</span>
             </a>
 
-            <a href="desideri.html" class="btn-big" style="border-color:#e91e8c">
+            <a href="desideri.html" class="btn-big" style="border-color:#e91e8c" data-id="desideri">
                 <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="#e91e8c" stroke-width="2.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
                 <span>DESIDERI</span>
             </a>
 
-            <a href="libri.html" class="btn-big" style="border-color:#c2873f">
+            <a href="libri.html" class="btn-big" style="border-color:#c2873f" data-id="libri">
                 <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="#c2873f" stroke-width="2.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
                 <span>LIBRI</span>
             </a>
 
-            <a href="film.html" class="btn-big" style="border-color:#8b5cf6">
+            <a href="film.html" class="btn-big" style="border-color:#8b5cf6" data-id="film">
                 <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="17" y1="7" x2="22" y2="7"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="2" y1="17" x2="7" y2="17"/></svg>
                 <span>FILM</span>
             </a>
 
-            <a href="canzoni.html" class="btn-big" style="border-color:#1db954">
+            <a href="canzoni.html" class="btn-big" style="border-color:#1db954" data-id="canzoni">
                 <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="#1db954" stroke-width="2.5"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
                 <span>CANZONI</span>
             </a>
 
-            <a href="ricette.html" class="btn-big" style="border-color:#ff6b35">
+            <a href="ricette.html" class="btn-big" style="border-color:#ff6b35" data-id="ricette">
                 <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="#ff6b35" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><line x1="7" y1="2" x2="7" y2="22"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h1v5a1 1 0 0 0 2 0V2"/></svg>
                 <span>RICETTE</span>
             </a>
@@ -304,6 +305,7 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
     <script>
         const SUPABASE_URL = "https://eejdpophfxsrqdvsucye.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlamRwb3BoZnhzcnFkdnN1Y3llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2NTMzMDQsImV4cCI6MjA5MzIyOTMwNH0.mpxbwlJyIdZgqKIdutHbLd85JR1P11yiglbYeApi17k";
@@ -376,4 +378,34 @@
         }
 
         window.addEventListener('load', () => setTimeout(initSW, 800));
+
+        // ── Drag to reorder ───────────────────────────────────────────────
+        const ORDER_KEY = 'listando_home_order';
+
+        function applyOrder() {
+            const saved = JSON.parse(localStorage.getItem(ORDER_KEY) || '[]');
+            if (!saved.length) return;
+            const grid = document.getElementById('menuGrid');
+            saved.forEach(id => {
+                const el = grid.querySelector(`[data-id="${id}"]`);
+                if (el) grid.appendChild(el);
+            });
+        }
+
+        function saveOrder() {
+            const ids = [...document.querySelectorAll('#menuGrid [data-id]')].map(el => el.dataset.id);
+            localStorage.setItem(ORDER_KEY, JSON.stringify(ids));
+        }
+
+        applyOrder();
+
+        Sortable.create(document.getElementById('menuGrid'), {
+            animation: 200,
+            delay: 350,
+            delayOnTouchOnly: true,
+            touchStartThreshold: 8,
+            ghostClass: 'sortable-ghost',
+            chosenClass: 'sortable-chosen',
+            onEnd: saveOrder,
+        });
     </script>
