@@ -15,162 +15,139 @@
             --bg: #fdfdfd;
         }
 
-        html, body { overflow-x: hidden; max-width: 100%; }
+        * { box-sizing: border-box; }
+        html, body { margin: 0; height: 100%; overflow: hidden; }
 
         body {
-            margin: 0;
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
             background: var(--bg);
+            color: var(--dark);
+            height: 100dvh;
             display: flex;
             justify-content: center;
-            min-height: 100vh;
-            color: var(--dark);
         }
 
-        .app { 
-            width: 100%; 
-            max-width: 400px; 
-            padding: 20px; 
-            padding-bottom: 120px; 
+        .app {
+            width: 100%;
+            max-width: 480px;
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            padding: max(10px, env(safe-area-inset-top, 10px)) 12px 0;
+        }
+
+        .app-title {
+            font-size: 13px;
+            font-weight: 900;
+            color: var(--green);
             text-align: center;
-        }
-        
-        .logo-header { margin-bottom: 30px; margin-top: 20px; }
-        .logo-img { max-width: 150px; height: auto; border-radius: 20px; }
-
-        .menu-container { 
-            display: flex; 
-            flex-direction: column; 
-            gap: 15px; 
-            width: 100%; 
-        }
-        
-        .btn-big { 
-            display: flex; 
-            align-items: center; 
-            gap: 20px;
-            width: 100%; 
-            padding: 18px 22px; 
-            border-radius: 28px; 
-            border: 4px solid var(--grey); 
-            background: white; 
-            color: var(--dark); 
-            font-size: 18px; 
-            font-weight: 800; 
-            text-decoration: none; 
-            transition: all 0.2s ease;
-            box-sizing: border-box;
-            position: relative;
+            letter-spacing: 2px;
+            padding: 4px 0 10px;
+            flex-shrink: 0;
         }
 
-        .btn-big:active:not(.btn-locked) { 
-            transform: scale(0.96);
-            background-color: #fafafa;
+        .menu-container {
+            flex: 1;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(4, 1fr);
+            gap: 10px;
+            padding-bottom: calc(75px + env(safe-area-inset-bottom, 0px));
+            min-height: 0;
         }
 
-        .btn-spesa { border-color: var(--blue); }
-        .btn-valigia { border-color: var(--yellow); }
-        .btn-foto { border-color: #7c5cbf; }
-
-        .btn-locked {
-            opacity: 0.5;
-            border-style: dashed;
-            cursor: default;
+        .btn-big {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            border-radius: 22px;
+            border: 3px solid var(--grey);
+            background: white;
+            color: var(--dark);
+            font-size: 11px;
+            font-weight: 900;
+            text-decoration: none;
+            transition: transform 0.15s ease, background 0.15s;
+            padding: 8px 4px;
+            text-align: center;
+            line-height: 1.2;
+            letter-spacing: 0.3px;
+            cursor: pointer;
         }
 
-        .badge-soon {
-            font-size: 9px;
-            background: var(--grey);
-            color: #555;
-            padding: 3px 8px;
-            border-radius: 10px;
-            margin-left: auto;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
+        .btn-big:active { transform: scale(0.93); background: #f5f5f5; }
 
-        .lock-icon {
-            position: absolute;
-            top: 10px;
-            right: 15px;
-            width: 14px;
-            height: 14px;
-            opacity: 0.5;
-        }
+        .icon-svg { width: 30px; height: 30px; flex-shrink: 0; }
 
-        .icon-svg { width: 38px; height: 38px; flex-shrink: 0; }
-
-        .tab-bar { 
-            position: fixed; 
-            bottom: 0; 
-            left: 0; 
-            right: 0; 
-            height: 85px; 
-            background: white; 
-            display: flex; 
-            justify-content: space-around; 
-            align-items: center; 
-            border-top: 3px solid var(--grey);
+        .tab-bar {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            height: 75px;
+            background: white;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            border-top: 2px solid var(--grey);
             padding-bottom: env(safe-area-inset-bottom);
             z-index: 100;
         }
-        
-        .tab-item { 
-            flex: 1; 
-            text-align: center; 
-            font-size: 11px; 
-            color: var(--dark); 
-            text-decoration: none; 
-            font-weight: 800; 
-            display: flex; 
-            flex-direction: column; 
+
+        .tab-item {
+            flex: 1;
+            text-align: center;
+            font-size: 11px;
+            color: var(--dark);
+            text-decoration: none;
+            font-weight: 800;
+            display: flex;
+            flex-direction: column;
             align-items: center;
-            gap: 6px; 
+            gap: 5px;
         }
 
         .tab-active { color: var(--green); }
         .tab-active .icon-tab { stroke: var(--green); }
+        .icon-tab { width: 26px; height: 26px; stroke-width: 2.5px; stroke: var(--dark); fill: none; }
 
-        .icon-tab { width: 28px; height: 28px; stroke-width: 2.5px; stroke: var(--dark); fill: none; }
-        .logout-btn { color: #eb445a; }
-        .logout-btn .icon-tab { stroke: #eb445a; }
-
-        /* ── Safe areas ── */
-        .app {
-            padding-left: max(20px, env(safe-area-inset-left, 20px));
-            padding-right: max(20px, env(safe-area-inset-right, 20px));
-        }
-
-        /* ── Focus styles ── */
-        button:focus-visible, a:focus-visible {
-            outline: 3px solid var(--blue);
-            outline-offset: 2px;
-        }
-
-        /* ── Tablet portrait (≥600px) ── */
-        @media (min-width: 600px) {
-            .app { max-width: 640px; padding-left: 28px; padding-right: 28px; }
-        }
-
-        /* ── iPad / tablet landscape (≥768px) ── */
-        @media (min-width: 768px) {
-            .app { max-width: 760px; padding-left: 36px; padding-right: 36px; }
-            .menu-container {
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 15px;
-            }
-        }
+        button:focus-visible, a:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
 
         /* ── Desktop (≥1024px): sidebar navigation ── */
         @media (min-width: 1024px) {
+            html, body { overflow: auto; height: auto; }
             body { display: block; }
 
             .app {
+                height: auto;
+                min-height: 100vh;
                 margin-left: 240px;
                 max-width: 900px;
                 padding: 48px 56px 60px;
+                display: block;
             }
+
+            .app-title { display: none; }
+
+            .menu-container {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                grid-template-rows: auto;
+                gap: 14px;
+                padding-bottom: 0;
+            }
+
+            .btn-big {
+                flex-direction: row;
+                justify-content: flex-start;
+                gap: 14px;
+                padding: 16px 20px;
+                font-size: 15px;
+                border-radius: 24px;
+                border-width: 3.5px;
+            }
+
+            .icon-svg { width: 34px; height: 34px; }
 
             .tab-bar {
                 top: 0; bottom: 0; right: auto;
@@ -180,7 +157,7 @@
                 justify-content: flex-start;
                 align-items: stretch;
                 border-top: none;
-                border-right: 3px solid var(--grey);
+                border-right: 2px solid var(--grey);
                 padding: 28px 12px 24px;
                 overflow-y: auto;
             }
@@ -193,7 +170,6 @@
                 letter-spacing: -0.8px;
                 color: var(--green);
                 padding: 0 8px 28px;
-                font-family: 'Segoe UI', system-ui, sans-serif;
             }
 
             .tab-item {
@@ -205,39 +181,24 @@
                 gap: 12px;
                 text-align: left;
                 border-radius: 14px;
-                letter-spacing: 0;
                 min-height: 44px;
                 margin-bottom: 2px;
             }
 
-            .tab-active { background: rgba(15, 186, 141, 0.1); }
-
+            .tab-active { background: rgba(15,186,141,0.1); }
             .icon-tab { width: 20px; height: 20px; flex-shrink: 0; }
-
-            .modal-overlay { align-items: center; padding-bottom: 0; }
-            .modal-box { border-radius: 28px; }
         }
 
-        /* ── Wide desktop (≥1280px) ── */
         @media (min-width: 1280px) {
             .tab-bar { width: 260px; }
             .app { margin-left: 260px; max-width: 940px; }
-            .menu-container { grid-template-columns: 1fr 1fr 1fr; }
-        }
-
-        /* ── Small mobile overflow fix (≤400px) ── */
-        @media (max-width: 400px) {
-            .btn-big { gap: 12px; padding: 14px 16px; font-size: 16px; }
-            .badge-soon { font-size: 8px; padding: 3px 6px; }
         }
     </style>
 </head>
 <body>
 
     <div class="app">
-        <div class="logo-header">
-            <img src="logolistando.png" alt="Listando" class="logo-img">
-        </div>
+        <div class="app-title">LISTANDO</div>
 
         <div class="menu-container">
             <a href="spesa.html" class="btn-big btn-spesa">
@@ -272,12 +233,12 @@
 
             <a href="debiti.html" class="btn-big" style="border-color:#ff3b30">
                 <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="#ff3b30" stroke-width="2.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                <span>DEBITI & CREDITI</span>
+                <span>DEBITI</span>
             </a>
 
             <a href="todo.html" class="btn-big" style="border-color:#30b0c7">
                 <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="#30b0c7" stroke-width="2.5"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
-                <span>COSE DA FARE</span>
+                <span>DA FARE</span>
             </a>
 
             <a href="luoghi.html" class="btn-big" style="border-color:#0fba8d">
