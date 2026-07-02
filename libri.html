@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Listando - Libri</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --accent: #c2873f;
+            --accent-bg: rgba(194,135,63,0.08);
+            --green: #0fba8d; --red: #ff3b30;
+            --grey: #d8dddc; --grey-light: #f2f2f7;
+            --dark: #111; --bg: #f5f6f8; --white: #fff;
+        }
+        * { box-sizing: border-box; }
+        html, body { overflow-x: hidden; max-width: 100%; margin: 0; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--dark); }
+
+        .page-header {
+            position: sticky; top: 0; z-index: 100;
+            background: var(--white); border-bottom: 2px solid var(--grey-light);
+            padding: 14px 16px; padding-top: max(14px, env(safe-area-inset-top, 14px));
+        }
+        .header-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .btn-back { width: 40px; height: 40px; border-radius: 12px; border: 2.5px solid var(--grey); background: var(--white); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+        .btn-back svg { width: 18px; height: 18px; stroke: var(--dark); fill: none; stroke-width: 2.5; }
+        .header-title { font-weight: 900; font-size: 18px; flex: 1; }
+        .btn-add-hdr { width: 40px; height: 40px; border-radius: 12px; border: none; background: var(--accent); color: white; font-size: 22px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+        .search-bar { padding: 0 0 10px; }
+        .search-input { width: 100%; padding: 11px 14px; border-radius: 14px; border: 2.5px solid var(--grey); font-size: 15px; font-family: inherit; outline: none; }
+        .search-input:focus { border-color: var(--accent); }
+
+        .tabs-row { display: flex; gap: 8px; }
+        .tab-pill { flex: 1; padding: 10px 6px; border-radius: 14px; border: 2.5px solid var(--grey); background: var(--white); font-weight: 800; font-size: 12px; cursor: pointer; text-align: center; transition: all 0.15s; color: #999; }
+        .tab-pill.active { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
+
+        .stats-bar { display: flex; gap: 6px; padding: 10px 0 0; align-items: center; flex-wrap: wrap; }
+        .stat-chip { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 10px; background: var(--grey-light); color: #666; }
+
+        .list-body { padding: 10px 16px 110px; }
+
+        .genre-scroll { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 10px 0 0; }
+        .genre-scroll::-webkit-scrollbar { display: none; }
+        .genre-chip { flex-shrink: 0; padding: 6px 14px; border-radius: 20px; border: 2px solid var(--grey); background: white; font-weight: 800; font-size: 12px; cursor: pointer; color: #888; transition: all 0.15s; white-space: nowrap; }
+        .genre-chip.active { border-color: var(--accent); background: var(--accent-bg); color: var(--accent); }
+
+        .empty-msg { text-align: center; padding: 64px 24px; color: #bbb; font-weight: 700; font-size: 15px; }
+
+        .book-card {
+            background: var(--white); border-radius: 18px; margin-bottom: 8px;
+            padding: 14px 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            border-left: 5px solid var(--accent); display: flex; align-items: center; gap: 12px;
+            cursor: pointer;
+        }
+        .book-card.in-lettura { border-left-color: #ff9500; }
+        .book-card.letto { border-left-color: var(--green); opacity: 0.8; }
+
+        .book-emoji { font-size: 28px; flex-shrink: 0; width: 44px; text-align: center; }
+        .book-body { flex: 1; min-width: 0; }
+        .book-title { font-weight: 900; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .book-author { font-size: 13px; color: #666; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .book-meta { display: flex; gap: 6px; margin-top: 5px; flex-wrap: wrap; align-items: center; }
+        .badge-genre { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 8px; background: var(--accent-bg); color: var(--accent); }
+        .badge-anno { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 8px; background: var(--grey-light); color: #666; }
+        .stars { font-size: 14px; letter-spacing: -1px; }
+
+        .btn-stato {
+            flex-shrink: 0; padding: 7px 10px; border-radius: 12px;
+            border: 2px solid var(--grey); background: white; cursor: pointer;
+            font-size: 11px; font-weight: 800; color: #666; transition: all 0.15s;
+            white-space: nowrap; text-align: center; min-width: 70px;
+        }
+        .btn-stato.in-lettura { border-color: #ff9500; color: #ff9500; background: rgba(255,149,0,0.06); }
+        .btn-stato.letto { border-color: var(--green); color: var(--green); background: rgba(15,186,141,0.06); }
+
+        .modal-overlay { display: none; position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.5); align-items: flex-end; justify-content: center; }
+        .modal-overlay.open { display: flex; }
+        .modal-box { background: var(--white); border-radius: 28px 28px 0 0; padding: 24px 20px; padding-bottom: max(24px, env(safe-area-inset-bottom, 24px)); width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; }
+        .modal-handle { width: 40px; height: 4px; background: var(--grey); border-radius: 4px; margin: 0 auto 20px; }
+        .modal-title { font-weight: 900; font-size: 18px; margin-bottom: 18px; }
+        .form-group { margin-bottom: 12px; }
+        .form-label { font-size: 12px; font-weight: 800; color: #666; margin-bottom: 5px; display: block; text-transform: uppercase; letter-spacing: 0.4px; }
+        .form-input { width: 100%; padding: 12px 14px; border-radius: 14px; border: 2.5px solid var(--grey); font-size: 15px; font-family: inherit; outline: none; transition: border-color 0.2s; }
+        .form-input:focus { border-color: var(--accent); }
+        .form-row { display: flex; gap: 8px; }
+        .form-row .form-group { flex: 1; }
+        .form-section-sep { height: 1px; background: var(--grey-light); margin: 14px 0; }
+
+        .stato-picker { display: flex; gap: 8px; }
+        .stato-btn { flex: 1; padding: 10px 6px; border-radius: 12px; border: 2px solid var(--grey); background: white; font-weight: 800; font-size: 12px; cursor: pointer; text-align: center; transition: all 0.15s; color: #888; }
+        .stato-btn.da-leggere.active { border-color: var(--accent); background: var(--accent-bg); color: var(--accent); }
+        .stato-btn.in-lettura.active { border-color: #ff9500; background: rgba(255,149,0,0.1); color: #ff9500; }
+        .stato-btn.letto.active { border-color: var(--green); background: rgba(15,186,141,0.1); color: var(--green); }
+
+        .star-picker { display: flex; gap: 6px; }
+        .star-btn { font-size: 26px; background: none; border: none; cursor: pointer; padding: 4px; line-height: 1; opacity: 0.3; transition: opacity 0.15s, transform 0.1s; }
+        .star-btn.active { opacity: 1; }
+        .star-btn:active { transform: scale(1.2); }
+
+        .btn-save-modal { width: 100%; padding: 16px; border-radius: 18px; border: none; background: var(--accent); color: white; font-weight: 900; font-size: 16px; cursor: pointer; font-family: inherit; margin-top: 8px; }
+        .btn-delete-modal { width: 100%; padding: 14px; border-radius: 18px; border: none; background: #fff0f0; color: var(--red); font-weight: 800; font-size: 14px; cursor: pointer; font-family: inherit; margin-top: 8px; }
+
+        .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 70px; background: white; display: flex; justify-content: space-around; align-items: center; border-top: 2px solid var(--grey-light); padding-bottom: env(safe-area-inset-bottom); z-index: 100; }
+        .tab-item { flex: 1; text-align: center; font-size: 11px; color: var(--dark); text-decoration: none; font-weight: 800; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .icon-tab { width: 24px; height: 24px; stroke-width: 2.5px; stroke: var(--dark); fill: none; }
+        .toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--dark); color: white; padding: 12px 20px; border-radius: 14px; font-weight: 700; font-size: 14px; opacity: 0; transition: all 0.25s; white-space: nowrap; z-index: 999; pointer-events: none; }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    </style>
+</head>
+<body>
+
+<div class="page-header">
+    <div class="header-row">
+        <button class="btn-back" onclick="history.back()">
+            <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div class="header-title">📚 LIBRI</div>
+        <button class="btn-add-hdr" onclick="apriModale()">+</button>
+    </div>
+    <div class="search-bar">
+        <input class="search-input" id="searchInput" placeholder="Cerca un libro…" oninput="render()">
+    </div>
+    <div class="tabs-row">
+        <button class="tab-pill active" id="tabDaLeggere" onclick="setTab('da_leggere')">📖 Da leggere</button>
+        <button class="tab-pill"        id="tabInLettura" onclick="setTab('in_lettura')">📖 In lettura</button>
+        <button class="tab-pill"        id="tabLetti"     onclick="setTab('letti')">✅ Letti</button>
+    </div>
+    <div class="stats-bar" id="statsBar"></div>
+</div>
+
+<div style="padding: 0 16px">
+    <div class="genre-scroll" id="genreScroll"></div>
+</div>
+
+<div class="list-body" id="listBody"></div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modale">
+    <div class="modal-box">
+        <div class="modal-handle"></div>
+        <div class="modal-title" id="modalTitle">Nuovo libro</div>
+
+        <div class="form-group">
+            <label class="form-label">Titolo *</label>
+            <input class="form-input" id="fTitolo" placeholder="es. Il nome della rosa…" type="text">
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Autore</label>
+            <input class="form-input" id="fAutore" placeholder="es. Umberto Eco…" type="text">
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label">Anno</label>
+                <input class="form-input" id="fAnno" placeholder="1980" type="number" min="1000" max="2099">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Genere</label>
+                <select class="form-input" id="fGenere">
+                    <option value="Romanzo">Romanzo</option>
+                    <option value="Thriller">Thriller</option>
+                    <option value="Fantascienza">Fantascienza</option>
+                    <option value="Fantasy">Fantasy</option>
+                    <option value="Storico">Storico</option>
+                    <option value="Biografico">Biografico</option>
+                    <option value="Saggistica">Saggistica</option>
+                    <option value="Horror">Horror</option>
+                    <option value="Giallo">Giallo</option>
+                    <option value="Classico">Classico</option>
+                    <option value="Altro" selected>Altro</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Note</label>
+            <textarea class="form-input" id="fNote" placeholder="Consigliato da, dove trovarlo…" rows="2" style="resize:none"></textarea>
+        </div>
+
+        <div class="form-section-sep"></div>
+
+        <div class="form-group">
+            <label class="form-label">Stato</label>
+            <div class="stato-picker">
+                <button class="stato-btn da-leggere active" onclick="setStato('da_leggere')">📖 Da leggere</button>
+                <button class="stato-btn in-lettura" onclick="setStato('in_lettura')">🔖 In lettura</button>
+                <button class="stato-btn letto" onclick="setStato('letto')">✅ Letto</button>
+            </div>
+        </div>
+
+        <div id="sezVoto" style="display:none">
+            <div class="form-group">
+                <label class="form-label">Voto</label>
+                <div class="star-picker" id="starPicker">
+                    <button class="star-btn" onclick="setVoto(1)">⭐</button>
+                    <button class="star-btn" onclick="setVoto(2)">⭐</button>
+                    <button class="star-btn" onclick="setVoto(3)">⭐</button>
+                    <button class="star-btn" onclick="setVoto(4)">⭐</button>
+                    <button class="star-btn" onclick="setVoto(5)">⭐</button>
+                </div>
+            </div>
+        </div>
+
+        <button class="btn-save-modal" onclick="salva()">SALVA</button>
+        <button class="btn-delete-modal" id="btnElimina" style="display:none" onclick="elimina()">ELIMINA</button>
+    </div>
+</div>
+
+<div class="tab-bar">
+    <a href="index.html" class="tab-item">
+        <svg class="icon-tab" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 15 22"/></svg>
+        HOME
+    </a>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = "https://eejdpophfxsrqdvsucye.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlamRwb3BoZnhzcnFkdnN1Y3llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2NTMzMDQsImV4cCI6MjA5MzIyOTMwNH0.mpxbwlJyIdZgqKIdutHbLd85JR1P11yiglbYeApi17k";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const userEmail = localStorage.getItem('userEmail');
+if (!userEmail) location.href = 'login.html';
+
+const GENRE_EMOJI = {
+    'Romanzo':'📖','Thriller':'🔪','Fantascienza':'🚀','Fantasy':'🧙',
+    'Storico':'🏛️','Biografico':'👤','Saggistica':'🎓','Horror':'👻',
+    'Giallo':'🔍','Classico':'🎭','Altro':'📚'
+};
+
+let libri = [];
+let tabCorrente = 'da_leggere';
+let genreFiltro = 'Tutti';
+let statoCorrente = 'da_leggere';
+let votoCorrente = 0;
+let editId = null;
+
+async function carica() {
+    const { data, error } = await sb.from('libri').select('*')
+        .eq('email_utente', userEmail)
+        .order('created_at', { ascending: false });
+    if (error) { toast('Errore: ' + error.message); return; }
+    libri = data || [];
+    renderGenres();
+    render();
+}
+
+function getGenres() {
+    const set = new Set(libri.map(l => l.genere).filter(Boolean));
+    return ['Tutti', ...set];
+}
+
+function renderGenres() {
+    document.getElementById('genreScroll').innerHTML = getGenres().map(g =>
+        `<button class="genre-chip${genreFiltro === g ? ' active' : ''}" onclick="setGenre('${g.replace(/'/g,"\\'")}')">
+            ${GENRE_EMOJI[g] || '📚'} ${g}
+         </button>`
+    ).join('');
+}
+
+function setGenre(g) { genreFiltro = g; renderGenres(); render(); }
+function setTab(t) {
+    tabCorrente = t;
+    ['da_leggere','in_lettura','letti'].forEach(id => {
+        const el = document.getElementById('tab' + id.split('_').map(w => w[0].toUpperCase()+w.slice(1)).join(''));
+        if (el) el.className = 'tab-pill' + (t === id ? ' active' : '');
+    });
+    document.getElementById('tabDaLeggere').className = 'tab-pill' + (t === 'da_leggere' ? ' active' : '');
+    document.getElementById('tabInLettura').className = 'tab-pill' + (t === 'in_lettura' ? ' active' : '');
+    document.getElementById('tabLetti').className     = 'tab-pill' + (t === 'letti'      ? ' active' : '');
+    render();
+}
+
+function renderStars(voto) {
+    if (!voto) return '';
+    return '⭐'.repeat(voto) + '☆'.repeat(5 - voto);
+}
+
+function render() {
+    const q = document.getElementById('searchInput').value.toLowerCase();
+    let filtered = libri.filter(l => l.stato === tabCorrente);
+    if (genreFiltro !== 'Tutti') filtered = filtered.filter(l => l.genere === genreFiltro);
+    if (q) filtered = filtered.filter(l => (l.titolo||'').toLowerCase().includes(q) || (l.autore||'').toLowerCase().includes(q) || (l.note||'').toLowerCase().includes(q));
+
+    const totDaLeggere = libri.filter(l => l.stato === 'da_leggere').length;
+    const totInLettura = libri.filter(l => l.stato === 'in_lettura').length;
+    const totLetti     = libri.filter(l => l.stato === 'letti').length;
+    document.getElementById('statsBar').innerHTML =
+        `<span class="stat-chip">📖 ${totDaLeggere} da leggere</span>` +
+        (totInLettura ? `<span class="stat-chip">🔖 ${totInLettura} in lettura</span>` : '') +
+        (totLetti ? `<span class="stat-chip">✅ ${totLetti} letti</span>` : '');
+
+    const body = document.getElementById('listBody');
+    if (!filtered.length) {
+        const msgs = { da_leggere: '📚 Lista vuota — aggiungi qualcosa!', in_lettura: '🔖 Nessun libro in lettura', letti: '✅ Nessun libro letto ancora' };
+        body.innerHTML = `<div class="empty-msg">${msgs[tabCorrente]}</div>`;
+        return;
+    }
+
+    body.innerHTML = filtered.map(l => {
+        const emoji = GENRE_EMOJI[l.genere] || '📚';
+        const genreHtml = l.genere ? `<span class="badge-genre">${l.genere}</span>` : '';
+        const annoHtml  = l.anno   ? `<span class="badge-anno">${l.anno}</span>` : '';
+        const starsHtml = l.stato === 'letti' && l.voto ? `<span class="stars">${renderStars(l.voto)}</span>` : '';
+        const statoLabel = l.stato === 'in_lettura' ? '🔖 In lettura' : l.stato === 'letti' ? '✅ Letto' : '+ Inizia';
+        const statoClass = l.stato === 'in_lettura' ? ' in-lettura' : l.stato === 'letti' ? ' letto' : '';
+        return `<div class="book-card${l.stato === 'in_lettura' ? ' in-lettura' : l.stato === 'letti' ? ' letto' : ''}" onclick="apriModifica(${l.id})">
+            <div class="book-emoji">${emoji}</div>
+            <div class="book-body">
+                <div class="book-title">${l.titolo}</div>
+                ${l.autore ? `<div class="book-author">${l.autore}</div>` : ''}
+                <div class="book-meta">${genreHtml}${annoHtml}${starsHtml}</div>
+            </div>
+            <button class="btn-stato${statoClass}" onclick="event.stopPropagation(); avanzaStato(${l.id})">${statoLabel}</button>
+        </div>`;
+    }).join('');
+}
+
+async function avanzaStato(id) {
+    const l = libri.find(x => x.id === id);
+    if (!l) return;
+    const next = l.stato === 'da_leggere' ? 'in_lettura' : l.stato === 'in_lettura' ? 'letti' : 'da_leggere';
+    const { error } = await sb.from('libri').update({ stato: next }).eq('id', id);
+    if (error) { toast('Errore: ' + error.message); return; }
+    l.stato = next;
+    render();
+    const msg = next === 'in_lettura' ? '🔖 Iniziato!' : next === 'letti' ? '✅ Finito!' : '📖 Rimesso in lista';
+    toast(msg);
+}
+
+function setVoto(n) {
+    votoCorrente = n;
+    document.querySelectorAll('.star-btn').forEach((btn, i) => {
+        btn.className = 'star-btn' + (i < n ? ' active' : '');
+    });
+}
+
+function setStato(s) {
+    statoCorrente = s;
+    document.querySelectorAll('.stato-btn').forEach(btn => {
+        const cls = btn.classList[1];
+        btn.className = 'stato-btn ' + cls + (cls.replace('-','_') === s || (cls === 'da-leggere' && s === 'da_leggere') || (cls === 'in-lettura' && s === 'in_lettura') ? ' active' : '');
+    });
+    document.getElementById('sezVoto').style.display = s === 'letto' ? '' : 'none';
+}
+
+function apriModale() {
+    editId = null; statoCorrente = 'da_leggere'; votoCorrente = 0;
+    document.getElementById('modalTitle').textContent = 'Nuovo libro';
+    document.getElementById('fTitolo').value = '';
+    document.getElementById('fAutore').value = '';
+    document.getElementById('fAnno').value = '';
+    document.getElementById('fGenere').value = 'Altro';
+    document.getElementById('fNote').value = '';
+    document.getElementById('btnElimina').style.display = 'none';
+    document.getElementById('sezVoto').style.display = 'none';
+    setVoto(0);
+    document.querySelectorAll('.stato-btn').forEach(btn => {
+        btn.className = 'stato-btn ' + btn.classList[1] + (btn.classList[1] === 'da-leggere' ? ' active' : '');
+    });
+    document.getElementById('modale').classList.add('open');
+}
+
+function apriModifica(id) {
+    const l = libri.find(x => x.id === id);
+    if (!l) return;
+    editId = id; statoCorrente = l.stato || 'da_leggere'; votoCorrente = l.voto || 0;
+    document.getElementById('modalTitle').textContent = 'Modifica libro';
+    document.getElementById('fTitolo').value = l.titolo || '';
+    document.getElementById('fAutore').value = l.autore || '';
+    document.getElementById('fAnno').value = l.anno || '';
+    document.getElementById('fGenere').value = l.genere || 'Altro';
+    document.getElementById('fNote').value = l.note || '';
+    document.getElementById('btnElimina').style.display = '';
+    document.getElementById('sezVoto').style.display = statoCorrente === 'letto' ? '' : 'none';
+    setVoto(votoCorrente);
+    document.querySelectorAll('.stato-btn').forEach(btn => {
+        const cls = btn.classList[1];
+        const isActive = (cls === 'da-leggere' && statoCorrente === 'da_leggere') ||
+                         (cls === 'in-lettura' && statoCorrente === 'in_lettura') ||
+                         (cls === 'letto' && statoCorrente === 'letti');
+        btn.className = 'stato-btn ' + cls + (isActive ? ' active' : '');
+    });
+    document.getElementById('modale').classList.add('open');
+}
+
+async function salva() {
+    const titolo = document.getElementById('fTitolo').value.trim();
+    if (!titolo) { toast('Inserisci il titolo'); return; }
+    const stato = statoCorrente === 'letto' ? 'letti' : statoCorrente;
+    const row = {
+        email_utente: userEmail,
+        titolo,
+        autore: document.getElementById('fAutore').value.trim() || null,
+        anno: parseInt(document.getElementById('fAnno').value) || null,
+        genere: document.getElementById('fGenere').value || 'Altro',
+        note: document.getElementById('fNote').value.trim() || null,
+        stato,
+        voto: stato === 'letti' && votoCorrente > 0 ? votoCorrente : null,
+    };
+    let err;
+    if (editId) {
+        ({ error: err } = await sb.from('libri').update(row).eq('id', editId));
+        if (err) { toast('Errore: ' + err.message); return; }
+        toast('✓ Aggiornato');
+    } else {
+        ({ error: err } = await sb.from('libri').insert(row));
+        if (err) { toast('Errore: ' + err.message); return; }
+        toast('✓ Aggiunto');
+    }
+    document.getElementById('modale').classList.remove('open');
+    await carica();
+}
+
+async function elimina() {
+    if (!editId || !confirm('Eliminare questo libro?')) return;
+    await sb.from('libri').delete().eq('id', editId);
+    document.getElementById('modale').classList.remove('open');
+    toast('Eliminato');
+    await carica();
+}
+
+document.getElementById('modale').addEventListener('click', e => {
+    if (e.target === document.getElementById('modale')) document.getElementById('modale').classList.remove('open');
+});
+
+let toastTimer;
+function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+carica();
+</script>
+</body>
+</html>

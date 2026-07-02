@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Listando - Desideri</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --accent: #e91e8c;
+            --accent-bg: rgba(233,30,140,0.08);
+            --green: #0fba8d; --red: #ff3b30;
+            --grey: #d8dddc; --grey-light: #f2f2f7;
+            --dark: #111; --bg: #f5f6f8; --white: #fff;
+        }
+        * { box-sizing: border-box; }
+        html, body { overflow-x: hidden; max-width: 100%; margin: 0; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--dark); }
+
+        .page-header {
+            position: sticky; top: 0; z-index: 100;
+            background: var(--white); border-bottom: 2px solid var(--grey-light);
+            padding: 14px 16px; padding-top: max(14px, env(safe-area-inset-top, 14px));
+        }
+        .header-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .btn-back { width: 40px; height: 40px; border-radius: 12px; border: 2.5px solid var(--grey); background: var(--white); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+        .btn-back svg { width: 18px; height: 18px; stroke: var(--dark); fill: none; stroke-width: 2.5; }
+        .header-title { font-weight: 900; font-size: 18px; flex: 1; }
+        .btn-add-hdr { width: 40px; height: 40px; border-radius: 12px; border: none; background: var(--accent); color: white; font-size: 22px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+        .search-bar { padding: 0 0 10px; }
+        .search-input { width: 100%; padding: 11px 14px; border-radius: 14px; border: 2.5px solid var(--grey); font-size: 15px; font-family: inherit; outline: none; }
+        .search-input:focus { border-color: var(--accent); }
+
+        .tabs-row { display: flex; gap: 8px; }
+        .tab-pill { flex: 1; padding: 10px 8px; border-radius: 14px; border: 2.5px solid var(--grey); background: var(--white); font-weight: 800; font-size: 13px; cursor: pointer; text-align: center; transition: all 0.15s; color: #999; }
+        .tab-pill.active { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
+
+        .stats-bar { display: flex; gap: 6px; padding: 10px 0 0; align-items: center; flex-wrap: wrap; }
+        .stat-chip { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 10px; background: var(--grey-light); color: #666; }
+
+        .list-body { padding: 10px 16px 110px; }
+
+        .cat-scroll { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 10px 0 0; }
+        .cat-scroll::-webkit-scrollbar { display: none; }
+        .cat-chip { flex-shrink: 0; padding: 6px 14px; border-radius: 20px; border: 2px solid var(--grey); background: white; font-weight: 800; font-size: 12px; cursor: pointer; color: #888; transition: all 0.15s; white-space: nowrap; }
+        .cat-chip.active { border-color: var(--accent); background: var(--accent-bg); color: var(--accent); }
+
+        .empty-msg { text-align: center; padding: 64px 24px; color: #bbb; font-weight: 700; font-size: 15px; }
+
+        .card {
+            background: var(--white); border-radius: 18px; margin-bottom: 8px;
+            padding: 14px 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            border-left: 5px solid var(--accent); display: flex; align-items: center; gap: 12px;
+            cursor: pointer;
+        }
+        .card.comprato { border-left-color: var(--green); opacity: 0.75; }
+
+        .card-emoji { font-size: 28px; flex-shrink: 0; width: 44px; text-align: center; }
+        .card-body { flex: 1; min-width: 0; }
+        .card-title { font-weight: 900; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .card-meta { display: flex; gap: 6px; margin-top: 5px; flex-wrap: wrap; align-items: center; }
+        .badge-cat { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 8px; background: var(--accent-bg); color: var(--accent); }
+        .badge-prezzo { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 8px; background: var(--grey-light); color: #444; }
+        .badge-prio { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 8px; }
+        .badge-prio.alta { background: rgba(255,59,48,0.1); color: #ff3b30; }
+        .badge-prio.media { background: rgba(255,149,0,0.1); color: #ff9500; }
+        .badge-prio.bassa { background: rgba(52,199,89,0.1); color: #34c759; }
+        .card-note { font-size: 13px; color: #888; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        .btn-comprato {
+            flex-shrink: 0; padding: 7px 12px; border-radius: 12px;
+            border: 2px solid var(--grey); background: white; cursor: pointer;
+            font-size: 12px; font-weight: 800; color: #666; transition: all 0.15s;
+            white-space: nowrap;
+        }
+        .btn-comprato.comprato { border-color: var(--green); color: var(--green); background: rgba(15,186,141,0.06); }
+
+        .modal-overlay { display: none; position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.5); align-items: flex-end; justify-content: center; }
+        .modal-overlay.open { display: flex; }
+        .modal-box { background: var(--white); border-radius: 28px 28px 0 0; padding: 24px 20px; padding-bottom: max(24px, env(safe-area-inset-bottom, 24px)); width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; }
+        .modal-handle { width: 40px; height: 4px; background: var(--grey); border-radius: 4px; margin: 0 auto 20px; }
+        .modal-title { font-weight: 900; font-size: 18px; margin-bottom: 18px; }
+        .form-group { margin-bottom: 12px; }
+        .form-label { font-size: 12px; font-weight: 800; color: #666; margin-bottom: 5px; display: block; text-transform: uppercase; letter-spacing: 0.4px; }
+        .form-input { width: 100%; padding: 12px 14px; border-radius: 14px; border: 2.5px solid var(--grey); font-size: 15px; font-family: inherit; outline: none; transition: border-color 0.2s; }
+        .form-input:focus { border-color: var(--accent); }
+        .form-row { display: flex; gap: 8px; }
+        .form-row .form-group { flex: 1; }
+        .form-section-sep { height: 1px; background: var(--grey-light); margin: 14px 0; }
+
+        .prio-picker { display: flex; gap: 8px; }
+        .prio-btn { flex: 1; padding: 10px; border-radius: 12px; border: 2px solid var(--grey); background: white; font-weight: 800; font-size: 13px; cursor: pointer; text-align: center; transition: all 0.15s; color: #888; }
+        .prio-btn.alta.active { border-color: #ff3b30; background: rgba(255,59,48,0.1); color: #ff3b30; }
+        .prio-btn.media.active { border-color: #ff9500; background: rgba(255,149,0,0.1); color: #ff9500; }
+        .prio-btn.bassa.active { border-color: #34c759; background: rgba(52,199,89,0.1); color: #34c759; }
+
+        .comprato-toggle { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 14px; border: 2.5px solid var(--grey); cursor: pointer; user-select: none; transition: all 0.15s; }
+        .comprato-toggle.on { border-color: var(--green); background: rgba(15,186,141,0.06); }
+        .comprato-toggle-label { font-weight: 800; font-size: 15px; flex: 1; }
+        .comprato-toggle-check { width: 26px; height: 26px; border-radius: 8px; border: 2.5px solid var(--grey); display: flex; align-items: center; justify-content: center; font-size: 15px; transition: all 0.15s; background: white; }
+        .comprato-toggle.on .comprato-toggle-check { background: var(--green); border-color: var(--green); color: white; }
+
+        .btn-link { width: 100%; padding: 12px 14px; border-radius: 14px; border: 2.5px solid var(--grey); font-size: 14px; font-family: inherit; outline: none; color: var(--accent); font-weight: 700; text-decoration: none; display: flex; align-items: center; gap: 8px; background: var(--accent-bg); cursor: pointer; }
+
+        .btn-save-modal { width: 100%; padding: 16px; border-radius: 18px; border: none; background: var(--accent); color: white; font-weight: 900; font-size: 16px; cursor: pointer; font-family: inherit; margin-top: 8px; }
+        .btn-delete-modal { width: 100%; padding: 14px; border-radius: 18px; border: none; background: #fff0f0; color: var(--red); font-weight: 800; font-size: 14px; cursor: pointer; font-family: inherit; margin-top: 8px; }
+
+        .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 70px; background: white; display: flex; justify-content: space-around; align-items: center; border-top: 2px solid var(--grey-light); padding-bottom: env(safe-area-inset-bottom); z-index: 100; }
+        .tab-item { flex: 1; text-align: center; font-size: 11px; color: var(--dark); text-decoration: none; font-weight: 800; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .icon-tab { width: 24px; height: 24px; stroke-width: 2.5px; stroke: var(--dark); fill: none; }
+        .toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--dark); color: white; padding: 12px 20px; border-radius: 14px; font-weight: 700; font-size: 14px; opacity: 0; transition: all 0.25s; white-space: nowrap; z-index: 999; pointer-events: none; }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    </style>
+</head>
+<body>
+
+<div class="page-header">
+    <div class="header-row">
+        <button class="btn-back" onclick="history.back()">
+            <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div class="header-title">💝 DESIDERI</div>
+        <button class="btn-add-hdr" onclick="apriModale()">+</button>
+    </div>
+    <div class="search-bar">
+        <input class="search-input" id="searchInput" placeholder="Cerca un desiderio…" oninput="render()">
+    </div>
+    <div class="tabs-row">
+        <button class="tab-pill active" id="tabDaComprare" onclick="setTab('da_comprare')">💝 Da comprare</button>
+        <button class="tab-pill" id="tabComprati" onclick="setTab('comprati')">✅ Comprati</button>
+    </div>
+    <div class="stats-bar" id="statsBar"></div>
+</div>
+
+<div style="padding: 0 16px">
+    <div class="cat-scroll" id="catScroll"></div>
+</div>
+
+<div class="list-body" id="listBody"></div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modale">
+    <div class="modal-box">
+        <div class="modal-handle"></div>
+        <div class="modal-title" id="modalTitle">Nuovo desiderio</div>
+
+        <div class="form-group">
+            <label class="form-label">Nome *</label>
+            <input class="form-input" id="fNome" placeholder="es. AirPods Pro…" type="text">
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Note</label>
+            <textarea class="form-input" id="fNote" placeholder="Dove trovarlo, taglia, colore…" rows="2" style="resize:none"></textarea>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label">Prezzo stimato</label>
+                <input class="form-input" id="fPrezzo" placeholder="€ 0,00" type="number" min="0" step="0.01">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Categoria</label>
+                <select class="form-input" id="fCategoria">
+                    <option value="Tecnologia">📱 Tecnologia</option>
+                    <option value="Abbigliamento">👗 Abbigliamento</option>
+                    <option value="Casa">🏠 Casa</option>
+                    <option value="Sport">⚽ Sport</option>
+                    <option value="Viaggi">✈️ Viaggi</option>
+                    <option value="Libri">📚 Libri</option>
+                    <option value="Musica">🎵 Musica</option>
+                    <option value="Esperienze">🎭 Esperienze</option>
+                    <option value="Altro" selected>💝 Altro</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Priorità</label>
+            <div class="prio-picker">
+                <button class="prio-btn alta" onclick="setPrio('alta')">🔴 Alta</button>
+                <button class="prio-btn media" onclick="setPrio('media')">🟡 Media</button>
+                <button class="prio-btn bassa" onclick="setPrio('bassa')">🟢 Bassa</button>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Link</label>
+            <input class="form-input" id="fLink" placeholder="https://…" type="url">
+        </div>
+
+        <div class="form-section-sep"></div>
+
+        <div class="form-group">
+            <div class="comprato-toggle" id="comparatoToggle" onclick="toggleComprato()">
+                <span class="comprato-toggle-label">✅ L'ho comprato</span>
+                <div class="comprato-toggle-check" id="comparatoCheck"></div>
+            </div>
+        </div>
+
+        <button class="btn-save-modal" onclick="salva()">SALVA</button>
+        <button class="btn-delete-modal" id="btnElimina" style="display:none" onclick="elimina()">ELIMINA</button>
+    </div>
+</div>
+
+<div class="tab-bar">
+    <a href="index.html" class="tab-item">
+        <svg class="icon-tab" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 15 22"/></svg>
+        HOME
+    </a>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = "https://eejdpophfxsrqdvsucye.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlamRwb3BoZnhzcnFkdnN1Y3llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2NTMzMDQsImV4cCI6MjA5MzIyOTMwNH0.mpxbwlJyIdZgqKIdutHbLd85JR1P11yiglbYeApi17k";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const userEmail = localStorage.getItem('userEmail');
+if (!userEmail) location.href = 'login.html';
+
+const CAT_EMOJI = {
+    'Tecnologia':'📱','Abbigliamento':'👗','Casa':'🏠','Sport':'⚽',
+    'Viaggi':'✈️','Libri':'📚','Musica':'🎵','Esperienze':'🎭','Altro':'💝'
+};
+
+let items = [];
+let tabCorrente = 'da_comprare';
+let catFiltro = 'Tutti';
+let prioCorrente = null;
+let comparatoCorrente = false;
+let editId = null;
+
+async function carica() {
+    const { data, error } = await sb.from('desideri').select('*')
+        .eq('email_utente', userEmail)
+        .order('created_at', { ascending: false });
+    if (error) { toast('Errore: ' + error.message); return; }
+    items = data || [];
+    renderCats();
+    render();
+}
+
+function getCats() {
+    const set = new Set(items.map(i => i.categoria).filter(Boolean));
+    return ['Tutti', ...set];
+}
+
+function renderCats() {
+    document.getElementById('catScroll').innerHTML = getCats().map(c =>
+        `<button class="cat-chip${catFiltro === c ? ' active' : ''}" onclick="setCat('${c.replace(/'/g,"\\'")}')">
+            ${CAT_EMOJI[c] || '💝'} ${c}
+         </button>`
+    ).join('');
+}
+
+function setCat(c) { catFiltro = c; renderCats(); render(); }
+function setTab(t) {
+    tabCorrente = t;
+    document.getElementById('tabDaComprare').className = 'tab-pill' + (t === 'da_comprare' ? ' active' : '');
+    document.getElementById('tabComprati').className   = 'tab-pill' + (t === 'comprati'    ? ' active' : '');
+    render();
+}
+
+function render() {
+    const q = document.getElementById('searchInput').value.toLowerCase();
+    const isComprati = tabCorrente === 'comprati';
+    let filtered = items.filter(i => i.comprato === isComprati);
+    if (catFiltro !== 'Tutti') filtered = filtered.filter(i => i.categoria === catFiltro);
+    if (q) filtered = filtered.filter(i => (i.nome||'').toLowerCase().includes(q) || (i.note||'').toLowerCase().includes(q));
+
+    const totDaComprare = items.filter(i => !i.comprato).length;
+    const totComprati   = items.filter(i => i.comprato).length;
+    const totPrezzo = items.filter(i => !i.comprato && i.prezzo).reduce((s,i) => s + parseFloat(i.prezzo), 0);
+    document.getElementById('statsBar').innerHTML =
+        `<span class="stat-chip">💝 ${totDaComprare} desideri</span>` +
+        (totComprati ? `<span class="stat-chip">✅ ${totComprati} acquistati</span>` : '') +
+        (totPrezzo > 0 ? `<span class="stat-chip">💰 ~€${totPrezzo.toFixed(0)}</span>` : '');
+
+    const body = document.getElementById('listBody');
+    if (!filtered.length) {
+        body.innerHTML = `<div class="empty-msg">${isComprati ? '🛍️ Nessun acquisto ancora' : '💝 Lista vuota — aggiungi qualcosa!'}</div>`;
+        return;
+    }
+
+    body.innerHTML = filtered.map(i => {
+        const emoji = CAT_EMOJI[i.categoria] || '💝';
+        const prioHtml = i.priorita ? `<span class="badge-prio ${i.priorita}">${i.priorita === 'alta' ? '🔴' : i.priorita === 'media' ? '🟡' : '🟢'} ${i.priorita}</span>` : '';
+        const prezzoHtml = i.prezzo ? `<span class="badge-prezzo">€${parseFloat(i.prezzo).toFixed(0)}</span>` : '';
+        const catHtml = i.categoria ? `<span class="badge-cat">${i.categoria}</span>` : '';
+        const btnLabel = i.comprato ? '✅ Comprato' : 'Segna comprato';
+        return `<div class="card${i.comprato ? ' comprato' : ''}" onclick="apriModifica(${i.id})">
+            <div class="card-emoji">${emoji}</div>
+            <div class="card-body">
+                <div class="card-title">${i.nome}</div>
+                ${i.note ? `<div class="card-note">${i.note}</div>` : ''}
+                <div class="card-meta">${prioHtml}${prezzoHtml}${catHtml}</div>
+            </div>
+            <button class="btn-comprato${i.comprato ? ' comprato' : ''}" onclick="event.stopPropagation(); toggleCompratoDiretto(${i.id})">${btnLabel}</button>
+        </div>`;
+    }).join('');
+}
+
+async function toggleCompratoDiretto(id) {
+    const item = items.find(x => x.id === id);
+    if (!item) return;
+    const nuovoVal = !item.comprato;
+    const { error } = await sb.from('desideri').update({ comprato: nuovoVal }).eq('id', id);
+    if (error) { toast('Errore: ' + error.message); return; }
+    item.comprato = nuovoVal;
+    render();
+    toast(nuovoVal ? '✅ Segnato come comprato!' : 'Rimesso in lista');
+}
+
+function setPrio(p) {
+    prioCorrente = p;
+    document.querySelectorAll('.prio-btn').forEach(btn => {
+        btn.className = 'prio-btn ' + btn.classList[1];
+        if (btn.classList[1] === p) btn.classList.add('active');
+    });
+}
+
+function toggleComprato() {
+    comparatoCorrente = !comparatoCorrente;
+    document.getElementById('comparatoToggle').className = 'comprato-toggle' + (comparatoCorrente ? ' on' : '');
+    document.getElementById('comparatoCheck').textContent = comparatoCorrente ? '✓' : '';
+}
+
+function apriModale() {
+    editId = null; prioCorrente = null; comparatoCorrente = false;
+    document.getElementById('modalTitle').textContent = 'Nuovo desiderio';
+    document.getElementById('fNome').value = '';
+    document.getElementById('fNote').value = '';
+    document.getElementById('fPrezzo').value = '';
+    document.getElementById('fCategoria').value = 'Altro';
+    document.getElementById('fLink').value = '';
+    document.getElementById('btnElimina').style.display = 'none';
+    document.getElementById('comparatoToggle').className = 'comprato-toggle';
+    document.getElementById('comparatoCheck').textContent = '';
+    document.querySelectorAll('.prio-btn').forEach(b => { b.className = 'prio-btn ' + b.classList[1]; });
+    document.getElementById('modale').classList.add('open');
+}
+
+function apriModifica(id) {
+    const i = items.find(x => x.id === id);
+    if (!i) return;
+    editId = id; prioCorrente = i.priorita || null; comparatoCorrente = !!i.comprato;
+    document.getElementById('modalTitle').textContent = 'Modifica desiderio';
+    document.getElementById('fNome').value = i.nome || '';
+    document.getElementById('fNote').value = i.note || '';
+    document.getElementById('fPrezzo').value = i.prezzo || '';
+    document.getElementById('fCategoria').value = i.categoria || 'Altro';
+    document.getElementById('fLink').value = i.link || '';
+    document.getElementById('btnElimina').style.display = '';
+    document.getElementById('comparatoToggle').className = 'comprato-toggle' + (comparatoCorrente ? ' on' : '');
+    document.getElementById('comparatoCheck').textContent = comparatoCorrente ? '✓' : '';
+    document.querySelectorAll('.prio-btn').forEach(b => {
+        b.className = 'prio-btn ' + b.classList[1];
+        if (b.classList[1] === prioCorrente) b.classList.add('active');
+    });
+    document.getElementById('modale').classList.add('open');
+}
+
+async function salva() {
+    const nome = document.getElementById('fNome').value.trim();
+    if (!nome) { toast('Inserisci il nome'); return; }
+    const row = {
+        email_utente: userEmail,
+        nome,
+        note: document.getElementById('fNote').value.trim() || null,
+        prezzo: parseFloat(document.getElementById('fPrezzo').value) || null,
+        categoria: document.getElementById('fCategoria').value || 'Altro',
+        priorita: prioCorrente || null,
+        link: document.getElementById('fLink').value.trim() || null,
+        comprato: comparatoCorrente,
+    };
+    let err;
+    if (editId) {
+        ({ error: err } = await sb.from('desideri').update(row).eq('id', editId));
+        if (err) { toast('Errore: ' + err.message); return; }
+        toast('✓ Aggiornato');
+    } else {
+        ({ error: err } = await sb.from('desideri').insert(row));
+        if (err) { toast('Errore: ' + err.message); return; }
+        toast('✓ Aggiunto');
+    }
+    document.getElementById('modale').classList.remove('open');
+    await carica();
+}
+
+async function elimina() {
+    if (!editId || !confirm('Eliminare questo desiderio?')) return;
+    await sb.from('desideri').delete().eq('id', editId);
+    document.getElementById('modale').classList.remove('open');
+    toast('Eliminato');
+    await carica();
+}
+
+document.getElementById('modale').addEventListener('click', e => {
+    if (e.target === document.getElementById('modale')) document.getElementById('modale').classList.remove('open');
+});
+
+let toastTimer;
+function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+carica();
+</script>
+</body>
+</html>
