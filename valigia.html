@@ -6,587 +6,408 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         :root {
-            --green: #0fba8d;
-            --blue: #3384d4;
-            --yellow: #feb310;
-            --red: #ff4d4d;
-            --grey: #d8dddc;
-            --grey-light: #f2f2f7;
-            --dark: #111111;
-            --bg: #f5f6f8;
-            --white: #ffffff;
-            --shadow: 0 4px 20px rgba(0,0,0,0.07);
+            --accent: #feb310;
+            --accent-bg: rgba(254,179,16,0.09);
+            --green: #0fba8d; --red: #ff3b30;
+            --grey: #d8dddc; --grey-light: #f2f2f7;
+            --dark: #111; --bg: #f5f6f8; --white: #fff;
+            --shadow: 0 2px 10px rgba(0,0,0,0.06);
         }
-
         * { box-sizing: border-box; }
-
-        html, body { overflow-x: hidden; max-width: 100%; }
-
-        body {
-            margin: 0;
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            background: var(--bg);
-            color: var(--dark);
-            display: flex;
-            justify-content: center;
-        }
-
-        .app {
-            width: 100%;
-            max-width: 420px;
-            padding: 24px 20px 120px;
-        }
+        html, body { overflow-x: hidden; max-width: 100%; margin: 0; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--dark); }
 
         .page-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 24px;
+            position: sticky; top: 0; z-index: 100;
+            background: var(--white); border-bottom: 2px solid var(--grey-light);
+            padding: 14px 16px; padding-top: max(14px, env(safe-area-inset-top, 14px));
+            display: flex; align-items: center; gap: 10px;
         }
+        .btn-back { width: 40px; height: 40px; border-radius: 12px; border: 2.5px solid var(--grey); background: var(--white); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+        .btn-back svg { width: 18px; height: 18px; stroke: var(--dark); fill: none; stroke-width: 2.5; }
+        .header-title { font-weight: 900; font-size: 18px; flex: 1; }
+        .btn-add-hdr { width: 40px; height: 40px; border-radius: 12px; border: none; background: var(--accent); color: white; font-size: 22px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: 900; }
 
-        .page-title {
-            font-weight: 900;
-            font-size: 26px;
-            text-transform: uppercase;
-            letter-spacing: -0.5px;
-            margin: 0;
-        }
+        .body-content { padding: 12px 16px 110px; }
 
-        /* ── Card Lista ── */
-        .card {
-            background: var(--white);
-            border-radius: 28px;
-            border: 3px solid var(--grey);
-            overflow: hidden;
-            box-shadow: var(--shadow);
-            margin-bottom: 16px;
+        /* ── Valigie list ── */
+        .valigia-card {
+            background: var(--white); border-radius: 20px; margin-bottom: 10px;
+            padding: 16px 18px; box-shadow: var(--shadow);
+            border-left: 5px solid var(--accent);
+            display: flex; align-items: center; gap: 14px;
+            cursor: pointer; transition: transform 0.15s;
         }
+        .valigia-card:active { transform: scale(0.97); }
+        .valigia-emoji { font-size: 32px; flex-shrink: 0; }
+        .valigia-info { flex: 1; min-width: 0; }
+        .valigia-nome { font-weight: 900; font-size: 16px; }
+        .valigia-sub { font-size: 12px; color: #888; font-weight: 700; margin-top: 4px; }
+        .btn-del-valigia { width: 36px; height: 36px; border-radius: 10px; border: 2px solid var(--grey); background: var(--white); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--red); }
+        .btn-del-valigia svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2.5; }
 
-        .card-header {
-            padding: 16px 20px;
-            border-bottom: 2px solid var(--grey-light);
-            display: none;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .card-header-label {
-            font-size: 11px;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-            color: #999;
-        }
-        .btn-add-inline {
-            background: var(--yellow);
-            color: white;
-            border: none;
-            border-radius: 14px;
-            padding: 8px 16px;
-            font-size: 12px;
-            font-weight: 800;
-            text-transform: uppercase;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            transition: opacity 0.2s;
-        }
-        .btn-add-inline:active { opacity: 0.8; }
-        .btn-add-inline svg { width: 14px; height: 14px; stroke: white; fill: none; stroke-width: 3; }
+        .progress-wrap { margin-top: 6px; }
+        .progress-bar-bg { background: var(--grey-light); border-radius: 6px; height: 6px; overflow: hidden; }
+        .progress-bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), #ffd64f); border-radius: 6px; transition: width 0.4s ease; }
 
-        /* ── Barra progresso ── */
-        .progress-wrap {
-            padding: 0 20px 16px;
-            display: none;
-        }
-        .progress-bar-bg {
-            background: var(--grey-light);
-            border-radius: 10px;
-            height: 8px;
-            overflow: hidden;
-        }
-        .progress-bar-fill {
-            height: 100%;
-            background: linear-gradient(90deg, var(--yellow), #ffd64f);
-            border-radius: 10px;
-            transition: width 0.4s ease;
-            width: 0%;
-        }
-        .progress-label {
-            font-size: 12px;
-            font-weight: 700;
-            color: #999;
-            margin-bottom: 6px;
-            display: flex;
-            justify-content: space-between;
-        }
-        .progress-label span { color: var(--yellow); }
+        /* ── Items list ── */
+        .items-card { background: var(--white); border-radius: 20px; box-shadow: var(--shadow); overflow: hidden; margin-bottom: 12px; }
 
-        /* ── Righe ── */
-        .item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 14px 20px;
-            border-bottom: 2px solid var(--grey-light);
+        .item-row {
+            display: flex; align-items: center; gap: 10px;
+            padding: 13px 16px; border-bottom: 1.5px solid var(--grey-light);
         }
-        .item:last-child { border-bottom: none; }
-        .item.completato-row { background: #fafafa; }
+        .item-row:last-child { border-bottom: none; }
+        .item-row.done { background: #fafafa; }
 
-        .testo-prodotto {
-            flex: 1;
-            font-weight: 700;
-            font-size: 16px;
-            line-height: 1.3;
-            transition: all 0.25s;
-        }
-        .testo-prodotto.barrato {
-            text-decoration: line-through;
-            color: #b5b5b5;
-            font-weight: 600;
-        }
+        .btn-check { width: 36px; height: 36px; border-radius: 10px; border: 2.5px solid var(--green); background: var(--white); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--green); transition: all 0.15s; }
+        .btn-check svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 3; }
+        .btn-check.done { background: var(--green); border-color: var(--green); color: white; }
 
-        .btn-actions { display: flex; gap: 8px; }
+        .item-nome { flex: 1; font-weight: 700; font-size: 15px; transition: all 0.2s; }
+        .item-nome.barrato { text-decoration: line-through; color: #bbb; font-weight: 600; }
 
-        .btn-small {
-            border: 2.5px solid var(--grey);
-            border-radius: 12px;
-            width: 44px;
-            height: 44px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: var(--white);
-            transition: all 0.15s;
-            flex-shrink: 0;
-        }
-        .btn-small:active { transform: scale(0.9); }
-        .btn-small svg { width: 18px; height: 18px; stroke-width: 2.5; stroke: currentColor; fill: none; }
+        .qty-ctrl { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+        .qty-btn { width: 28px; height: 28px; border-radius: 8px; border: 2px solid var(--grey); background: var(--white); cursor: pointer; font-size: 16px; font-weight: 900; color: var(--dark); display: flex; align-items: center; justify-content: center; line-height: 1; }
+        .qty-btn:active { background: var(--grey-light); }
+        .qty-num { font-size: 14px; font-weight: 900; min-width: 22px; text-align: center; }
 
-        .btn-small.check  { border-color: var(--green); color: var(--green); }
-        .btn-small.delete { border-color: var(--red);   color: var(--red);   }
+        .btn-del-item { width: 32px; height: 32px; border-radius: 9px; border: 2px solid var(--grey); background: var(--white); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--red); }
+        .btn-del-item svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2.5; }
 
-        .btn-small.check.done        { background: var(--green); border-color: var(--green); color: white; }
-        .btn-small.check:active      { background: #e6faf5; }
-        .btn-small.check.done:active { opacity: 0.85; background: var(--green); }
-        .btn-small.delete:active     { background: #fff0f0; }
-
-        /* ── Stato vuoto ── */
-        .empty-state {
-            text-align: center;
-            padding: 50px 20px;
-        }
-        .empty-icon {
-            width: 60px; height: 60px;
-            background: var(--grey-light);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 16px;
-        }
-        .empty-icon svg { width: 28px; height: 28px; stroke: #aaa; fill: none; stroke-width: 2; }
-        .empty-title { font-weight: 900; font-size: 17px; margin-bottom: 6px; }
-        .empty-sub   { color: #999; font-size: 14px; font-weight: 600; margin-bottom: 20px; }
-        .btn-empty {
-            display: inline-block;
-            padding: 14px 28px;
-            background: var(--yellow);
-            color: white;
-            border-radius: 18px;
-            text-decoration: none;
-            font-weight: 800;
-            font-size: 14px;
-            transition: transform 0.15s;
-        }
-        .btn-empty:active { transform: scale(0.96); }
-
-        /* ── Controlli ── */
-        .controls-group {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .btn-action {
-            width: 100%;
-            padding: 16px;
-            border-radius: 20px;
-            border: 3px solid var(--grey);
-            background: var(--white);
-            font-weight: 800;
-            font-size: 13px;
-            cursor: pointer;
-            text-transform: uppercase;
-            color: var(--dark);
-            transition: all 0.15s;
-            letter-spacing: 0.3px;
-            box-shadow: var(--shadow);
-        }
-        .btn-action:active { background: var(--grey-light); transform: scale(0.98); }
+        /* ── Controls ── */
+        .controls-group { display: flex; flex-direction: column; gap: 8px; }
+        .btn-action { width: 100%; padding: 14px; border-radius: 16px; border: 2.5px solid var(--grey); background: var(--white); font-weight: 800; font-size: 13px; cursor: pointer; color: var(--dark); transition: all 0.15s; }
+        .btn-action:active { background: var(--grey-light); }
         .btn-action.danger { border-color: #ffd6d6; color: var(--red); }
-        .btn-action.danger:active { background: #fff0f0; }
-        .btn-action.primary {
-            background: var(--yellow);
-            color: white;
-            border-color: var(--yellow);
-        }
-        .btn-action.primary:active { opacity: 0.88; }
+        .btn-action.catalog { border-color: var(--accent); color: #a07000; }
+
+        /* ── Stats bar ── */
+        .stats-bar { display: flex; gap: 8px; padding: 10px 0 12px; }
+        .stat-chip { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 10px; background: var(--grey-light); color: #666; }
+
+        /* ── Empty ── */
+        .empty-msg { text-align: center; padding: 48px 24px; color: #bbb; font-weight: 700; font-size: 15px; }
 
         /* ── Modal ── */
-        .modal-overlay {
-            position: fixed; top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: rgba(0,0,0,0.45);
-            display: none; align-items: flex-end;
-            justify-content: center;
-            z-index: 2000;
-            backdrop-filter: blur(6px);
-            padding-bottom: 30px;
-        }
-        .modal-box {
-            background: white;
-            padding: 32px 28px 24px;
-            border-radius: 32px 32px 24px 24px;
-            width: 92%;
-            max-width: 380px;
-            text-align: center;
-            border: 3px solid var(--grey);
-            animation: slideUp 0.25s ease;
-        }
-        @keyframes slideUp {
-            from { transform: translateY(40px); opacity: 0; }
-            to   { transform: translateY(0);    opacity: 1; }
-        }
-        .modal-emoji { font-size: 40px; margin-bottom: 10px; }
-        .modal-box h3 { font-weight: 900; font-size: 20px; margin: 0 0 8px; }
-        .modal-box p  { font-weight: 600; color: #777; font-size: 14px; margin: 0 0 20px; }
+        .modal-overlay { display: none; position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.5); align-items: flex-end; justify-content: center; }
+        .modal-overlay.open { display: flex; }
+        .modal-box { background: var(--white); border-radius: 28px 28px 0 0; padding: 24px 20px; padding-bottom: max(24px, env(safe-area-inset-bottom, 24px)); width: 100%; max-width: 500px; }
+        .modal-handle { width: 40px; height: 4px; background: var(--grey); border-radius: 4px; margin: 0 auto 20px; }
+        .modal-title { font-weight: 900; font-size: 17px; margin-bottom: 14px; }
+        .form-input { width: 100%; padding: 13px 14px; border-radius: 14px; border: 2.5px solid var(--grey); font-size: 15px; font-family: inherit; outline: none; margin-bottom: 10px; }
+        .form-input:focus { border-color: var(--accent); }
 
-        .btn-modal {
-            width: 100%; padding: 16px;
-            margin-top: 8px;
-            border-radius: 18px;
-            border: none;
-            font-weight: 800;
-            cursor: pointer;
-            font-size: 15px;
-            transition: opacity 0.15s;
-        }
-        .btn-modal:active { opacity: 0.85; }
+        .emoji-picker { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+        .emoji-opt { font-size: 24px; width: 44px; height: 44px; border-radius: 12px; border: 2.5px solid var(--grey); background: var(--white); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+        .emoji-opt.active { border-color: var(--accent); background: var(--accent-bg); }
+
+        .btn-save-modal { width: 100%; padding: 15px; border-radius: 16px; border: none; background: var(--accent); color: white; font-weight: 900; font-size: 16px; cursor: pointer; }
 
         /* ── Tab Bar ── */
-        .tab-bar {
-            position: fixed; bottom: 0; left: 0; right: 0;
-            height: 88px;
-            background: white;
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            border-top: 3px solid var(--grey);
-            z-index: 1000;
-            padding-bottom: env(safe-area-inset-bottom, 0);
-        }
-        .tab-item {
-            flex: 1; text-align: center;
-            font-size: 10px; color: #aaa;
-            text-decoration: none;
-            font-weight: 800;
-            display: flex; flex-direction: column;
-            align-items: center; gap: 5px;
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
-            transition: color 0.15s;
-        }
-        .tab-active { color: var(--yellow); }
-        .icon-tab { width: 24px; height: 24px; stroke-width: 2.5; stroke: currentColor; fill: none; }
+        .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 70px; background: white; display: flex; justify-content: space-around; align-items: center; border-top: 2px solid var(--grey-light); padding-bottom: env(safe-area-inset-bottom); z-index: 100; }
+        .tab-item { flex: 1; text-align: center; font-size: 11px; color: var(--dark); text-decoration: none; font-weight: 800; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .icon-tab { width: 24px; height: 24px; stroke-width: 2.5px; stroke: var(--dark); fill: none; }
 
-        /* ── Safe areas ── */
-        .app {
-            padding-left: max(20px, env(safe-area-inset-left, 20px));
-            padding-right: max(20px, env(safe-area-inset-right, 20px));
-        }
-
-        /* ── Focus styles ── */
-        button:focus-visible, a:focus-visible {
-            outline: 3px solid var(--blue);
-            outline-offset: 2px;
-        }
-
-        /* ── Tablet portrait (≥600px) ── */
-        @media (min-width: 600px) {
-            .app { max-width: 640px; padding-left: 28px; padding-right: 28px; }
-        }
-
-        /* ── iPad / tablet landscape (≥768px) ── */
-        @media (min-width: 768px) {
-            .app { max-width: 760px; padding-left: 36px; padding-right: 36px; }
-        }
-
-        /* ── Desktop (≥1024px): sidebar navigation ── */
-        @media (min-width: 1024px) {
-            body { display: block; }
-
-            .app {
-                margin-left: 240px;
-                max-width: 900px;
-                padding: 48px 56px 60px;
-            }
-
-            .tab-bar {
-                top: 0; bottom: 0; right: auto;
-                width: 240px;
-                height: 100vh;
-                flex-direction: column;
-                justify-content: flex-start;
-                align-items: stretch;
-                border-top: none;
-                border-right: 3px solid var(--grey);
-                padding: 28px 12px 24px;
-                overflow-y: auto;
-            }
-
-            .tab-bar::before {
-                content: "LISTANDO";
-                display: block;
-                font-weight: 900;
-                font-size: 20px;
-                letter-spacing: -0.8px;
-                color: var(--green);
-                padding: 0 8px 28px;
-                font-family: 'Segoe UI', system-ui, sans-serif;
-            }
-
-            .tab-item {
-                flex: none;
-                flex-direction: row;
-                justify-content: flex-start;
-                padding: 13px 16px;
-                font-size: 13px;
-                gap: 12px;
-                text-align: left;
-                border-radius: 14px;
-                letter-spacing: 0;
-                min-height: 44px;
-                margin-bottom: 2px;
-            }
-
-            .tab-active { background: rgba(254, 179, 16, 0.1); }
-
-            .icon-tab { width: 20px; height: 20px; flex-shrink: 0; }
-
-            .modal-overlay { align-items: center; padding-bottom: 0; }
-            .modal-box { border-radius: 28px; }
-        }
-
-        /* ── Wide desktop (≥1280px) ── */
-        @media (min-width: 1280px) {
-            .tab-bar { width: 260px; }
-            .app { margin-left: 260px; max-width: 940px; }
-        }
-
-        /* ── Small mobile overflow fix (≤400px) ── */
-        @media (max-width: 400px) {
-            .item { padding: 12px 14px; }
-            .testo-prodotto { word-break: break-word; min-width: 0; }
-        }
+        .toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--dark); color: white; padding: 12px 20px; border-radius: 14px; font-weight: 700; font-size: 14px; opacity: 0; transition: all 0.25s; white-space: nowrap; z-index: 999; pointer-events: none; }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
     </style>
 </head>
 <body>
 
-<div class="app">
+<!-- ════ VIEW 1: Lista valigie ════ -->
+<div id="viewLista">
     <div class="page-header">
-        <h2 class="page-title">Lista Valigia</h2>
+        <button class="btn-back" onclick="history.back()">
+            <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div class="header-title">🧳 LE MIE VALIGIE</div>
+        <button class="btn-add-hdr" onclick="apriModalNuova()">+</button>
     </div>
+    <div class="body-content" id="listaValigie"></div>
+</div>
 
-    <div class="card" id="cardLista">
-        <div id="cardHeader" class="card-header">
-            <span class="card-header-label" id="labelProgresso">0 oggetti</span>
-            <a href="valigia_elencocose.html" class="btn-add-inline">
-                <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                Aggiungi
-            </a>
-        </div>
-        <div id="progressWrap" class="progress-wrap">
-            <div class="progress-label">
-                <span id="progressText">Avanzamento</span>
-                <span id="progressPct">0%</span>
-            </div>
-            <div class="progress-bar-bg">
-                <div class="progress-bar-fill" id="progressFill"></div>
-            </div>
-        </div>
-        <div id="contenitoreLista">
-            <div class="empty-state">
-                <div class="empty-icon">
-                    <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
-                </div>
-                <div class="empty-title">Caricamento…</div>
-            </div>
-        </div>
+<!-- ════ VIEW 2: Dentro una valigia ════ -->
+<div id="viewValigia" style="display:none">
+    <div class="page-header">
+        <button class="btn-back" onclick="tornaALista()">
+            <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div class="header-title" id="titoloValigia">🧳 Valigia</div>
+        <button class="btn-add-hdr" onclick="apriModalAggiungi()">+</button>
     </div>
-
-    <div id="controlliLista" class="controls-group" style="display:none;">
-        <button class="btn-action" onclick="eliminaMessi()">✓ Elimina messi in valigia</button>
-        <button class="btn-action" onclick="ripristinaValigia()">↺ Ripristina tutto</button>
-        <button class="btn-action primary" onclick="apriModalSvuota()">Svuota lista</button>
+    <div class="body-content">
+        <div class="stats-bar" id="statsValigia"></div>
+        <div class="progress-wrap" id="progressWrap" style="margin-bottom:12px">
+            <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill" style="width:0%"></div></div>
+        </div>
+        <div class="items-card" id="itemsValigia"></div>
+        <div class="controls-group" id="controlliValigia" style="display:none; margin-top:4px">
+            <button class="btn-action catalog" onclick="vaiAlCatalogo()">📋 Aggiungi dal catalogo</button>
+            <button class="btn-action" onclick="ripristina()">↺ Ripristina tutto</button>
+            <button class="btn-action" onclick="eliminaMessi()">✓ Rimuovi messi in valigia</button>
+            <button class="btn-action danger" onclick="svuotaValigia()">🗑 Svuota lista</button>
+        </div>
     </div>
 </div>
 
-<!-- Modal Svuota -->
-<div id="svuotaModal" class="modal-overlay">
+<!-- Modal: Nuova valigia -->
+<div class="modal-overlay" id="modalNuova">
     <div class="modal-box">
-        <div class="modal-emoji">🧳</div>
-        <h3>Svuota valigia?</h3>
-        <p>Questa azione cancellerà tutti gli oggetti dalla tua lista.</p>
-        <button class="btn-modal" style="background:var(--red); color:white;" onclick="confermaSvuota()">Sì, cancella tutto</button>
-        <button class="btn-modal" style="background:var(--grey-light); color:var(--dark);" onclick="chiudiModal()">Annulla</button>
+        <div class="modal-handle"></div>
+        <div class="modal-title">Nuova valigia</div>
+        <div class="emoji-picker" id="emojiPicker">
+            <button class="emoji-opt active" onclick="setEmoji('🧳')">🧳</button>
+            <button class="emoji-opt" onclick="setEmoji('🎒')">🎒</button>
+            <button class="emoji-opt" onclick="setEmoji('💼')">💼</button>
+            <button class="emoji-opt" onclick="setEmoji('👜')">👜</button>
+            <button class="emoji-opt" onclick="setEmoji('🛄')">🛄</button>
+            <button class="emoji-opt" onclick="setEmoji('📦')">📦</button>
+        </div>
+        <input class="form-input" id="nomeNuovaValigia" placeholder="es. Valigia grande, Zaino, Bagaglio a mano…" type="text" onkeydown="if(event.key==='Enter') salvaValigia()">
+        <button class="btn-save-modal" onclick="salvaValigia()">CREA</button>
     </div>
 </div>
 
-<!-- Tab Bar -->
-<nav class="tab-bar">
+<!-- Modal: Aggiungi oggetto -->
+<div class="modal-overlay" id="modalAggiungi">
+    <div class="modal-box">
+        <div class="modal-handle"></div>
+        <div class="modal-title">Aggiungi oggetto</div>
+        <input class="form-input" id="nomeNuovoOggetto" placeholder="es. passaporto, maglione…" type="text" onkeydown="if(event.key==='Enter') salvaOggetto()">
+        <input class="form-input" id="qtaNuovoOggetto" placeholder="Quantità (default 1)" type="number" min="1" max="99" value="1">
+        <button class="btn-save-modal" onclick="salvaOggetto()">AGGIUNGI</button>
+    </div>
+</div>
+
+<div class="tab-bar">
     <a href="index.html" class="tab-item">
-        <svg class="icon-tab" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
-        Home
-    </a>
-    <a href="valigia.html" class="tab-item tab-active">
-        <svg class="icon-tab" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
-        Valigia
+        <svg class="icon-tab" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 15 22"/></svg>
+        HOME
     </a>
     <a href="valigia_elencocose.html" class="tab-item">
         <svg class="icon-tab" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-        Cose
+        CATALOGO
     </a>
-    <a href="#" class="tab-item" onclick="logout()">
-        <svg class="icon-tab" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/></svg>
-        Esci
-    </a>
-</nav>
+</div>
+
+<div class="toast" id="toast"></div>
 
 <script>
-    const URL_SUPA = "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1/cose_valigia";
-    const KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlamRwb3BoZnhzcnFkdnN1Y3llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2NTMzMDQsImV4cCI6MjA5MzIyOTMwNH0.mpxbwlJyIdZgqKIdutHbLd85JR1P11yiglbYeApi17k";
-    const headers = {
-        "apikey": KEY,
-        "Content-Type": "application/json",
-        "Authorization": "Bearer " + KEY
-    };
-    const userEmail = localStorage.getItem('userEmail');
-    if (!userEmail) window.location.href = 'login.html';
+const URL = "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1";
+const KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlamRwb3BoZnhzcnFkdnN1Y3llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2NTMzMDQsImV4cCI6MjA5MzIyOTMwNH0.mpxbwlJyIdZgqKIdutHbLd85JR1P11yiglbYeApi17k";
+const H = { "apikey": KEY, "Authorization": "Bearer " + KEY, "Content-Type": "application/json", "Prefer": "return=minimal" };
+const HR = { "apikey": KEY, "Authorization": "Bearer " + KEY };
+const userEmail = localStorage.getItem('userEmail');
+if (!userEmail) location.href = 'login.html';
 
-    async function caricaLista() {
-        try {
-            const controller = new AbortController();
-            const timer = setTimeout(() => controller.abort(), 12000);
-            const res = await fetch(`${URL_SUPA}?email_utente=eq.${userEmail}&order=nome.asc`, { headers, signal: controller.signal });
-            clearTimeout(timer);
-            const dati = await res.json();
-            const div = document.getElementById("contenitoreLista");
-            const controlli = document.getElementById("controlliLista");
-            const cardHeader = document.getElementById("cardHeader");
-            const progressWrap = document.getElementById("progressWrap");
+let valigie = [];
+let valigiaCorrenteId = null;
+let emojiScelta = '🧳';
 
-            if (!Array.isArray(dati) || dati.length === 0) {
-                cardHeader.style.display = "none";
-                progressWrap.style.display = "none";
-                controlli.style.display = "none";
-                div.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-icon">
-                            <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
-                        </div>
-                        <div class="empty-title">Valigia vuota</div>
-                        <div class="empty-sub">Aggiungi gli oggetti da portare</div>
-                        <a href="valigia_elencocose.html" class="btn-empty">+ Aggiungi oggetti</a>
-                    </div>`;
-                return;
-            }
+// ── API helpers ───────────────────────────────────────────────
+async function get(path) {
+    const r = await fetch(`${URL}${path}`, { headers: HR });
+    return r.json();
+}
+async function post(path, body) {
+    await fetch(`${URL}${path}`, { method: 'POST', headers: H, body: JSON.stringify(body) });
+}
+async function patch(path, body) {
+    await fetch(`${URL}${path}`, { method: 'PATCH', headers: H, body: JSON.stringify(body) });
+}
+async function del(path) {
+    await fetch(`${URL}${path}`, { method: 'DELETE', headers: H });
+}
 
-            const totale = dati.length;
-            const completati = dati.filter(i => i.completato).length;
-            const pct = Math.round((completati / totale) * 100);
+// ── View 1: Lista valigie ─────────────────────────────────────
+async function caricaValigie() {
+    valigie = await get(`/valigie?email_utente=eq.${userEmail}&order=created_at.asc`);
+    const items = await get(`/cose_valigia?email_utente=eq.${userEmail}`);
 
-            document.getElementById("labelProgresso").textContent = `${totale} oggetto${totale !== 1 ? 'i' : ''}`;
-            document.getElementById("progressText").textContent = `${completati} di ${totale} messi`;
-            document.getElementById("progressPct").textContent = `${pct}%`;
-            document.getElementById("progressFill").style.width = `${pct}%`;
-
-            cardHeader.style.display = "flex";
-            progressWrap.style.display = "block";
-            controlli.style.display = "flex";
-
-            dati.sort((a, b) => a.nome.localeCompare(b.nome, 'it'));
-
-            div.innerHTML = "";
-            dati.forEach(item => {
-                const riga = document.createElement("div");
-                riga.className = `item${item.completato ? ' completato-row' : ''}`;
-                riga.innerHTML = `
-                    <button class="btn-small check ${item.completato ? 'done' : ''}" onclick="toggleStatus(${item.id}, ${item.completato})" aria-label="${item.completato ? 'Ripristina' : 'Metti in valigia'}">
-                        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-                    </button>
-                    <span class="testo-prodotto ${item.completato ? 'barrato' : ''}">${item.nome}</span>
-                    <button class="btn-small delete" onclick="eliminaSingolo(${item.id})" aria-label="Elimina">
-                        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                    </button>`;
-                div.appendChild(riga);
-            });
-        } catch (e) {
-            console.error("Errore caricamento:", e);
-            document.getElementById("contenitoreLista").innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-title">Errore di caricamento</div>
-                    <div class="empty-sub">Controlla la connessione e <a href="" style="color:var(--yellow);text-decoration:underline">ricarica</a></div>
-                </div>`;
-        }
+    const el = document.getElementById('listaValigie');
+    if (!valigie.length) {
+        el.innerHTML = `<div class="empty-msg">🧳 Nessuna valigia ancora<br><br>Crea la tua prima valigia!</div>`;
+        return;
     }
 
-    async function toggleStatus(id, stato) {
-        await fetch(`${URL_SUPA}?id=eq.${id}`, {
-            method: "PATCH", headers,
-            body: JSON.stringify({ completato: !stato })
-        });
-        caricaLista();
+    el.innerHTML = valigie.map(v => {
+        const vItems = items.filter(i => i.valigia_id == v.id);
+        const tot = vItems.length;
+        const fatti = vItems.filter(i => i.completato).length;
+        const pct = tot ? Math.round(fatti / tot * 100) : 0;
+        return `<div class="valigia-card" onclick="apriValigia(${v.id})">
+            <div class="valigia-emoji">${v.emoji || '🧳'}</div>
+            <div class="valigia-info">
+                <div class="valigia-nome">${v.nome}</div>
+                <div class="valigia-sub">${tot ? `${fatti}/${tot} oggetti messi` : 'Lista vuota'}</div>
+                ${tot ? `<div class="progress-wrap" style="margin-top:6px">
+                    <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${pct}%"></div></div>
+                </div>` : ''}
+            </div>
+            <button class="btn-del-valigia" onclick="event.stopPropagation(); eliminaValigia(${v.id})" title="Elimina valigia">
+                <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            </button>
+        </div>`;
+    }).join('');
+}
+
+async function apriValigia(id) {
+    valigiaCorrenteId = id;
+    const v = valigie.find(x => x.id === id);
+    document.getElementById('titoloValigia').textContent = `${v.emoji || '🧳'} ${v.nome}`;
+    document.getElementById('viewLista').style.display = 'none';
+    document.getElementById('viewValigia').style.display = '';
+    localStorage.setItem('valigiaAttivaId', id);
+    await caricaItems();
+}
+
+function tornaALista() {
+    valigiaCorrenteId = null;
+    document.getElementById('viewValigia').style.display = 'none';
+    document.getElementById('viewLista').style.display = '';
+    caricaValigie();
+}
+
+// ── View 2: Items ─────────────────────────────────────────────
+async function caricaItems() {
+    const items = await get(`/cose_valigia?email_utente=eq.${userEmail}&valigia_id=eq.${valigiaCorrenteId}&order=nome.asc`);
+
+    const tot = items.length;
+    const fatti = items.filter(i => i.completato).length;
+    const pct = tot ? Math.round(fatti / tot * 100) : 0;
+
+    document.getElementById('statsValigia').innerHTML =
+        `<span class="stat-chip">📦 ${tot} oggetti</span>` +
+        (tot ? `<span class="stat-chip">${fatti}/${tot} pronti</span>` : '');
+    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('progressWrap').style.display = tot ? '' : 'none';
+    document.getElementById('controlliValigia').style.display = tot ? 'flex' : 'none';
+
+    const el = document.getElementById('itemsValigia');
+    if (!items.length) {
+        el.innerHTML = `<div class="empty-msg">📦 Nessun oggetto ancora<br>Tocca + per aggiungere</div>`;
+        return;
     }
 
-    async function eliminaSingolo(id) {
-        await fetch(`${URL_SUPA}?id=eq.${id}`, { method: "DELETE", headers });
-        caricaLista();
-    }
+    el.innerHTML = items.map(i => `
+        <div class="item-row${i.completato ? ' done' : ''}" id="row-${i.id}">
+            <button class="btn-check${i.completato ? ' done' : ''}" onclick="toggleCheck(${i.id}, ${i.completato})">
+                <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+            </button>
+            <span class="item-nome${i.completato ? ' barrato' : ''}">${i.nome}</span>
+            <div class="qty-ctrl">
+                <button class="qty-btn" onclick="cambiaQty(${i.id}, ${i.quantita || 1}, -1)">−</button>
+                <span class="qty-num" id="qty-${i.id}">${i.quantita || 1}</span>
+                <button class="qty-btn" onclick="cambiaQty(${i.id}, ${i.quantita || 1}, +1)">+</button>
+            </div>
+            <button class="btn-del-item" onclick="eliminaItem(${i.id})">
+                <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>`).join('');
+}
 
-    async function eliminaMessi() {
-        if (confirm("Eliminare gli oggetti già messi in valigia?")) {
-            await fetch(`${URL_SUPA}?email_utente=eq.${userEmail}&completato=eq.true`, { method: "DELETE", headers });
-            caricaLista();
-        }
-    }
+async function toggleCheck(id, stato) {
+    await patch(`/cose_valigia?id=eq.${id}`, { completato: !stato });
+    caricaItems();
+}
 
-    async function ripristinaValigia() {
-        await fetch(`${URL_SUPA}?email_utente=eq.${userEmail}`, {
-            method: "PATCH", headers,
-            body: JSON.stringify({ completato: false })
-        });
-        caricaLista();
-    }
+async function cambiaQty(id, qta, delta) {
+    const nuova = Math.max(1, qta + delta);
+    document.getElementById('qty-' + id).textContent = nuova;
+    await patch(`/cose_valigia?id=eq.${id}`, { quantita: nuova });
+}
 
-    function apriModalSvuota() { document.getElementById('svuotaModal').style.display = 'flex'; }
-    function chiudiModal()     { document.getElementById('svuotaModal').style.display = 'none'; }
+async function eliminaItem(id) {
+    await del(`/cose_valigia?id=eq.${id}`);
+    caricaItems();
+}
 
-    async function confermaSvuota() {
-        await fetch(`${URL_SUPA}?email_utente=eq.${userEmail}`, { method: "DELETE", headers });
-        chiudiModal();
-        caricaLista();
-    }
+async function eliminaMessi() {
+    if (!confirm('Rimuovere gli oggetti già messi in valigia?')) return;
+    await del(`/cose_valigia?email_utente=eq.${userEmail}&valigia_id=eq.${valigiaCorrenteId}&completato=eq.true`);
+    caricaItems();
+}
 
-    function logout() { localStorage.clear(); window.location.href = 'login.html'; }
+async function ripristina() {
+    await patch(`/cose_valigia?email_utente=eq.${userEmail}&valigia_id=eq.${valigiaCorrenteId}`, { completato: false });
+    caricaItems();
+}
 
-    caricaLista();
+async function svuotaValigia() {
+    if (!confirm('Svuotare completamente questa valigia?')) return;
+    await del(`/cose_valigia?email_utente=eq.${userEmail}&valigia_id=eq.${valigiaCorrenteId}`);
+    caricaItems();
+}
 
-    document.addEventListener('visibilitychange', () => {
-        if (!document.hidden) caricaLista();
-    });
+function vaiAlCatalogo() {
+    location.href = `valigia_elencocose.html?vid=${valigiaCorrenteId}`;
+}
+
+// ── Modal: Nuova valigia ──────────────────────────────────────
+function setEmoji(e) {
+    emojiScelta = e;
+    document.querySelectorAll('.emoji-opt').forEach(b => b.classList.toggle('active', b.textContent === e));
+}
+
+function apriModalNuova() {
+    emojiScelta = '🧳';
+    document.getElementById('nomeNuovaValigia').value = '';
+    document.querySelectorAll('.emoji-opt').forEach((b, i) => b.classList.toggle('active', i === 0));
+    document.getElementById('modalNuova').classList.add('open');
+    setTimeout(() => document.getElementById('nomeNuovaValigia').focus(), 300);
+}
+
+async function salvaValigia() {
+    const nome = document.getElementById('nomeNuovaValigia').value.trim();
+    if (!nome) { toast('Inserisci il nome'); return; }
+    await post('/valigie', { email_utente: userEmail, nome, emoji: emojiScelta });
+    document.getElementById('modalNuova').classList.remove('open');
+    toast('✓ Valigia creata');
+    caricaValigie();
+}
+
+// ── Modal: Aggiungi oggetto ───────────────────────────────────
+function apriModalAggiungi() {
+    document.getElementById('nomeNuovoOggetto').value = '';
+    document.getElementById('qtaNuovoOggetto').value = '1';
+    document.getElementById('modalAggiungi').classList.add('open');
+    setTimeout(() => document.getElementById('nomeNuovoOggetto').focus(), 300);
+}
+
+async function salvaOggetto() {
+    const nome = document.getElementById('nomeNuovoOggetto').value.trim();
+    if (!nome) { toast('Inserisci il nome'); return; }
+    const qta = parseInt(document.getElementById('qtaNuovoOggetto').value) || 1;
+    await post('/cose_valigia', { email_utente: userEmail, nome, quantita: qta, completato: false, valigia_id: valigiaCorrenteId });
+    document.getElementById('modalAggiungi').classList.remove('open');
+    caricaItems();
+}
+
+// ── Elimina valigia ───────────────────────────────────────────
+async function eliminaValigia(id) {
+    const v = valigie.find(x => x.id === id);
+    if (!confirm(`Eliminare la valigia "${v.nome}" e tutti i suoi oggetti?`)) return;
+    await del(`/cose_valigia?email_utente=eq.${userEmail}&valigia_id=eq.${id}`);
+    await del(`/valigie?id=eq.${id}`);
+    toast('Valigia eliminata');
+    caricaValigie();
+}
+
+// ── Close modals on backdrop click ───────────────────────────
+document.querySelectorAll('.modal-overlay').forEach(m => {
+    m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+});
+
+let toastTimer;
+function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+caricaValigie();
 </script>
 </body>
 </html>

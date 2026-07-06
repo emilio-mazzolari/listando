@@ -393,6 +393,9 @@
     const userEmail = localStorage.getItem('userEmail');
     if (!userEmail) window.location.href = 'login.html';
 
+    const urlParams = new URLSearchParams(window.location.search);
+    const valigiaId = urlParams.get('vid') || null;
+
     const DATI_DEFAULT = {
         "Abbigliamento": ["t-shirt", "stivali per pioggia", "spazzola scarpe", "sciarpa", "scarpe trakking", "scarpe da ballo", "scarpe", "poncho", "pigiama", "pantaloni", "pantaloncini", "pail", "mutande", "monospalla", "maglioni", "giubbino catarifrangente", "giaccone", "giacca a vento", "felpe", "detergente scarpe", "costume", "cinture", "ciabatte", "cappello", "camicie", "calze antiscivolo", "calze", "bretelle"],
         "Igiene": ["accappatoio", "asciugamano", "bagnodoccia", "carta igienica", "cera", "cerotti", "cotton fioc", "dentifricio", "deodorante", "disinfettante mani", "fazzolettini", "filo interdentale", "mascherina", "pettine", "preservativi", "rasoio", "salviette", "salviette umide", "sapone marsiglia", "spazzolino"],
@@ -477,10 +480,9 @@
         btn.disabled = true;
 
         try {
-            const res = await fetch(
-                `${URL_SUPA}/cose_valigia?nome=eq.${encodeURIComponent(nome)}&email_utente=eq.${userEmail}`,
-                { headers: headersRead }
-            );
+            let checkUrl = `${URL_SUPA}/cose_valigia?nome=eq.${encodeURIComponent(nome)}&email_utente=eq.${userEmail}`;
+            if (valigiaId) checkUrl += `&valigia_id=eq.${valigiaId}`;
+            const res = await fetch(checkUrl, { headers: headersRead });
             const esistente = await res.json();
 
             if (esistente.length > 0) {
@@ -488,10 +490,12 @@
                 return;
             }
 
+            const body = { nome, email_utente: userEmail, completato: false };
+            if (valigiaId) body.valigia_id = parseInt(valigiaId);
             const add = await fetch(`${URL_SUPA}/cose_valigia`, {
                 method: "POST",
                 headers,
-                body: JSON.stringify({ nome, email_utente: userEmail, completato: false })
+                body: JSON.stringify(body)
             });
 
             if (add.ok || add.status === 201 || add.status === 204) {
