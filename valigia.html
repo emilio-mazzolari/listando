@@ -105,11 +105,13 @@
         .btn-save-modal { width: 100%; padding: 15px; border-radius: 16px; border: none; background: var(--accent); color: white; font-weight: 900; font-size: 16px; cursor: pointer; }
 
         /* ── Tab Bar ── */
-        .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 70px; background: white; display: flex; justify-content: space-around; align-items: center; border-top: 2px solid var(--grey-light); padding-bottom: env(safe-area-inset-bottom); z-index: 100; }
-        .tab-item { flex: 1; text-align: center; font-size: 11px; color: var(--dark); text-decoration: none; font-weight: 800; display: flex; flex-direction: column; align-items: center; gap: 4px; }
-        .icon-tab { width: 24px; height: 24px; stroke-width: 2.5px; stroke: var(--dark); fill: none; }
+        .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 88px; background: white; display: flex; justify-content: space-around; align-items: center; border-top: 3px solid var(--grey); padding-bottom: env(safe-area-inset-bottom, 0); z-index: 1000; }
+        .tab-item { flex: 1; text-align: center; font-size: 10px; color: #aaa; text-decoration: none; font-weight: 800; display: flex; flex-direction: column; align-items: center; gap: 5px; text-transform: uppercase; letter-spacing: 0.3px; transition: color 0.15s; }
+        .tab-active { color: var(--accent); }
+        .tab-item.esci { color: var(--red); }
+        .icon-tab { width: 24px; height: 24px; stroke-width: 2.5; stroke: currentColor; fill: none; }
 
-        .toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--dark); color: white; padding: 12px 20px; border-radius: 14px; font-weight: 700; font-size: 14px; opacity: 0; transition: all 0.25s; white-space: nowrap; z-index: 999; pointer-events: none; }
+        .toast { position: fixed; bottom: 105px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--dark); color: white; padding: 12px 20px; border-radius: 14px; font-weight: 700; font-size: 14px; opacity: 0; transition: all 0.25s; white-space: nowrap; z-index: 999; pointer-events: none; }
         .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
     </style>
 </head>
@@ -180,16 +182,24 @@
     </div>
 </div>
 
-<div class="tab-bar">
+<nav class="tab-bar">
     <a href="index.html" class="tab-item">
-        <svg class="icon-tab" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 15 22"/></svg>
-        HOME
+        <svg class="icon-tab" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+        Home
+    </a>
+    <a href="valigia.html" class="tab-item tab-active">
+        <svg class="icon-tab" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+        Valigia
     </a>
     <a href="valigia_elencocose.html" class="tab-item">
         <svg class="icon-tab" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-        CATALOGO
+        Cose
     </a>
-</div>
+    <a href="#" class="tab-item esci" onclick="logout()">
+        <svg class="icon-tab" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Esci
+    </a>
+</nav>
 
 <div class="toast" id="toast"></div>
 
@@ -220,36 +230,47 @@ async function del(path) {
     await fetch(`${URL}${path}`, { method: 'DELETE', headers: H });
 }
 
+function logout() { localStorage.clear(); location.href = 'login.html'; }
+
 // ── View 1: Lista valigie ─────────────────────────────────────
 async function caricaValigie() {
-    valigie = await get(`/valigie?email_utente=eq.${userEmail}&order=created_at.asc`);
-    const items = await get(`/cose_valigia?email_utente=eq.${userEmail}`);
-
     const el = document.getElementById('listaValigie');
-    if (!valigie.length) {
-        el.innerHTML = `<div class="empty-msg">🧳 Nessuna valigia ancora<br><br>Crea la tua prima valigia!</div>`;
-        return;
-    }
+    try {
+        const resV = await fetch(`${URL}/valigie?email_utente=eq.${userEmail}&order=created_at.asc`, { headers: HR });
+        if (!resV.ok) {
+            el.innerHTML = `<div class="empty-msg" style="color:#eb445a">Configurazione mancante.<br><small style="font-weight:600;color:#aaa">Esegui il setup SQL in Supabase per attivare la sezione.</small></div>`;
+            return;
+        }
+        valigie = await resV.json();
+        const items = await get(`/cose_valigia?email_utente=eq.${userEmail}`);
 
-    el.innerHTML = valigie.map(v => {
-        const vItems = items.filter(i => i.valigia_id == v.id);
-        const tot = vItems.length;
-        const fatti = vItems.filter(i => i.completato).length;
-        const pct = tot ? Math.round(fatti / tot * 100) : 0;
-        return `<div class="valigia-card" onclick="apriValigia(${v.id})">
-            <div class="valigia-emoji">${v.emoji || '🧳'}</div>
-            <div class="valigia-info">
-                <div class="valigia-nome">${v.nome}</div>
-                <div class="valigia-sub">${tot ? `${fatti}/${tot} oggetti messi` : 'Lista vuota'}</div>
-                ${tot ? `<div class="progress-wrap" style="margin-top:6px">
-                    <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${pct}%"></div></div>
-                </div>` : ''}
-            </div>
-            <button class="btn-del-valigia" onclick="event.stopPropagation(); eliminaValigia(${v.id})" title="Elimina valigia">
-                <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-            </button>
-        </div>`;
-    }).join('');
+        if (!valigie.length) {
+            el.innerHTML = `<div class="empty-msg">Nessuna valigia ancora.<br><small style="font-weight:600;color:#aaa">Tocca + per crearne una.</small></div>`;
+            return;
+        }
+
+        el.innerHTML = valigie.map(v => {
+            const vItems = items.filter(i => i.valigia_id == v.id);
+            const tot = vItems.length;
+            const fatti = vItems.filter(i => i.completato).length;
+            const pct = tot ? Math.round(fatti / tot * 100) : 0;
+            return `<div class="valigia-card" onclick="apriValigia(${v.id})">
+                <div class="valigia-emoji">${v.emoji || '🧳'}</div>
+                <div class="valigia-info">
+                    <div class="valigia-nome">${v.nome}</div>
+                    <div class="valigia-sub">${tot ? `${fatti}/${tot} oggetti messi` : 'Lista vuota'}</div>
+                    ${tot ? `<div class="progress-wrap" style="margin-top:6px">
+                        <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${pct}%"></div></div>
+                    </div>` : ''}
+                </div>
+                <button class="btn-del-valigia" onclick="event.stopPropagation(); eliminaValigia(${v.id})" title="Elimina valigia">
+                    <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                </button>
+            </div>`;
+        }).join('');
+    } catch(e) {
+        el.innerHTML = `<div class="empty-msg" style="color:#eb445a">Errore di caricamento.<br><a href="" style="color:var(--accent)">Riprova</a></div>`;
+    }
 }
 
 async function apriValigia(id) {
