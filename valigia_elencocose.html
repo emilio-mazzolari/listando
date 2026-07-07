@@ -342,6 +342,12 @@
 <div class="app">
     <h2 class="page-title">Le mie cose</h2>
 
+    <div class="input-card" style="margin-bottom:12px">
+        <div class="input-row">
+            <input type="text" id="ricerca" placeholder="🔍  Cerca in tutte le categorie…" oninput="filtraRicerca(this.value)" autocomplete="off">
+        </div>
+    </div>
+
     <div class="input-card">
         <div class="input-row">
             <input type="text" id="nuovaCategoria" placeholder="Nuova categoria..."
@@ -481,12 +487,17 @@
 
         try {
             let checkUrl = `${URL_SUPA}/cose_valigia?nome=eq.${encodeURIComponent(nome)}&email_utente=eq.${userEmail}`;
-            if (valigiaId) checkUrl += `&valigia_id=eq.${valigiaId}`;
+            if (valigiaId) {
+                checkUrl += `&valigia_id=eq.${valigiaId}`;
+            } else {
+                checkUrl += `&valigia_id=is.null`;
+            }
             const res = await fetch(checkUrl, { headers: headersRead });
             const esistente = await res.json();
 
             if (esistente.length > 0) {
-                mostraFeedbackBottone(btn, "GIÀ IN LISTA", "var(--grey)", "var(--dark)");
+                mostraFeedbackBottone(btn, "✓", "var(--grey)", "var(--dark)");
+                mostraToast("Già aggiunto alla valigia");
                 return;
             }
 
@@ -586,6 +597,19 @@
     }
 
     function logout() { localStorage.clear(); window.location.href = 'login.html'; }
+
+    function filtraRicerca(q) {
+        const t = q.toLowerCase().trim();
+        document.querySelectorAll('.card').forEach(card => {
+            let visibili = 0;
+            card.querySelectorAll('.item').forEach(item => {
+                const match = !t || item.querySelector('.testo-prodotto').textContent.toLowerCase().includes(t);
+                item.style.display = match ? '' : 'none';
+                if (match) visibili++;
+            });
+            card.style.display = (!t || visibili > 0) ? '' : 'none';
+        });
+    }
 
     caricaDati();
 
