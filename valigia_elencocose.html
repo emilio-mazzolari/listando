@@ -368,11 +368,11 @@ let catSelezionata = null; // { id, nome, isDefault }
 async function caricaDati() {
     try {
         const resCat = await fetch(`${URL_SUPA}/categorie_valigia?email_utente=eq.${userEmail}&order=nome.asc`, { headers: HR });
-        const dbCat = await resCat.json();
+        const dbCat = resCat.ok ? await resCat.json() : [];
         const resArt = await fetch(`${URL_SUPA}/catalogo_valigia?email_utente=eq.${userEmail}&order=nome.asc`, { headers: HR });
-        articoli = await resArt.json();
+        articoli = resArt.ok ? await resArt.json() : [];
 
-        if (dbCat.length === 0) {
+        if (!Array.isArray(dbCat) || dbCat.length === 0) {
             usoDefault = true;
             categorie = Object.keys(DATI_DEFAULT).map(n => ({ id: n, nome: n, isDefault: true }));
         } else {
