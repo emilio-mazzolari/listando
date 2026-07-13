@@ -1,4 +1,4 @@
-const CACHE_NAME = "lista-spesa-cache-v4";
+const CACHE_NAME = "lista-spesa-cache-v5";
 
 const FILES = [
   "/",
