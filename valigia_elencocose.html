@@ -19,11 +19,9 @@
         }
 
         * { box-sizing: border-box; }
-
-        html, body { overflow-x: hidden; max-width: 100%; }
+        html, body { overflow-x: hidden; max-width: 100%; margin: 0; }
 
         body {
-            margin: 0;
             font-family: 'Segoe UI', system-ui, sans-serif;
             background: var(--bg);
             color: var(--dark);
@@ -35,6 +33,8 @@
             width: 100%;
             max-width: 420px;
             padding: 24px 20px 120px;
+            padding-left: max(20px, env(safe-area-inset-left, 20px));
+            padding-right: max(20px, env(safe-area-inset-right, 20px));
         }
 
         .page-title {
@@ -45,16 +45,74 @@
             margin: 0 0 20px 0;
         }
 
-        /* ── Input categoria ── */
+        /* ── Category pills ── */
+        .cat-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .cat-pill {
+            padding: 15px 10px;
+            border-radius: 18px;
+            border: 2.5px solid var(--grey);
+            background: var(--white);
+            font-weight: 800;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.15s;
+            color: var(--dark);
+            box-shadow: var(--shadow);
+            position: relative;
+            font-family: inherit;
+        }
+        .cat-pill.active {
+            background: var(--blue);
+            border-color: var(--blue);
+            color: white;
+        }
+        .cat-pill:active { transform: scale(0.97); }
+        .cat-pill .del-cat {
+            position: absolute;
+            top: 4px; right: 6px;
+            font-size: 14px;
+            line-height: 1;
+            color: inherit;
+            opacity: 0.5;
+            background: none;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .cat-pill.active .del-cat { opacity: 0.7; }
+        .cat-pill.add-pill {
+            border-style: dashed;
+            color: #999;
+            font-size: 20px;
+            font-weight: 900;
+        }
+        .cat-pill.add-pill:active { background: var(--grey-light); }
+
+        /* ── Input + search card ── */
         .input-card {
             background: var(--white);
-            padding: 16px;
+            padding: 14px;
             border-radius: 24px;
             border: 3px solid var(--grey);
             margin-bottom: 16px;
             box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
         }
+
         .input-row { display: flex; gap: 10px; align-items: center; }
+
         .input-card input {
             flex: 1;
             min-width: 0;
@@ -71,101 +129,55 @@
         }
         .input-card input:focus { border-color: var(--yellow); }
 
-        .btn-save {
-            flex-shrink: 0;
-            padding: 12px 18px;
-            border-radius: 14px;
-            background: var(--yellow);
-            color: white;
-            border: none;
-            font-weight: 800;
-            font-size: 13px;
-            cursor: pointer;
-            text-transform: uppercase;
-            white-space: nowrap;
-            font-family: inherit;
-            transition: opacity 0.15s;
-        }
-        .btn-save:active { opacity: 0.85; }
-
-        /* ── Card categoria ── */
-        .card {
-            background: var(--white);
-            border-radius: 28px;
-            border: 3px solid var(--grey);
-            overflow: hidden;
-            box-shadow: var(--shadow);
-            margin-bottom: 16px;
-        }
-
-        .card-cat-header {
-            padding: 14px 20px 12px;
-            border-bottom: 2px solid var(--grey-light);
+        .input-search {
             display: flex;
-            justify-content: space-between;
             align-items: center;
-        }
-        .cat-title {
-            font-weight: 900;
-            font-size: 12px;
-            color: var(--yellow);
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-        }
-        .btn-del-cat {
-            color: var(--red);
-            cursor: pointer;
-            font-size: 20px;
-            line-height: 1;
-            background: none;
-            border: none;
-            padding: 0;
-            font-family: inherit;
-        }
-
-        .card-add-row {
-            display: flex;
-            gap: 8px;
-            padding: 10px 16px;
-            border-bottom: 2px solid var(--grey-light);
-        }
-        .card-add-row input {
-            flex: 1;
-            min-width: 0;
-            padding: 10px 14px;
-            border-radius: 12px;
-            border: 2px solid var(--grey);
-            outline: none;
-            font-size: 14px;
-            font-weight: 600;
-            font-family: inherit;
-            color: var(--dark);
+            gap: 10px;
+            padding: 12px 16px;
+            border-radius: 14px;
+            border: 2.5px solid var(--grey);
             background: var(--bg);
             transition: border-color 0.2s;
         }
-        .card-add-row input:focus { border-color: var(--yellow); }
-        .btn-add-row {
+        .input-search:focus-within { border-color: var(--yellow); }
+        .input-search svg { width: 16px; height: 16px; stroke: #bbb; fill: none; stroke-width: 2.5; flex-shrink: 0; }
+        .input-search input {
+            flex: 1; border: none; background: transparent;
+            outline: none; font-size: 15px; font-weight: 600;
+            font-family: inherit; color: var(--dark); padding: 0;
+        }
+
+        .btn-aggiungi {
             flex-shrink: 0;
-            padding: 10px 14px;
-            border-radius: 12px;
-            background: var(--yellow);
+            padding: 12px 18px;
+            border-radius: 14px;
+            background: var(--green);
             color: white;
             border: none;
             font-weight: 800;
             font-size: 13px;
             cursor: pointer;
+            text-transform: uppercase;
             white-space: nowrap;
             font-family: inherit;
             transition: opacity 0.15s;
         }
-        .btn-add-row:active { opacity: 0.85; }
+        .btn-aggiungi:active { opacity: 0.85; }
 
-        /* ── Righe articolo ── */
+        /* ── Items list ── */
+        .items-card {
+            background: var(--white);
+            border-radius: 24px;
+            border: 3px solid var(--grey);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+
         .item {
             display: flex;
             align-items: center;
             gap: 10px;
-            padding: 13px 20px;
+            padding: 14px 18px;
             border-bottom: 2px solid var(--grey-light);
         }
         .item:last-child { border-bottom: none; }
@@ -177,7 +189,7 @@
             line-height: 1.3;
         }
 
-        .btn-actions { display: flex; gap: 7px; }
+        .btn-actions { display: flex; gap: 8px; }
 
         .btn-ic {
             width: 44px; height: 44px;
@@ -192,12 +204,18 @@
         }
         .btn-ic:active { transform: scale(0.9); }
         .btn-ic svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 2.5; }
-
         .btn-ic.add { border-color: var(--yellow); color: var(--yellow); font-size: 22px; font-weight: 900; line-height: 1; }
-        .btn-ic.del { border-color: var(--red);    color: var(--red);    }
-
+        .btn-ic.del { border-color: var(--red); color: var(--red); }
         .btn-ic.add:active { background: #fff8e6; }
         .btn-ic.del:active { background: #fff0f0; }
+
+        .empty-cat {
+            text-align: center;
+            padding: 40px 20px;
+            color: #bbb;
+            font-weight: 700;
+            font-size: 14px;
+        }
 
         /* ── Toast ── */
         .toast {
@@ -210,7 +228,6 @@
             transition: all 0.3s ease;
             z-index: 3000;
             max-width: calc(100vw - 40px);
-            white-space: normal;
             text-align: center;
         }
         .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
@@ -241,99 +258,37 @@
         .tab-active { color: var(--yellow); }
         .icon-tab { width: 24px; height: 24px; stroke-width: 2.5; stroke: currentColor; fill: none; }
 
-        /* ── Safe areas ── */
-        .app {
-            padding-left: max(20px, env(safe-area-inset-left, 20px));
-            padding-right: max(20px, env(safe-area-inset-right, 20px));
-        }
+        @media (min-width: 600px) { .app { max-width: 640px; } }
+        @media (min-width: 768px) { .app { max-width: 760px; } }
 
-        /* ── Focus styles ── */
-        button:focus-visible, a:focus-visible {
-            outline: 3px solid var(--blue);
-            outline-offset: 2px;
-        }
-
-        /* ── Tablet portrait (≥600px) ── */
-        @media (min-width: 600px) {
-            .app { max-width: 640px; padding-left: 28px; padding-right: 28px; }
-        }
-
-        /* ── iPad / tablet landscape (≥768px) ── */
-        @media (min-width: 768px) {
-            .app { max-width: 760px; padding-left: 36px; padding-right: 36px; }
-        }
-
-        /* ── Desktop (≥1024px): sidebar navigation ── */
         @media (min-width: 1024px) {
             body { display: block; }
-
-            .app {
-                margin-left: 240px;
-                max-width: 900px;
-                padding: 48px 56px 60px;
-            }
-
+            .app { margin-left: 240px; max-width: 900px; padding: 48px 56px 60px; }
             .tab-bar {
-                top: 0; bottom: 0; right: auto;
-                width: 240px;
-                height: 100vh;
-                flex-direction: column;
-                justify-content: flex-start;
-                align-items: stretch;
-                border-top: none;
-                border-right: 3px solid var(--grey);
-                padding: 28px 12px 24px;
-                overflow-y: auto;
+                top: 0; bottom: 0; right: auto; width: 240px; height: 100vh;
+                flex-direction: column; justify-content: flex-start; align-items: stretch;
+                border-top: none; border-right: 3px solid var(--grey);
+                padding: 28px 12px 24px; overflow-y: auto;
             }
-
             .tab-bar::before {
-                content: "LISTANDO";
-                display: block;
-                font-weight: 900;
-                font-size: 20px;
-                letter-spacing: -0.8px;
-                color: var(--green);
-                padding: 0 8px 28px;
+                content: "LISTANDO"; display: block; font-weight: 900; font-size: 20px;
+                letter-spacing: -0.8px; color: var(--green); padding: 0 8px 28px;
                 font-family: 'Segoe UI', system-ui, sans-serif;
             }
-
             .tab-item {
-                flex: none;
-                flex-direction: row;
-                justify-content: flex-start;
-                padding: 13px 16px;
-                font-size: 13px;
-                gap: 12px;
-                text-align: left;
-                border-radius: 14px;
-                letter-spacing: 0;
-                min-height: 44px;
-                margin-bottom: 2px;
+                flex: none; flex-direction: row; justify-content: flex-start;
+                padding: 13px 16px; font-size: 13px; gap: 12px; text-align: left;
+                border-radius: 14px; letter-spacing: 0; min-height: 44px; margin-bottom: 2px;
             }
-
-            .tab-active { background: rgba(254, 179, 16, 0.1); }
-
+            .tab-active { background: rgba(254,179,16,0.1); }
             .icon-tab { width: 20px; height: 20px; flex-shrink: 0; }
-
-            .modal-overlay { align-items: center; padding-bottom: 0; }
-            .modal-box { border-radius: 28px; }
         }
-
-        /* ── Wide desktop (≥1280px) ── */
-        @media (min-width: 1280px) {
-            .tab-bar { width: 260px; }
-            .app { margin-left: 260px; max-width: 940px; }
-        }
-
-        /* ── Small mobile overflow fix (≤400px) ── */
+        @media (min-width: 1280px) { .tab-bar { width: 260px; } .app { margin-left: 260px; max-width: 940px; } }
         @media (max-width: 400px) {
-            .item { padding: 12px 14px; }
-            .testo-prodotto { word-break: break-word; min-width: 0; }
-            /* stack input + button vertically */
+            .cat-grid { gap: 8px; }
+            .cat-pill { padding: 12px 8px; font-size: 11px; }
             .input-row { flex-direction: column; align-items: stretch; }
-            .btn-save { width: 100%; text-align: center; }
-            .card-add-row { flex-direction: column; align-items: stretch; padding: 10px 12px; }
-            .btn-add-row { width: 100%; text-align: center; }
+            .btn-aggiungi { width: 100%; text-align: center; }
         }
     </style>
 </head>
@@ -342,28 +297,27 @@
 <div class="app">
     <h2 class="page-title">Le mie cose</h2>
 
-    <div class="input-card" style="margin-bottom:12px">
-        <div class="input-row">
-            <input type="text" id="ricerca" placeholder="🔍  Cerca in tutte le categorie…" oninput="filtraRicerca(this.value)" autocomplete="off">
-        </div>
+    <div class="cat-grid" id="catGrid">
+        <div style="text-align:center;padding:20px;color:#aaa;font-weight:700;grid-column:span 2">Caricamento…</div>
     </div>
 
     <div class="input-card">
         <div class="input-row">
-            <input type="text" id="nuovaCategoria" placeholder="Nuova categoria..."
-                   onkeydown="if(event.key==='Enter') creaCategoria()">
-            <button class="btn-save" onclick="creaCategoria()">+ Categoria</button>
+            <input type="text" id="nuovaCosa" placeholder="Aggiungi cosa…"
+                   onkeydown="if(event.key==='Enter') aggiungiArticolo()">
+            <button class="btn-aggiungi" onclick="aggiungiArticolo()">+ Aggiungi</button>
+        </div>
+        <div class="input-search">
+            <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="ricerca" placeholder="Cerca…" oninput="renderItems()" autocomplete="off">
         </div>
     </div>
 
-    <div id="contenitoreMaster">
-        <div style="text-align:center; padding:40px 20px; color:#aaa; font-weight:700;">Caricamento…</div>
-    </div>
+    <div class="items-card" id="itemsList"></div>
 </div>
 
 <div class="toast" id="toast"></div>
 
-<!-- Tab Bar -->
 <nav class="tab-bar">
     <a href="index.html" class="tab-item">
         <svg class="icon-tab" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
@@ -378,244 +332,224 @@
         Cose
     </a>
     <a href="#" class="tab-item" onclick="logout()">
-        <svg class="icon-tab" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/></svg>
+        <svg class="icon-tab" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         Esci
     </a>
 </nav>
 
 <script>
-    const URL_SUPA = "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1";
-    const KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlamRwb3BoZnhzcnFkdnN1Y3llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2NTMzMDQsImV4cCI6MjA5MzIyOTMwNH0.mpxbwlJyIdZgqKIdutHbLd85JR1P11yiglbYeApi17k";
-    const headers = {
-        "apikey": KEY,
-        "Content-Type": "application/json",
-        "Authorization": "Bearer " + KEY,
-        "Prefer": "return=minimal"
-    };
-    const headersRead = {
-        "apikey": KEY,
-        "Authorization": "Bearer " + KEY
-    };
-    const userEmail = localStorage.getItem('userEmail');
-    if (!userEmail) window.location.href = 'login.html';
+const URL_SUPA = "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1";
+const KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlamRwb3BoZnhzcnFkdnN1Y3llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2NTMzMDQsImV4cCI6MjA5MzIyOTMwNH0.mpxbwlJyIdZgqKIdutHbLd85JR1P11yiglbYeApi17k";
+const H  = { "apikey": KEY, "Content-Type": "application/json", "Authorization": "Bearer " + KEY, "Prefer": "return=minimal" };
+const HR = { "apikey": KEY, "Authorization": "Bearer " + KEY };
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const valigiaId = urlParams.get('vid') || null;
+const userEmail = localStorage.getItem('userEmail');
+if (!userEmail) window.location.href = 'login.html';
 
-    const DATI_DEFAULT = {
-        "Abbigliamento": ["t-shirt", "stivali per pioggia", "spazzola scarpe", "sciarpa", "scarpe trakking", "scarpe da ballo", "scarpe", "poncho", "pigiama", "pantaloni", "pantaloncini", "pail", "mutande", "monospalla", "maglioni", "giubbino catarifrangente", "giaccone", "giacca a vento", "felpe", "detergente scarpe", "costume", "cinture", "ciabatte", "cappello", "camicie", "calze antiscivolo", "calze", "bretelle"],
-        "Igiene": ["accappatoio", "asciugamano", "bagnodoccia", "carta igienica", "cera", "cerotti", "cotton fioc", "dentifricio", "deodorante", "disinfettante mani", "fazzolettini", "filo interdentale", "mascherina", "pettine", "preservativi", "rasoio", "salviette", "salviette umide", "sapone marsiglia", "spazzolino"],
-        "Campeggio": ["antizanzare", "borraccia", "cuscino", "federa", "forbici", "lenzuolo", "materassino", "pile", "plaid", "pompetta", "sacchi spazzatura", "sacco a pelo", "scatola plastica", "scopettino tenda", "telo", "tenda", "torcia"],
-        "Cucina": ["accendino", "bicchieri", "bombola", "colino", "detersivo", "fornellino", "moka", "pentola", "piatti", "posate", "spugnetta", "vaschetta"],
-        "Extra": ["arnica", "auricolari", "caricabatterie", "carta identità", "carta imbarco", "cavigliera", "cellulare", "chiavi di casa", "coltellino svizzero", "comped", "cuffie audio", "cuscino aereo", "custodia occhiali", "guaranà", "ketoprofene", "kit contenitori x aereo", "lasonil", "lenti contatto", "libri", "magnesio potassio", "ombrello", "portafoglio", "powerbank", "prenotazione hotel", "prenotazione parcheggio", "quaderno", "sveglia", "tenda cambusa", "zainetto"],
-        "Mare": ["calotta", "costume", "crema solare", "salviettone"],
-        "Cibo": ["biscotti", "caffè", "frutta", "latte", "marmellata", "muesli", "olio", "pane", "pasta", "sale", "sughi", "zucchero"]
-    };
+const urlParams = new URLSearchParams(window.location.search);
+const valigiaId = urlParams.get('vid') || null;
 
-    async function caricaDati() {
-        try {
-            const resCat = await fetch(`${URL_SUPA}/categorie_valigia?email_utente=eq.${userEmail}&order=nome.asc`, { headers: headersRead });
-            const categorie = await resCat.json();
-            const resArt = await fetch(`${URL_SUPA}/catalogo_valigia?email_utente=eq.${userEmail}&order=nome.asc`, { headers: headersRead });
-            const articoli = await resArt.json();
+const DATI_DEFAULT = {
+    "Abbigliamento": ["t-shirt","stivali per pioggia","spazzola scarpe","sciarpa","scarpe trakking","scarpe da ballo","scarpe","poncho","pigiama","pantaloni","pantaloncini","pail","mutande","monospalla","maglioni","giubbino catarifrangente","giaccone","giacca a vento","felpe","detergente scarpe","costume","cinture","ciabatte","cappello","camicie","calze antiscivolo","calze","bretelle"],
+    "Igiene": ["accappatoio","asciugamano","bagnodoccia","carta igienica","cera","cerotti","cotton fioc","dentifricio","deodorante","disinfettante mani","fazzolettini","filo interdentale","mascherina","pettine","preservativi","rasoio","salviette","salviette umide","sapone marsiglia","spazzolino"],
+    "Campeggio": ["antizanzare","borraccia","cuscino","federa","forbici","lenzuolo","materassino","pile","plaid","pompetta","sacchi spazzatura","sacco a pelo","scatola plastica","scopettino tenda","telo","tenda","torcia"],
+    "Cucina": ["accendino","bicchieri","bombola","colino","detersivo","fornellino","moka","pentola","piatti","posate","spugnetta","vaschetta"],
+    "Extra": ["arnica","auricolari","caricabatterie","carta identità","carta imbarco","cavigliera","cellulare","chiavi di casa","coltellino svizzero","comped","cuffie audio","cuscino aereo","custodia occhiali","guaranà","ketoprofene","kit contenitori x aereo","lasonil","lenti contatto","libri","magnesio potassio","ombrello","portafoglio","powerbank","prenotazione hotel","prenotazione parcheggio","quaderno","sveglia","tenda cambusa","zainetto"],
+    "Mare": ["calotta","costume","crema solare","salviettone"],
+    "Cibo": ["biscotti","caffè","frutta","latte","marmellata","muesli","olio","pane","pasta","sale","sughi","zucchero"]
+};
 
-            if (categorie.length === 0) {
-                renderizzaDati(Object.keys(DATI_DEFAULT).map(n => ({ nome: n, id: n, isDefault: true })), []);
-            } else {
-                renderizzaDati(categorie, articoli);
-            }
-        } catch (e) {
-            console.error(e);
-            document.getElementById("contenitoreMaster").innerHTML =
-                `<div style="text-align:center;padding:40px 20px;color:#eb445a;font-weight:700;">
-                    Errore di caricamento — <a href="" style="color:var(--yellow);text-decoration:underline">Riprova</a>
-                </div>`;
+let categorie = [];
+let articoli = [];
+let usoDefault = false;
+let catSelezionata = null; // { id, nome, isDefault }
+
+async function caricaDati() {
+    try {
+        const resCat = await fetch(`${URL_SUPA}/categorie_valigia?email_utente=eq.${userEmail}&order=nome.asc`, { headers: HR });
+        const dbCat = await resCat.json();
+        const resArt = await fetch(`${URL_SUPA}/catalogo_valigia?email_utente=eq.${userEmail}&order=nome.asc`, { headers: HR });
+        articoli = await resArt.json();
+
+        if (dbCat.length === 0) {
+            usoDefault = true;
+            categorie = Object.keys(DATI_DEFAULT).map(n => ({ id: n, nome: n, isDefault: true }));
+        } else {
+            usoDefault = false;
+            categorie = dbCat;
         }
-    }
 
-    function renderizzaDati(categorie, articoli) {
-        const master = document.getElementById("contenitoreMaster");
-        master.innerHTML = "";
-
-        categorie.forEach(cat => {
-            const card = document.createElement("div");
-            card.className = "card";
-
-            card.innerHTML = `
-                <div class="card-cat-header">
-                    <span class="cat-title">${cat.nome}</span>
-                    ${!cat.isDefault ? `<button class="btn-del-cat" onclick="eliminaCategoria(${cat.id})" aria-label="Elimina categoria">×</button>` : ''}
-                </div>
-                <div class="card-add-row">
-                    <input type="text" id="input-cat-${cat.id}" placeholder="Aggiungi cosa..."
-                           onkeydown="if(event.key==='Enter') aggiungiArticolo('${cat.id}', ${cat.isDefault || false})">
-                    <button class="btn-add-row" onclick="aggiungiArticolo('${cat.id}', ${cat.isDefault || false})">+ Aggiungi</button>
-                </div>
-                <div id="lista-${cat.id}"></div>
-            `;
-
-            const listDiv = card.querySelector(`#lista-${cat.id}`);
-            const prods = cat.isDefault ? DATI_DEFAULT[cat.nome] : articoli.filter(a => a.categoria_id == cat.id);
-
-            prods.forEach(p => {
-                const nomeProdotto = cat.isDefault ? p : p.nome;
-                const idProdotto = cat.isDefault ? `def-${nomeProdotto.replace(/\s+/g, '')}` : p.id;
-
-                const item = document.createElement("div");
-                item.className = "item";
-                item.innerHTML = `
-                    <span class="testo-prodotto">${nomeProdotto}</span>
-                    <div class="btn-actions">
-                        <button class="btn-ic add" id="btn-${idProdotto}"
-                                onclick="mettiInValigia('${idProdotto}', '${nomeProdotto.replace(/'/g, "\\'")}')"
-                                aria-label="Aggiungi alla valigia">+</button>
-                        ${!cat.isDefault ? `
-                        <button class="btn-ic del" onclick="eliminaArticolo(${p.id})" aria-label="Elimina">
-                            <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                        </button>` : ''}
-                    </div>`;
-                listDiv.appendChild(item);
-            });
-
-            master.appendChild(card);
-        });
-    }
-
-    async function mettiInValigia(btnId, nome) {
-        const btn = document.getElementById(`btn-${btnId}`);
-        btn.disabled = true;
-
-        try {
-            let checkUrl = `${URL_SUPA}/cose_valigia?nome=eq.${encodeURIComponent(nome)}&email_utente=eq.${userEmail}`;
-            if (valigiaId) {
-                checkUrl += `&valigia_id=eq.${valigiaId}`;
-            } else {
-                checkUrl += `&valigia_id=is.null`;
-            }
-            const res = await fetch(checkUrl, { headers: headersRead });
-            const esistente = await res.json();
-
-            if (esistente.length > 0) {
-                mostraFeedbackBottone(btn, "✓", "var(--grey)", "var(--dark)");
-                mostraToast("Già aggiunto alla valigia");
-                return;
-            }
-
-            const body = { nome, email_utente: userEmail, completato: false };
-            if (valigiaId) body.valigia_id = parseInt(valigiaId);
-            const add = await fetch(`${URL_SUPA}/cose_valigia`, {
-                method: "POST",
-                headers,
-                body: JSON.stringify(body)
-            });
-
-            if (add.ok || add.status === 201 || add.status === 204) {
-                mostraFeedbackBottone(btn, "✓", "var(--yellow)", "white");
-                mostraToast("✓ Aggiunto alla valigia!");
-            } else {
-                btn.disabled = false;
-                mostraToast("Errore nell'aggiunta");
-            }
-        } catch (e) {
-            console.error("mettiInValigia:", e);
-            btn.disabled = false;
-            mostraToast("Errore di rete");
+        if (!catSelezionata || !categorie.find(c => c.id == catSelezionata.id)) {
+            catSelezionata = categorie[0] || null;
         }
+
+        renderPills();
+        renderItems();
+    } catch(e) {
+        document.getElementById('itemsList').innerHTML =
+            `<div class="empty-cat" style="color:#eb445a">Errore — <a href="" style="color:var(--yellow)">Riprova</a></div>`;
+    }
+}
+
+function renderPills() {
+    const grid = document.getElementById('catGrid');
+    grid.innerHTML = categorie.map(cat => `
+        <button class="cat-pill${catSelezionata && cat.id == catSelezionata.id ? ' active' : ''}"
+                onclick="seleziona(${JSON.stringify(cat).replace(/"/g, '&quot;')})">
+            ${!cat.isDefault ? `<span class="del-cat" onclick="event.stopPropagation(); eliminaCategoria(${cat.id})" title="Elimina">×</span>` : ''}
+            ${cat.nome}
+        </button>
+    `).join('') +
+    `<button class="cat-pill add-pill" onclick="nuovaCategoria()" title="Nuova categoria">+</button>`;
+}
+
+function seleziona(cat) {
+    catSelezionata = cat;
+    document.getElementById('ricerca').value = '';
+    renderPills();
+    renderItems();
+}
+
+function renderItems() {
+    const q = (document.getElementById('ricerca').value || '').toLowerCase().trim();
+    const el = document.getElementById('itemsList');
+
+    if (!catSelezionata) { el.innerHTML = ''; return; }
+
+    let items;
+    if (catSelezionata.isDefault) {
+        items = DATI_DEFAULT[catSelezionata.nome].map(n => ({ nome: n, isDefault: true }));
+    } else {
+        items = articoli.filter(a => a.categoria_id == catSelezionata.id);
     }
 
-    function mostraFeedbackBottone(btn, testo, sfondo, colore) {
-        const testoOriginale = btn.textContent;
-        btn.textContent = testo;
-        btn.style.background = sfondo;
-        btn.style.color = colore;
-        btn.style.borderColor = sfondo;
-        setTimeout(() => {
-            btn.textContent = testoOriginale;
-            btn.style.background = "";
-            btn.style.color = "";
-            btn.style.borderColor = "";
-            btn.disabled = false;
-        }, 1400);
+    if (q) items = items.filter(i => i.nome.toLowerCase().includes(q));
+
+    if (!items.length) {
+        el.innerHTML = `<div class="empty-cat">${q ? 'Nessun risultato.' : 'Nessuna cosa in questa categoria.'}</div>`;
+        return;
     }
 
-    async function creaCategoria() {
-        const nome = document.getElementById("nuovaCategoria").value.trim();
-        if (!nome) return;
+    el.innerHTML = items.map(p => {
+        const btnId = p.isDefault ? `def-${p.nome.replace(/\s+/g,'')}` : p.id;
+        return `<div class="item">
+            <span class="testo-prodotto">${p.nome}</span>
+            <div class="btn-actions">
+                <button class="btn-ic add" id="btn-${btnId}"
+                        onclick="mettiInValigia('${btnId}', '${p.nome.replace(/'/g,"\\'")}')"
+                        aria-label="Aggiungi alla valigia">+</button>
+                ${!p.isDefault ? `
+                <button class="btn-ic del" onclick="eliminaArticolo(${p.id})" aria-label="Elimina">
+                    <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                </button>` : ''}
+            </div>
+        </div>`;
+    }).join('');
+}
+
+async function aggiungiArticolo() {
+    const input = document.getElementById('nuovaCosa');
+    const nome = input.value.trim();
+    if (!nome || !catSelezionata) return;
+
+    let catId = catSelezionata.id;
+
+    if (catSelezionata.isDefault) {
         await fetch(`${URL_SUPA}/categorie_valigia`, {
-            method: "POST",
-            headers,
-            body: JSON.stringify({ nome, email_utente: userEmail })
+            method: "POST", headers: H,
+            body: JSON.stringify({ nome: catSelezionata.nome, email_utente: userEmail })
         });
-        document.getElementById("nuovaCategoria").value = "";
-        caricaDati();
+        const r = await fetch(`${URL_SUPA}/categorie_valigia?nome=eq.${encodeURIComponent(catSelezionata.nome)}&email_utente=eq.${userEmail}`, { headers: HR });
+        const nuovaCat = await r.json();
+        catId = nuovaCat[0].id;
+        catSelezionata = { id: catId, nome: catSelezionata.nome, isDefault: false };
     }
 
-    async function aggiungiArticolo(catId, isDefault) {
-        const input = document.getElementById(`input-cat-${catId}`);
-        const nome = input.value.trim();
-        if (!nome) return;
-
-        if (isDefault) {
-            await fetch(`${URL_SUPA}/categorie_valigia`, {
-                method: "POST",
-                headers,
-                body: JSON.stringify({ nome: catId, email_utente: userEmail })
-            });
-            const r = await fetch(`${URL_SUPA}/categorie_valigia?nome=eq.${encodeURIComponent(catId)}&email_utente=eq.${userEmail}`, { headers: headersRead });
-            const nuovaCat = await r.json();
-            catId = nuovaCat[0].id;
-        }
-
-        await fetch(`${URL_SUPA}/catalogo_valigia`, {
-            method: "POST",
-            headers,
-            body: JSON.stringify({ nome, categoria_id: catId, email_utente: userEmail })
-        });
-        input.value = "";
-        caricaDati();
-    }
-
-    async function eliminaCategoria(id) {
-        if (confirm("Eliminare categoria e prodotti contenuti?")) {
-            await fetch(`${URL_SUPA}/categorie_valigia?id=eq.${id}`, { method: "DELETE", headers });
-            caricaDati();
-        }
-    }
-
-    async function eliminaArticolo(id) {
-        await fetch(`${URL_SUPA}/catalogo_valigia?id=eq.${id}`, { method: "DELETE", headers });
-        caricaDati();
-    }
-
-    let toastTimer;
-    function mostraToast(msg) {
-        const t = document.getElementById('toast');
-        t.textContent = msg;
-        t.classList.add('show');
-        clearTimeout(toastTimer);
-        toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
-    }
-
-    function logout() { localStorage.clear(); window.location.href = 'login.html'; }
-
-    function filtraRicerca(q) {
-        const t = q.toLowerCase().trim();
-        document.querySelectorAll('.card').forEach(card => {
-            let visibili = 0;
-            card.querySelectorAll('.item').forEach(item => {
-                const match = !t || item.querySelector('.testo-prodotto').textContent.toLowerCase().includes(t);
-                item.style.display = match ? '' : 'none';
-                if (match) visibili++;
-            });
-            card.style.display = (!t || visibili > 0) ? '' : 'none';
-        });
-    }
-
-    caricaDati();
-
-    document.addEventListener('visibilitychange', () => {
-        if (!document.hidden) caricaDati();
+    await fetch(`${URL_SUPA}/catalogo_valigia`, {
+        method: "POST", headers: H,
+        body: JSON.stringify({ nome, categoria_id: catId, email_utente: userEmail })
     });
+    input.value = '';
+    await caricaDati();
+}
+
+async function nuovaCategoria() {
+    const nome = prompt('Nome nuova categoria:');
+    if (!nome || !nome.trim()) return;
+    await fetch(`${URL_SUPA}/categorie_valigia`, {
+        method: "POST", headers: H,
+        body: JSON.stringify({ nome: nome.trim(), email_utente: userEmail })
+    });
+    catSelezionata = null;
+    await caricaDati();
+    catSelezionata = categorie[categorie.length - 1];
+    renderPills();
+    renderItems();
+}
+
+async function eliminaCategoria(id) {
+    if (!confirm('Eliminare categoria e prodotti contenuti?')) return;
+    await fetch(`${URL_SUPA}/categorie_valigia?id=eq.${id}`, { method: "DELETE", headers: H });
+    catSelezionata = null;
+    caricaDati();
+}
+
+async function eliminaArticolo(id) {
+    await fetch(`${URL_SUPA}/catalogo_valigia?id=eq.${id}`, { method: "DELETE", headers: H });
+    caricaDati();
+}
+
+async function mettiInValigia(btnId, nome) {
+    const btn = document.getElementById(`btn-${btnId}`);
+    btn.disabled = true;
+    try {
+        let checkUrl = `${URL_SUPA}/cose_valigia?nome=eq.${encodeURIComponent(nome)}&email_utente=eq.${userEmail}`;
+        checkUrl += valigiaId ? `&valigia_id=eq.${valigiaId}` : `&valigia_id=is.null`;
+        const res = await fetch(checkUrl, { headers: HR });
+        const esistente = await res.json();
+
+        if (esistente.length > 0) {
+            feedbackBtn(btn, "✓", "var(--grey)", "var(--dark)");
+            mostraToast("Già aggiunto alla valigia");
+            return;
+        }
+
+        const body = { nome, email_utente: userEmail, completato: false };
+        if (valigiaId) body.valigia_id = parseInt(valigiaId);
+        const add = await fetch(`${URL_SUPA}/cose_valigia`, { method: "POST", headers: H, body: JSON.stringify(body) });
+
+        if (add.ok || add.status === 201 || add.status === 204) {
+            feedbackBtn(btn, "✓", "var(--yellow)", "white");
+            mostraToast("✓ Aggiunto alla valigia!");
+        } else {
+            btn.disabled = false;
+            mostraToast("Errore nell'aggiunta");
+        }
+    } catch(e) {
+        btn.disabled = false;
+        mostraToast("Errore di rete");
+    }
+}
+
+function feedbackBtn(btn, testo, sfondo, colore) {
+    const orig = btn.textContent;
+    btn.textContent = testo;
+    btn.style.cssText = `background:${sfondo};color:${colore};border-color:${sfondo}`;
+    setTimeout(() => { btn.textContent = orig; btn.style.cssText = ''; btn.disabled = false; }, 1400);
+}
+
+let toastTimer;
+function mostraToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function logout() { localStorage.clear(); window.location.href = 'login.html'; }
+
+caricaDati();
+document.addEventListener('visibilitychange', () => { if (!document.hidden) caricaDati(); });
 </script>
 </body>
 </html>
