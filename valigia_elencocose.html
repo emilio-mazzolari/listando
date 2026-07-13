@@ -152,7 +152,7 @@
             flex-shrink: 0;
             padding: 12px 18px;
             border-radius: 14px;
-            background: var(--green);
+            background: var(--dark);
             color: white;
             border: none;
             font-weight: 800;
@@ -163,7 +163,7 @@
             font-family: inherit;
             transition: opacity 0.15s;
         }
-        .btn-aggiungi:active { opacity: 0.85; }
+        .btn-aggiungi:active { opacity: 0.75; }
 
         /* ── Items list ── */
         .items-card {
@@ -374,12 +374,21 @@ async function caricaDati() {
         const resArt = await fetch(`${URL_SUPA}/catalogo_valigia?email_utente=eq.${userEmail}&order=nome.asc`, { headers: HR });
         articoli = resArt.ok ? await resArt.json() : [];
 
-        if (!Array.isArray(dbCat) || dbCat.length === 0) {
+        // Le 7 categorie default sono sempre visibili.
+        // Se nel DB esistono categorie con lo stesso nome, associamo il dbId
+        // per mostrare anche gli articoli custom insieme a quelli default.
+        // Eventuali categorie DB extra (non in DATI_DEFAULT) vengono aggiunte in fondo.
+        const defaultNames = new Set(Object.keys(DATI_DEFAULT).map(n => n.toLowerCase()));
+        if (!Array.isArray(dbCat)) {
             usoDefault = true;
             categorie = Object.keys(DATI_DEFAULT).map(n => ({ id: n, nome: n, isDefault: true }));
         } else {
-            usoDefault = false;
-            categorie = dbCat;
+            usoDefault = dbCat.length === 0;
+            const extraDbCats = dbCat.filter(c => !defaultNames.has(c.nome.toLowerCase()));
+            categorie = Object.keys(DATI_DEFAULT).map(n => {
+                const match = dbCat.find(c => c.nome.toLowerCase() === n.toLowerCase());
+                return { id: n, nome: n, isDefault: true, dbId: match ? match.id : null };
+            }).concat(extraDbCats.map(c => ({ ...c, isDefault: false })));
         }
 
         if (!catSelezionata || !categorie.find(c => c.id == catSelezionata.id)) {
@@ -421,7 +430,11 @@ function renderItems() {
 
     let items;
     if (catSelezionata.isDefault) {
-        items = DATI_DEFAULT[catSelezionata.nome].map(n => ({ nome: n, isDefault: true }));
+        const defaultItems = DATI_DEFAULT[catSelezionata.nome].map(n => ({ nome: n, isDefault: true }));
+        const dbItems = catSelezionata.dbId
+            ? articoli.filter(a => a.categoria_id == catSelezionata.dbId)
+            : [];
+        items = [...defaultItems, ...dbItems];
     } else {
         items = articoli.filter(a => a.categoria_id == catSelezionata.id);
     }
@@ -475,9 +488,9 @@ async function aggiungiArticolo() {
     const nome = capitalizza(input.value.trim());
     if (!nome || !catSelezionata) return;
 
-    let catId = catSelezionata.id;
+    let catId = catSelezionata.isDefault ? (catSelezionata.dbId || null) : catSelezionata.id;
 
-    if (catSelezionata.isDefault) {
+    if (catSelezionata.isDefault && !catId) {
         await fetch(`${URL_SUPA}/categorie_valigia`, {
             method: "POST", headers: H,
             body: JSON.stringify({ nome: catSelezionata.nome, email_utente: userEmail })
@@ -485,7 +498,7 @@ async function aggiungiArticolo() {
         const r = await fetch(`${URL_SUPA}/categorie_valigia?nome=eq.${encodeURIComponent(catSelezionata.nome)}&email_utente=eq.${userEmail}`, { headers: HR });
         const nuovaCat = await r.json();
         catId = nuovaCat[0].id;
-        catSelezionata = { id: catId, nome: catSelezionata.nome, isDefault: false };
+        catSelezionata = { ...catSelezionata, dbId: catId };
     }
 
     await fetch(`${URL_SUPA}/catalogo_valigia`, {
