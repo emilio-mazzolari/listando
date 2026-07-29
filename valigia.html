@@ -253,7 +253,8 @@ async function caricaValigie() {
         }
 
         const savedId = parseInt(localStorage.getItem('valigiaAttivaId'));
-        if (savedId && valigie.some(v => v.id === savedId)) {
+        const fromCatalog = document.referrer.includes('valigia_elencocose');
+        if (savedId && fromCatalog && valigie.some(v => v.id === savedId)) {
             apriValigia(savedId);
             return;
         }

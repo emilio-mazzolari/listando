@@ -431,13 +431,15 @@ function renderItems() {
     let items;
     if (catSelezionata.isDefault) {
         const defaultItems = DATI_DEFAULT[catSelezionata.nome].map(n => ({ nome: n, isDefault: true }));
+        const defaultNomi = new Set(defaultItems.map(i => i.nome.toLowerCase()));
         const dbItems = catSelezionata.dbId
-            ? articoli.filter(a => a.categoria_id == catSelezionata.dbId)
+            ? articoli.filter(a => a.categoria_id == catSelezionata.dbId && !defaultNomi.has(a.nome.toLowerCase()))
             : [];
         items = [...defaultItems, ...dbItems];
     } else {
         items = articoli.filter(a => a.categoria_id == catSelezionata.id);
     }
+    items = items.slice().sort((a, b) => a.nome.localeCompare(b.nome, 'it', { sensitivity: 'base' }));
 
     if (q) items = items.filter(i => i.nome.toLowerCase().includes(q));
 
