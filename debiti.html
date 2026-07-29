@@ -367,7 +367,7 @@ function render() {
         }
         const pagatoLabel = BTN_PAGATO[v.tipo] || 'Saldato';
         const pagatoHtml = v.pagato ? `<span class="badge-pagato">✓ ${pagatoLabel}</span>` : '';
-        const qtaBadge = (v.tipo === 'pagare' && v.quantita && v.quantita > 1)
+        const qtaBadge = (v.tipo === 'pagare' && v.quantita)
             ? `<span class="badge-scad">x${v.quantita}</span>` : '';
         const importoHtml = v.importo != null
             ? `<div class="entry-amount ${v.tipo}">€${Number(v.importo).toFixed(2)}</div>` : '';
