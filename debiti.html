@@ -123,10 +123,17 @@
             white-space: nowrap;
         }
         .btn-paid.pagato { background: var(--grey-light); border-color: var(--grey); color: #999; }
-        .btn-edit-entry {
-            font-size: 11px; font-weight: 800; padding: 5px 10px; border-radius: 10px;
-            border: 2px solid var(--grey); color: #666; background: white; cursor: pointer;
+        .entry-actions { display: flex; gap: 6px; align-items: center; margin-top: 4px; }
+        .btn-icon-entry {
+            width: 34px; height: 34px; border-radius: 10px;
+            border: 2px solid var(--grey); background: white; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+            transition: all 0.15s;
         }
+        .btn-icon-entry:active { transform: scale(0.9); }
+        .btn-icon-entry svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2.5; }
+        .btn-icon-entry.edit { color: #888; }
+        .btn-icon-entry.del  { border-color: #ffd6d6; color: var(--red); }
 
         /* Modal */
         .modal-overlay {
@@ -374,7 +381,14 @@ function render() {
             <div class="entry-right">
                 ${importoHtml}
                 <button class="btn-paid${v.pagato ? ' pagato' : ''}" onclick="togglePagato(${v.id})">${v.pagato ? 'Riapri' : pagatoLabel}</button>
-                <button class="btn-edit-entry" onclick="apriModifica(${v.id})">Modifica</button>
+                <div class="entry-actions">
+                    <button class="btn-icon-entry edit" onclick="apriModifica(${v.id})" title="Modifica">
+                        <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    </button>
+                    <button class="btn-icon-entry del" onclick="eliminaDiretto(${v.id})" title="Elimina">
+                        <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    </button>
+                </div>
             </div>
         </div>`;
     }).join('');
@@ -484,6 +498,14 @@ async function elimina() {
     document.getElementById('modaleEntry').classList.remove('open');
     toast('Eliminato');
     await carica();
+}
+
+async function eliminaDiretto(id) {
+    await sb.from('debiti_crediti').delete().eq('id', id);
+    voci = voci.filter(v => v.id !== id);
+    aggiornaBilancio();
+    render();
+    toast('Eliminato');
 }
 
 document.getElementById('modaleEntry').addEventListener('click', e => {
