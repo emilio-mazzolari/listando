@@ -463,7 +463,7 @@ async function salva() {
     const importoRaw = document.getElementById('fImporto').value;
     const importo = importoRaw !== '' ? parseFloat(importoRaw) : null;
     const quantitaRaw = document.getElementById('fQuantita').value;
-    const quantita = quantitaRaw !== '' ? parseInt(quantitaRaw, 10) : null;
+    const quantita = quantitaRaw !== '' ? parseInt(quantitaRaw, 10) : 1;
     const isPagare = tipoCorrente === 'pagare';
     if (!persona) { toast('Inserisci un nome o descrizione'); return; }
     if (!isPagare && (importo === null || isNaN(importo) || importo <= 0)) { toast('Inserisci un importo valido'); return; }
