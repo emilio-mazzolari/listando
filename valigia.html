@@ -98,6 +98,9 @@
         .modal-title { font-weight: 900; font-size: 17px; margin-bottom: 14px; }
         .form-input { width: 100%; padding: 13px 14px; border-radius: 14px; border: 2.5px solid var(--grey); font-size: 15px; font-family: inherit; outline: none; margin-bottom: 10px; }
         .form-input:focus { border-color: var(--accent); }
+        .add-cosa-row { display: flex; gap: 10px; margin-bottom: 10px; }
+        .add-cosa-row .form-input { margin-bottom: 0; }
+        .qty-input { width: 72px; flex-shrink: 0; text-align: center; padding-left: 8px; padding-right: 8px; }
 
         .emoji-picker { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
         .emoji-opt { font-size: 24px; width: 44px; height: 44px; border-radius: 12px; border: 2.5px solid var(--grey); background: var(--white); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
@@ -174,14 +177,16 @@
     </div>
 </div>
 
-<!-- Modal: Aggiungi oggetto -->
+<!-- Modal: Aggiungi cosa -->
 <div class="modal-overlay" id="modalAggiungi">
     <div class="modal-box">
         <div class="modal-handle"></div>
-        <div class="modal-title">Aggiungi oggetto</div>
-        <input class="form-input" id="nomeNuovoOggetto" placeholder="es. passaporto, maglione…" type="text" onkeydown="if(event.key==='Enter') salvaOggetto()">
-        <input class="form-input" id="qtaNuovoOggetto" placeholder="Quantità (default 1)" type="number" min="1" max="99" value="1">
-        <button class="btn-save-modal" onclick="salvaOggetto()">AGGIUNGI</button>
+        <div class="modal-title">Aggiungi cosa</div>
+        <div class="add-cosa-row">
+            <input class="form-input" id="nomeNuovaCosa" placeholder="es. passaporto, maglione…" type="text" onkeydown="if(event.key==='Enter') salvaCosa()">
+            <input class="form-input qty-input" id="qtaNuovaCosa" type="number" min="1" max="99" value="1">
+        </div>
+        <button class="btn-save-modal" onclick="salvaCosa()">AGGIUNGI</button>
     </div>
 </div>
 
@@ -268,7 +273,7 @@ async function caricaValigie() {
                 <div class="valigia-emoji">${v.emoji || '🧳'}</div>
                 <div class="valigia-info">
                     <div class="valigia-nome">${v.nome}</div>
-                    <div class="valigia-sub">${tot ? `${fatti}/${tot} oggetti messi` : 'Lista vuota'}</div>
+                    <div class="valigia-sub">${tot ? `${fatti}/${tot} cose messe` : 'Lista vuota'}</div>
                     ${tot ? `<div class="progress-wrap" style="margin-top:6px">
                         <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${pct}%"></div></div>
                     </div>` : ''}
@@ -310,7 +315,7 @@ async function caricaItems() {
     const pct = tot ? Math.round(fatti / tot * 100) : 0;
 
     document.getElementById('statsValigia').innerHTML =
-        `<span class="stat-chip">📦 ${tot} oggetti</span>` +
+        `<span class="stat-chip">📦 ${tot} cose</span>` +
         (tot ? `<span class="stat-chip">${fatti}/${tot} pronti</span>` : '');
     document.getElementById('progressFill').style.width = pct + '%';
     document.getElementById('progressWrap').style.display = tot ? '' : 'none';
@@ -318,7 +323,7 @@ async function caricaItems() {
 
     const el = document.getElementById('itemsValigia');
     if (!items.length) {
-        el.innerHTML = `<div class="empty-msg">📦 Nessun oggetto ancora<br>Tocca + per aggiungere</div>`;
+        el.innerHTML = `<div class="empty-msg">📦 Nessuna cosa ancora<br>Tocca + per aggiungere</div>`;
         return;
     }
 
@@ -356,7 +361,7 @@ async function eliminaItem(id) {
 }
 
 async function eliminaMessi() {
-    if (!confirm('Rimuovere gli oggetti già messi in valigia?')) return;
+    if (!confirm('Rimuovere le cose già messe in valigia?')) return;
     await del(`/cose_valigia?email_utente=eq.${userEmail}&valigia_id=eq.${valigiaCorrenteId}&completato=eq.true`);
     caricaItems();
 }
@@ -399,18 +404,18 @@ async function salvaValigia() {
     caricaValigie();
 }
 
-// ── Modal: Aggiungi oggetto ───────────────────────────────────
+// ── Modal: Aggiungi cosa ──────────────────────────────────────
 function apriModalAggiungi() {
-    document.getElementById('nomeNuovoOggetto').value = '';
-    document.getElementById('qtaNuovoOggetto').value = '1';
+    document.getElementById('nomeNuovaCosa').value = '';
+    document.getElementById('qtaNuovaCosa').value = '1';
     document.getElementById('modalAggiungi').classList.add('open');
-    setTimeout(() => document.getElementById('nomeNuovoOggetto').focus(), 300);
+    setTimeout(() => document.getElementById('nomeNuovaCosa').focus(), 300);
 }
 
-async function salvaOggetto() {
-    const nome = document.getElementById('nomeNuovoOggetto').value.trim();
+async function salvaCosa() {
+    const nome = document.getElementById('nomeNuovaCosa').value.trim();
     if (!nome) { toast('Inserisci il nome'); return; }
-    const qta = parseInt(document.getElementById('qtaNuovoOggetto').value) || 1;
+    const qta = parseInt(document.getElementById('qtaNuovaCosa').value) || 1;
     await post('/cose_valigia', { email_utente: userEmail, nome, quantita: qta, completato: false, valigia_id: valigiaCorrenteId });
     document.getElementById('modalAggiungi').classList.remove('open');
     caricaItems();
@@ -419,7 +424,7 @@ async function salvaOggetto() {
 // ── Elimina valigia ───────────────────────────────────────────
 async function eliminaValigia(id) {
     const v = valigie.find(x => x.id === id);
-    if (!confirm(`Eliminare la valigia "${v.nome}" e tutti i suoi oggetti?`)) return;
+    if (!confirm(`Eliminare la valigia "${v.nome}" e tutte le sue cose?`)) return;
     await del(`/cose_valigia?email_utente=eq.${userEmail}&valigia_id=eq.${id}`);
     await del(`/valigie?id=eq.${id}`);
     toast('Valigia eliminata');
