@@ -91,9 +91,9 @@
         .empty-msg { text-align: center; padding: 48px 24px; color: #bbb; font-weight: 700; font-size: 15px; }
 
         /* ── Modal ── */
-        .modal-overlay { display: none; position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.5); align-items: flex-end; justify-content: center; }
+        .modal-overlay { display: none; position: fixed; inset: 0; z-index: 1100; background: rgba(0,0,0,0.5); align-items: flex-end; justify-content: center; }
         .modal-overlay.open { display: flex; }
-        .modal-box { background: var(--white); border-radius: 28px 28px 0 0; padding: 24px 20px; padding-bottom: max(24px, env(safe-area-inset-bottom, 24px)); width: 100%; max-width: 500px; }
+        .modal-box { background: var(--white); border-radius: 28px 28px 0 0; padding: 24px 20px; padding-bottom: max(24px, env(safe-area-inset-bottom, 24px)); width: 100%; max-width: 500px; max-height: 92vh; overflow-y: auto; }
         .modal-handle { width: 40px; height: 4px; background: var(--grey); border-radius: 4px; margin: 0 auto 20px; }
         .modal-title { font-weight: 900; font-size: 17px; margin-bottom: 14px; }
         .form-input { width: 100%; padding: 13px 14px; border-radius: 14px; border: 2.5px solid var(--grey); font-size: 15px; font-family: inherit; outline: none; margin-bottom: 10px; }
@@ -117,6 +117,37 @@
 
         .toast { position: fixed; bottom: 105px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--dark); color: white; padding: 12px 20px; border-radius: 14px; font-weight: 700; font-size: 14px; opacity: 0; transition: all 0.25s; white-space: nowrap; z-index: 999; pointer-events: none; }
         .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        /* ── Section cards ── */
+        .section-card { background: var(--white); border-radius: 20px; box-shadow: var(--shadow); margin-bottom: 14px; overflow: hidden; }
+        .section-card-header { display: flex; align-items: center; gap: 10px; padding: 14px 16px 12px; border-bottom: 2px solid var(--grey-light); }
+        .section-card-title { font-size: 13px; font-weight: 900; color: #888; text-transform: uppercase; letter-spacing: 0.5px; flex: 1; }
+        .section-card-footer { padding: 10px 16px 14px; display: flex; flex-direction: column; gap: 8px; border-top: 2px solid var(--grey-light); }
+
+        /* ── Documenti ── */
+        .section-label { font-size: 11px; font-weight: 800; color: #aaa; text-transform: uppercase; letter-spacing: 0.6px; padding: 16px 0 6px; }
+        .doc-row { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1.5px solid var(--grey-light); cursor: pointer; }
+        .doc-row:last-child { border-bottom: none; }
+        .doc-row:active { background: var(--grey-light); }
+        .doc-icon { font-size: 22px; flex-shrink: 0; }
+        .doc-nome { flex: 1; font-size: 14px; font-weight: 700; word-break: break-word; }
+        .btn-del-doc, .btn-edit-doc { width: 32px; height: 32px; border-radius: 9px; border: 2px solid var(--grey); background: var(--white); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .btn-del-doc { color: var(--red); }
+        .btn-edit-doc { color: var(--accent); border-color: var(--accent); }
+        .btn-del-doc svg, .btn-edit-doc svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2.5; }
+        .doc-ord-btns { display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; }
+        .btn-ord-doc { width: 28px; height: 22px; border-radius: 7px; border: 1.5px solid var(--grey); background: var(--white); cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center; color: #888; padding: 0; line-height: 1; }
+        .btn-ord-doc:active { background: var(--grey-light); }
+        .btn-ord-doc[disabled] { opacity: 0; pointer-events: none; }
+        .upload-area { border: 2.5px dashed var(--grey); border-radius: 16px; padding: 16px; cursor: pointer; font-weight: 700; font-size: 14px; color: #888; transition: all 0.15s; margin-bottom: 14px; display: flex; align-items: center; gap: 12px; }
+        .upload-area:active { background: var(--grey-light); }
+        .upload-area.has-file { border-color: var(--accent); color: var(--dark); background: var(--accent-bg); }
+        .upload-icon { font-size: 28px; flex-shrink: 0; }
+        .upload-text { flex: 1; min-width: 0; }
+        .upload-text small { display: block; font-size: 11px; font-weight: 600; color: #bbb; margin-top: 2px; }
+        .upload-area.has-file .upload-text small { color: #a07000; }
+        .progress-upload { width: 100%; height: 6px; background: var(--grey-light); border-radius: 6px; margin-bottom: 14px; overflow: hidden; display: none; }
+        .progress-upload-fill { height: 100%; background: var(--accent); border-radius: 6px; transition: width 0.3s; }
     </style>
 </head>
 <body>
@@ -140,21 +171,35 @@
             <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
         </button>
         <div class="header-title" id="titoloValigia">🧳 Valigia</div>
-        <button class="btn-add-hdr" onclick="apriModalAggiungi()">+</button>
     </div>
     <div class="body-content">
-        <div class="stats-bar" id="statsValigia"></div>
-        <div class="progress-wrap" id="progressWrap" style="margin-bottom:12px">
-            <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill" style="width:0%"></div></div>
-        </div>
-        <div class="items-card" id="itemsValigia"></div>
-        <div style="margin-top:8px; display:flex; flex-direction:column; gap:8px;">
-            <button class="btn-action catalog" onclick="vaiAlCatalogo()">📋 Aggiungi dal catalogo</button>
-            <div class="controls-group" id="controlliValigia" style="display:none; flex-direction:column; gap:8px;">
-                <button class="btn-action" onclick="ripristina()">↺ Ripristina tutto</button>
-                <button class="btn-action" onclick="eliminaMessi()">✓ Rimuovi messi in valigia</button>
-                <button class="btn-action danger" onclick="svuotaValigia()">🗑 Svuota lista</button>
+        <!-- ── Card 1: Cose ── -->
+        <div style="background:#fff;border-radius:20px;box-shadow:0 2px 10px rgba(0,0,0,0.06);margin-bottom:14px;overflow:hidden">
+            <div style="display:flex;align-items:center;gap:10px;padding:14px 16px 12px;border-bottom:2px solid #f2f2f7">
+                <span style="font-size:13px;font-weight:900;color:#aaa;text-transform:uppercase;letter-spacing:0.5px;flex:1">🎒 Cose per il viaggio</span>
+                <button class="btn-add-hdr" onclick="apriModalAggiungi()">+</button>
             </div>
+            <div class="stats-bar" id="statsValigia" style="padding:8px 16px 0;margin:0"></div>
+            <div id="progressWrap" style="display:none;padding:6px 16px 10px">
+                <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill" style="width:0%"></div></div>
+            </div>
+            <div id="itemsValigia"></div>
+            <div style="padding:10px 16px 14px;display:flex;flex-direction:column;gap:8px;border-top:2px solid #f2f2f7">
+                <button class="btn-action catalog" onclick="vaiAlCatalogo()">📋 Aggiungi cose</button>
+                <div class="controls-group" id="controlliValigia" style="display:none;flex-direction:column;gap:8px">
+                    <button class="btn-action" onclick="ripristina()">↺ Ripristina tutto</button>
+                    <button class="btn-action" onclick="eliminaMessi()">✓ Rimuovi messi in valigia</button>
+                    <button class="btn-action danger" onclick="svuotaValigia()">🗑 Svuota lista</button>
+                </div>
+            </div>
+        </div>
+        <!-- ── Card 2: Documenti ── -->
+        <div style="background:#fff;border-radius:20px;box-shadow:0 2px 10px rgba(0,0,0,0.06);margin-bottom:14px;overflow:hidden">
+            <div style="display:flex;align-items:center;gap:10px;padding:14px 16px 12px;border-bottom:2px solid #f2f2f7">
+                <span style="font-size:13px;font-weight:900;color:#aaa;text-transform:uppercase;letter-spacing:0.5px;flex:1">📄 Documenti di viaggio</span>
+                <button class="btn-add-hdr" onclick="apriModalDocumento()">+</button>
+            </div>
+            <div id="documentiValigia"></div>
         </div>
     </div>
 </div>
@@ -174,6 +219,22 @@
         </div>
         <input class="form-input" id="nomeNuovaValigia" placeholder="es. Valigia grande, Zaino, Bagaglio a mano…" type="text" onkeydown="if(event.key==='Enter') salvaValigia()">
         <button class="btn-save-modal" onclick="salvaValigia()">CREA</button>
+    </div>
+</div>
+
+<!-- Modal: Documento di viaggio -->
+<div class="modal-overlay" id="modalDocumento">
+    <div class="modal-box">
+        <div class="modal-handle"></div>
+        <div class="modal-title">Aggiungi documento</div>
+        <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+            <span class="upload-icon">📎</span>
+            <span class="upload-text">Tocca per scegliere un file<small>PDF · JPG · PNG</small></span>
+        </div>
+        <input type="file" id="fileInput" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png,image/jpg" style="display:none" onchange="fileSelezionato(this)">
+        <div id="uploadError" style="display:none;background:#fff0f0;border-radius:12px;padding:10px 14px;margin-bottom:10px;color:#ff3b30;font-size:13px;font-weight:700;word-break:break-word"></div>
+        <div class="progress-upload" id="progressUpload"><div class="progress-upload-fill" id="progressUploadFill" style="width:0%"></div></div>
+        <button class="btn-save-modal" id="btnCarica" onclick="uploadDocumento()" style="display:none">CARICA</button>
     </div>
 </div>
 
@@ -214,7 +275,7 @@
 <script>
 const URL = "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1";
 const KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlamRwb3BoZnhzcnFkdnN1Y3llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2NTMzMDQsImV4cCI6MjA5MzIyOTMwNH0.mpxbwlJyIdZgqKIdutHbLd85JR1P11yiglbYeApi17k";
-const H = { "apikey": KEY, "Authorization": "Bearer " + KEY, "Content-Type": "application/json", "Prefer": "return=minimal" };
+const H ={ "apikey": KEY, "Authorization": "Bearer " + KEY, "Content-Type": "application/json", "Prefer": "return=minimal" };
 const HR = { "apikey": KEY, "Authorization": "Bearer " + KEY };
 const userEmail = localStorage.getItem('userEmail');
 if (!userEmail) location.href = 'login.html';
@@ -222,6 +283,8 @@ if (!userEmail) location.href = 'login.html';
 let valigie = [];
 let valigiaCorrenteId = null;
 let emojiScelta = '🧳';
+let fileSelezionatoObj = null;
+let docsAttuali = [];
 
 // ── API helpers ───────────────────────────────────────────────
 async function get(path) {
@@ -295,7 +358,7 @@ async function apriValigia(id) {
     document.getElementById('viewLista').style.display = 'none';
     document.getElementById('viewValigia').style.display = '';
     localStorage.setItem('valigiaAttivaId', id);
-    await caricaItems();
+    await Promise.all([caricaItems(), caricaDocumenti()]);
 }
 
 function tornaALista() {
@@ -429,6 +492,283 @@ async function eliminaValigia(id) {
     await del(`/valigie?id=eq.${id}`);
     toast('Valigia eliminata');
     caricaValigie();
+}
+
+// ── Documenti di viaggio ──────────────────────────────────────
+async function caricaDocumenti() {
+    const el = document.getElementById('documentiValigia');
+    try {
+        let r = await fetch(`${URL}/documenti_valigia?email_utente=eq.${encodeURIComponent(userEmail)}&valigia_id=eq.${valigiaCorrenteId}&order=ordine.asc,created_at.asc&select=id,nome,tipo,dimensione,ordine`, { headers: HR });
+        if (!r.ok) {
+            // Colonna ordine non ancora presente → fallback senza ordine
+            r = await fetch(`${URL}/documenti_valigia?email_utente=eq.${encodeURIComponent(userEmail)}&valigia_id=eq.${valigiaCorrenteId}&order=created_at.asc&select=id,nome,tipo,dimensione`, { headers: HR });
+        }
+        if (!r.ok) { docsAttuali = []; el.innerHTML = ''; return; }
+        const docs = await r.json();
+        if (!Array.isArray(docs) || !docs.length) {
+            docsAttuali = [];
+            el.innerHTML = `<div style="text-align:center;padding:14px 16px;color:#bbb;font-size:13px;font-weight:700">Nessun documento ancora</div>`;
+            return;
+        }
+        docsAttuali = docs;
+        renderDocumenti();
+    } catch(e) { el.innerHTML = ''; }
+}
+
+function renderDocumenti() {
+    const el = document.getElementById('documentiValigia');
+    const docs = docsAttuali;
+    if (!docs.length) { el.innerHTML = `<div style="text-align:center;padding:14px 16px;color:#bbb;font-size:13px;font-weight:700">Nessun documento ancora</div>`; return; }
+    el.innerHTML = docs.map((d, i) => {
+        const isPdf = d.tipo === 'application/pdf' || (d.nome && d.nome.toLowerCase().endsWith('.pdf'));
+        const icon = isPdf ? '📄' : '🖼️';
+        const sizeStr = d.dimensione ? ` · ${(d.dimensione / 1024).toFixed(0)} KB` : '';
+        const nomeEsc = d.nome.replace(/'/g, "\\'");
+        return `<div class="doc-row" onclick="apriDocumento(${d.id}, '${d.tipo}')">
+            <div class="doc-ord-btns">
+                <button class="btn-ord-doc" ${i === 0 ? 'disabled' : ''} onclick="event.stopPropagation(); spostaDoc(${i}, -1)">↑</button>
+                <button class="btn-ord-doc" ${i === docs.length - 1 ? 'disabled' : ''} onclick="event.stopPropagation(); spostaDoc(${i}, 1)">↓</button>
+            </div>
+            <span class="doc-icon">${icon}</span>
+            <span class="doc-nome">${d.nome}<small style="display:block;font-size:11px;color:#aaa;font-weight:600;margin-top:2px">${isPdf ? 'PDF' : 'Immagine'}${sizeStr}</small></span>
+            <button class="btn-edit-doc" onclick="event.stopPropagation(); rinominaDocumento(${d.id}, '${nomeEsc}')">
+                <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>
+            <button class="btn-del-doc" onclick="event.stopPropagation(); eliminaDocumento(${d.id})">
+                <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>`;
+    }).join('');
+}
+
+async function spostaDoc(idx, dir) {
+    const newIdx = idx + dir;
+    if (newIdx < 0 || newIdx >= docsAttuali.length) return;
+    const docA = docsAttuali[idx];
+    const docB = docsAttuali[newIdx];
+    // Swap in local array and re-render immediately
+    docsAttuali[idx] = docB;
+    docsAttuali[newIdx] = docA;
+    docsAttuali.forEach((d, i) => d.ordine = i + 1);
+    renderDocumenti();
+    // Persist
+    await Promise.all([
+        patch(`/documenti_valigia?id=eq.${docA.id}`, { ordine: newIdx + 1 }),
+        patch(`/documenti_valigia?id=eq.${docB.id}`, { ordine: idx + 1 })
+    ]);
+}
+
+async function apriDocumento(id, tipo) {
+    // Apri subito (gesto utente attivo) — prima di qualsiasi await
+    const win = window.open('about:blank', '_blank');
+    if (!win) { toast('Consenti i popup per aprire i documenti'); return; }
+    win.document.write('<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width"><style>body{margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif;color:#aaa;font-size:16px;background:#f5f6f8}</style></head><body>Caricamento…</body></html>');
+    try {
+        const r = await fetch(`${URL}/documenti_valigia?id=eq.${id}&select=data,tipo,nome`, { headers: HR });
+        const [doc] = await r.json();
+        let rawData = doc.data;
+        const isGz = rawData.startsWith('gz:');
+        if (isGz) rawData = rawData.slice(3);
+        const binary = atob(rawData);
+        let bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        if (isGz) bytes = new Uint8Array(await decomprimiGzip(bytes.buffer));
+        const mimeType = doc.tipo || tipo || 'application/octet-stream';
+        const blob = new Blob([bytes], { type: mimeType });
+        const urlApi = window.URL || window.webkitURL;
+        const blobUrl = urlApi.createObjectURL(blob);
+        win.location.href = blobUrl;
+        setTimeout(() => urlApi.revokeObjectURL(blobUrl), 60000);
+    } catch(e) {
+        win.close();
+        toast('Errore: ' + (e.message || 'apertura fallita'));
+    }
+}
+
+function bufToB64(buffer) {
+    let s = '';
+    const b = new Uint8Array(buffer);
+    for (let i = 0; i < b.length; i += 8192) s += String.fromCharCode.apply(null, b.subarray(i, i + 8192));
+    return btoa(s);
+}
+
+async function comprimiGzip(buffer) {
+    try {
+        const cs = new CompressionStream('gzip');
+        const w = cs.writable.getWriter();
+        w.write(new Uint8Array(buffer)); w.close();
+        const chunks = []; const rd = cs.readable.getReader();
+        while (true) { const { done, value } = await rd.read(); if (done) break; chunks.push(value); }
+        const tot = chunks.reduce((a, c) => a + c.length, 0);
+        const out = new Uint8Array(tot); let off = 0;
+        for (const c of chunks) { out.set(c, off); off += c.length; }
+        return out.buffer;
+    } catch(e) { return buffer; }
+}
+
+async function decomprimiGzip(buffer) {
+    const ds = new DecompressionStream('gzip');
+    const w = ds.writable.getWriter();
+    w.write(new Uint8Array(buffer)); w.close();
+    const chunks = []; const rd = ds.readable.getReader();
+    while (true) { const { done, value } = await rd.read(); if (done) break; chunks.push(value); }
+    const tot = chunks.reduce((a, c) => a + c.length, 0);
+    const out = new Uint8Array(tot); let off = 0;
+    for (const c of chunks) { out.set(c, off); off += c.length; }
+    return out.buffer;
+}
+
+function apriModalDocumento() {
+    fileSelezionatoObj = null;
+    document.getElementById('fileInput').value = '';
+    const area = document.getElementById('uploadArea');
+    area.className = 'upload-area';
+    area.innerHTML = '<span class="upload-icon">📎</span><span class="upload-text">Tocca per scegliere un file<small>PDF · JPG · PNG</small></span>';
+    document.getElementById('btnCarica').style.display = 'none';
+    document.getElementById('btnCarica').disabled = false;
+    document.getElementById('btnCarica').textContent = 'CARICA';
+    document.getElementById('progressUpload').style.display = 'none';
+    document.getElementById('progressUploadFill').style.width = '0%';
+    document.getElementById('uploadError').style.display = 'none';
+    document.getElementById('modalDocumento').classList.add('open');
+}
+
+function rilevaPdf(file) {
+    return file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+}
+
+function fileSelezionato(input) {
+    const f = input.files[0];
+    if (!f) return;
+    fileSelezionatoObj = f;
+    const isPdf = rilevaPdf(f);
+    const area = document.getElementById('uploadArea');
+    area.className = 'upload-area has-file';
+    const sizeKb = (f.size / 1024).toFixed(0);
+    const hint = isPdf ? `${sizeKb} KB` : `${sizeKb} KB → verrà compressa`;
+    area.innerHTML = `<span class="upload-icon">${isPdf ? '📄' : '🖼️'}</span><span class="upload-text" style="word-break:break-word">${f.name}<small>${hint}</small></span>`;
+    document.getElementById('btnCarica').style.display = '';
+}
+
+async function comprimeImmagine(file) {
+    if (rilevaPdf(file)) return file;
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = reject;
+        reader.onload = e => {
+            const img = new Image();
+            img.onerror = () => resolve(file); // not an image → return original
+            img.onload = () => {
+                const MAX = 1600;
+                const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+                const canvas = document.createElement('canvas');
+                canvas.width = Math.round(img.width * scale);
+                canvas.height = Math.round(img.height * scale);
+                canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+                canvas.toBlob(blob => {
+                    const outName = file.name.replace(/\.(png|jpeg|jpg)$/i, '.jpg');
+                    resolve(new File([blob], outName, { type: 'image/jpeg' }));
+                }, 'image/jpeg', 0.82);
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+async function uploadDocumento() {
+    if (!fileSelezionatoObj) return;
+    const btn = document.getElementById('btnCarica');
+    const prog = document.getElementById('progressUpload');
+    const fill = document.getElementById('progressUploadFill');
+    btn.disabled = true;
+    btn.textContent = 'Comprimo…';
+    prog.style.display = '';
+    fill.style.width = '10%';
+    document.getElementById('uploadError').style.display = 'none';
+
+    try {
+        let b64, tipoFinale, dimensioneFinale;
+
+        if (rilevaPdf(fileSelezionatoObj)) {
+            const buf = await fileSelezionatoObj.arrayBuffer();
+            fill.style.width = '30%';
+            const gz = await comprimiGzip(buf);
+            tipoFinale = 'application/pdf';
+            if (gz.byteLength < buf.byteLength) {
+                b64 = 'gz:' + bufToB64(gz);
+                dimensioneFinale = gz.byteLength;
+            } else {
+                b64 = bufToB64(buf);
+                dimensioneFinale = buf.byteLength;
+            }
+        } else {
+            const imgCompressed = await comprimeImmagine(fileSelezionatoObj);
+            fill.style.width = '30%';
+            tipoFinale = imgCompressed.type;
+            dimensioneFinale = imgCompressed.size;
+            b64 = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = e => resolve(e.target.result.split(',')[1]);
+                reader.onerror = reject;
+                reader.readAsDataURL(imgCompressed);
+            });
+        }
+
+        fill.style.width = '65%';
+        btn.textContent = 'Caricamento…';
+
+        const res = await fetch(`${URL}/documenti_valigia`, {
+            method: 'POST',
+            headers: H,
+            body: JSON.stringify({
+                valigia_id: valigiaCorrenteId,
+                email_utente: userEmail,
+                nome: fileSelezionatoObj.name,
+                tipo: tipoFinale,
+                data: b64,
+                dimensione: dimensioneFinale
+            })
+        });
+        fill.style.width = '100%';
+        if (!res.ok) {
+            let detail = `HTTP ${res.status}`;
+            try { const j = await res.json(); detail += ': ' + (j.message || j.hint || j.code || JSON.stringify(j)); } catch(e) {}
+            throw new Error(detail);
+        }
+        const rispKb = Math.round((fileSelezionatoObj.size - dimensioneFinale) / 1024);
+        const msg = rispKb > 0
+            ? `✓ Caricato · ${(dimensioneFinale / 1024).toFixed(0)} KB (risparmiati ${rispKb} KB)`
+            : `✓ Documento caricato`;
+        setTimeout(() => {
+            document.getElementById('modalDocumento').classList.remove('open');
+            caricaDocumenti();
+            toast(msg);
+        }, 400);
+    } catch(e) {
+        const errDiv = document.getElementById('uploadError');
+        errDiv.textContent = e.message || 'Caricamento fallito';
+        errDiv.style.display = '';
+        btn.disabled = false;
+        btn.textContent = 'RIPROVA';
+        prog.style.display = 'none';
+        fill.style.width = '0%';
+    }
+}
+
+async function rinominaDocumento(id, nomeAttuale) {
+    const nuovo = prompt('Nome documento:', nomeAttuale);
+    if (!nuovo || nuovo.trim() === nomeAttuale) return;
+    await patch(`/documenti_valigia?id=eq.${id}`, { nome: nuovo.trim() });
+    caricaDocumenti();
+    toast('✓ Rinominato');
+}
+
+async function eliminaDocumento(id) {
+    if (!confirm('Eliminare questo documento?')) return;
+    await del(`/documenti_valigia?id=eq.${id}`);
+    caricaDocumenti();
+    toast('Documento eliminato');
 }
 
 // ── Close modals on backdrop click ───────────────────────────

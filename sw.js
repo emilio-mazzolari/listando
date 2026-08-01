@@ -1,20 +1,13 @@
-const CACHE_NAME = "lista-spesa-cache-v6";
+const CACHE_NAME = "lista-spesa-cache-v24";
 
 const FILES = [
-  "/",
-  "/index.html",
-  "/login.html",
-  "/spesa.html",
-  "/spesa_prodotti.html",
-  "/valigia.html",
-  "/valigia_elencocose.html",
   "/manifest.json",
   "/logolistando.png",
 ];
 
 /* INSTALL */
 self.addEventListener("install", (event) => {
-  self.skipWaiting(); // 🔥 forza attivazione immediata
+  self.skipWaiting();
 
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
@@ -26,21 +19,17 @@ self.addEventListener("install", (event) => {
 /* ACTIVATE */
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then(keys => {
-      return Promise.all(
-        keys.map(k => {
-          if (k !== CACHE_NAME) {
-            return caches.delete(k); // 🔥 elimina vecchie versioni
-          }
-        })
-      );
-    })
+    caches.keys()
+      .then(keys => Promise.all(
+        keys.map(k => k !== CACHE_NAME ? caches.delete(k) : null)
+      ))
+      .then(() => self.clients.claim())
+      .then(() => self.clients.matchAll({ type: "window" }))
+      .then(clients => clients.forEach(c => c.navigate(c.url)))
   );
-
-  self.clients.claim(); // 🔥 prende controllo subito
 });
 
-/* FETCH (NO CACHE BLOCCANTE) */
+/* FETCH — network first, fallback to cache */
 self.addEventListener("fetch", (event) => {
   event.respondWith(
     fetch(event.request)
