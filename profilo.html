@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <title>Listando - Profilo</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/logolistando.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Listando">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -18,7 +23,6 @@
         html, body { overflow-x: hidden; max-width: 100%; margin: 0; }
         body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--dark); }
 
-        /* Header */
         .page-header {
             position: sticky; top: 0; z-index: 100;
             background: var(--white); border-bottom: 2px solid var(--grey-light);
@@ -39,11 +43,21 @@
             padding: 32px 20px 28px;
             display: flex; flex-direction: column; align-items: center; gap: 12px;
         }
+        .avatar-photo-wrap { position: relative; cursor: pointer; }
         .avatar-circle {
             width: 80px; height: 80px; border-radius: 50%;
             background: rgba(255,255,255,0.2); border: 3px solid rgba(255,255,255,0.4);
             display: flex; align-items: center; justify-content: center;
             font-size: 32px; font-weight: 900; color: white;
+            background-size: cover; background-position: center;
+            overflow: hidden;
+        }
+        .avatar-camera {
+            position: absolute; bottom: 2px; right: 2px;
+            background: white; border-radius: 50%; width: 26px; height: 26px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 13px; box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            pointer-events: none;
         }
         .avatar-name { font-size: 20px; font-weight: 900; color: white; }
         .avatar-email { font-size: 13px; color: rgba(255,255,255,0.75); font-weight: 600; }
@@ -117,6 +131,7 @@
             background: var(--accent); color: white; font-weight: 900; font-size: 16px;
             cursor: pointer; font-family: inherit;
         }
+        .btn-salva:disabled { opacity: 0.4; }
         .btn-test {
             font-size: 12px; font-weight: 800; padding: 6px 12px; border-radius: 10px;
             border: 2px solid var(--accent); color: var(--accent); background: white; cursor: pointer;
@@ -124,11 +139,6 @@
         .btn-logout {
             width: 100%; padding: 16px; border-radius: 18px; border: none;
             background: #fff0f0; color: var(--red); font-weight: 900; font-size: 16px;
-            cursor: pointer; font-family: inherit;
-        }
-        .btn-delete-account {
-            width: 100%; padding: 14px; border-radius: 18px; border: none;
-            background: transparent; color: #aaa; font-weight: 700; font-size: 14px;
             cursor: pointer; font-family: inherit;
         }
 
@@ -166,7 +176,11 @@
 </div>
 
 <div class="avatar-card">
-    <div class="avatar-circle" id="avatarCircle">?</div>
+    <label class="avatar-photo-wrap" for="fotoInput">
+        <div class="avatar-circle" id="avatarCircle">?</div>
+        <div class="avatar-camera">📷</div>
+    </label>
+    <input type="file" id="fotoInput" accept="image/*" style="display:none" onchange="onFotoChange(this)">
     <div class="avatar-name" id="avatarName">—</div>
     <div class="avatar-email" id="avatarEmail"></div>
 </div>
@@ -182,7 +196,21 @@
                 <div class="row-body">
                     <div class="row-label">Nome</div>
                 </div>
-                <input class="row-input" id="fNome" type="text" placeholder="Inserisci il tuo nome" autocomplete="off" oninput="onNomeChange()">
+                <input class="row-input" id="fNome" type="text" placeholder="Nome" autocomplete="off" oninput="onCampoChange()">
+            </div>
+            <div class="row">
+                <div class="row-icon" style="background:#f5f0ff">🪪</div>
+                <div class="row-body">
+                    <div class="row-label">Cognome</div>
+                </div>
+                <input class="row-input" id="fCognome" type="text" placeholder="Cognome" autocomplete="off" oninput="onCampoChange()">
+            </div>
+            <div class="row">
+                <div class="row-icon" style="background:#fff8f0">🎂</div>
+                <div class="row-body">
+                    <div class="row-label">Data di nascita</div>
+                </div>
+                <input class="row-input" id="fDataNascita" type="date" oninput="onCampoChange()">
             </div>
             <div class="row">
                 <div class="row-icon" style="background:#fff8f0">✉️</div>
@@ -263,49 +291,152 @@
 const SUPABASE_URL = 'https://eejdpophfxsrqdvsucye.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlamRwb3BoZnhzcnFkdnN1Y3llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2NTMzMDQsImV4cCI6MjA5MzIyOTMwNH0.mpxbwlJyIdZgqKIdutHbLd85JR1P11yiglbYeApi17k';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const URL_S = SUPABASE_URL + '/rest/v1';
+const _H = { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' };
+const _HR = { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY };
 const userEmail = localStorage.getItem('userEmail');
 if (!userEmail) location.href = 'login.html';
 
 const VAPID_PUBLIC_KEY = 'BATe8jx7GOX6w2NUFoMQoGI6l8BRyJEVcsDlwf3IdIa5AEENkxpSCNuhkl4PgDxR_8f-AJerrYxENnH0mb-MTys';
 
-let nomeOriginale = '';
+let originali = { nome: '', cognome: '', dataNascita: '' };
+let fotoBase64 = null;
+let fotoCambiata = false;
+
+// ── localStorage helpers ──────────────────────────────────────────────
+function _lsKey() { return 'profilo_' + userEmail; }
+function _leggiLS() {
+    try { return JSON.parse(localStorage.getItem(_lsKey()) || 'null') || {}; } catch(e) { return {}; }
+}
+function _salvaLS(obj) {
+    try { localStorage.setItem(_lsKey(), JSON.stringify(obj)); } catch(e) {}
+}
 
 // ── Init ─────────────────────────────────────────────────────────────
 async function init() {
     document.getElementById('avatarEmail').textContent = userEmail;
     document.getElementById('emailDisplay').textContent = userEmail;
 
-    const { data } = await sb.from('profili').select('*').eq('email_utente', userEmail).maybeSingle();
-    const nome = data?.nome || '';
-    nomeOriginale = nome;
-    document.getElementById('fNome').value = nome;
-    aggiornaAvatar(nome || userEmail);
+    // Prima carica da localStorage (sempre disponibile)
+    const ls = _leggiLS();
+    originali.nome        = ls.nome        || '';
+    originali.cognome     = ls.cognome     || '';
+    originali.dataNascita = ls.dataNascita || '';
+    fotoBase64            = ls.foto        || null;
+
+    // Poi prova Supabase: se risponde bene sovrascrive localStorage
+    try {
+        const res = await fetch(`${URL_S}/profili?email_utente=eq.${encodeURIComponent(userEmail)}&limit=1`, { headers: _HR });
+        if (res.ok) {
+            const rows = await res.json();
+            const data = Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
+            if (data) {
+                originali.nome        = data.nome        || '';
+                originali.cognome     = data.cognome     || '';
+                originali.dataNascita = data.data_nascita || '';
+                fotoBase64            = data.foto        || null;
+                _salvaLS({ nome: originali.nome, cognome: originali.cognome, dataNascita: originali.dataNascita, foto: fotoBase64 });
+            }
+        }
+    } catch(e) {}
+
+    document.getElementById('fNome').value        = originali.nome;
+    document.getElementById('fCognome').value     = originali.cognome;
+    document.getElementById('fDataNascita').value = originali.dataNascita;
+    aggiornaAvatar();
 
     await aggiornaStatoNotifiche();
 }
 
-function aggiornaAvatar(testo) {
-    const iniziali = testo.split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase() || '?';
-    document.getElementById('avatarCircle').textContent = iniziali;
-    document.getElementById('avatarName').textContent = document.getElementById('fNome').value || userEmail.split('@')[0];
+function aggiornaAvatar() {
+    const circle = document.getElementById('avatarCircle');
+    const nome = document.getElementById('fNome').value || '';
+    const cognome = document.getElementById('fCognome').value || '';
+    const nomeCompleto = [nome, cognome].filter(Boolean).join(' ') || userEmail;
+
+    if (fotoBase64) {
+        circle.style.backgroundImage = `url(${fotoBase64})`;
+        circle.textContent = '';
+    } else {
+        circle.style.backgroundImage = '';
+        const ini = nomeCompleto.split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase() || '?';
+        circle.textContent = ini;
+    }
+    document.getElementById('avatarName').textContent = nomeCompleto !== userEmail ? nomeCompleto : userEmail.split('@')[0];
 }
 
-function onNomeChange() {
-    const val = document.getElementById('fNome').value;
-    aggiornaAvatar(val || userEmail);
-    document.getElementById('btnSalva').disabled = val.trim() === nomeOriginale;
+function onCampoChange() {
+    aggiornaAvatar();
+    const diverso =
+        document.getElementById('fNome').value.trim() !== originali.nome ||
+        document.getElementById('fCognome').value.trim() !== originali.cognome ||
+        document.getElementById('fDataNascita').value !== originali.dataNascita ||
+        fotoCambiata;
+    document.getElementById('btnSalva').disabled = !diverso;
+}
+
+function onFotoChange(input) {
+    const file = input.files[0];
+    if (!file) return;
+    // Resize to max 400px and convert to JPEG to keep base64 small
+    const reader = new FileReader();
+    reader.onload = e => {
+        const img = new Image();
+        img.onload = () => {
+            const MAX = 400;
+            let w = img.width, h = img.height;
+            if (w > MAX || h > MAX) {
+                if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+                else { w = Math.round(w * MAX / h); h = MAX; }
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = w; canvas.height = h;
+            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+            fotoBase64 = canvas.toDataURL('image/jpeg', 0.82);
+            fotoCambiata = true;
+            aggiornaAvatar();
+            document.getElementById('btnSalva').disabled = false;
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
 }
 
 async function salvaProfilo() {
-    const nome = document.getElementById('fNome').value.trim();
-    const { error } = await sb.from('profili').upsert({
-        email_utente: userEmail,
-        nome,
-    }, { onConflict: 'email_utente' });
-    if (error) { toast('Errore: ' + error.message); return; }
-    nomeOriginale = nome;
-    document.getElementById('btnSalva').disabled = true;
+    const nome       = document.getElementById('fNome').value.trim();
+    const cognome    = document.getElementById('fCognome').value.trim();
+    const dataNascita = document.getElementById('fDataNascita').value || null;
+    const btn = document.getElementById('btnSalva');
+    btn.disabled = true;
+    btn.textContent = 'SALVATAGGIO…';
+
+    // 1) Salva sempre su localStorage — funziona senza database
+    _salvaLS({ nome, cognome, dataNascita: dataNascita || '', foto: fotoBase64 });
+    originali = { nome, cognome, dataNascita: dataNascita || '' };
+    fotoCambiata = false;
+    btn.textContent = 'SALVA';
     toast('✓ Profilo salvato');
+
+    // 2) Prova a sincronizzare su Supabase (silenziosamente)
+    try {
+        const checkRes = await fetch(`${URL_S}/profili?email_utente=eq.${encodeURIComponent(userEmail)}&select=email_utente&limit=1`, { headers: _HR });
+        if (!checkRes.ok) return; // tabella non disponibile, non è un errore
+        const existing = await checkRes.json();
+        const exists = Array.isArray(existing) && existing.length > 0;
+
+        const body = { nome, cognome, data_nascita: dataNascita };
+        if (fotoBase64) body.foto = fotoBase64;
+
+        if (exists) {
+            await fetch(`${URL_S}/profili?email_utente=eq.${encodeURIComponent(userEmail)}`, {
+                method: 'PATCH', headers: _H, body: JSON.stringify(body)
+            });
+        } else {
+            await fetch(`${URL_S}/profili`, {
+                method: 'POST', headers: _H, body: JSON.stringify({ email_utente: userEmail, ...body })
+            });
+        }
+    } catch(e) {}
 }
 
 // ── Notifiche ─────────────────────────────────────────────────────────
@@ -320,69 +451,50 @@ async function aggiornaStatoNotifiche() {
     sub_row.style.display = '';
 
     if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
-        toggle.disabled = true;
-        toggle.checked = false;
-        badge.textContent = 'Non supportato';
-        badge.className = 'status-badge bloccate';
+        toggle.disabled = true; toggle.checked = false;
+        badge.textContent = 'Non supportato'; badge.className = 'status-badge bloccate';
         subStato.textContent = 'Il tuo browser non supporta le notifiche push';
         return;
     }
 
     const perm = Notification.permission;
-
     if (perm === 'denied') {
-        toggle.disabled = true;
-        toggle.checked = false;
-        badge.textContent = 'Bloccate';
-        badge.className = 'status-badge bloccate';
+        toggle.disabled = true; toggle.checked = false;
+        badge.textContent = 'Bloccate'; badge.className = 'status-badge bloccate';
         subStato.textContent = 'Sblocca nelle impostazioni del browser';
-        infoBlocco.style.display = '';
-        btnTest.style.display = 'none';
+        infoBlocco.style.display = ''; btnTest.style.display = 'none';
         return;
     }
-
     infoBlocco.style.display = 'none';
-
     if (perm === 'default') {
         toggle.checked = false;
-        badge.textContent = 'Non attive';
-        badge.className = 'status-badge inattive';
+        badge.textContent = 'Non attive'; badge.className = 'status-badge inattive';
         subStato.textContent = 'Tocca il toggle per attivare';
-        btnTest.style.display = 'none';
-        return;
+        btnTest.style.display = 'none'; return;
     }
-
-    // permission === 'granted' — check actual subscription
     try {
         const reg = await navigator.serviceWorker.ready;
         const sub = await reg.pushManager.getSubscription();
         if (sub) {
             toggle.checked = true;
-            badge.textContent = 'Attive';
-            badge.className = 'status-badge attive';
+            badge.textContent = 'Attive'; badge.className = 'status-badge attive';
             subStato.textContent = 'Ricezione notifiche domenicali attiva';
             btnTest.style.display = '';
         } else {
             toggle.checked = false;
-            badge.textContent = 'Non attive';
-            badge.className = 'status-badge inattive';
+            badge.textContent = 'Non attive'; badge.className = 'status-badge inattive';
             subStato.textContent = 'Permesso concesso ma non iscritto — attiva il toggle';
             btnTest.style.display = 'none';
         }
     } catch (e) {
         toggle.checked = false;
-        badge.textContent = 'Errore';
-        badge.className = 'status-badge bloccate';
+        badge.textContent = 'Errore'; badge.className = 'status-badge bloccate';
         subStato.textContent = e.message;
     }
 }
 
 async function onToggleNotifiche(checked) {
-    if (checked) {
-        await attivaPush();
-    } else {
-        await disattivaPush();
-    }
+    if (checked) await attivaPush(); else await disattivaPush();
     await aggiornaStatoNotifiche();
 }
 
@@ -411,9 +523,7 @@ async function attivaPush() {
         if (!res.ok) throw new Error('Errore server');
         localStorage.removeItem('pushDismissed');
         toast('✓ Notifiche attivate');
-    } catch (err) {
-        toast('Errore: ' + err.message);
-    }
+    } catch (err) { toast('Errore: ' + err.message); }
 }
 
 async function disattivaPush() {
@@ -426,9 +536,7 @@ async function disattivaPush() {
             await sb.from('push_subscriptions').delete().eq('endpoint', endpoint);
         }
         toast('Notifiche disattivate');
-    } catch (err) {
-        toast('Errore: ' + err.message);
-    }
+    } catch (err) { toast('Errore: ' + err.message); }
 }
 
 async function testNotifica() {
@@ -437,15 +545,11 @@ async function testNotifica() {
         const reg = await navigator.serviceWorker.ready;
         await reg.showNotification('📊 Riepilogo settimanale — Listando', {
             body: '💸 Devo: €50,00 (1)\n💰 Mi devono: €200,00 (1)\nSaldo netto: +€150,00',
-            icon: '/logolistando.png',
-            badge: '/logolistando.png',
-            tag: 'listando-test',
-            data: { url: '/debiti.html' },
+            icon: '/logolistando.png', badge: '/logolistando.png',
+            tag: 'listando-test', data: { url: '/debiti.html' },
         });
         toast('Notifica di test inviata!');
-    } catch (err) {
-        toast('Errore: ' + err.message);
-    }
+    } catch (err) { toast('Errore: ' + err.message); }
 }
 
 // ── Account ───────────────────────────────────────────────────────────

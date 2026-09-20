@@ -1,0 +1,2665 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Listando - Spese Viaggio</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/logolistando.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Listando">
+    <style>
+        :root {
+            color-scheme: light;
+            --accent: #f43f5e; --accent-bg: rgba(244,63,94,0.09);
+            --green: #0fba8d; --red: #ff3b30;
+            --grey: #d8dddc; --grey-light: #f2f2f7;
+            --dark: #111; --bg: #f5f6f8; --white: #fff;
+            --shadow: 0 2px 10px rgba(0,0,0,0.06);
+        }
+        * { box-sizing: border-box; }
+        html, body { overflow-x: hidden; max-width: 100%; margin: 0; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--dark); }
+
+        .page-header { position: sticky; top: 0; z-index: 100; background: var(--white); border-bottom: 2px solid var(--grey-light); padding: 14px 16px; padding-top: max(14px, env(safe-area-inset-top, 14px)); display: flex; align-items: center; gap: 10px; }
+        .btn-back { width: 40px; height: 40px; border-radius: 12px; border: 2.5px solid var(--grey); background: var(--white); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+        .btn-back svg { width: 18px; height: 18px; stroke: var(--dark); fill: none; stroke-width: 2.5; }
+        .header-title { font-weight: 900; font-size: 18px; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .btn-add-hdr { width: 40px; height: 40px; border-radius: 12px; border: none; background: var(--accent); color: white; font-size: 22px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: 900; flex-shrink: 0; }
+        .btn-icon-hdr { width: 40px; height: 40px; border-radius: 12px; border: 2px solid var(--grey); background: var(--white); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 18px; }
+
+        .body-content { padding: 12px 16px 110px; }
+
+        /* invite banner */
+        .invite-banner { background: #fff1f2; border: 2px solid var(--accent); border-radius: 16px; padding: 14px 16px; margin-bottom: 10px; }
+        .invite-banner-title { font-weight: 900; font-size: 14px; margin-bottom: 4px; }
+        .invite-banner-sub { font-size: 12px; color: #888; font-weight: 600; margin-bottom: 12px; }
+        .invite-banner-btns { display: flex; gap: 8px; }
+        .btn-accetta { flex: 1; padding: 10px; border-radius: 10px; border: none; background: var(--green); color: white; font-weight: 900; font-size: 13px; cursor: pointer; }
+        .btn-rifiuta { flex: 1; padding: 10px; border-radius: 10px; border: 2px solid var(--grey); background: var(--white); color: #888; font-weight: 900; font-size: 13px; cursor: pointer; }
+
+        /* trip list */
+        .viaggio-card { background: var(--white); border-radius: 20px; margin-bottom: 10px; padding: 16px 18px; box-shadow: var(--shadow); border-left: 5px solid var(--accent); display: flex; align-items: center; gap: 14px; cursor: pointer; transition: transform 0.15s; }
+        .viaggio-card:active { transform: scale(0.97); }
+        .viaggio-card.condiviso { border-left-color: #5856d6; }
+        .viaggio-emoji { font-size: 32px; flex-shrink: 0; }
+        .viaggio-info { flex: 1; min-width: 0; }
+        .viaggio-nome { font-weight: 900; font-size: 16px; }
+        .viaggio-sub { font-size: 12px; color: #888; font-weight: 700; margin-top: 4px; }
+        .viaggio-date { font-size: 11px; color: #5856d6; font-weight: 800; margin-top: 5px; display: flex; align-items: center; gap: 4px; }
+        .viaggio-badge { font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 6px; background: #eef2ff; color: #5856d6; display: inline-block; margin-top: 4px; }
+        .btn-del-viaggio { width: 36px; height: 36px; border-radius: 10px; border: 2px solid var(--grey); background: var(--white); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--red); }
+        .btn-del-viaggio svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2.5; }
+
+        /* inner tabs */
+        .inner-tabs { display: flex; background: var(--grey-light); border-radius: 14px; padding: 4px; margin-bottom: 16px; gap: 2px; }
+        .inner-tab { flex: 1; padding: 9px 2px; border-radius: 10px; border: none; font-weight: 800; font-size: 12px; cursor: pointer; background: transparent; color: #888; transition: all 0.2s; font-family: inherit; }
+        .inner-tab.active { background: var(--white); color: var(--dark); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+
+        /* expense cards */
+        .spesa-card { background: var(--white); border-radius: 16px; padding: 12px 14px; margin-bottom: 10px; box-shadow: var(--shadow); display: flex; align-items: center; gap: 10px; }
+        .spesa-cat { font-size: 24px; flex-shrink: 0; }
+        .spesa-foto-thumb { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; flex-shrink: 0; cursor: pointer; border: 2px solid var(--grey); }
+        .spesa-info { flex: 1; min-width: 0; }
+        .spesa-desc { font-weight: 800; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .spesa-sub { font-size: 11px; color: #888; font-weight: 700; margin-top: 3px; }
+        .spesa-importo { font-weight: 900; font-size: 16px; }
+        .spesa-orig { font-size: 10px; color: #aaa; font-weight: 700; }
+        .btn-card-sm { width: 30px; height: 30px; border-radius: 8px; border: 2px solid var(--grey); background: var(--white); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .btn-card-sm svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2.5; }
+        .btn-card-sm.edit { border-color: var(--accent); color: var(--accent); }
+        .btn-card-sm.del { color: var(--red); }
+        .btn-card-sm.dup { color: #5856d6; border-color: #5856d6; }
+
+        /* filter bar */
+        .filter-bar { display: flex; gap: 8px; margin-bottom: 12px; }
+        .filter-bar input, .filter-bar select { padding: 10px 12px; border-radius: 12px; border: 2px solid var(--grey); font-size: 13px; font-family: inherit; outline: none; background: var(--white); flex: 1; min-width: 0; }
+        .filter-bar input:focus, .filter-bar select:focus { border-color: var(--accent); }
+
+        /* saldi */
+        .saldo-card { background: var(--white); border-radius: 16px; padding: 14px 16px; margin-bottom: 10px; box-shadow: var(--shadow); display: flex; align-items: flex-start; gap: 12px; }
+        .saldo-card.positivo { border-left: 5px solid var(--green); }
+        .saldo-card.negativo { border-left: 5px solid var(--red); }
+        .saldo-card.pari { border-left: 5px solid var(--grey); }
+        .saldo-body { flex: 1; min-width: 0; }
+        .saldo-nome { font-weight: 800; font-size: 15px; }
+        .saldo-budget { font-size: 12px; color: #888; font-weight: 700; margin-top: 3px; }
+        .saldo-debiti { font-size: 12px; font-weight: 600; margin-top: 6px; line-height: 1.7; color: #555; }
+        .saldo-val { font-weight: 900; font-size: 18px; flex-shrink: 0; white-space: nowrap; }
+        .saldo-card.positivo .saldo-val { color: var(--green); }
+        .saldo-card.negativo .saldo-val { color: var(--red); }
+        .sezione-titolo { font-size: 11px; font-weight: 900; color: #aaa; text-transform: uppercase; letter-spacing: 0.6px; margin: 18px 0 10px; }
+        .transazione-card { background: var(--white); border-radius: 14px; padding: 13px 16px; margin-bottom: 8px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 0; font-size: 14px; font-weight: 700; }
+        .storico-riga { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1.5px solid var(--grey-light); background: var(--white); }
+        .storico-riga:first-child { border-radius: 14px 14px 0 0; }
+        .storico-riga:last-child { border-bottom: none; border-radius: 0 0 14px 14px; }
+        .storico-riga:only-child { border-radius: 14px; }
+        .storico-icon { font-size: 18px; flex-shrink: 0; }
+        .storico-body { flex: 1; min-width: 0; }
+        .storico-testo { font-size: 13px; font-weight: 700; color: var(--dark); }
+        .storico-data { font-size: 11px; color: #bbb; font-weight: 600; margin-top: 2px; }
+        .storico-importo { font-size: 13px; font-weight: 900; color: #888; flex-shrink: 0; }
+        .transazione-top { display: flex; align-items: center; gap: 8px; width: 100%; }
+        .transazione-card .da { color: var(--red); font-weight: 900; }
+        .transazione-card .a { color: var(--green); font-weight: 900; }
+        .transazione-card .importo { margin-left: auto; font-weight: 900; font-size: 16px; }
+        .transazione-btns { display: flex; gap: 6px; width: 100%; margin-top: 8px; }
+        .btn-pagato { flex: 1; padding: 9px 6px; border-radius: 10px; border: none; background: var(--green); color: white; font-weight: 900; font-size: 12px; cursor: pointer; white-space: nowrap; }
+        .btn-abbuona { flex: 1; padding: 9px 6px; border-radius: 10px; border: 2px solid var(--grey); background: var(--white); color: #888; font-weight: 900; font-size: 12px; cursor: pointer; white-space: nowrap; }
+        .btn-richiedi { flex: 1; padding: 9px 6px; border-radius: 10px; border: none; background: #5856d6; color: white; font-weight: 900; font-size: 12px; cursor: pointer; white-space: nowrap; }
+
+        /* stats */
+        .stat-box { background: var(--white); border-radius: 16px; padding: 16px; margin-bottom: 10px; box-shadow: var(--shadow); }
+        .stat-label { font-size: 11px; font-weight: 900; color: #aaa; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+        .stat-value { font-size: 28px; font-weight: 900; color: var(--dark); }
+        .stat-sub { font-size: 12px; color: #aaa; font-weight: 700; margin-top: 2px; }
+        .stat-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .stat-row-label { font-size: 13px; font-weight: 700; width: 90px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .stat-bar-wrap { flex: 1; background: var(--grey-light); border-radius: 6px; height: 10px; overflow: hidden; }
+        .stat-bar { height: 10px; border-radius: 6px; background: var(--accent); transition: width 0.4s; }
+        .stat-row-val { font-size: 13px; font-weight: 900; width: 60px; text-align: right; flex-shrink: 0; }
+        .stat-row-cat { cursor: pointer; border-radius: 10px; padding: 4px 6px; margin: -4px -6px; transition: background 0.15s; }
+        .stat-row-cat:active { background: var(--grey-light); }
+        .stat-row-cat .stat-row-val::after { content: ' ›'; font-size: 11px; color: #bbb; }
+
+        /* drill-down modal */
+        .modal-drill { position: fixed; inset: 0; z-index: 1050; display: flex; flex-direction: column; justify-content: flex-end; background: rgba(0,0,0,0.4); opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+        .modal-drill.open { opacity: 1; pointer-events: all; }
+        .modal-drill-box { background: var(--white); border-radius: 24px 24px 0 0; padding: 16px 16px 40px; max-height: 80vh; display: flex; flex-direction: column; transform: translateY(40px); transition: transform 0.25s; }
+        .modal-drill.open .modal-drill-box { transform: translateY(0); }
+        .modal-drill-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-shrink: 0; }
+        .modal-drill-icon { font-size: 28px; }
+        .modal-drill-title { font-size: 17px; font-weight: 900; flex: 1; }
+        .modal-drill-count { font-size: 12px; color: #aaa; font-weight: 700; }
+        .modal-drill-close { width: 32px; height: 32px; border-radius: 10px; border: 2px solid var(--grey); background: var(--white); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+        .modal-drill-list { overflow-y: auto; -webkit-overflow-scrolling: touch; flex: 1; }
+        .drill-item { display: flex; align-items: center; gap: 10px; padding: 11px 0; border-bottom: 1.5px solid var(--grey-light); }
+        .drill-item:last-child { border-bottom: none; }
+        .drill-cat { font-size: 22px; flex-shrink: 0; }
+        .drill-info { flex: 1; min-width: 0; }
+        .drill-desc { font-size: 14px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .drill-sub { font-size: 11px; color: #888; font-weight: 700; margin-top: 2px; }
+        .drill-amt { font-size: 14px; font-weight: 900; flex-shrink: 0; margin-right: 6px; }
+        .drill-edit { width: 30px; height: 30px; border-radius: 8px; border: 2px solid var(--accent); background: var(--white); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--accent); font-size: 14px; }
+        .btn-export { width: 100%; padding: 13px; border-radius: 14px; border: 2px solid var(--green); background: #f0fff8; color: var(--green); font-weight: 900; font-size: 14px; cursor: pointer; font-family: inherit; margin-top: 4px; }
+
+        /* participants */
+        .partecipante-row { background: var(--white); border-radius: 14px; padding: 12px 16px; margin-bottom: 8px; box-shadow: var(--shadow); display: flex; align-items: center; gap: 12px; }
+        .part-avatar { width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 15px; color: #5856d6; background: #eef2ff; background-size: cover; background-position: center; }
+        .part-info { flex: 1; min-width: 0; }
+        .partecipante-nome { font-weight: 800; font-size: 15px; }
+        .partecipante-sub { font-size: 11px; color: #aaa; font-weight: 600; margin-top: 2px; }
+        .add-partecipante-wrap { display: flex; gap: 10px; margin-top: 12px; }
+        .add-partecipante-wrap input { flex: 1; padding: 13px 14px; border-radius: 14px; border: 2.5px solid var(--grey); font-size: 15px; font-family: inherit; outline: none; background: var(--white); }
+        .add-partecipante-wrap input:focus { border-color: var(--accent); }
+        .btn-add-part { padding: 13px 18px; border-radius: 14px; border: none; background: var(--accent); color: white; font-weight: 900; font-size: 14px; cursor: pointer; white-space: nowrap; }
+        .btn-invita { width: 100%; padding: 13px; border-radius: 14px; border: 2px dashed #5856d6; background: #f5f4ff; color: #5856d6; font-weight: 800; font-size: 14px; cursor: pointer; font-family: inherit; margin-top: 8px; }
+        .btn-link-viaggio { width: 100%; padding: 13px; border-radius: 14px; border: 2px dashed var(--green); background: #f0fff8; color: var(--green); font-weight: 800; font-size: 14px; cursor: pointer; font-family: inherit; margin-top: 8px; }
+
+        /* empty */
+        .empty-msg { text-align: center; padding: 48px 24px; color: #bbb; font-weight: 700; font-size: 15px; }
+
+        /* modal */
+        .modal-overlay { display: none; position: fixed; inset: 0; z-index: 1100; background: rgba(0,0,0,0.5); align-items: flex-end; justify-content: center; }
+        .modal-overlay.open { display: flex; }
+        .modal-box { background: var(--white); border-radius: 28px 28px 0 0; padding: 24px 20px; padding-bottom: max(24px, env(safe-area-inset-bottom, 24px)); width: 100%; max-width: 500px; max-height: 92vh; overflow-y: auto; }
+        .modal-handle { width: 40px; height: 4px; background: var(--grey); border-radius: 4px; margin: 0 auto 20px; }
+        .modal-title { font-weight: 900; font-size: 17px; margin-bottom: 14px; }
+        .form-input { width: 100%; padding: 13px 14px; border-radius: 14px; border: 2.5px solid var(--grey); font-size: 15px; font-family: inherit; outline: none; margin-bottom: 10px; background: var(--white); color: var(--dark); }
+        .form-input:focus { border-color: var(--accent); }
+        .form-label { font-size: 12px; font-weight: 800; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; margin-top: 4px; display: block; }
+        .btn-save-modal { width: 100%; padding: 15px; border-radius: 16px; border: none; background: var(--accent); color: white; font-weight: 900; font-size: 16px; cursor: pointer; margin-top: 4px; font-family: inherit; }
+
+        /* emoji grid */
+        .emoji-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; max-height: 200px; overflow-y: auto; margin-bottom: 14px; padding: 2px; }
+        .emoji-grid .emoji-opt { font-size: 20px; aspect-ratio: 1; width: 100%; border-radius: 10px; border: 2px solid var(--grey); background: var(--white); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; transition: all 0.15s; }
+        .emoji-grid .emoji-opt.active { border-color: var(--accent); background: var(--accent-bg); }
+
+        /* category */
+        .cat-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin-bottom: 14px; max-height: 130px; overflow-y: auto; padding: 2px; }
+        .cat-btn { font-size: 22px; aspect-ratio: 1; border-radius: 10px; border: 2px solid var(--grey); background: var(--white); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; padding: 0; }
+        .cat-btn.active { border-color: var(--accent); background: var(--accent-bg); }
+
+        /* payer */
+        .payer-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+        .payer-btn { padding: 8px 14px; border-radius: 10px; border: 2px solid var(--grey); background: var(--white); font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; transition: all 0.15s; }
+        .payer-btn.active { border-color: var(--accent); background: var(--accent-bg); color: #9f1239; }
+
+        /* split type selector */
+        .split-type-row { display: flex; gap: 6px; margin-bottom: 12px; }
+        .split-type-btn { flex: 1; padding: 9px 4px; border-radius: 10px; border: 2px solid var(--grey); background: var(--white); font-size: 12px; font-weight: 800; cursor: pointer; font-family: inherit; text-align: center; transition: all 0.15s; }
+        .split-type-btn.active { border-color: var(--accent); background: var(--accent-bg); color: #9f1239; }
+
+        /* split checks */
+        .split-check { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--grey-light); }
+        .split-check:last-child { border-bottom: none; }
+        .split-check label { flex: 1; font-weight: 700; font-size: 14px; }
+        .split-check input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--accent); cursor: pointer; flex-shrink: 0; }
+        .split-check input[type=number] { width: 80px; padding: 6px 10px; border-radius: 8px; border: 2px solid var(--grey); font-size: 14px; font-family: inherit; outline: none; text-align: right; flex-shrink: 0; }
+        .split-check input[type=number]:focus { border-color: var(--accent); }
+        .btn-tutti { padding: 8px 16px; border-radius: 10px; border: 2px solid var(--grey); background: var(--white); font-size: 13px; font-weight: 800; cursor: pointer; font-family: inherit; margin-bottom: 10px; }
+        .btn-tutti.active { border-color: var(--accent); background: var(--accent-bg); color: #9f1239; }
+
+        /* currency row */
+        .currency-row { display: flex; gap: 8px; margin-bottom: 10px; }
+        .currency-row { flex-direction: column !important; }
+        .currency-row select { width: 100%; padding: 11px 12px; border-radius: 14px; border: 2.5px solid var(--grey); font-size: 14px; font-family: inherit; outline: none; background: var(--white); margin-bottom: 0; }
+        .currency-row select:focus { border-color: var(--accent); }
+        .currency-row input { flex: 1; margin-bottom: 0; }
+        .preview-conv { font-size: 12px; color: #5856d6; font-weight: 700; margin-bottom: 10px; padding: 6px 10px; background: #f0efff; border-radius: 8px; }
+
+        /* photo */
+        .foto-area { margin-bottom: 14px; }
+        .foto-preview-wrap { position: relative; display: inline-block; margin-top: 8px; }
+        .foto-preview { width: 80px; height: 80px; border-radius: 12px; object-fit: cover; border: 2px solid var(--grey); display: block; }
+        .btn-remove-foto { position: absolute; top: -8px; right: -8px; width: 22px; height: 22px; border-radius: 50%; background: var(--red); color: white; border: none; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; }
+        .btn-add-foto { padding: 10px 16px; border-radius: 12px; border: 2px dashed var(--grey); background: var(--white); font-size: 13px; font-weight: 800; cursor: pointer; font-family: inherit; color: #888; }
+        .btn-add-foto:hover { border-color: var(--accent); color: var(--accent); }
+
+        /* photo lightbox */
+        .lightbox { display: none; position: fixed; inset: 0; z-index: 2000; background: rgba(0,0,0,0.9); align-items: center; justify-content: center; }
+        .lightbox.open { display: flex; }
+        .lightbox img { max-width: 95vw; max-height: 90vh; border-radius: 12px; object-fit: contain; }
+        .lightbox-close { position: absolute; top: 20px; right: 20px; width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.2); color: white; border: none; font-size: 22px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+        /* currency converter modal */
+        .conv-amt { width: 100%; padding: 16px; border-radius: 14px; border: 2.5px solid var(--grey); font-size: 20px; font-weight: 900; font-family: inherit; outline: none; text-align: center; box-sizing: border-box; margin-bottom: 10px; }
+        .conv-amt:focus { border-color: var(--accent); }
+        .conv-cur-pill { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-radius: 14px; border: 2.5px solid var(--grey); background: var(--white); cursor: pointer; margin-bottom: 8px; transition: border-color 0.15s; user-select: none; -webkit-user-select: none; }
+        .conv-cur-pill:active { border-color: var(--accent); }
+        .conv-cur-pill .pill-flag { font-size: 22px; line-height: 1; }
+        .conv-cur-pill .pill-code { font-weight: 900; font-size: 18px; }
+        .conv-cur-pill .pill-name { color: #aaa; font-size: 12px; font-weight: 700; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .conv-cur-pill .pill-caret { color: #ccc; font-size: 14px; }
+        .btn-swap { width: 44px; height: 44px; border-radius: 12px; border: 2px solid var(--grey); background: var(--white); font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; margin: 4px auto 8px; }
+        .cur-search-input { width: 100%; padding: 14px 16px; border-radius: 14px; border: 2.5px solid var(--accent); font-size: 16px; font-family: inherit; outline: none; box-sizing: border-box; margin-bottom: 10px; }
+        .cur-search-list { max-height: 320px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+        .cur-search-item { display: flex; align-items: center; gap: 12px; padding: 12px 6px; border-bottom: 1px solid #f0f0f0; cursor: pointer; border-radius: 8px; }
+        .cur-search-item:active { background: #f5f5f5; }
+        .cur-search-item .csi-flag { font-size: 22px; line-height: 1; flex-shrink: 0; }
+        .cur-search-item .csi-code { font-weight: 900; font-size: 15px; min-width: 46px; }
+        .cur-search-item .csi-name { color: #666; font-size: 13px; font-weight: 600; }
+        .cur-search-item.cur-selected { background: var(--accent-bg); }
+        .cur-search-item.cur-selected .csi-code { color: var(--accent); }
+        .conv-trip-bind { background: #f0faf6; border-radius: 12px; padding: 12px 14px; display: flex; align-items: center; gap: 10px; margin-bottom: 14px; border: 2px solid #b2e8d6; }
+        .conv-trip-bind .ctb-label { font-size: 13px; font-weight: 700; color: #444; flex: 1; line-height: 1.4; }
+        .btn-aggancia { font-size: 12px; font-weight: 800; padding: 8px 12px; border-radius: 10px; border: none; cursor: pointer; font-family: inherit; background: var(--green); color: white; white-space: nowrap; }
+        .btn-rimuovi-pair { font-size: 12px; font-weight: 800; padding: 8px 12px; border-radius: 10px; cursor: pointer; font-family: inherit; background: white; color: #e53; border: 1.5px solid #fcc; white-space: nowrap; }
+
+        /* share buttons */
+        .btn-share-wa { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 15px; border-radius: 16px; background: #25d366; color: white; font-weight: 900; font-size: 15px; cursor: pointer; margin-bottom: 10px; text-decoration: none; font-family: inherit; border: none; }
+        .btn-share-email { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 15px; border-radius: 16px; background: #5856d6; color: white; font-weight: 900; font-size: 15px; cursor: pointer; margin-bottom: 10px; text-decoration: none; font-family: inherit; border: none; }
+
+        /* tab bar */
+        .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 88px; background: white; display: flex; justify-content: space-around; align-items: center; border-top: 3px solid var(--grey); padding-bottom: env(safe-area-inset-bottom, 0); z-index: 1000; }
+        .tab-item { flex: 1; text-align: center; font-size: 10px; color: #aaa; text-decoration: none; font-weight: 800; display: flex; flex-direction: column; align-items: center; gap: 5px; text-transform: uppercase; letter-spacing: 0.3px; transition: color 0.15s; }
+        .tab-active { color: var(--accent); }
+        .tab-item.esci { color: var(--red); }
+        .icon-tab { width: 24px; height: 24px; stroke-width: 2.5; stroke: currentColor; fill: none; }
+
+        .toast { position: fixed; bottom: 105px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--dark); color: white; padding: 12px 20px; border-radius: 14px; font-weight: 700; font-size: 14px; opacity: 0; transition: all 0.25s; white-space: nowrap; z-index: 9999; pointer-events: none; }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        /* full emoji picker */
+        .emoji-cat-tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 10px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+        .emoji-cat-tabs::-webkit-scrollbar { display: none; }
+        .emoji-cat-btn { width: 40px; height: 40px; border-radius: 10px; border: 2px solid var(--grey); background: var(--white); font-size: 20px; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; padding: 0; transition: all 0.15s; }
+        .emoji-cat-btn.active { border-color: var(--accent); background: var(--accent-bg); }
+        .emoji-full-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; max-height: 240px; overflow-y: auto; padding: 2px; -webkit-overflow-scrolling: touch; }
+        .emoji-full-grid button { font-size: 24px; aspect-ratio: 1; width: 100%; border-radius: 8px; border: 2px solid transparent; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; transition: all 0.1s; }
+        .emoji-full-grid button:hover { background: var(--grey-light); }
+        .emoji-full-grid button.active { border-color: var(--accent); background: var(--accent-bg); }
+        .emoji-selected-preview { font-size: 48px; text-align: center; margin: 8px 0 16px; }
+
+        /* macro-category chips (in expense modal) */
+        .macro-cat-chips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; -webkit-overflow-scrolling: touch; scrollbar-width: none; margin-bottom: 8px; }
+        .macro-cat-chips::-webkit-scrollbar { display: none; }
+        .macro-cat-chip { flex-shrink: 0; padding: 5px 10px; border-radius: 10px; border: 2px solid var(--grey); background: var(--white); font-size: 12px; font-weight: 800; cursor: pointer; white-space: nowrap; font-family: inherit; display: flex; align-items: center; gap: 4px; color: #555; transition: all 0.15s; }
+        .macro-cat-chip.active { border-color: var(--accent); background: var(--accent-bg); color: #9f1239; }
+
+        /* category suggestion banner */
+        .cat-suggerita-banner { background: var(--accent-bg); border: 1.5px solid var(--accent); border-radius: 10px; padding: 9px 12px; margin-top: 8px; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: #9f1239; }
+        .cat-suggerita-btns { display: flex; gap: 6px; margin-left: auto; }
+        .cat-suggerita-btns button { padding: 5px 11px; border-radius: 8px; border: none; font-weight: 800; font-size: 12px; cursor: pointer; font-family: inherit; }
+        .cat-suggerita-btns .btn-usa { background: var(--accent); color: white; }
+        .cat-suggerita-btns .btn-ignora { background: var(--grey-light); color: #666; }
+
+        /* inner tabs scrollable */
+        .inner-tabs { overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+        .inner-tabs::-webkit-scrollbar { display: none; }
+        .inner-tab { flex-shrink: 0; }
+
+        /* Piano */
+        .piano-card { background: var(--white); border-radius: 16px; padding: 14px 16px; margin-bottom: 10px; box-shadow: var(--shadow); display: flex; align-items: flex-start; gap: 12px; cursor: pointer; transition: transform 0.15s; }
+        .piano-card:active { transform: scale(0.98); }
+        .piano-tipo-icon { font-size: 26px; flex-shrink: 0; width: 36px; text-align: center; margin-top: 2px; }
+        .piano-body { flex: 1; min-width: 0; }
+        .piano-titolo { font-weight: 800; font-size: 15px; }
+        .piano-sub { font-size: 12px; color: #888; font-weight: 700; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .piano-date { font-size: 11px; color: #5856d6; font-weight: 800; margin-top: 5px; }
+        .piano-badge { display: inline-block; font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 6px; background: #eef2ff; color: #5856d6; margin-top: 5px; }
+        .piano-badge.confermato { background: #e8f5e9; color: var(--green); }
+
+        /* Budget */
+        .budget-summary { background: var(--white); border-radius: 16px; padding: 16px; margin-bottom: 14px; box-shadow: var(--shadow); }
+        .budget-summary-row { display: flex; justify-content: space-between; align-items: center; }
+        .budget-summary-label { font-size: 13px; font-weight: 700; color: #666; }
+        .budget-summary-val { font-size: 18px; font-weight: 900; }
+        .budget-summary-meta { display: flex; justify-content: space-between; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--grey-light); }
+        .budget-summary-meta span { font-size: 12px; font-weight: 700; color: #aaa; }
+        .budget-card { background: var(--white); border-radius: 16px; padding: 12px 14px; margin-bottom: 8px; box-shadow: var(--shadow); display: flex; align-items: center; gap: 10px; cursor: pointer; transition: transform 0.15s; }
+        .budget-card:active { transform: scale(0.98); }
+        .budget-cat-icon { font-size: 22px; flex-shrink: 0; }
+        .budget-body { flex: 1; min-width: 0; }
+        .budget-titolo { font-weight: 800; font-size: 14px; }
+        .budget-sub { font-size: 12px; color: #888; font-weight: 700; margin-top: 3px; }
+        .budget-stato { font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 6px; display: inline-block; margin-top: 4px; }
+        .budget-stato.prevista { background: var(--grey-light); color: #888; }
+        .budget-stato.confermata { background: #e8f5e9; color: var(--green); }
+        .budget-stato.annullata { background: #fff0f0; color: var(--red); }
+        .budget-importo { font-weight: 900; font-size: 16px; flex-shrink: 0; white-space: nowrap; }
+        .period-pill { flex-shrink: 0; padding: 8px 14px; border-radius: 20px; border: 2px solid var(--grey); font-weight: 800; font-size: 12px; cursor: pointer; background: var(--white); color: #999; transition: all 0.15s; font-family: inherit; }
+        .period-pill.active { border-color: #5856d6; background: rgba(88,86,214,0.08); color: #5856d6; }
+    </style>
+</head>
+<body>
+
+<!-- ════ VIEW 1: Lista viaggi ════ -->
+<div id="viewLista">
+    <div class="page-header">
+        <button class="btn-back" onclick="history.back()">
+            <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div class="header-title">SPESE VIAGGIO</div>
+        <button class="btn-icon-hdr" onclick="apriConverter()" title="Converti valuta">💱</button>
+        <button class="btn-add-hdr" onclick="apriModalNuovoViaggio()">+</button>
+    </div>
+    <div class="body-content">
+        <div id="invitiBanner"></div>
+        <div id="listaViaggioEl"></div>
+    </div>
+</div>
+
+<!-- ════ VIEW 2: Dentro un viaggio ════ -->
+<div id="viewViaggio" style="display:none">
+    <div class="page-header">
+        <button class="btn-back" onclick="tornaALista()">
+            <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div class="header-title" id="titoloViaggio">✈️ Viaggio</div>
+        <button class="btn-icon-hdr" onclick="apriConverter()" title="Converti valuta">💱</button>
+        <button class="btn-icon-hdr" onclick="apriModalEditViaggio()" title="Modifica viaggio">✏️</button>
+    </div>
+    <div class="body-content">
+        <div class="inner-tabs">
+            <button class="inner-tab active" id="tabBtnSpese" onclick="mostraTab('spese')">Spese</button>
+            <button class="inner-tab" id="tabBtnSaldi" onclick="mostraTab('saldi')">Saldi</button>
+            <button class="inner-tab" id="tabBtnStatistiche" onclick="mostraTab('statistiche')">Riepilogo</button>
+            <button class="inner-tab" id="tabBtnPiano" onclick="mostraTab('piano')">Piano</button>
+            <button class="inner-tab" id="tabBtnBudget" onclick="mostraTab('budget')">Budget</button>
+            <button class="inner-tab" id="tabBtnPersone" onclick="mostraTab('persone')">Persone</button>
+        </div>
+
+        <!-- TAB SPESE -->
+        <div id="tabSpese">
+            <button class="btn-save-modal" onclick="apriModalNuovaSpesa(null)" style="background:var(--accent);margin-bottom:12px">+ Aggiungi spesa</button>
+            <div class="filter-bar">
+                <input type="search" id="filterSearch" placeholder="🔍 Cerca…" oninput="aggiorniFiltri()">
+                <select id="filterPayer" onchange="aggiorniFiltri()">
+                    <option value="">Tutti</option>
+                </select>
+            </div>
+            <div id="elencoSpese"></div>
+        </div>
+
+        <!-- TAB SALDI -->
+        <div id="tabSaldi" style="display:none">
+            <div id="contenutoSaldi"></div>
+        </div>
+
+        <!-- TAB STATISTICHE -->
+        <div id="tabStatistiche" style="display:none">
+            <div id="contenutoStatistiche"></div>
+        </div>
+
+        <!-- TAB PERSONE -->
+        <div id="tabPersone" style="display:none">
+            <div id="elencoPersone"></div>
+            <div class="add-partecipante-wrap">
+                <input type="text" id="nomeNuovaPersona" placeholder="Nome partecipante…" onkeydown="if(event.key==='Enter') aggiungiPartecipante()">
+                <button class="btn-add-part" onclick="aggiungiPartecipante()">+ Aggiungi</button>
+            </div>
+            <button class="btn-invita" onclick="apriModalInvita()">📧 Invita via email</button>
+            <button class="btn-link-viaggio" onclick="condividiLinkViaggio()">🔗 Invita con link</button>
+        </div>
+
+        <!-- TAB PIANO -->
+        <div id="tabPiano" style="display:none">
+            <button class="btn-save-modal" onclick="apriModalNuovoPianoItem()" style="background:#5856d6;margin-bottom:12px">+ Aggiungi elemento</button>
+            <div id="elencoPiano"></div>
+        </div>
+
+        <!-- TAB BUDGET -->
+        <div id="tabBudget" style="display:none">
+            <button class="btn-save-modal" onclick="apriModalNuovoBudgetItem()" style="background:var(--green);margin-bottom:12px">+ Aggiungi voce budget</button>
+            <div id="riepilogoBudget"></div>
+            <div id="elencoBudget"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Nuovo viaggio -->
+<div class="modal-overlay" id="modalNuovoViaggio">
+    <div class="modal-box">
+        <div class="modal-handle"></div>
+        <div class="modal-title">Nuovo viaggio</div>
+        <div class="emoji-grid" id="emojiPickerViaggio"></div>
+        <input class="form-input" id="nomeNuovoViaggio" placeholder="es. Grecia 2025, Lago Maggiore…" type="text" onkeydown="if(event.key==='Enter') salvaViaggio()">
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px">
+            <label class="form-label" style="margin:0;white-space:nowrap">Valuta:</label>
+            <select class="form-input" id="valutaNuovoViaggio" style="margin:0;flex:1;padding:10px 12px"></select>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:14px">
+            <div style="flex:1">
+                <label class="form-label">Dal</label>
+                <input class="form-input" id="dataInizioNuovoViaggio" type="date" style="margin:0;padding:10px 12px">
+            </div>
+            <div style="flex:1">
+                <label class="form-label">Al</label>
+                <input class="form-input" id="dataFineNuovoViaggio" type="date" style="margin:0;padding:10px 12px">
+            </div>
+        </div>
+        <div class="form-label">Partecipanti</div>
+        <div id="nuoviPartRows"></div>
+        <div class="add-partecipante-wrap" style="margin-top:0;margin-bottom:14px">
+            <input type="text" id="nomePartNew" placeholder="Nome…" class="form-input" style="margin:0" onkeydown="if(event.key==='Enter') aggiungiPartNew()">
+            <button class="btn-add-part" onclick="aggiungiPartNew()">+ Aggiungi</button>
+        </div>
+        <button class="btn-save-modal" onclick="salvaViaggio()">CREA</button>
+    </div>
+</div>
+
+<!-- Modal: Nuova / Modifica spesa -->
+<div class="modal-overlay" id="modalNuovaSpesa">
+    <div class="modal-box">
+        <div class="modal-handle"></div>
+        <div class="modal-title" id="titoloModalSpesa">Nuova spesa</div>
+        <div class="form-label">Categoria</div>
+        <div class="macro-cat-chips" id="macroCatChips"></div>
+        <div class="emoji-cat-tabs" id="catEmojiTabs" style="margin-bottom:8px"></div>
+        <div class="emoji-full-grid" id="catRow" style="max-height:140px"></div>
+        <input class="form-input" id="descSpesa" placeholder="Descrizione…" type="text" oninput="onDescSpesaInput()">
+        <div id="catSuggerita" class="cat-suggerita-banner" style="display:none">
+            <span id="catSuggeritaLabel"></span>
+            <div class="cat-suggerita-btns">
+                <button class="btn-usa" onclick="usaCatSuggerita()">Usa</button>
+                <button class="btn-ignora" onclick="document.getElementById('catSuggerita').style.display='none'">Ignora</button>
+            </div>
+        </div>
+        <div class="form-label">Importo</div>
+        <div class="currency-row">
+            <select id="valutaSpesa" onchange="aggiornaPreviewValuta()"></select>
+            <input class="form-input" id="importoSpesa" placeholder="0.00" type="number" min="0.01" step="0.01" inputmode="decimal" oninput="aggiornaPreviewValuta()">
+        </div>
+        <div id="previewConversione" class="preview-conv" style="display:none"></div>
+        <div class="form-label">Chi ha pagato?</div>
+        <div class="payer-row" id="payerRow"></div>
+        <div class="form-label">Come dividere?</div>
+        <div class="split-type-row" id="splitTypeRow">
+            <button class="split-type-btn active" onclick="setSplitType('uguale')" data-type="uguale">= Uguale</button>
+            <button class="split-type-btn" onclick="setSplitType('importi')" data-type="importi">€ Importi</button>
+            <button class="split-type-btn" onclick="setSplitType('percentuali')" data-type="percentuali">% Perc.</button>
+            <button class="split-type-btn" onclick="setSplitType('quote')" data-type="quote">÷ Quote</button>
+        </div>
+        <button class="btn-tutti" id="btnTutti" onclick="toggleTutti()" style="display:none">✓ Tutti</button>
+        <div id="splitContainer"></div>
+        <input class="form-input" id="dataSpesa" type="date" style="margin-top:6px">
+        <div class="foto-area">
+            <label class="form-label">Foto</label>
+            <div id="fotoPreviewWrap" style="display:none">
+                <div class="foto-preview-wrap">
+                    <img id="fotoPreview" class="foto-preview" src="" alt="foto">
+                    <button class="btn-remove-foto" onclick="rimuoviFoto()">×</button>
+                </div>
+            </div>
+            <button class="btn-add-foto" id="btnAddFoto" onclick="document.getElementById('fotoInput').click()">📷 Aggiungi foto</button>
+            <input type="file" id="fotoInput" accept="image/*" style="display:none" onchange="onFotoSelected(event)">
+        </div>
+        <button class="btn-save-modal" id="btnSalvaSpesa" onclick="salvaSpesa()">AGGIUNGI</button>
+    </div>
+</div>
+
+<!-- Modal: Invita utente -->
+<div class="modal-overlay" id="modalInvita">
+    <div class="modal-box">
+        <div class="modal-handle"></div>
+        <div id="inviteStep1">
+            <div class="modal-title">Invita partecipante</div>
+            <p style="font-size:13px;color:#888;font-weight:600;margin:0 0 14px">Aggiungi il nome e l'email di chi vuoi invitare.</p>
+            <label class="form-label">Email</label>
+            <input class="form-input" id="emailInvitato" type="email" placeholder="email@esempio.com" autocomplete="off">
+            <label class="form-label">Nome</label>
+            <input class="form-input" id="nomeInvitato" type="text" placeholder="Come si chiama?" onkeydown="if(event.key==='Enter') inviaInvito()">
+            <button class="btn-save-modal" style="background:#5856d6" onclick="inviaInvito()">AVANTI →</button>
+        </div>
+        <div id="inviteStep2" style="display:none">
+            <div class="modal-title">✓ Partecipante aggiunto!</div>
+            <p id="inviteShareDesc" style="font-size:13px;color:#888;font-weight:600;margin:0 0 20px;line-height:1.5"></p>
+            <button id="btnShareNativo" onclick="condividiNativo()" class="btn-share-wa" style="display:none">📤 Condividi invito</button>
+            <a id="btnShareWA" href="#" target="_blank" class="btn-share-wa">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="white" style="flex-shrink:0"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.122 1.532 5.852L.072 23.928l6.23-1.428A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.938a9.932 9.932 0 01-5.031-1.362l-.361-.214-3.741.857.905-3.638-.235-.374A9.936 9.936 0 012.062 12C2.062 6.534 6.534 2.062 12 2.062c5.465 0 9.938 4.472 9.938 9.938 0 5.465-4.473 9.938-9.938 9.938z"/></svg>
+                WhatsApp
+            </a>
+            <a id="btnShareEmail" href="#" class="btn-share-email">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="white" stroke-width="2" style="flex-shrink:0"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                Email
+            </a>
+            <button onclick="copiaMessaggio()" style="width:100%;padding:14px;border-radius:14px;border:2px solid var(--grey);background:var(--white);font-weight:800;font-size:15px;cursor:pointer;font-family:inherit;color:var(--dark)">📋 Copia testo</button>
+            <button onclick="chiudiModalInvita()" style="width:100%;padding:14px;border-radius:14px;border:none;background:transparent;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit;margin-top:4px;color:#aaa">Chiudi</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Convertitore valuta -->
+<div class="modal-overlay" id="modalConverter">
+    <div class="modal-box">
+        <div class="modal-handle"></div>
+        <div class="modal-title">💱 Convertitore valuta</div>
+        <div class="conv-cur-pill" id="pillA" onclick="apriRicercaValuta('A')">
+            <span class="pill-flag" id="pillAFlag">🇪🇺</span>
+            <span class="pill-code" id="pillACode">EUR</span>
+            <span class="pill-name" id="pillAName">Euro</span>
+            <span class="pill-caret">▼</span>
+        </div>
+        <input class="conv-amt" type="number" id="convAmtA" placeholder="0" oninput="convertiAtoB()" inputmode="decimal">
+        <button class="btn-swap" onclick="swapConverter()">⇅</button>
+        <div class="conv-cur-pill" id="pillB" onclick="apriRicercaValuta('B')">
+            <span class="pill-flag" id="pillBFlag">🇺🇸</span>
+            <span class="pill-code" id="pillBCode">USD</span>
+            <span class="pill-name" id="pillBName">Dollaro USA</span>
+            <span class="pill-caret">▼</span>
+        </div>
+        <input class="conv-amt" type="number" id="convAmtB" placeholder="0" oninput="convertiBtoA()" inputmode="decimal">
+        <div id="convRate" style="font-size:12px;color:#aaa;font-weight:700;text-align:center;margin:10px 0 14px"></div>
+        <div id="convTripBind"></div>
+        <button onclick="document.getElementById('modalConverter').classList.remove('open')" style="width:100%;padding:14px;border-radius:14px;border:2px solid var(--grey);background:var(--white);font-weight:800;font-size:15px;cursor:pointer;font-family:inherit;color:#888">Chiudi</button>
+    </div>
+</div>
+
+<!-- Modal: Dettaglio categoria (drill-down da Riepilogo) -->
+<div class="modal-drill" id="modalCatDrill" onclick="chiudiCatDrill(event)">
+    <div class="modal-drill-box">
+        <div class="modal-drill-head">
+            <div class="modal-drill-icon" id="drillIcon"></div>
+            <div class="modal-drill-title" id="drillTitle"></div>
+            <div class="modal-drill-count" id="drillCount"></div>
+            <button class="modal-drill-close" onclick="document.getElementById('modalCatDrill').classList.remove('open')">✕</button>
+        </div>
+        <div class="modal-drill-list" id="drillList"></div>
+    </div>
+</div>
+
+<!-- Modal: Ricerca valuta -->
+<div class="modal-overlay" id="modalCurSearch">
+    <div class="modal-box">
+        <div class="modal-handle"></div>
+        <div class="modal-title" style="margin-bottom:14px">Scegli valuta</div>
+        <input class="cur-search-input" id="curSearchInput" type="text" placeholder="🔍 Cerca per nome o codice…" oninput="filtraCurrencySearch()" autocomplete="off">
+        <div class="cur-search-list" id="curSearchList"></div>
+    </div>
+</div>
+
+<!-- Modal: Modifica viaggio -->
+<div class="modal-overlay" id="modalEditViaggio">
+    <div class="modal-box">
+        <div class="modal-handle"></div>
+        <div class="modal-title">Modifica viaggio</div>
+        <div class="emoji-selected-preview" id="emojiEditPreview">✈️</div>
+        <div class="emoji-cat-tabs" id="emojiCatTabs"></div>
+        <div class="emoji-full-grid" id="emojiFullGrid"></div>
+        <input class="form-input" id="nomeEditViaggio" placeholder="Nome viaggio…" type="text" style="margin-top:14px" onkeydown="if(event.key==='Enter') salvaModificheViaggio()">
+        <div style="display:flex;gap:8px;margin-bottom:10px">
+            <div style="flex:1">
+                <label class="form-label">Dal</label>
+                <input class="form-input" id="dataInizioEditViaggio" type="date" style="margin:0;padding:10px 12px">
+            </div>
+            <div style="flex:1">
+                <label class="form-label">Al</label>
+                <input class="form-input" id="dataFineEditViaggio" type="date" style="margin:0;padding:10px 12px">
+            </div>
+        </div>
+        <button class="btn-save-modal" onclick="salvaModificheViaggio()">SALVA</button>
+    </div>
+</div>
+
+<!-- Modal: Nuovo/Modifica elemento piano -->
+<div class="modal-overlay" id="modalPianoItem">
+    <div class="modal-box">
+        <div class="modal-handle"></div>
+        <div class="modal-title" id="titoloModalPiano">Nuovo elemento</div>
+
+        <label class="form-label">Tipo</label>
+        <div id="pianoTipoRow" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px"></div>
+
+        <label class="form-label">Titolo *</label>
+        <input class="form-input" id="pTitolo" placeholder="es. Volo Roma → Lisbona…" type="text">
+
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+            <div style="flex:1.4">
+                <label class="form-label">Data inizio *</label>
+                <input class="form-input" id="pDataInizio" type="date" style="margin:0;padding:10px 12px">
+            </div>
+            <div style="flex:1">
+                <label class="form-label">Ora</label>
+                <input class="form-input" id="pOraInizio" type="time" style="margin:0;padding:10px 12px">
+            </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+            <div style="flex:1.4">
+                <label class="form-label">Data fine</label>
+                <input class="form-input" id="pDataFine" type="date" style="margin:0;padding:10px 12px">
+            </div>
+            <div style="flex:1">
+                <label class="form-label">Ora fine</label>
+                <input class="form-input" id="pOraFine" type="time" style="margin:0;padding:10px 12px">
+            </div>
+        </div>
+
+        <label class="form-label">Da → A</label>
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+            <input class="form-input" id="pDa" placeholder="Partenza" type="text" style="margin:0;padding:10px 12px;flex:1">
+            <input class="form-input" id="pA" placeholder="Arrivo" type="text" style="margin:0;padding:10px 12px;flex:1">
+        </div>
+
+        <label class="form-label">Luogo</label>
+        <input class="form-input" id="pLuogo" placeholder="es. Hotel Bairro Alto…" type="text">
+
+        <label class="form-label">Mezzo / Dettaglio</label>
+        <input class="form-input" id="pMezzo" placeholder="es. Ryanair FR4521, IC 700…" type="text">
+
+        <label class="form-label">Note</label>
+        <textarea class="form-input" id="pNote" rows="2" style="resize:none" placeholder="Conferma, orari, riferimenti…"></textarea>
+
+        <div style="display:flex;align-items:center;gap:10px;margin:12px 0 4px">
+            <input type="checkbox" id="pConfermato" style="width:20px;height:20px;cursor:pointer;flex-shrink:0">
+            <label for="pConfermato" style="font-weight:800;font-size:14px;cursor:pointer">Confermato</label>
+        </div>
+
+        <button class="btn-save-modal" style="background:#5856d6;margin-top:10px" onclick="salvaPianoItem()">SALVA</button>
+        <button class="btn-save-modal" id="btnEliminaPiano" style="display:none;background:#fff0f0;color:var(--red);border:2px solid #fcc;margin-top:8px" onclick="eliminaPianoItemModal()">ELIMINA</button>
+        <button style="width:100%;padding:14px;border-radius:14px;border:2px solid var(--grey);background:var(--white);font-weight:800;font-size:15px;cursor:pointer;font-family:inherit;margin-top:8px;color:#aaa" onclick="document.getElementById('modalPianoItem').classList.remove('open')">Chiudi</button>
+    </div>
+</div>
+
+<!-- Modal: Nuovo/Modifica voce budget -->
+<div class="modal-overlay" id="modalBudgetItem">
+    <div class="modal-box">
+        <div class="modal-handle"></div>
+        <div class="modal-title" id="titoloModalBudget">Nuova voce budget</div>
+
+        <label class="form-label">Categoria *</label>
+        <div id="budgetCatRow" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px"></div>
+
+        <label class="form-label">Titolo *</label>
+        <input class="form-input" id="bTitolo" placeholder="es. Voli andata/ritorno…" type="text">
+
+        <div style="display:flex;gap:8px">
+            <div style="flex:1.6">
+                <label class="form-label">Importo previsto *</label>
+                <input class="form-input" id="bImporto" type="number" min="0" step="0.01" placeholder="0.00" inputmode="decimal" style="margin:0;padding:10px 12px">
+            </div>
+            <div style="flex:1">
+                <label class="form-label">Valuta</label>
+                <select class="form-input" id="bValuta" style="margin:0;padding:10px 12px"></select>
+            </div>
+        </div>
+
+        <label class="form-label" style="margin-top:12px">Stato</label>
+        <div style="display:flex;gap:6px;margin-bottom:12px">
+            <button class="period-pill active" id="bStatoPrevista"   onclick="setBudgetStato('prevista')">Prevista</button>
+            <button class="period-pill"        id="bStatoConfermata" onclick="setBudgetStato('confermata')">Confermata</button>
+            <button class="period-pill"        id="bStatoAnnullata"  onclick="setBudgetStato('annullata')">Annullata</button>
+        </div>
+
+        <label class="form-label">Note</label>
+        <textarea class="form-input" id="bNote" rows="2" style="resize:none" placeholder="Dettagli, riferimenti…"></textarea>
+
+        <button class="btn-save-modal" style="background:var(--green);margin-top:10px" onclick="salvaBudgetItem()">SALVA</button>
+        <button class="btn-save-modal" id="btnEliminaBudget" style="display:none;background:#fff0f0;color:var(--red);border:2px solid #fcc;margin-top:8px" onclick="eliminaBudgetItemModal()">ELIMINA</button>
+        <button style="width:100%;padding:14px;border-radius:14px;border:2px solid var(--grey);background:var(--white);font-weight:800;font-size:15px;cursor:pointer;font-family:inherit;margin-top:8px;color:#aaa" onclick="document.getElementById('modalBudgetItem').classList.remove('open')">Chiudi</button>
+    </div>
+</div>
+
+<!-- Lightbox foto -->
+<div class="lightbox" id="lightbox" onclick="document.getElementById('lightbox').classList.remove('open')">
+    <button class="lightbox-close" onclick="document.getElementById('lightbox').classList.remove('open')">×</button>
+    <img id="lightboxImg" src="" alt="">
+</div>
+
+<nav class="tab-bar">
+    <a href="index.html" class="tab-item">
+        <svg class="icon-tab" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+        Home
+    </a>
+    <a href="spese_viaggio.html" class="tab-item tab-active">
+        <svg class="icon-tab" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        Spese
+    </a>
+    <a href="#" class="tab-item esci" onclick="logout()">
+        <svg class="icon-tab" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Esci
+    </a>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const URL_S = "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1";
+const KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlamRwb3BoZnhzcnFkdnN1Y3llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2NTMzMDQsImV4cCI6MjA5MzIyOTMwNH0.mpxbwlJyIdZgqKIdutHbLd85JR1P11yiglbYeApi17k";
+const H  = { "apikey": KEY, "Authorization": "Bearer " + KEY, "Content-Type": "application/json", "Prefer": "return=minimal" };
+const HR = { "apikey": KEY, "Authorization": "Bearer " + KEY };
+
+const userEmail = localStorage.getItem('userEmail');
+const _joinId = new URLSearchParams(location.search).get('join');
+if (!userEmail) {
+    if (_joinId) localStorage.setItem('pendingUrl', location.href);
+    location.href = 'login.html';
+}
+
+const EMOJIS_V = [
+    '✈️','🌍','🗺️','🧭','🏖️','🏔️','🏕️','⛺','🌊','☀️',
+    '🌴','⛷️','🎿','🤿','🚀','🛳️','🚂','🚗','🛻','🎭',
+    '📸','💎','🍕','🍣','🍜','🍹','🎪','🏰','🗼','🌋',
+    '🌅','🎁','🏄','🧗','🚵','🎣','🏂','🧘','🪂','🚁',
+    '⛵','🛶','🏇','🎡','🎢','🗽','🌄','🏟️'
+];
+const CURRENCY_LIST = [
+  // Più usate
+  {code:'EUR',name:'Euro',flag:'🇪🇺'},{code:'USD',name:'Dollaro USA',flag:'🇺🇸'},
+  {code:'GBP',name:'Sterlina britannica',flag:'🇬🇧'},{code:'CHF',name:'Franco svizzero',flag:'🇨🇭'},
+  {code:'JPY',name:'Yen giapponese',flag:'🇯🇵'},{code:'CAD',name:'Dollaro canadese',flag:'🇨🇦'},
+  {code:'AUD',name:'Dollaro australiano',flag:'🇦🇺'},{code:'NZD',name:'Dollaro neozelandese',flag:'🇳🇿'},
+  // Europa
+  {code:'SEK',name:'Corona svedese',flag:'🇸🇪'},{code:'NOK',name:'Corona norvegese',flag:'🇳🇴'},
+  {code:'DKK',name:'Corona danese',flag:'🇩🇰'},{code:'ISK',name:'Corona islandese',flag:'🇮🇸'},
+  {code:'PLN',name:'Złoty polacco',flag:'🇵🇱'},{code:'CZK',name:'Corona ceca',flag:'🇨🇿'},
+  {code:'HUF',name:'Fiorino ungherese',flag:'🇭🇺'},{code:'RON',name:'Leu romeno',flag:'🇷🇴'},
+  {code:'BGN',name:'Lev bulgaro',flag:'🇧🇬'},{code:'HRK',name:'Kuna croata',flag:'🇭🇷'},
+  {code:'RSD',name:'Dinaro serbo',flag:'🇷🇸'},{code:'ALL',name:'Lek albanese',flag:'🇦🇱'},
+  {code:'MKD',name:'Denar macedone',flag:'🇲🇰'},{code:'BAM',name:'Marco bosniaco',flag:'🇧🇦'},
+  {code:'MDL',name:'Leu moldavo',flag:'🇲🇩'},{code:'UAH',name:'Grivna ucraina',flag:'🇺🇦'},
+  {code:'RUB',name:'Rublo russo',flag:'🇷🇺'},{code:'BYN',name:'Rublo bielorusso',flag:'🇧🇾'},
+  {code:'GEL',name:'Lari georgiano',flag:'🇬🇪'},{code:'AMD',name:'Dram armeno',flag:'🇦🇲'},
+  {code:'AZN',name:'Manat azero',flag:'🇦🇿'},
+  // Asia centrale
+  {code:'KZT',name:'Tenge kazako',flag:'🇰🇿'},{code:'UZS',name:'Som uzbeko',flag:'🇺🇿'},
+  {code:'KGS',name:'Som kirghiso',flag:'🇰🇬'},{code:'TJS',name:'Somoni tagiko',flag:'🇹🇯'},
+  {code:'TMT',name:'Manat turkmeno',flag:'🇹🇲'},{code:'MNT',name:'Tögrög mongolo',flag:'🇲🇳'},
+  // Medio Oriente
+  {code:'TRY',name:'Lira turca',flag:'🇹🇷'},{code:'AED',name:'Dirham (EAU)',flag:'🇦🇪'},
+  {code:'SAR',name:'Riyal saudita',flag:'🇸🇦'},{code:'QAR',name:'Riyal del Qatar',flag:'🇶🇦'},
+  {code:'KWD',name:'Dinaro kuwaitiano',flag:'🇰🇼'},{code:'BHD',name:'Dinaro del Bahrein',flag:'🇧🇭'},
+  {code:'OMR',name:"Rial dell'Oman",flag:'🇴🇲'},{code:'JOD',name:'Dinaro giordano',flag:'🇯🇴'},
+  {code:'ILS',name:'Shekel israeliano',flag:'🇮🇱'},{code:'LBP',name:'Sterlina libanese',flag:'🇱🇧'},
+  {code:'IQD',name:'Dinaro iracheno',flag:'🇮🇶'},{code:'IRR',name:'Rial iraniano',flag:'🇮🇷'},
+  {code:'YER',name:'Rial yemenita',flag:'🇾🇪'},{code:'SYP',name:'Sterlina siriana',flag:'🇸🇾'},
+  {code:'AFN',name:'Afghani',flag:'🇦🇫'},
+  // Asia meridionale
+  {code:'INR',name:'Rupia indiana',flag:'🇮🇳'},{code:'PKR',name:'Rupia pakistana',flag:'🇵🇰'},
+  {code:'BDT',name:'Taka bangladese',flag:'🇧🇩'},{code:'LKR',name:'Rupia di Sri Lanka',flag:'🇱🇰'},
+  {code:'NPR',name:'Rupia nepalese',flag:'🇳🇵'},{code:'MVR',name:'Rufiyaa maldiviana',flag:'🇲🇻'},
+  // Asia orientale e sud-est
+  {code:'CNY',name:'Yuan cinese',flag:'🇨🇳'},{code:'HKD',name:'Dollaro di Hong Kong',flag:'🇭🇰'},
+  {code:'TWD',name:'Dollaro taiwanese',flag:'🇹🇼'},{code:'KRW',name:'Won sudcoreano',flag:'🇰🇷'},
+  {code:'MOP',name:'Pataca di Macao',flag:'🇲🇴'},{code:'MMK',name:'Kyat birmano',flag:'🇲🇲'},
+  {code:'THB',name:'Baht tailandese',flag:'🇹🇭'},{code:'VND',name:'Dong vietnamita',flag:'🇻🇳'},
+  {code:'KHR',name:'Riel cambogiano',flag:'🇰🇭'},{code:'LAK',name:'Kip laotiano',flag:'🇱🇦'},
+  {code:'MYR',name:'Ringgit malese',flag:'🇲🇾'},{code:'SGD',name:'Dollaro di Singapore',flag:'🇸🇬'},
+  {code:'IDR',name:'Rupia indonesiana',flag:'🇮🇩'},{code:'PHP',name:'Peso filippino',flag:'🇵🇭'},
+  {code:'BND',name:'Dollaro del Brunei',flag:'🇧🇳'},
+  // Oceania
+  {code:'FJD',name:'Dollaro delle Figi',flag:'🇫🇯'},{code:'PGK',name:'Kina della Papua',flag:'🇵🇬'},
+  {code:'WST',name:'Tālā samoano',flag:'🇼🇸'},{code:'TOP',name:'Paʻanga tongano',flag:'🇹🇴'},
+  {code:'VUV',name:'Vatu vanuatiano',flag:'🇻🇺'},
+  // Americhe nord e centro
+  {code:'MXN',name:'Peso messicano',flag:'🇲🇽'},{code:'GTQ',name:'Quetzal guatemalteco',flag:'🇬🇹'},
+  {code:'BZD',name:'Dollaro del Belize',flag:'🇧🇿'},{code:'HNL',name:'Lempira honduregno',flag:'🇭🇳'},
+  {code:'NIO',name:'Córdoba nicaraguense',flag:'🇳🇮'},{code:'CRC',name:'Colón costaricano',flag:'🇨🇷'},
+  {code:'PAB',name:'Balboa panamense',flag:'🇵🇦'},{code:'CUP',name:'Peso cubano',flag:'🇨🇺'},
+  {code:'DOP',name:'Peso dominicano',flag:'🇩🇴'},{code:'JMD',name:'Dollaro giamaicano',flag:'🇯🇲'},
+  {code:'TTD',name:'Dollaro di T&T',flag:'🇹🇹'},{code:'BBD',name:'Dollaro di Barbados',flag:'🇧🇧'},
+  {code:'HTG',name:'Gourde haitiano',flag:'🇭🇹'},
+  // Americhe sud
+  {code:'BRL',name:'Real brasiliano',flag:'🇧🇷'},{code:'ARS',name:'Peso argentino',flag:'🇦🇷'},
+  {code:'CLP',name:'Peso cileno',flag:'🇨🇱'},{code:'COP',name:'Peso colombiano',flag:'🇨🇴'},
+  {code:'PEN',name:'Sol peruviano',flag:'🇵🇪'},{code:'BOB',name:'Boliviano',flag:'🇧🇴'},
+  {code:'PYG',name:'Guaraní paraguaiano',flag:'🇵🇾'},{code:'UYU',name:'Peso uruguaiano',flag:'🇺🇾'},
+  {code:'VES',name:'Bolívar venezuelano',flag:'🇻🇪'},{code:'GYD',name:'Dollaro della Guyana',flag:'🇬🇾'},
+  {code:'SRD',name:'Dollaro del Suriname',flag:'🇸🇷'},{code:'ECU',name:'Ecuador (USD)',flag:'🇪🇨'},
+  // Africa nord
+  {code:'MAD',name:'Dirham marocchino',flag:'🇲🇦'},{code:'TND',name:'Dinaro tunisino',flag:'🇹🇳'},
+  {code:'DZD',name:'Dinaro algerino',flag:'🇩🇿'},{code:'LYD',name:'Dinaro libico',flag:'🇱🇾'},
+  {code:'EGP',name:'Sterlina egiziana',flag:'🇪🇬'},{code:'SDG',name:'Sterlina sudanese',flag:'🇸🇩'},
+  {code:'ETB',name:'Birr etiope',flag:'🇪🇹'},{code:'ERN',name:'Nakfa eritreo',flag:'🇪🇷'},
+  {code:'DJF',name:'Franco di Gibuti',flag:'🇩🇯'},{code:'SOS',name:'Scellino somalo',flag:'🇸🇴'},
+  // Africa subsahariana
+  {code:'NGN',name:'Naira nigeriana',flag:'🇳🇬'},{code:'GHS',name:'Cedi ghanese',flag:'🇬🇭'},
+  {code:'XOF',name:'Franco CFA ovest',flag:'🌍'},{code:'XAF',name:'Franco CFA centrale',flag:'🌍'},
+  {code:'KES',name:'Scellino keniota',flag:'🇰🇪'},{code:'TZS',name:'Scellino tanzaniano',flag:'🇹🇿'},
+  {code:'UGX',name:'Scellino ugandese',flag:'🇺🇬'},{code:'RWF',name:'Franco ruandese',flag:'🇷🇼'},
+  {code:'BIF',name:'Franco del Burundi',flag:'🇧🇮'},{code:'MGA',name:'Ariary malgascio',flag:'🇲🇬'},
+  {code:'ZAR',name:'Rand sudafricano',flag:'🇿🇦'},{code:'NAD',name:'Dollaro namibiano',flag:'🇳🇦'},
+  {code:'BWP',name:'Pula botswaniana',flag:'🇧🇼'},{code:'ZMW',name:'Kwacha zambiano',flag:'🇿🇲'},
+  {code:'MWK',name:'Kwacha malawiano',flag:'🇲🇼'},{code:'MZN',name:'Metical mozambicano',flag:'🇲🇿'},
+  {code:'AOA',name:'Kwanza angolano',flag:'🇦🇴'},{code:'ZWL',name:'Dollaro zimbabwiano',flag:'🇿🇼'},
+  {code:'SZL',name:'Lilangeni swazilando',flag:'🇸🇿'},{code:'LSL',name:'Loti del Lesotho',flag:'🇱🇸'},
+  {code:'MUR',name:'Rupia mauriziana',flag:'🇲🇺'},{code:'SCR',name:'Rupia delle Seychelles',flag:'🇸🇨'},
+  {code:'KMF',name:'Franco delle Comore',flag:'🇰🇲'},{code:'STN',name:'Dobra di São Tomé',flag:'🇸🇹'},
+  {code:'CVE',name:'Escudo capoverdiano',flag:'🇨🇻'},{code:'GMD',name:'Dalasi gambiano',flag:'🇬🇲'},
+  {code:'GNF',name:'Franco guineano',flag:'🇬🇳'},{code:'SLL',name:'Leone della Sierra Leone',flag:'🇸🇱'},
+  {code:'LRD',name:'Dollaro liberiano',flag:'🇱🇷'},{code:'CDF',name:'Franco congolese',flag:'🇨🇩'},
+];
+const CUR_SYMBOLS = {EUR:'€',USD:'$',GBP:'£',JPY:'¥',CHF:'Fr',CAD:'C$',AUD:'A$',NZD:'NZ$',INR:'₹',CNY:'¥',HKD:'HK$',TWD:'NT$',SGD:'S$',KRW:'₩',THB:'฿',IDR:'Rp',PHP:'₱',VND:'₫',BRL:'R$',MXN:'$',ARS:'$',CLP:'$',COP:'$',TRY:'₺',RUB:'₽',ILS:'₪',NGN:'₦',GHS:'₵',KES:'KSh',ZAR:'R',SAR:'﷼',AED:'د.إ',KWD:'د.ك',PKR:'₨',BDT:'৳',EGP:'E£'};
+function symb(c) { return CUR_SYMBOLS[c] || c; }
+
+function populateCurrencySelects(...ids) {
+    const opts = CURRENCY_LIST.map(c => `<option value="${c.code}">${c.flag} ${c.code} — ${c.name}</option>`).join('');
+    ids.forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = opts; });
+}
+
+let viaggi = [], viaggioCorrenteId = null, partecipantiAttuali = [];
+let speseAttuali = [], fotoProfili = {}, tabAttiva = 'spese';
+let emojiViaggioScelta = '✈️', nuoviPart = [], pagatoreScelto = null;
+let catScelta = '🛒', splitTutti = true, spesaInEditId = null;
+let catEmojiCatAttiva = '🍕';
+let macroScelta = null;
+let splitType = 'uguale';
+let fotoSpesaBase64 = null;
+let viaggioCorrenteValuta = 'EUR';
+let ratesCache = null;
+let filtroTesto = '', filtroPagatore = '';
+let convCurA = 'EUR', convCurB = 'USD', convSearchSide = 'A';
+let pianificazioneAttuale = [], budgetAttuale = [];
+let pianoItemEditId = null, budgetItemEditId = null;
+let pianoTipoScelto = 'altro', budgetCatScelta = 'altro', budgetStatoScelto = 'prevista';
+
+function logout() { localStorage.clear(); location.href = 'login.html'; }
+function showView(id) {
+    ['viewLista','viewViaggio'].forEach(v => document.getElementById(v).style.display = v === id ? '' : 'none');
+}
+
+// ── API ─────────────────────────────────────────────────────────
+async function apiGet(path) {
+    try { const r = await fetch(`${URL_S}${path}`, { headers: HR }); return await r.json(); } catch(e) { return null; }
+}
+async function apiGetArr(path) {
+    const d = await apiGet(path); return Array.isArray(d) ? d : [];
+}
+async function apiPost(path, body) {
+    return fetch(`${URL_S}${path}`, { method: 'POST', headers: H, body: JSON.stringify(body) });
+}
+async function apiPatch(path, body) {
+    return fetch(`${URL_S}${path}`, { method: 'PATCH', headers: H, body: JSON.stringify(body) });
+}
+async function apiDel(path) {
+    return fetch(`${URL_S}${path}`, { method: 'DELETE', headers: H });
+}
+
+// ── Currency ────────────────────────────────────────────────────
+async function fetchRates() {
+    if (ratesCache) return ratesCache;
+    const cached = localStorage.getItem('ratesCache');
+    const ts = parseInt(localStorage.getItem('ratesCacheTs') || '0');
+    if (cached && Date.now() - ts < 6 * 3600 * 1000) {
+        ratesCache = JSON.parse(cached); return ratesCache;
+    }
+    try {
+        const r = await fetch('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/eur.json');
+        const data = await r.json();
+        const rates = { EUR: 1 };
+        Object.entries(data.eur || {}).forEach(([k, v]) => rates[k.toUpperCase()] = v);
+        ratesCache = { rates };
+        localStorage.setItem('ratesCache', JSON.stringify(ratesCache));
+        localStorage.setItem('ratesCacheTs', Date.now().toString());
+        return ratesCache;
+    } catch(e) {
+        if (cached) { ratesCache = JSON.parse(cached); return ratesCache; }
+        return null;
+    }
+}
+function convertAmt(amount, from, to, rates) {
+    if (from === to || !rates) return amount;
+    const eur = from === 'EUR' ? amount : amount / (rates[from] || 1);
+    return to === 'EUR' ? eur : eur * (rates[to] || 1);
+}
+// ── Converter modal ─────────────────────────────────────────────
+function _convPairKey() { return viaggioCorrenteId ? `convPair_${viaggioCorrenteId}` : null; }
+
+function updateConvPills() {
+    const infoA = CURRENCY_LIST.find(c => c.code === convCurA) || { code: convCurA, name: convCurA, flag: '💱' };
+    const infoB = CURRENCY_LIST.find(c => c.code === convCurB) || { code: convCurB, name: convCurB, flag: '💱' };
+    document.getElementById('pillAFlag').textContent = infoA.flag;
+    document.getElementById('pillACode').textContent = infoA.code;
+    document.getElementById('pillAName').textContent = infoA.name;
+    document.getElementById('pillBFlag').textContent = infoB.flag;
+    document.getElementById('pillBCode').textContent = infoB.code;
+    document.getElementById('pillBName').textContent = infoB.name;
+}
+
+function renderConvTripBind() {
+    const el = document.getElementById('convTripBind');
+    const key = _convPairKey();
+    if (!key || !viaggioCorrenteId) { el.innerHTML = ''; return; }
+    const viaggio = viaggi.find(v => v.id === viaggioCorrenteId);
+    const nomeV = viaggio?.nome || 'questo viaggio';
+    const saved = localStorage.getItem(key);
+    if (saved) {
+        const { from, to } = JSON.parse(saved);
+        const sameAsNow = from === convCurA && to === convCurB;
+        el.innerHTML = `<div class="conv-trip-bind">
+            <div class="ctb-label">📌 <strong>${nomeV}</strong><br>${from} ↔ ${to}${sameAsNow ? '' : ` · ora: ${convCurA} ↔ ${convCurB}`}</div>
+            ${sameAsNow
+                ? `<button class="btn-rimuovi-pair" onclick="rimuoviConvViaggio()">Rimuovi</button>`
+                : `<button class="btn-aggancia" onclick="salvaConvViaggio()">Aggiorna</button>`}
+        </div>`;
+    } else {
+        el.innerHTML = `<div class="conv-trip-bind">
+            <div class="ctb-label">💾 Aggancia <strong>${nomeV}</strong> a ${convCurA} ↔ ${convCurB}</div>
+            <button class="btn-aggancia" onclick="salvaConvViaggio()">Salva</button>
+        </div>`;
+    }
+}
+
+function salvaConvViaggio() {
+    const key = _convPairKey(); if (!key) return;
+    localStorage.setItem(key, JSON.stringify({ from: convCurA, to: convCurB }));
+    renderConvTripBind();
+    toast('📌 Coppia salvata per questo viaggio');
+}
+
+function rimuoviConvViaggio() {
+    const key = _convPairKey(); if (!key) return;
+    localStorage.removeItem(key);
+    renderConvTripBind();
+    toast('Aggancio rimosso');
+}
+
+async function apriConverter() {
+    const key = _convPairKey();
+    const saved = key ? localStorage.getItem(key) : null;
+    if (saved) {
+        const { from, to } = JSON.parse(saved);
+        convCurA = from; convCurB = to;
+    } else {
+        convCurA = viaggioCorrenteValuta || 'EUR';
+        convCurB = convCurA === 'EUR' ? 'USD' : 'EUR';
+    }
+    updateConvPills();
+    document.getElementById('convAmtA').value = '';
+    document.getElementById('convAmtB').value = '';
+    document.getElementById('convRate').textContent = '';
+    renderConvTripBind();
+    document.getElementById('modalConverter').classList.add('open');
+    await fetchRates();
+    aggiornaRateLabel();
+}
+
+function aggiornaRateLabel() {
+    if (!ratesCache) return;
+    const rate = convertAmt(1, convCurA, convCurB, ratesCache.rates);
+    document.getElementById('convRate').textContent = `1 ${convCurA} = ${rate.toFixed(4)} ${convCurB}`;
+}
+
+async function convertiAtoB() {
+    await fetchRates(); if (!ratesCache) return;
+    const amt = parseFloat(document.getElementById('convAmtA').value);
+    if (!isNaN(amt)) document.getElementById('convAmtB').value = convertAmt(amt, convCurA, convCurB, ratesCache.rates).toFixed(2);
+    aggiornaRateLabel();
+}
+
+async function convertiBtoA() {
+    await fetchRates(); if (!ratesCache) return;
+    const amt = parseFloat(document.getElementById('convAmtB').value);
+    if (!isNaN(amt)) document.getElementById('convAmtA').value = convertAmt(amt, convCurB, convCurA, ratesCache.rates).toFixed(2);
+    aggiornaRateLabel();
+}
+
+function swapConverter() {
+    [convCurA, convCurB] = [convCurB, convCurA];
+    updateConvPills();
+    renderConvTripBind();
+    convertiAtoB();
+}
+
+// ── Ricerca valuta ───────────────────────────────────────────────
+function apriRicercaValuta(side) {
+    convSearchSide = side;
+    document.getElementById('curSearchInput').value = '';
+    renderCurrencySearchList('');
+    document.getElementById('modalCurSearch').classList.add('open');
+    setTimeout(() => document.getElementById('curSearchInput').focus(), 200);
+}
+
+function filtraCurrencySearch() {
+    renderCurrencySearchList(document.getElementById('curSearchInput').value.trim());
+}
+
+function renderCurrencySearchList(query) {
+    const q = query.toLowerCase();
+    const list = q
+        ? CURRENCY_LIST.filter(c => c.code.toLowerCase().includes(q) || c.name.toLowerCase().includes(q))
+        : CURRENCY_LIST;
+    const cur = convSearchSide === 'A' ? convCurA : convCurB;
+    document.getElementById('curSearchList').innerHTML = list.map(c =>
+        `<div class="cur-search-item${c.code === cur ? ' cur-selected' : ''}" onclick="selezionaValuta('${c.code}')">
+            <span class="csi-flag">${c.flag}</span>
+            <span class="csi-code">${c.code}</span>
+            <span class="csi-name">${c.name}</span>
+        </div>`
+    ).join('');
+}
+
+function selezionaValuta(code) {
+    if (convSearchSide === 'A') convCurA = code; else convCurB = code;
+    document.getElementById('modalCurSearch').classList.remove('open');
+    updateConvPills();
+    renderConvTripBind();
+    convertiAtoB();
+}
+
+// ── Avatar ───────────────────────────────────────────────────────
+function formatTripDates(inizio, fine) {
+    if (!inizio) return '';
+    const d1 = new Date(inizio + 'T12:00:00');
+    const fmt = (d, opts) => d.toLocaleDateString('it-IT', opts);
+    if (!fine) return `Dal ${fmt(d1, { day:'numeric', month:'long', year:'numeric' })}`;
+    const d2 = new Date(fine + 'T12:00:00');
+    if (d1.getFullYear() === d2.getFullYear()) {
+        if (d1.getMonth() === d2.getMonth()) {
+            return `${d1.getDate()}–${fmt(d2, { day:'numeric', month:'long', year:'numeric' })}`;
+        }
+        return `${fmt(d1, { day:'numeric', month:'long' })} – ${fmt(d2, { day:'numeric', month:'long', year:'numeric' })}`;
+    }
+    return `${fmt(d1, { day:'numeric', month:'long', year:'numeric' })} – ${fmt(d2, { day:'numeric', month:'long', year:'numeric' })}`;
+}
+
+function avatarHtml(nome, foto, size = 40) {
+    const ini = nome.split(' ').map(p => p[0]).slice(0,2).join('').toUpperCase() || '?';
+    const fs = Math.floor(size * 0.38);
+    if (foto) return `<div class="part-avatar" style="width:${size}px;height:${size}px;background-image:url(${foto});font-size:0"></div>`;
+    return `<div class="part-avatar" style="width:${size}px;height:${size}px;font-size:${fs}px">${ini}</div>`;
+}
+
+// ── Photo handling ───────────────────────────────────────────────
+function resizeImage(file) {
+    return new Promise(resolve => {
+        const reader = new FileReader();
+        reader.onload = e => {
+            const img = new Image();
+            img.onload = () => {
+                const maxSize = 800;
+                let w = img.width, h = img.height;
+                if (w > maxSize || h > maxSize) {
+                    if (w > h) { h = Math.round(h * maxSize / w); w = maxSize; }
+                    else { w = Math.round(w * maxSize / h); h = maxSize; }
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width = w; canvas.height = h;
+                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                resolve(canvas.toDataURL('image/jpeg', 0.72));
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+}
+async function onFotoSelected(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    fotoSpesaBase64 = await resizeImage(file);
+    document.getElementById('fotoPreview').src = fotoSpesaBase64;
+    document.getElementById('fotoPreviewWrap').style.display = '';
+    document.getElementById('btnAddFoto').style.display = 'none';
+    event.target.value = '';
+}
+function rimuoviFoto() {
+    fotoSpesaBase64 = null;
+    document.getElementById('fotoPreviewWrap').style.display = 'none';
+    document.getElementById('btnAddFoto').style.display = '';
+}
+function openLightbox(src) {
+    document.getElementById('lightboxImg').src = src;
+    document.getElementById('lightbox').classList.add('open');
+}
+
+// ── VIEW 1: Lista ────────────────────────────────────────────────
+async function caricaViaggi() {
+    const elLista = document.getElementById('listaViaggioEl');
+    const elBanner = document.getElementById('invitiBanner');
+    elLista.innerHTML = ''; elBanner.innerHTML = '';
+    try {
+        const resV = await fetch(`${URL_S}/sv_viaggi?email_utente=eq.${userEmail}&order=created_at.desc`, { headers: HR });
+        if (!resV.ok) {
+            elLista.innerHTML = `<div class="empty-msg" style="color:#eb445a">Tabelle non trovate.<br><small style="font-weight:600;color:#aaa">Esegui il setup SQL e ricarica.</small></div>`;
+            return;
+        }
+        const propriRaw = await resV.json();
+        const propri = Array.isArray(propriRaw) ? propriRaw : [];
+        const idPropriSet = new Set(propri.map(v => v.id));
+
+        const inviti = await apiGetArr(`/sv_inviti?email_invitato=eq.${encodeURIComponent(userEmail)}&order=created_at.desc`);
+        const invPendenti = inviti.filter(i => i.stato === 'attesa');
+        const idDaInviti = new Set(inviti.filter(i => i.stato === 'accettato').map(i => i.viaggio_id));
+        const partViaEmail = await apiGetArr(`/sv_partecipanti?email_collegata=eq.${encodeURIComponent(userEmail)}&select=viaggio_id`);
+        const idDaEmail = new Set(partViaEmail.map(p => p.viaggio_id));
+        const partSelf = await apiGetArr(`/sv_partecipanti?email_utente=eq.${encodeURIComponent(userEmail)}&select=viaggio_id`);
+        const idSelf = new Set(partSelf.map(p => p.viaggio_id).filter(id => !idPropriSet.has(id)));
+        const idCondivisi = [...new Set([...idDaInviti, ...idDaEmail, ...idSelf])].filter(id => !idPropriSet.has(id));
+
+        let condivisi = [];
+        if (idCondivisi.length) condivisi = await apiGetArr(`/sv_viaggi?id=in.(${idCondivisi.join(',')})&order=created_at.desc`);
+        viaggi = [...propri, ...condivisi];
+
+        if (invPendenti.length) {
+            elBanner.innerHTML = invPendenti.map(inv => `
+                <div class="invite-banner">
+                    <div class="invite-banner-title">✈️ Invito da ${inv.nome_invitante || inv.email_invitante}</div>
+                    <div class="invite-banner-sub">"${inv.viaggio_nome || 'Viaggio'}" — tocca per partecipare</div>
+                    <div class="invite-banner-btns">
+                        <button class="btn-accetta" onclick="accettaInvito(${inv.id}, ${inv.viaggio_id})">✓ Accetta</button>
+                        <button class="btn-rifiuta" onclick="rifiutaInvito(${inv.id})">Rifiuta</button>
+                    </div>
+                </div>`).join('');
+        }
+
+        if (!viaggi.length && !invPendenti.length) {
+            elLista.innerHTML = `<div class="empty-msg">Nessun viaggio ancora.<br><small style="font-weight:600;color:#aaa">Tocca + per crearne uno.</small></div>`;
+            return;
+        }
+
+        const allViaggioIds = viaggi.map(v => v.id);
+        const [allPart, allSpese] = await Promise.all([
+            apiGetArr(`/sv_partecipanti?viaggio_id=in.(${allViaggioIds.join(',')})&select=viaggio_id,nome`),
+            apiGetArr(`/sv_spese?viaggio_id=in.(${allViaggioIds.join(',')})&select=viaggio_id,importo`)
+        ]);
+
+        // Ripristina stato dopo refresh
+        const _svVid = parseInt(sessionStorage.getItem('sv_vid'));
+        const _svTab = sessionStorage.getItem('sv_tab') || 'spese';
+        if (_svVid && viaggi.some(v => v.id === _svVid)) {
+            await apriViaggio(_svVid);
+            if (_svTab !== 'spese') mostraTab(_svTab);
+            return;
+        }
+
+        elLista.innerHTML = viaggi.map(v => {
+            const isCondiviso = !propri.find(p => p.id === v.id);
+            const vPart = allPart.filter(p => p.viaggio_id == v.id);
+            const tot = allSpese.filter(s => s.viaggio_id == v.id).reduce((a, s) => a + parseFloat(s.importo || 0), 0);
+            const cur = v.valuta || 'EUR';
+            const nomi2 = vPart.slice(0, 2).map(p => p.nome).join(', ');
+            const extra = vPart.length > 2 ? ` +${vPart.length - 2}` : '';
+            const partStr = vPart.length ? `${nomi2}${extra}` : '—';
+            const sub = `${partStr} · ${symb(cur)}${tot.toFixed(2)}`;
+            const dateStr = formatTripDates(v.data_inizio, v.data_fine);
+            const badge = isCondiviso ? `<div class="viaggio-badge">👥 Condiviso</div>` : '';
+            return `<div class="viaggio-card${isCondiviso ? ' condiviso' : ''}" onclick="apriViaggio(${v.id})">
+                <div class="viaggio-emoji">${v.emoji || '✈️'}</div>
+                <div class="viaggio-info">
+                    <div class="viaggio-nome">${v.nome}</div>
+                    <div class="viaggio-sub">${sub}</div>
+                    ${dateStr ? `<div class="viaggio-date">${dateStr}</div>` : ''}
+                    ${badge}
+                </div>
+                ${!isCondiviso ? `<button class="btn-del-viaggio" onclick="event.stopPropagation(); eliminaViaggio(${v.id})">
+                    <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                </button>` : ''}
+            </div>`;
+        }).join('');
+    } catch(e) {
+        elLista.innerHTML = `<div class="empty-msg" style="color:#eb445a">Errore — <a href="" style="color:var(--accent)">Riprova</a></div>`;
+    }
+}
+
+async function apriViaggio(id) {
+    viaggioCorrenteId = id;
+    const v = viaggi.find(x => x.id === id);
+    viaggioCorrenteValuta = v?.valuta || 'EUR';
+    document.getElementById('titoloViaggio').textContent = `${v.emoji || '✈️'} ${v.nome}`;
+    filtroTesto = ''; filtroPagatore = '';
+    sessionStorage.setItem('sv_vid', id);
+    sessionStorage.setItem('sv_tab', 'spese');
+    showView('viewViaggio');
+    mostraTab('spese');
+    await Promise.all([caricaPartecipanti(), caricaSpese(), caricaPianificazione(), caricaBudget()]);
+    renderSpese();
+}
+
+function tornaALista() {
+    viaggioCorrenteId = null;
+    sessionStorage.removeItem('sv_vid');
+    sessionStorage.removeItem('sv_tab');
+    showView('viewLista');
+    caricaViaggi();
+}
+
+async function eliminaViaggio(id) {
+    const v = viaggi.find(x => x.id === id);
+    if (!confirm(`Eliminare il viaggio "${v.nome}" con tutte le spese?`)) return;
+    await Promise.all([apiDel(`/sv_spese?viaggio_id=eq.${id}`), apiDel(`/sv_partecipanti?viaggio_id=eq.${id}`)]);
+    await apiDel(`/sv_viaggi?id=eq.${id}`);
+    toast('Viaggio eliminato');
+    caricaViaggi();
+}
+
+async function accettaInvito(invId, viaggioId) {
+    await apiPatch(`/sv_inviti?id=eq.${invId}`, { stato: 'accettato' });
+    const existing = await apiGetArr(`/sv_partecipanti?viaggio_id=eq.${viaggioId}&email_collegata=eq.${encodeURIComponent(userEmail)}`);
+    if (!existing.length) {
+        const profilo = await apiGetArr(`/profili?email_utente=eq.${encodeURIComponent(userEmail)}&select=nome,cognome`);
+        const p = profilo[0];
+        const nome = p ? [p.nome, p.cognome].filter(Boolean).join(' ') || userEmail.split('@')[0] : userEmail.split('@')[0];
+        await apiPost('/sv_partecipanti', { viaggio_id: viaggioId, email_utente: userEmail, nome, email_collegata: userEmail });
+    }
+    toast('✓ Invito accettato!');
+    await caricaViaggi();
+}
+
+async function rifiutaInvito(invId) {
+    await apiPatch(`/sv_inviti?id=eq.${invId}`, { stato: 'rifiutato' });
+    toast('Invito rifiutato');
+    await caricaViaggi();
+}
+
+// ── Tabs ─────────────────────────────────────────────────────────
+function mostraTab(tab) {
+    tabAttiva = tab;
+    if (viaggioCorrenteId) sessionStorage.setItem('sv_tab', tab);
+    ['spese','saldi','statistiche','piano','budget','persone'].forEach(t => {
+        const btn = document.getElementById('tabBtn' + t.charAt(0).toUpperCase() + t.slice(1));
+        const panel = document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1));
+        if (btn) btn.classList.toggle('active', t === tab);
+        if (panel) panel.style.display = t === tab ? '' : 'none';
+    });
+    if (tab === 'saldi') renderSaldi();
+    if (tab === 'persone') renderPartecipanti();
+    if (tab === 'statistiche') renderStatistiche();
+    if (tab === 'piano') renderPiano();
+    if (tab === 'budget') renderBudget();
+}
+
+// ── Spese ─────────────────────────────────────────────────────────
+async function caricaSpese() {
+    speseAttuali = await apiGetArr(`/sv_spese?viaggio_id=eq.${viaggioCorrenteId}&order=data.desc,created_at.desc`);
+}
+
+function aggiorniFiltri() {
+    filtroTesto = document.getElementById('filterSearch').value.toLowerCase();
+    filtroPagatore = document.getElementById('filterPayer').value;
+    renderSpese();
+}
+
+function renderSpese() {
+    const el = document.getElementById('elencoSpese');
+    // Update payer filter dropdown
+    const sel = document.getElementById('filterPayer');
+    const curVal = sel.value;
+    sel.innerHTML = '<option value="">Tutti</option>' + partecipantiAttuali.map(p =>
+        `<option value="${p.id}">${p.nome}</option>`
+    ).join('');
+    if (curVal) sel.value = curVal;
+
+    const CATEGORIE_CONTABILI = new Set(['🤝', '💸']);
+    let filtered = speseAttuali.filter(s => !CATEGORIE_CONTABILI.has(s.categoria));
+    if (filtroTesto) filtered = filtered.filter(s => (s.descrizione || '').toLowerCase().includes(filtroTesto));
+    if (filtroPagatore) filtered = filtered.filter(s => s.pagato_da == filtroPagatore);
+
+    if (!filtered.length) {
+        el.innerHTML = speseAttuali.length
+            ? `<div class="empty-msg" style="padding:24px">Nessuna spesa trovata con questi filtri.</div>`
+            : `<div class="empty-msg">Nessuna spesa ancora.<br>Tocca "Aggiungi spesa" per iniziare.</div>`;
+        return;
+    }
+    const cur = symb(viaggioCorrenteValuta);
+    el.innerHTML = filtered.map(s => {
+        const payer = partecipantiAttuali.find(p => p.id == s.pagato_da);
+        const payerNome = payer ? payer.nome : '?';
+        const divisione = JSON.parse(s.divisione || '[]');
+        const nDiv = divisione.length || 1;
+        const dataStr = s.data ? new Date(s.data).toLocaleDateString('it-IT', { day:'2-digit', month:'short' }) : '';
+        const hasFoto = !!s.foto;
+        const hasOrigCur = s.valuta_orig && s.valuta_orig !== viaggioCorrenteValuta;
+        const origStr = hasOrigCur && s.importo_orig ? ` (${symb(s.valuta_orig)}${parseFloat(s.importo_orig).toFixed(2)})` : '';
+        const splitDesc = s.tipo_divisione && s.tipo_divisione !== 'uguale'
+            ? `· split ${s.tipo_divisione}` : nDiv > 1 ? `· ${cur}${(parseFloat(s.importo)/nDiv).toFixed(2)}/pers.` : '· solo per sé';
+        return `<div class="spesa-card">
+            <div class="spesa-cat">${_catEmoji(s)}</div>
+            ${hasFoto ? `<img class="spesa-foto-thumb" src="${s.foto}" alt="" onclick="openLightbox('${s.foto}')">` : ''}
+            <div class="spesa-info">
+                <div class="spesa-desc">${s.descrizione || ''}</div>
+                <div class="spesa-sub">${payerNome} ha pagato ${splitDesc}${dataStr ? ' · ' + dataStr : ''}</div>
+                ${origStr ? `<div class="spesa-orig">${origStr}</div>` : ''}
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0">
+                <div class="spesa-importo">${cur}${parseFloat(s.importo).toFixed(2)}</div>
+                <div style="display:flex;gap:5px">
+                    <button class="btn-card-sm dup" onclick="duplicaSpesa(${s.id})" title="Duplica">
+                        <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                    </button>
+                    <button class="btn-card-sm edit" onclick="apriModalEditSpesa(${s.id})">
+                        <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    </button>
+                    <button class="btn-card-sm del" onclick="eliminaSpesa(${s.id})">
+                        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+async function eliminaSpesa(id) {
+    if (!confirm('Eliminare questa spesa?')) return;
+    await apiDel(`/sv_spese?id=eq.${id}`);
+    // PostgreSQL fa SET NULL su budget.spesa_effettiva_id; resettiamo anche lo stato
+    apiPatch(`/sv_budget?spesa_effettiva_id=eq.${id}`, { stato: 'prevista' }).catch(() => {});
+    await caricaSpese(); renderSpese(); toast('Spesa eliminata');
+}
+
+async function duplicaSpesa(id) {
+    const s = speseAttuali.find(x => x.id === id);
+    if (!s) return;
+    const { id: _, created_at, ...body } = s;
+    body.descrizione = body.descrizione + ' (copia)';
+    body.data = new Date().toISOString().split('T')[0];
+    const res = await apiPost('/sv_spese', { viaggio_id: viaggioCorrenteId, email_utente: userEmail, ...body });
+    if (!res.ok) {
+        const { foto, valuta_orig, importo_orig, tasso_cambio, tipo_divisione, quote_divisione, ...minimal } = body;
+        await apiPost('/sv_spese', { viaggio_id: viaggioCorrenteId, email_utente: userEmail, ...minimal });
+    }
+    await caricaSpese(); renderSpese(); toast('✓ Spesa duplicata');
+}
+
+// ── Saldi ─────────────────────────────────────────────────────────
+function calcolaQuotePer(s) {
+    const divisione = JSON.parse(s.divisione || '[]');
+    if (!divisione.length) return {};
+    const quotePer = {};
+    try {
+        if (s.tipo_divisione === 'importi' && s.quote_divisione) {
+            const q = JSON.parse(s.quote_divisione);
+            divisione.forEach(pid => quotePer[pid] = parseFloat(q[pid] || 0));
+        } else if (s.tipo_divisione === 'percentuali' && s.quote_divisione) {
+            const q = JSON.parse(s.quote_divisione);
+            divisione.forEach(pid => quotePer[pid] = parseFloat(s.importo) * (parseFloat(q[pid] || 0) / 100));
+        } else if (s.tipo_divisione === 'quote' && s.quote_divisione) {
+            const q = JSON.parse(s.quote_divisione);
+            const tot = divisione.reduce((sum, pid) => sum + parseFloat(q[pid] || 1), 0);
+            divisione.forEach(pid => quotePer[pid] = parseFloat(s.importo) * (parseFloat(q[pid] || 1) / tot));
+        } else {
+            const quota = parseFloat(s.importo) / divisione.length;
+            divisione.forEach(pid => quotePer[pid] = quota);
+        }
+    } catch(e) {
+        const quota = parseFloat(s.importo) / divisione.length;
+        divisione.forEach(pid => quotePer[pid] = quota);
+    }
+    return quotePer;
+}
+
+function renderSaldi() {
+    const el = document.getElementById('contenutoSaldi');
+    if (!partecipantiAttuali.length) { el.innerHTML = `<div class="empty-msg">Aggiungi prima dei partecipanti.</div>`; return; }
+
+    const bilanci = {}, pagati = {}, quote = {};
+    partecipantiAttuali.forEach(p => { bilanci[p.id] = 0; pagati[p.id] = 0; quote[p.id] = 0; });
+
+    speseAttuali.forEach(s => {
+        const divisione = JSON.parse(s.divisione || '[]');
+        if (!divisione.length) return;
+        const quotePer = calcolaQuotePer(s);
+        bilanci[s.pagato_da] = (bilanci[s.pagato_da] || 0) + parseFloat(s.importo);
+        pagati[s.pagato_da] = (pagati[s.pagato_da] || 0) + parseFloat(s.importo);
+        divisione.forEach(pid => {
+            bilanci[pid] = (bilanci[pid] || 0) - (quotePer[pid] || 0);
+            quote[pid] = (quote[pid] || 0) + (quotePer[pid] || 0);
+        });
+    });
+
+    const transazioni = calcolaSettlement(bilanci);
+    const debitiDi = {}, creditiDa = {};
+    partecipantiAttuali.forEach(p => { debitiDi[p.id] = []; creditiDa[p.id] = []; });
+    transazioni.forEach(t => {
+        const pDa = partecipantiAttuali.find(p => p.nome === t.da);
+        const pA  = partecipantiAttuali.find(p => p.nome === t.a);
+        if (pDa) debitiDi[pDa.id].push({ a: t.a, importo: t.importo });
+        if (pA)  creditiDa[pA.id].push({ da: t.da, importo: t.importo });
+    });
+
+    const cur = symb(viaggioCorrenteValuta);
+    let html = partecipantiAttuali.map(p => {
+        const netto = Math.round((bilanci[p.id] || 0) * 100) / 100;
+        const pag = Math.round((pagati[p.id] || 0) * 100) / 100;
+        const q = Math.round((quote[p.id] || 0) * 100) / 100;
+        const cls = netto > 0.01 ? 'positivo' : netto < -0.01 ? 'negativo' : 'pari';
+        const fp = p.email_collegata ? fotoProfili[p.email_collegata] : null;
+        const valStr = netto > 0.01 ? `+${cur}${netto.toFixed(2)}` : netto < -0.01 ? `-${cur}${Math.abs(netto).toFixed(2)}` : `${cur}0`;
+        let dettaglio = '';
+        if (debitiDi[p.id].length) dettaglio = debitiDi[p.id].map(d => `📤 Deve <strong>${cur}${d.importo.toFixed(2)}</strong> a ${d.a}`).join('<br>');
+        else if (creditiDa[p.id].length) dettaglio = creditiDa[p.id].map(c => `📥 Riceve <strong>${cur}${c.importo.toFixed(2)}</strong> da ${c.da}`).join('<br>');
+        else if (speseAttuali.length > 0) dettaglio = '✅ In pari';
+        return `<div class="saldo-card ${cls}">
+            ${avatarHtml(p.nome, fp?.foto || null, 38)}
+            <div class="saldo-body">
+                <div class="saldo-nome">${p.nome}</div>
+                <div class="saldo-budget">Pagato ${cur}${pag.toFixed(2)} · Quota ${cur}${q.toFixed(2)}</div>
+                ${dettaglio ? `<div class="saldo-debiti">${dettaglio}</div>` : ''}
+            </div>
+            <div class="saldo-val">${valStr}</div>
+        </div>`;
+    }).join('');
+
+    if (transazioni.length) {
+        html += `<div class="sezione-titolo">Come pareggiare</div>`;
+        html += transazioni.map(t =>
+            `<div class="transazione-card">
+                <div class="transazione-top">
+                    📤 <span class="da">${t.da}</span> → <span class="a">${t.a}</span>
+                    <span class="importo">${cur}${t.importo.toFixed(2)}</span>
+                </div>
+                <div class="transazione-btns">
+                    <button class="btn-pagato" onclick="segnaPagato('${t.da}','${t.a}',${t.importo})">✓ Pagato</button>
+                    <button class="btn-abbuona" onclick="abbuonaDebito('${t.da}','${t.a}',${t.importo})">🤝 A posto</button>
+                    <button class="btn-richiedi" onclick="richiediPagamento('${t.da}','${t.a}',${t.importo})">📤 Richiedi</button>
+                </div>
+            </div>`
+        ).join('');
+    } else if (speseAttuali.length > 0) {
+        html += `<div class="sezione-titolo">Tutto in pari! ✓</div>`;
+    }
+
+    // Storico pareggi (voci 🤝 e 💸 create dai bottoni Saldi)
+    const storicoVoci = speseAttuali.filter(s => s.categoria === '🤝' || s.categoria === '💸');
+    if (storicoVoci.length) {
+        html += `<div class="sezione-titolo">Storico pareggi</div><div class="items-wrap">`;
+        html += storicoVoci.map(s => {
+            const pagatore = partecipantiAttuali.find(p => p.id == s.pagato_da);
+            const divisione = JSON.parse(s.divisione || '[]');
+            const destinatario = partecipantiAttuali.find(p => divisione.includes(p.id));
+            const dataFmt = s.data ? new Date(s.data).toLocaleDateString('it-IT', { day:'numeric', month:'short', year:'numeric' }) : '';
+            const isAbbuono = s.categoria === '🤝';
+            const testo = isAbbuono
+                ? `${pagatore?.nome || '?'} — debito abbuonato${destinatario ? ` da ${destinatario.nome}` : ''}`
+                : `${pagatore?.nome || '?'} ha rimborsato ${destinatario?.nome || '?'}`;
+            return `<div class="storico-riga">
+                <span class="storico-icon">${s.categoria}</span>
+                <div class="storico-body">
+                    <div class="storico-testo">${testo}</div>
+                    ${dataFmt ? `<div class="storico-data">${dataFmt}</div>` : ''}
+                </div>
+                <span class="storico-importo">${cur}${parseFloat(s.importo).toFixed(2)}</span>
+            </div>`;
+        }).join('');
+        html += `</div>`;
+    }
+
+    el.innerHTML = html;
+}
+
+async function segnaPagato(nomeDa, nomeA, importo) {
+    const partDa = partecipantiAttuali.find(p => p.nome === nomeDa);
+    const partA  = partecipantiAttuali.find(p => p.nome === nomeA);
+    if (!partDa || !partA) return;
+    const cur = symb(viaggioCorrenteValuta);
+    if (!confirm(`Segna ${cur}${importo.toFixed(2)} pagati da ${nomeDa} a ${nomeA}?`)) return;
+    const body = {
+        viaggio_id: viaggioCorrenteId, email_utente: userEmail,
+        descrizione: `💸 Rimborso ${nomeDa} → ${nomeA}`,
+        importo, pagato_da: partDa.id,
+        divisione: JSON.stringify([partA.id]),
+        categoria: '💸',
+        data: new Date().toISOString().split('T')[0]
+    };
+    await apiPost('/sv_spese', body);
+    await caricaSpese();
+    renderSaldi();
+    toast('✓ Rimborso registrato');
+}
+
+async function abbuonaDebito(nomeDa, nomeA, importo) {
+    const cur = symb(viaggioCorrenteValuta);
+    if (!confirm(`Abbuonare ${cur}${importo.toFixed(2)} a ${nomeDa}?\nIl debito verrà azzerato senza registrare un pagamento.`)) return;
+    const partDa = partecipantiAttuali.find(p => p.nome === nomeDa);
+    const partA  = partecipantiAttuali.find(p => p.nome === nomeA);
+    if (!partDa || !partA) return;
+    await apiPost('/sv_spese', {
+        viaggio_id: viaggioCorrenteId, email_utente: userEmail,
+        descrizione: `🤝 A posto così — ${nomeDa}`,
+        importo, pagato_da: partDa.id,
+        divisione: JSON.stringify([partA.id]),
+        categoria: '🤝',
+        data: new Date().toISOString().split('T')[0]
+    });
+    await caricaSpese();
+    renderSaldi();
+    toast('🤝 Debito abbuonato');
+}
+
+async function richiediPagamento(nomeDa, nomeA, importo) {
+    const cur = symb(viaggioCorrenteValuta);
+    const viaggio = viaggi.find(v => v.id === viaggioCorrenteId);
+    const mioNome = await getMioNome();
+    const msg = `Ciao ${nomeDa}! 👋\n${mioNome} ti ricorda che per "${viaggio?.nome || 'il viaggio'}" devi ancora ${cur}${importo.toFixed(2)} a ${nomeA}. Quando puoi! 😊\n\n(Gestito con Listando — https://listando.it)`;
+    if (navigator.share) {
+        try { await navigator.share({ text: msg }); return; } catch(e) {}
+    }
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+}
+
+function calcolaSettlement(bilanci) {
+    const creditori = [], debitori = [];
+    Object.entries(bilanci).forEach(([id, saldo]) => {
+        const p = partecipantiAttuali.find(x => x.id == id);
+        const nome = p ? p.nome : `P${id}`;
+        if (saldo > 0.01) creditori.push({ nome, saldo });
+        else if (saldo < -0.01) debitori.push({ nome, saldo: -saldo });
+    });
+    creditori.sort((a, b) => b.saldo - a.saldo);
+    debitori.sort((a, b) => b.saldo - a.saldo);
+    const res = [];
+    while (creditori.length && debitori.length) {
+        const c = creditori[0], d = debitori[0];
+        const amt = Math.min(c.saldo, d.saldo);
+        res.push({ da: d.nome, a: c.nome, importo: Math.round(amt * 100) / 100 });
+        c.saldo -= amt; d.saldo -= amt;
+        if (c.saldo < 0.01) creditori.shift();
+        if (d.saldo < 0.01) debitori.shift();
+    }
+    return res;
+}
+
+// ── Statistiche ──────────────────────────────────────────────────
+function renderStatistiche() {
+    const el = document.getElementById('contenutoStatistiche');
+    const cur = symb(viaggioCorrenteValuta);
+    const CONTABILI = new Set(['🤝', '💸']);
+    const speseReali = speseAttuali.filter(s => !CONTABILI.has(_catEmoji(s)));
+    if (!speseReali.length) {
+        el.innerHTML = `<div class="empty-msg">Aggiungi spese per vedere le statistiche.</div>`;
+        return;
+    }
+
+    const totale = speseReali.reduce((s, x) => s + parseFloat(x.importo || 0), 0);
+    const count = speseReali.length;
+    const media = totale / count;
+
+    // Per persona (pagato)
+    const perPersona = {};
+    partecipantiAttuali.forEach(p => perPersona[p.id] = 0);
+    speseReali.forEach(s => perPersona[s.pagato_da] = (perPersona[s.pagato_da] || 0) + parseFloat(s.importo || 0));
+    const maxPers = Math.max(...Object.values(perPersona));
+
+    // Per macro-categoria — ogni spesa finisce in esattamente un bucket
+    const perMacro = {};
+    MACRO_CATS.forEach(mc => { perMacro[mc.id] = { ...mc, total: 0, count: 0 }; });
+    speseReali.forEach(s => {
+        const macroId = _catMacroId(s);
+        const bucket = perMacro[macroId] || perMacro['varie'];
+        bucket.total += parseFloat(s.importo || 0);
+        bucket.count++;
+    });
+    const macroSorted = Object.values(perMacro).filter(c => c.total > 0).sort((a, b) => b.total - a.total);
+    const maxMacro = macroSorted[0]?.total || 1;
+
+    let html = `
+    <div class="stat-box">
+        <div class="stat-label">Totale speso</div>
+        <div class="stat-value">${cur}${totale.toFixed(2)}</div>
+        <div class="stat-sub">${count} spese · media ${cur}${media.toFixed(2)}</div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-label">Per persona (pagato)</div>
+        ${partecipantiAttuali.map(p => {
+            const val = perPersona[p.id] || 0;
+            const pct = maxPers > 0 ? (val / maxPers * 100) : 0;
+            return `<div class="stat-row">
+                <div class="stat-row-label">${p.nome}</div>
+                <div class="stat-bar-wrap"><div class="stat-bar" style="width:${pct}%"></div></div>
+                <div class="stat-row-val">${cur}${val.toFixed(0)}</div>
+            </div>`;
+        }).join('')}
+    </div>
+    ${macroSorted.length ? `<div class="stat-box">
+        <div class="stat-label">Per categoria</div>
+        ${macroSorted.map(mc => {
+            const pct = (mc.total / maxMacro * 100);
+            return `<div class="stat-row stat-row-cat" onclick="mostraCatDettaglio('${mc.id}')">
+                <div class="stat-row-label">${mc.icon} ${mc.label}</div>
+                <div class="stat-bar-wrap"><div class="stat-bar" style="width:${pct}%;background:${mc.color}"></div></div>
+                <div class="stat-row-val">${cur}${mc.total.toFixed(2)}</div>
+            </div>`;
+        }).join('')}
+        <div class="stat-row" style="margin-top:10px;border-top:2px solid var(--grey-light);padding-top:10px">
+            <div class="stat-row-label" style="font-weight:900;color:var(--dark)">Totale</div>
+            <div class="stat-bar-wrap"></div>
+            <div class="stat-row-val" style="font-weight:900;color:var(--dark)">${cur}${totale.toFixed(2)}</div>
+        </div>
+    </div>` : ''}
+    <button class="btn-export" onclick="esportaCSV()">📥 Esporta CSV</button>`;
+    el.innerHTML = html;
+}
+
+function esportaCSV() {
+    const cur = viaggioCorrenteValuta || 'EUR';
+    const viaggio = viaggi.find(v => v.id === viaggioCorrenteId);
+    const nomeViaggio = viaggio ? viaggio.nome : 'viaggio';
+    const rows = [['Data','Descrizione','Categoria','Pagato da','Importo','Valuta','Val. originale','Imp. originale','Diviso tra']];
+    speseAttuali.forEach(s => {
+        const payer = partecipantiAttuali.find(p => p.id == s.pagato_da);
+        const divisione = JSON.parse(s.divisione || '[]');
+        const divNomi = divisione.map(id => { const p = partecipantiAttuali.find(x => x.id == id); return p ? p.nome : id; }).join(' / ');
+        rows.push([
+            s.data || '', s.descrizione || '', _catEmoji(s),
+            payer ? payer.nome : '', parseFloat(s.importo || 0).toFixed(2), cur,
+            s.valuta_orig || cur, parseFloat(s.importo_orig || s.importo || 0).toFixed(2),
+            divNomi
+        ]);
+    });
+    const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `${nomeViaggio.replace(/\s+/g,'_')}_spese.csv`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast('✓ CSV scaricato');
+}
+
+function mostraCatDettaglio(macroId) {
+    const mc = MACRO_CATS.find(m => m.id === macroId);
+    if (!mc) return;
+    const cur = symb(viaggioCorrenteValuta);
+    const speseReali = speseAttuali.filter(s => !new Set(['🤝','💸']).has(_catEmoji(s)));
+    const items = speseReali.filter(s => _catMacroId(s) === macroId)
+        .sort((a, b) => (b.data || '').localeCompare(a.data || ''));
+
+    document.getElementById('drillIcon').textContent = mc.icon;
+    document.getElementById('drillTitle').textContent = mc.label;
+    document.getElementById('drillCount').textContent = `${items.length} spese`;
+
+    document.getElementById('drillList').innerHTML = items.map(s => {
+        const payer = partecipantiAttuali.find(p => p.id == s.pagato_da);
+        const payerNome = payer?.nome || '—';
+        const dataFmt = s.data ? new Date(s.data + 'T00:00:00').toLocaleDateString('it-IT', { day:'numeric', month:'short' }) : '—';
+        return `<div class="drill-item">
+            <div class="drill-cat">${_catEmoji(s)}</div>
+            <div class="drill-info">
+                <div class="drill-desc">${s.descrizione || '—'}</div>
+                <div class="drill-sub">${payerNome} · ${dataFmt}</div>
+            </div>
+            <div class="drill-amt">${cur}${parseFloat(s.importo || 0).toFixed(2)}</div>
+            <button class="drill-edit" onclick="drillEdit(${s.id})">✏️</button>
+        </div>`;
+    }).join('') || '<div style="color:#aaa;font-size:13px;font-weight:700;padding:16px 0">Nessuna spesa</div>';
+
+    document.getElementById('modalCatDrill').classList.add('open');
+}
+
+function drillEdit(id) {
+    document.getElementById('modalCatDrill').classList.remove('open');
+    setTimeout(() => apriModalEditSpesa(id), 180);
+}
+
+function chiudiCatDrill(e) {
+    if (e.target === document.getElementById('modalCatDrill')) {
+        document.getElementById('modalCatDrill').classList.remove('open');
+    }
+}
+
+// ── Partecipanti ──────────────────────────────────────────────────
+async function caricaPartecipanti() {
+    partecipantiAttuali = await apiGetArr(`/sv_partecipanti?viaggio_id=eq.${viaggioCorrenteId}&order=id.asc`);
+    await caricaFotoProfili();
+}
+async function caricaFotoProfili() {
+    const emails = partecipantiAttuali.filter(p => p.email_collegata).map(p => p.email_collegata);
+    if (!emails.length) { fotoProfili = {}; return; }
+    try {
+        const rows = await apiGetArr(`/profili?email_utente=in.(${emails.map(encodeURIComponent).join(',')})&select=email_utente,nome,cognome,foto`);
+        fotoProfili = {};
+        rows.forEach(r => fotoProfili[r.email_utente] = r);
+    } catch(e) { fotoProfili = {}; }
+}
+
+function renderPartecipanti() {
+    const el = document.getElementById('elencoPersone');
+    if (!partecipantiAttuali.length) { el.innerHTML = `<div class="empty-msg" style="padding:24px 0">Nessun partecipante ancora.</div>`; return; }
+    el.innerHTML = partecipantiAttuali.map(p => {
+        const fp = p.email_collegata ? fotoProfili[p.email_collegata] : null;
+        return `<div class="partecipante-row">
+            ${avatarHtml(p.nome, fp?.foto || null, 40)}
+            <div class="part-info">
+                <div class="partecipante-nome">${p.nome}</div>
+                ${p.email_collegata ? `<div class="partecipante-sub">📧 ${p.email_collegata}</div>` : ''}
+            </div>
+            <button class="btn-del-viaggio" onclick="eliminaPartecipante(${p.id})">
+                <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>`;
+    }).join('');
+}
+
+async function aggiungiPartecipante() {
+    const input = document.getElementById('nomeNuovaPersona');
+    const nome = input.value.trim();
+    if (!nome) return;
+    await apiPost('/sv_partecipanti', { viaggio_id: viaggioCorrenteId, email_utente: userEmail, nome });
+    input.value = '';
+    await caricaPartecipanti(); renderPartecipanti();
+    toast(`✓ ${nome} aggiunto`);
+}
+
+async function eliminaPartecipante(id) {
+    if (!confirm('Rimuovere questo partecipante? Le sue spese resteranno.')) return;
+    const p = partecipantiAttuali.find(x => x.id === id);
+    await apiDel(`/sv_partecipanti?id=eq.${id}`);
+    if (p?.email_collegata) await apiDel(`/sv_inviti?viaggio_id=eq.${viaggioCorrenteId}&email_invitato=eq.${encodeURIComponent(p.email_collegata)}`);
+    await caricaPartecipanti(); renderPartecipanti();
+}
+
+function condividiLinkViaggio() {
+    const url = `https://listando.it/spese_viaggio.html?join=${viaggioCorrenteId}`;
+    if (navigator.share) { navigator.share({ title: 'Listando', url }); }
+    else { navigator.clipboard.writeText(url).then(() => toast('🔗 Link copiato!')); }
+}
+
+// ── Invita ────────────────────────────────────────────────────────
+function apriModalInvita() {
+    document.getElementById('emailInvitato').value = '';
+    document.getElementById('nomeInvitato').value = '';
+    document.getElementById('inviteStep1').style.display = '';
+    document.getElementById('inviteStep2').style.display = 'none';
+    document.getElementById('modalInvita').classList.add('open');
+    setTimeout(() => document.getElementById('emailInvitato').focus(), 300);
+}
+function chiudiModalInvita() { document.getElementById('modalInvita').classList.remove('open'); }
+
+async function inviaInvito() {
+    const email = document.getElementById('emailInvitato').value.trim().toLowerCase();
+    const nome = document.getElementById('nomeInvitato').value.trim();
+    if (!email || !email.includes('@')) { toast('Inserisci un email valida'); return; }
+    if (!nome) { toast('Inserisci il nome'); return; }
+    const viaggio = viaggi.find(v => v.id === viaggioCorrenteId);
+    const mioNome = await getMioNome();
+    await apiDel(`/sv_inviti?viaggio_id=eq.${viaggioCorrenteId}&email_invitato=eq.${encodeURIComponent(email)}`);
+    await apiPost('/sv_inviti', {
+        viaggio_id: viaggioCorrenteId, viaggio_nome: viaggio?.nome || '',
+        email_invitante: userEmail, nome_invitante: mioNome,
+        email_invitato: email, stato: 'attesa'
+    });
+    const resP = await apiPost('/sv_partecipanti', { viaggio_id: viaggioCorrenteId, email_utente: userEmail, nome, email_collegata: email });
+    if (!resP.ok) await apiPost('/sv_partecipanti', { viaggio_id: viaggioCorrenteId, email_utente: userEmail, nome });
+    await caricaPartecipanti(); renderPartecipanti();
+    const nomeViaggio = viaggio?.nome || 'viaggio';
+    const joinUrl = `https://listando.it/spese_viaggio.html?join=${viaggioCorrenteId}`;
+    const msg = `Ciao ${nome}! 👋\n${mioNome} ti ha aggiunto alle spese di "${nomeViaggio}" su Listando 🧳\n\nClicca qui per vedere il viaggio:\n${joinUrl}\n\n(Se non hai ancora Listando, accedi su https://listando.it con la tua email e poi riapri il link)`;
+    window._inviteMsg = msg;
+    document.getElementById('inviteStep1').style.display = 'none';
+    document.getElementById('inviteStep2').style.display = '';
+    document.getElementById('inviteShareDesc').textContent = `Condividi il messaggio con ${nome} per farglielo sapere.`;
+    document.getElementById('btnShareWA').href = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+    document.getElementById('btnShareEmail').href = `mailto:${email}?subject=${encodeURIComponent(`${mioNome} ti invita su Listando — ${nomeViaggio}`)}&body=${encodeURIComponent(msg)}`;
+    if (navigator.share) document.getElementById('btnShareNativo').style.display = '';
+}
+async function condividiNativo() { try { await navigator.share({ text: window._inviteMsg }); } catch(e) {} }
+function copiaMessaggio() {
+    if (!window._inviteMsg) return;
+    navigator.clipboard.writeText(window._inviteMsg).then(() => toast('📋 Testo copiato!')).catch(() => toast('Impossibile copiare'));
+}
+
+async function getMioNome() {
+    // Prima prova localStorage (fonte primaria del profilo)
+    try {
+        const ls = JSON.parse(localStorage.getItem('profilo_' + userEmail) || 'null');
+        if (ls?.nome) return [ls.nome, ls.cognome].filter(Boolean).join(' ');
+    } catch(e) {}
+    // Fallback: Supabase
+    try {
+        const rows = await apiGetArr(`/profili?email_utente=eq.${encodeURIComponent(userEmail)}&select=nome,cognome`);
+        const p = rows[0];
+        if (p?.nome) return [p.nome, p.cognome].filter(Boolean).join(' ');
+    } catch(e) {}
+    return userEmail.split('@')[0];
+}
+
+// ── Modal: Nuovo viaggio ──────────────────────────────────────────
+function renderEmojiViaggio(current) {
+    document.getElementById('emojiPickerViaggio').innerHTML = EMOJIS_V.map(e =>
+        `<button class="emoji-opt${e === current ? ' active' : ''}" onclick="setEmojiViaggio('${e}')">${e}</button>`
+    ).join('');
+}
+function setEmojiViaggio(e) {
+    emojiViaggioScelta = e;
+    document.querySelectorAll('#emojiPickerViaggio .emoji-opt').forEach(b => b.classList.toggle('active', b.textContent === e));
+}
+function apriModalNuovoViaggio() {
+    emojiViaggioScelta = '✈️'; nuoviPart = [];
+    document.getElementById('nomeNuovoViaggio').value = '';
+    document.getElementById('nomePartNew').value = '';
+    document.getElementById('nuoviPartRows').innerHTML = '';
+    populateCurrencySelects('valutaNuovoViaggio');
+    document.getElementById('valutaNuovoViaggio').value = 'EUR';
+    renderEmojiViaggio('✈️');
+    document.getElementById('modalNuovoViaggio').classList.add('open');
+    setTimeout(() => document.getElementById('nomeNuovoViaggio').focus(), 300);
+}
+function aggiungiPartNew() {
+    const input = document.getElementById('nomePartNew');
+    const nome = input.value.trim();
+    if (!nome || nuoviPart.includes(nome)) return;
+    nuoviPart.push(nome); input.value = ''; renderNuoviPart();
+}
+function rimuoviPartNew(i) { nuoviPart.splice(i, 1); renderNuoviPart(); }
+function renderNuoviPart() {
+    document.getElementById('nuoviPartRows').innerHTML = nuoviPart.map((n, i) =>
+        `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--grey-light)">
+            <span style="flex:1;font-weight:700">${n}</span>
+            <button onclick="rimuoviPartNew(${i})" style="background:none;border:none;color:var(--red);font-size:18px;cursor:pointer">×</button>
+        </div>`
+    ).join('');
+}
+async function salvaViaggio() {
+    const nome = document.getElementById('nomeNuovoViaggio').value.trim();
+    if (!nome) { toast('Inserisci il nome del viaggio'); return; }
+    const valuta = document.getElementById('valutaNuovoViaggio').value || 'EUR';
+    const dataInizio = document.getElementById('dataInizioNuovoViaggio').value || null;
+    const dataFine   = document.getElementById('dataFineNuovoViaggio').value || null;
+    const fullBody = { email_utente: userEmail, nome, emoji: emojiViaggioScelta, valuta, data_inizio: dataInizio, data_fine: dataFine };
+    const res = await apiPost('/sv_viaggi', fullBody);
+    if (!res.ok) {
+        const res2 = await apiPost('/sv_viaggi', { email_utente: userEmail, nome, emoji: emojiViaggioScelta });
+        if (!res2.ok) { toast('Errore nella creazione'); return; }
+    }
+    const rows = await fetch(`${URL_S}/sv_viaggi?email_utente=eq.${userEmail}&nome=eq.${encodeURIComponent(nome)}&order=id.desc&limit=1`, { headers: HR });
+    const [v] = await rows.json();
+    if (nuoviPart.length) {
+        await Promise.all(nuoviPart.map(n => apiPost('/sv_partecipanti', { viaggio_id: v.id, email_utente: userEmail, nome: n })));
+    }
+    document.getElementById('modalNuovoViaggio').classList.remove('open');
+    toast('✓ Viaggio creato');
+    await caricaViaggi();
+    apriViaggio(v.id);
+}
+
+// ── Modal: Nuova / Modifica spesa ─────────────────────────────────
+function setSplitType(type) {
+    splitType = type;
+    document.querySelectorAll('.split-type-btn').forEach(b => b.classList.toggle('active', b.dataset.type === type));
+    const btnTutti = document.getElementById('btnTutti');
+    btnTutti.style.display = type === 'uguale' ? '' : 'none';
+    renderSplitContainer();
+}
+
+function renderSplitContainer() {
+    const cont = document.getElementById('splitContainer');
+    if (splitType === 'uguale') {
+        cont.innerHTML = partecipantiAttuali.map(p =>
+            `<div class="split-check">
+                <input type="checkbox" id="sp${p.id}" ${splitTutti ? 'checked' : ''}>
+                <label for="sp${p.id}">${p.nome}</label>
+            </div>`
+        ).join('');
+    } else {
+        const unit = splitType === 'importi' ? symb(viaggioCorrenteValuta) : splitType === 'percentuali' ? '%' : '÷';
+        const placeholder = splitType === 'importi' ? '0.00' : splitType === 'percentuali' ? '0' : '1';
+        cont.innerHTML = partecipantiAttuali.map(p =>
+            `<div class="split-check">
+                <label for="sq${p.id}" style="flex:1">${p.nome}</label>
+                <span style="font-size:12px;color:#aaa;font-weight:700;margin-right:4px">${unit}</span>
+                <input type="number" id="sq${p.id}" min="0" step="${splitType === 'importi' ? '0.01' : '1'}" placeholder="${placeholder}" value="${splitType === 'quote' ? '1' : ''}">
+            </div>`
+        ).join('');
+    }
+}
+
+function getQuoteDivisione() {
+    if (splitType === 'uguale') {
+        const ids = [...document.querySelectorAll('#splitContainer input:checked')].map(cb => +cb.id.replace('sp',''));
+        return { divisione: ids, tipo: 'uguale', quote: null };
+    }
+    const q = {};
+    let ids = [];
+    partecipantiAttuali.forEach(p => {
+        const val = parseFloat(document.getElementById(`sq${p.id}`)?.value || 0);
+        if (val > 0) { q[p.id] = val; ids.push(p.id); }
+    });
+    return { divisione: ids, tipo: splitType, quote: ids.length ? JSON.stringify(q) : null };
+}
+
+async function aggiornaPreviewValuta() {
+    const valuta = document.getElementById('valutaSpesa').value;
+    const importo = parseFloat(document.getElementById('importoSpesa').value);
+    const preview = document.getElementById('previewConversione');
+    if (valuta !== viaggioCorrenteValuta && !isNaN(importo) && importo > 0) {
+        const rates = await fetchRates();
+        if (rates) {
+            const conv = convertAmt(importo, valuta, viaggioCorrenteValuta, rates.rates);
+            preview.textContent = `≈ ${symb(viaggioCorrenteValuta)}${conv.toFixed(2)} (cambio applicato al salvataggio)`;
+            preview.style.display = '';
+        }
+    } else {
+        preview.style.display = 'none';
+    }
+}
+
+function apriModalNuovaSpesa(spesaId) {
+    if (!partecipantiAttuali.length) { toast('Aggiungi prima dei partecipanti'); mostraTab('persone'); return; }
+    spesaInEditId = null;
+    document.getElementById('titoloModalSpesa').textContent = 'Nuova spesa';
+    document.getElementById('btnSalvaSpesa').textContent = 'AGGIUNGI';
+    catScelta = '🛒'; catEmojiCatAttiva = '🍕'; macroScelta = null;
+    pagatoreScelto = partecipantiAttuali[0]?.id || null;
+    splitTutti = true; splitType = 'uguale'; fotoSpesaBase64 = null;
+    _catSuggeritaMc = null; document.getElementById('catSuggerita').style.display = 'none';
+    document.getElementById('descSpesa').value = '';
+    document.getElementById('importoSpesa').value = '';
+    document.getElementById('dataSpesa').value = new Date().toISOString().split('T')[0];
+    document.getElementById('previewConversione').style.display = 'none';
+    document.getElementById('fotoPreviewWrap').style.display = 'none';
+    document.getElementById('btnAddFoto').style.display = '';
+    populateCurrencySelects('valutaSpesa');
+    document.getElementById('valutaSpesa').value = viaggioCorrenteValuta;
+    renderCatRow(); renderPayerRow();
+    document.querySelectorAll('.split-type-btn').forEach(b => b.classList.toggle('active', b.dataset.type === 'uguale'));
+    document.getElementById('btnTutti').style.display = '';
+    document.getElementById('btnTutti').classList.add('active');
+    renderSplitContainer();
+    document.getElementById('modalNuovaSpesa').classList.add('open');
+    setTimeout(() => document.getElementById('descSpesa').focus(), 300);
+}
+
+function apriModalEditSpesa(id) {
+    const s = speseAttuali.find(x => x.id === id);
+    if (!s) return;
+    spesaInEditId = id;
+    document.getElementById('titoloModalSpesa').textContent = 'Modifica spesa';
+    document.getElementById('btnSalvaSpesa').textContent = 'SALVA';
+    const _pc = parseCat(s.categoria);
+    catScelta = _pc.emoji; macroScelta = _pc.macroId;
+    catEmojiCatAttiva = Object.entries(EMOJI_DB).find(([, arr]) => arr.includes(catScelta))?.[0] || '🍕';
+    _catSuggeritaMc = null; document.getElementById('catSuggerita').style.display = 'none';
+    pagatoreScelto = s.pagato_da;
+    const divisione = JSON.parse(s.divisione || '[]');
+    splitType = s.tipo_divisione || 'uguale';
+    splitTutti = splitType === 'uguale' && divisione.length === partecipantiAttuali.length;
+    fotoSpesaBase64 = s.foto || null;
+    document.getElementById('descSpesa').value = s.descrizione || '';
+    document.getElementById('importoSpesa').value = s.valuta_orig && s.importo_orig ? parseFloat(s.importo_orig).toFixed(2) : parseFloat(s.importo).toFixed(2);
+    document.getElementById('dataSpesa').value = s.data || '';
+    document.getElementById('previewConversione').style.display = 'none';
+    populateCurrencySelects('valutaSpesa');
+    document.getElementById('valutaSpesa').value = s.valuta_orig || viaggioCorrenteValuta;
+
+    if (fotoSpesaBase64) {
+        document.getElementById('fotoPreview').src = fotoSpesaBase64;
+        document.getElementById('fotoPreviewWrap').style.display = '';
+        document.getElementById('btnAddFoto').style.display = 'none';
+    } else {
+        document.getElementById('fotoPreviewWrap').style.display = 'none';
+        document.getElementById('btnAddFoto').style.display = '';
+    }
+
+    renderCatRow(); renderPayerRow();
+    document.querySelectorAll('.split-type-btn').forEach(b => b.classList.toggle('active', b.dataset.type === splitType));
+    document.getElementById('btnTutti').style.display = splitType === 'uguale' ? '' : 'none';
+    document.getElementById('btnTutti').classList.toggle('active', splitTutti);
+
+    if (splitType === 'uguale') {
+        document.getElementById('splitContainer').innerHTML = partecipantiAttuali.map(p =>
+            `<div class="split-check">
+                <input type="checkbox" id="sp${p.id}" ${divisione.includes(p.id) ? 'checked' : ''}>
+                <label for="sp${p.id}">${p.nome}</label>
+            </div>`
+        ).join('');
+    } else {
+        const qd = s.quote_divisione ? JSON.parse(s.quote_divisione) : {};
+        const unit = splitType === 'importi' ? symb(viaggioCorrenteValuta) : splitType === 'percentuali' ? '%' : '÷';
+        document.getElementById('splitContainer').innerHTML = partecipantiAttuali.map(p =>
+            `<div class="split-check">
+                <label for="sq${p.id}" style="flex:1">${p.nome}</label>
+                <span style="font-size:12px;color:#aaa;font-weight:700;margin-right:4px">${unit}</span>
+                <input type="number" id="sq${p.id}" min="0" step="${splitType === 'importi' ? '0.01' : '1'}" value="${qd[p.id] || (splitType === 'quote' ? 1 : '')}">
+            </div>`
+        ).join('');
+    }
+    document.getElementById('modalNuovaSpesa').classList.add('open');
+    setTimeout(() => document.getElementById('descSpesa').focus(), 300);
+}
+
+function renderMacroCatChips() {
+    // macroScelta è esplicito; se null, nessun chip evidenziato (selezione libera)
+    document.getElementById('macroCatChips').innerHTML = MACRO_CATS.map(mc =>
+        `<button class="macro-cat-chip${mc.id === macroScelta ? ' active' : ''}" onclick="setCatFromMacro('${mc.id}')">${mc.icon} ${mc.label}</button>`
+    ).join('');
+}
+
+function setCatFromMacro(macroId) {
+    // Seleziona la macro-categoria senza toccare l'emoji scelta
+    macroScelta = (macroScelta === macroId) ? null : macroId; // tap again to deselect
+    renderMacroCatChips();
+}
+
+function renderCatRow() {
+    renderMacroCatChips();
+    document.getElementById('catEmojiTabs').innerHTML = Object.keys(EMOJI_DB).map(cat =>
+        `<button class="emoji-cat-btn${cat === catEmojiCatAttiva ? ' active' : ''}" onclick="setCatEmojiCat('${cat}')" title="${EMOJI_CAT_LABELS[cat] || cat}">${cat}</button>`
+    ).join('');
+    const emojis = EMOJI_DB[catEmojiCatAttiva] || [];
+    document.getElementById('catRow').innerHTML = emojis.map(e =>
+        `<button class="${e === catScelta ? 'active' : ''}" onclick="setCat('${e}')">${e}</button>`
+    ).join('');
+}
+
+function setCatEmojiCat(cat) {
+    catEmojiCatAttiva = cat;
+    document.querySelectorAll('#catEmojiTabs .emoji-cat-btn').forEach(b => b.classList.toggle('active', b.textContent === cat));
+    const emojis = EMOJI_DB[cat] || [];
+    document.getElementById('catRow').innerHTML = emojis.map(e =>
+        `<button class="${e === catScelta ? 'active' : ''}" onclick="setCat('${e}')">${e}</button>`
+    ).join('');
+}
+function renderPayerRow() {
+    document.getElementById('payerRow').innerHTML = partecipantiAttuali.map(p =>
+        `<button class="payer-btn${p.id === pagatoreScelto ? ' active' : ''}" onclick="setPayer(${p.id})">${p.nome}</button>`
+    ).join('');
+}
+function setCat(c) {
+    catScelta = c;
+    document.querySelectorAll('#catRow button').forEach(b => b.classList.toggle('active', b.textContent === c));
+}
+function setPayer(id) {
+    pagatoreScelto = id;
+    document.querySelectorAll('.payer-btn').forEach(b => b.classList.toggle('active', +b.getAttribute('onclick').match(/\d+/)[0] === id));
+}
+function toggleTutti() {
+    splitTutti = !splitTutti;
+    document.getElementById('btnTutti').classList.toggle('active', splitTutti);
+    document.querySelectorAll('#splitContainer input[type=checkbox]').forEach(cb => cb.checked = splitTutti);
+}
+
+async function salvaSpesa() {
+    const desc = document.getElementById('descSpesa').value.trim();
+    const importoOrig = parseFloat(document.getElementById('importoSpesa').value);
+    const data = document.getElementById('dataSpesa').value;
+    const valutaScelta = document.getElementById('valutaSpesa').value;
+    if (!desc) { toast('Inserisci una descrizione'); return; }
+    if (!importoOrig || importoOrig <= 0) { toast('Inserisci un importo valido'); return; }
+    if (!pagatoreScelto) { toast('Scegli chi ha pagato'); return; }
+
+    const { divisione, tipo, quote } = getQuoteDivisione();
+    if (!divisione.length) { toast('Seleziona almeno un partecipante'); return; }
+
+    // Currency conversion
+    let importo = importoOrig, tasso = null, valutaOrig = null, importoOrigSaved = null;
+    if (valutaScelta !== viaggioCorrenteValuta) {
+        const rates = await fetchRates();
+        if (rates) {
+            importo = convertAmt(importoOrig, valutaScelta, viaggioCorrenteValuta, rates.rates);
+            tasso = importo / importoOrig;
+        }
+        valutaOrig = valutaScelta;
+        importoOrigSaved = importoOrig;
+    }
+
+    const body = {
+        descrizione: desc, importo, pagato_da: pagatoreScelto,
+        divisione: JSON.stringify(divisione), categoria: macroScelta ? macroScelta + '::' + catScelta : catScelta, data,
+        tipo_divisione: tipo,
+        ...(quote ? { quote_divisione: quote } : {}),
+        ...(fotoSpesaBase64 ? { foto: fotoSpesaBase64 } : {}),
+        ...(valutaOrig ? { valuta_orig: valutaOrig, importo_orig: importoOrigSaved, tasso_cambio: tasso } : {})
+    };
+
+    let res;
+    if (spesaInEditId) {
+        res = await apiPatch(`/sv_spese?id=eq.${spesaInEditId}`, body);
+    } else {
+        res = await apiPost('/sv_spese', { viaggio_id: viaggioCorrenteId, email_utente: userEmail, ...body });
+    }
+
+    if (!res.ok) {
+        // Fallback: save without optional columns
+        const { foto, valuta_orig, importo_orig, tasso_cambio, tipo_divisione, quote_divisione, ...minimal } = body;
+        if (spesaInEditId) {
+            res = await apiPatch(`/sv_spese?id=eq.${spesaInEditId}`, minimal);
+        } else {
+            res = await apiPost('/sv_spese', { viaggio_id: viaggioCorrenteId, email_utente: userEmail, ...minimal });
+        }
+        if (!res.ok) { toast('Errore nel salvataggio'); return; }
+    }
+
+    document.getElementById('modalNuovaSpesa').classList.remove('open');
+    await caricaSpese(); renderSpese();
+    toast(spesaInEditId ? '✓ Spesa aggiornata' : '✓ Spesa aggiunta');
+    spesaInEditId = null; fotoSpesaBase64 = null;
+}
+
+// ── Close modals on backdrop ──────────────────────────────────────
+document.querySelectorAll('.modal-overlay').forEach(m => {
+    m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+});
+
+let toastTimer;
+function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ── Join from link ────────────────────────────────────────────────
+async function handleJoinFromLink(viaggioId) {
+    history.replaceState({}, '', location.pathname);
+    const viaggioArr = await apiGetArr(`/sv_viaggi?id=eq.${viaggioId}`);
+    if (!viaggioArr.length) { toast('Link non valido o viaggio eliminato'); caricaViaggi(); return; }
+    const viaggio = viaggioArr[0];
+    const byUtente    = await apiGetArr(`/sv_partecipanti?viaggio_id=eq.${viaggioId}&email_utente=eq.${encodeURIComponent(userEmail)}`);
+    const byCollegata = await apiGetArr(`/sv_partecipanti?viaggio_id=eq.${viaggioId}&email_collegata=eq.${encodeURIComponent(userEmail)}`);
+    if (!byUtente.length && !byCollegata.length) {
+        const mioNome = await getMioNome();
+        const resP = await apiPost('/sv_partecipanti', { viaggio_id: +viaggioId, email_utente: userEmail, nome: mioNome, email_collegata: userEmail });
+        if (!resP.ok) await apiPost('/sv_partecipanti', { viaggio_id: +viaggioId, email_utente: userEmail, nome: mioNome });
+    }
+    await apiPatch(`/sv_inviti?email_invitato=eq.${encodeURIComponent(userEmail)}&viaggio_id=eq.${viaggioId}`, { stato: 'accettato' });
+    await caricaViaggi();
+    apriViaggio(+viaggioId);
+    toast(`✓ Sei nel viaggio "${viaggio.nome}"!`);
+}
+
+// ── Full emoji DB ─────────────────────────────────────────────────
+const EMOJI_DB = {
+  '😀': ['😀','😃','😄','😁','😆','😅','🤣','😂','🙂','🙃','😉','😊','😇','🥰','😍','🤩','😘','😗','😚','😙','😋','😛','😜','🤪','😝','🤑','🤗','🤭','🤫','🤔','🤐','🤨','😐','😑','😶','😏','😒','🙄','😬','🤥','😌','😔','😪','😴','😷','🤒','🤕','🤢','🤮','🤧','🥵','🥶','🥴','😵','🤯','🤠','🥸','🤡','😈','👿','💀','☠️','💩','👻','👽','🤖','👾'],
+  '👋': ['👋','🤚','🖐️','✋','🖖','👌','🤌','🤏','✌️','🤞','🤟','🤘','🤙','👈','👉','👆','👇','☝️','👍','👎','✊','👊','🤛','🤜','👏','🙌','👐','🤲','🤝','🙏','✍️','💅','💪','🦾','👀','👅','👄','🫶','🫂','💋','👣','❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','💕','💞','💓','💗','💖','💘','💝','💯','🔥','✨','⭐','🌟','💫','🎉','🎊','🎈'],
+  '🐶': ['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🙈','🙉','🙊','🐔','🐧','🐦','🐤','🦆','🦅','🦉','🦇','🐺','🐗','🐴','🦄','🐝','🐛','🦋','🐌','🐞','🐜','🦟','🦗','🕷️','🦂','🐢','🐍','🦎','🐊','🐙','🦑','🦐','🦞','🦀','🐡','🐠','🐟','🐬','🐳','🐋','🦈','🦭','🐊','🦖','🦕','🐆','🐅','🦓','🦍','🦧','🦣','🐘','🦛','🦏','🐪','🐫','🦒','🦘','🦬','🐃','🐂','🐄','🐎','🐖','🐏','🐑','🦙','🐐','🦌','🐕','🐩','🦮','🐕‍🦺','🐈','🐈‍⬛','🐇','🦝','🦨','🦡','🦫','🦦','🦥','🐁','🐀','🐿️','🦔'],
+  '🌺': ['🌺','🌸','🌼','🌻','🌹','🥀','🌷','🌱','🌿','☘️','🍀','🎋','🎍','🍃','🍂','🍁','🍄','🌾','💐','🌵','🌲','🌳','🌴','🪸','🌊','💧','💦','❄️','☀️','🌤️','⛅','☁️','🌧️','⛈️','🌩️','🌨️','🌬️','💨','🌀','🌪️','🌫️','🌈','🌙','🌚','🌛','🌜','🌝','🌞','🪐','💥','🌑','🌒','🌓','🌔','🌕','⭐','🌟','✨','⚡','🔥','🌍','🌎','🌏','🗻','🏔️','⛰️','🌋','🏕️','🏖️','🏜️','🏝️','🏞️'],
+  '🍕': ['🍕','🍔','🌮','🌯','🥙','🧆','🍳','🥞','🧇','🥓','🍗','🍖','🌭','🥪','🥗','🍿','🥫','🍝','🍜','🍲','🍛','🍣','🍱','🥟','🍤','🍙','🍚','🍘','🍥','🥮','🍢','🧁','🎂','🍰','🍦','🍧','🍨','🍡','🍭','🍬','🍫','🍩','🍪','🌰','🥜','🍯','☕','🍵','🧋','🍺','🍻','🥂','🍷','🥃','🍸','🍹','🧃','🥤','🧊','🫖','🥐','🥖','🫓','🧀','🥚','🥑','🫑','🌽','🥕','🧅','🥔','🍠','🥜','🫘','🌰'],
+  '✈️': ['✈️','🛫','🛬','🚀','🛸','🚁','🛶','⛵','🚢','🛳️','⛴️','🚂','🚄','🚅','🚇','🚌','🏎️','🚗','🛻','🚜','🛵','🚲','🛴','🛹','🗺️','🧭','🏔️','🌋','🏕️','🏖️','🏟️','🏛️','🏗️','🏠','🏡','🏢','🏨','🏩','🏪','🏫','🏬','🏰','🗼','🗽','⛪','🕌','⛩️','🕍','🌁','🌃','🌆','🌇','🌉','🎠','🎡','🎢','🎪','⛽','⚓','🚧','🛞','🗿','🏯','💒','🌅','🌄','🌠','🎆','🎇','🌌'],
+  '⚽': ['⚽','🏀','🏈','⚾','🥎','🎾','🏐','🏉','🥏','🎱','🏓','🏸','🥊','🥋','🎯','🏹','🎣','🤿','🎿','🛷','🥌','🛹','🛼','⛷️','🏂','🪂','🏋️','🤸','⛹️','🤺','🏇','🧘','🏊','🤽','🚣','🧗','🚴','🏆','🥇','🥈','🥉','🏅','🎖️','🎪','🎭','🎨','🖼️','🎰','🎲','🎮','🕹️','🎳','🎻','🎷','🎺','🥁','🎸','🎹','🎵','🎶','🎼','🎤','🎧','🎬','🎥','📸','🎠','🎡','🎢'],
+  '💡': ['💡','🔦','🕯️','📱','💻','🖥️','⌨️','🖱️','💾','📷','📸','📹','🎥','📺','📻','🎙️','⌚','⏰','⏱️','🔋','🔌','💳','💰','💵','💶','💷','💴','💸','🏧','📊','📈','📉','📋','📌','📍','📎','✂️','📁','📂','🗑️','🔒','🔓','🔑','🗝️','🔨','🛠️','🔧','🔩','🔭','🔬','🧲','⚗️','🧪','🧬','💊','🩺','🩹','🩻','🎁','🎀','🎊','🎉','🎈','🪄','🔮','🧿','🪬','🧸','🪆','🪅'],
+};
+const EMOJI_CAT_LABELS = { '😀':'Faccine','👋':'Persone','🐶':'Animali','🌺':'Natura','🍕':'Cibo','✈️':'Viaggi','⚽':'Sport','💡':'Oggetti' };
+
+// Formato categoria nel DB: "macroId::emoji" (nuovo) oppure solo "emoji" (vecchio)
+function parseCat(raw) {
+    if (!raw) return { emoji: '🛒', macroId: null };
+    if (raw.includes('::')) { const [m, e] = raw.split('::'); return { emoji: e || '🛒', macroId: m || null }; }
+    return { emoji: raw, macroId: null };
+}
+function _catEmoji(s) { return parseCat(s.categoria).emoji; }
+function _catMacroId(s) {
+    const { emoji, macroId } = parseCat(s.categoria);
+    if (macroId) return macroId;
+    // Retrocompatibilità: deriva la macro dall'emoji
+    const mc = MACRO_CATS.find(m => m.emojis.includes(emoji));
+    return mc ? mc.id : 'varie';
+}
+
+const MACRO_CATS = [
+  { id:'alloggio',      label:'Alloggio',      icon:'🏨', color:'#3b82f6',
+    emojis:['🏨','🏩','🏠','🏡','🏢','⛺','🏕️','🏗️'] },
+  { id:'pasti',         label:'Pasti',         icon:'🍽️', color:'#f97316',
+    emojis:['🍽️','🍝','🍜','🍲','🍛','🍣','🍱','🥟','🍤','🍙','🍚','🍘','🌮','🌯','🥙','🍕','🍔','🌭','🥪','🥗','🫕','🍳','🥞','🧇','🥓','🍗','🍖','🧆','🥮','🍢'] },
+  { id:'carburante',    label:'Carburante',    icon:'⛽', color:'#eab308',
+    emojis:['⛽'] },
+  { id:'pedaggi',       label:'Pedaggi',       icon:'🛣️', color:'#64748b',
+    emojis:['🚧'] },
+  { id:'trasporto',     label:'Trasporto',     icon:'🚗', color:'#0ea5e9',
+    emojis:['✈️','🛫','🛬','🚀','🚂','🚄','🚅','🚆','🚇','🚈','🚉','🚊','🚝','🚞','🛳️','⛴️','🚢','⛵','🚁','🛸','🛶','🚗','🚌','🚕','🛻','🚙','🏎️','🚐','🚎','🛵','🚲','🛴','🛹','🚡','🚠','🚟','🛺','🚜','🚃','⚓'] },
+  { id:'attivita',      label:'Attività',      icon:'🎭', color:'#a855f7',
+    emojis:['🎭','🎬','🎫','🎪','🎠','🎡','🎢','🎨','🖼️','🎮','🕹️','🎲','🎯','🎳','🎻','🎷','🎸','🎹','🎤','🎧','🎥','📸','🤿','⛷️','🎿','🏂','🪂','🧗','🏄','🚵','🎣','🏋️','🤸','⛹️','🧘','🏊','🤽','🚣','🚴','🛷','🥊','🥋','⚽','🏀','🏈','⚾','🎾','🏐','🎱'] },
+  { id:'musei',         label:'Musei',         icon:'🏛️', color:'#d97706',
+    emojis:['🏛️','🗼','🗽','⛪','🕌','🗿','⛩️','🕍','🏰','🏯','💒','🌁','🌃','🌆','🌇','🌉'] },
+  { id:'snack',         label:'Snack',         icon:'☕', color:'#92400e',
+    emojis:['☕','🍵','🧋','🫖','🍺','🍻','🥂','🍷','🥃','🍸','🍹','🧃','🥤','🧉','🍿','🍰','🎂','🧁','🍩','🍪','🍦','🍧','🍨','🍭','🍬','🍫'] },
+  { id:'spesa',         label:'Spesa',         icon:'🛒', color:'#22c55e',
+    emojis:['🛒'] },
+  { id:'assicurazione', label:'Assicurazione', icon:'🛡️', color:'#475569',
+    emojis:['🔒','🔑','🗝️','📋','📄'] },
+  { id:'sanita',        label:'Sanità',        icon:'💊', color:'#ef4444',
+    emojis:['💊','🧴','🩺','🩹','🩻','🩼','⚗️','🧪','🧬'] },
+  { id:'shopping',      label:'Shopping',      icon:'🛍️', color:'#ec4899',
+    emojis:['🛍️','💎','🎁','💄','👜','🎀','🧸','💍','🪆','👗','👔','👟','🕶️','⌚'] },
+  { id:'varie',         label:'Varie',         icon:'💡', color:'#8e8e93',
+    emojis:[] },
+];
+
+const KEYWORD_MAP = {
+    // alloggio
+    'hotel':'alloggio','albergo':'alloggio','ostello':'alloggio','hostel':'alloggio',
+    'affitto':'alloggio','appartamento':'alloggio','motel':'alloggio','resort':'alloggio',
+    'camera':'alloggio','airbnb':'alloggio','bungalow':'alloggio','chalet':'alloggio',
+    'suite':'alloggio','lodge':'alloggio','cabin':'alloggio',
+    // pasti
+    'cena':'pasti','cenato':'pasti','cenava':'pasti','ceno':'pasti',
+    'pranzo':'pasti','pranzato':'pasti','pranzava':'pasti','brunch':'pasti',
+    'ristorante':'pasti','trattoria':'pasti','osteria':'pasti',
+    'pizzeria':'pasti','pizza':'pasti','hamburger':'pasti','sushi':'pasti','kebab':'pasti',
+    'mcdonald':'pasti','burger':'pasti','bistrot':'pasti','bistrò':'pasti',
+    'mangiato':'pasti','mangiare':'pasti','pasto':'pasti',
+    // carburante
+    'benzina':'carburante','gasolio':'carburante','diesel':'carburante',
+    'rifornimento':'carburante','metano':'carburante','gpl':'carburante',
+    // pedaggi
+    'autostrada':'pedaggi','pedaggio':'pedaggi','casello':'pedaggi',
+    'viacard':'pedaggi','telepass':'pedaggi',
+    // trasporto
+    'taxi':'trasporto','metro':'trasporto','treno':'trasporto',
+    'aereo':'trasporto','volo':'trasporto','traghetto':'trasporto','nave':'trasporto',
+    'tram':'trasporto','uber':'trasporto','transfer':'trasporto','navetta':'trasporto',
+    'shuttle':'trasporto','autobus':'trasporto','barca':'trasporto',
+    'parcheggio':'trasporto','parking':'trasporto',
+    'biglietto':'trasporto','biglietti':'trasporto',
+    'aeroporto':'trasporto','vaporetto':'trasporto','gondola':'trasporto',
+    'funivia':'trasporto','motorino':'trasporto','scooter':'trasporto','bici':'trasporto',
+    // attività
+    'tour':'attivita','escursione':'attivita','escursioni':'attivita',
+    'gita':'attivita','surf':'attivita','snorkeling':'attivita','trekking':'attivita',
+    'safari':'attivita','concerto':'attivita','teatro':'attivita','cinema':'attivita',
+    'spettacolo':'attivita','corso':'attivita','tennis':'attivita',
+    'piscina':'attivita','spiaggia':'attivita','spa':'attivita','massaggio':'attivita',
+    'zipline':'attivita',
+    // musei
+    'museo':'musei','musei':'musei','mostra':'musei','galleria':'musei',
+    'monumento':'musei','castello':'musei','chiesa':'musei',
+    'cattedrale':'musei','duomo':'musei','basilica':'musei',
+    'palazzo':'musei','tempio':'musei','rovine':'musei','rovina':'musei',
+    // snack
+    'caffè':'snack','caffe':'snack','cappuccino':'snack',
+    'brioche':'snack','cornetto':'snack','bar':'snack',
+    'gelato':'snack','granita':'snack','espresso':'snack',
+    'aperitivo':'snack','cocktail':'snack','birra':'snack',
+    'vino':'snack','succo':'snack','bibita':'snack','drink':'snack',
+    'smoothie':'snack','cioccolato':'snack','dolce':'snack',
+    'patatine':'snack','popcorn':'snack','merendina':'snack','spritz':'snack',
+    // spesa
+    'supermercato':'spesa','alimentari':'spesa','minimarket':'spesa',
+    'lidl':'spesa','coop':'spesa','esselunga':'spesa','conad':'spesa',
+    'drogheria':'spesa','frutta':'spesa','verdura':'spesa',
+    // assicurazione
+    'assicurazione':'assicurazione','polizza':'assicurazione',
+    // sanità
+    'farmacia':'sanita','medicine':'sanita','medicinali':'sanita',
+    'farmaco':'sanita','medico':'sanita','dottore':'sanita',
+    'ospedale':'sanita','clinica':'sanita','analisi':'sanita',
+    // shopping
+    'souvenir':'shopping','regalo':'shopping','regali':'shopping',
+    'vestiti':'shopping','scarpe':'shopping','abbigliamento':'shopping',
+    'boutique':'shopping','outlet':'shopping','profumo':'shopping',
+    'gioielli':'shopping','accessori':'shopping',
+};
+
+let _catSuggeritaMc = null;
+let _descInputTimer = null;
+
+function rilevaCategoriaDA(testo) {
+    const words = testo.toLowerCase().split(/[\s,./!?;:'"()\-]+/);
+    for (const w of words) {
+        if (w.length < 2) continue;
+        const catId = KEYWORD_MAP[w];
+        if (catId) return MACRO_CATS.find(m => m.id === catId) || null;
+    }
+    return null;
+}
+
+function onDescSpesaInput() {
+    clearTimeout(_descInputTimer);
+    _descInputTimer = setTimeout(() => {
+        const testo = document.getElementById('descSpesa').value;
+        const mc = rilevaCategoriaDA(testo);
+        const banner = document.getElementById('catSuggerita');
+        if (mc && mc.icon !== catScelta) {
+            _catSuggeritaMc = mc;
+            document.getElementById('catSuggeritaLabel').textContent = `Suggerita: ${mc.icon} ${mc.label}`;
+            banner.style.display = 'flex';
+        } else {
+            _catSuggeritaMc = null;
+            banner.style.display = 'none';
+        }
+    }, 400);
+}
+
+function usaCatSuggerita() {
+    if (!_catSuggeritaMc) return;
+    const icon = _catSuggeritaMc.icon;
+    const catKey = Object.keys(EMOJI_DB).find(cat => EMOJI_DB[cat].includes(icon));
+    if (catKey) {
+        catEmojiCatAttiva = catKey;
+        document.querySelectorAll('#catEmojiTabs .emoji-cat-btn').forEach(b =>
+            b.classList.toggle('active', b.textContent === catKey));
+        const emojis = EMOJI_DB[catKey] || [];
+        document.getElementById('catRow').innerHTML = emojis.map(e =>
+            `<button class="${e === icon ? 'active' : ''}" onclick="setCat('${e}')">${e}</button>`
+        ).join('');
+    }
+    setCat(icon);
+    document.getElementById('catSuggerita').style.display = 'none';
+    _catSuggeritaMc = null;
+}
+
+let emojiEditScelta = '✈️';
+let emojiEditCatAttiva = '✈️';
+
+function apriModalEditViaggio() {
+    const v = viaggi.find(x => x.id === viaggioCorrenteId);
+    emojiEditScelta = v?.emoji || '✈️';
+    emojiEditCatAttiva = '✈️';
+    document.getElementById('nomeEditViaggio').value = v?.nome || '';
+    document.getElementById('dataInizioEditViaggio').value = v?.data_inizio || '';
+    document.getElementById('dataFineEditViaggio').value   = v?.data_fine   || '';
+    renderEmojiCatTabs();
+    renderEmojiFullGrid();
+    document.getElementById('emojiEditPreview').textContent = emojiEditScelta;
+    document.getElementById('modalEditViaggio').classList.add('open');
+    setTimeout(() => document.getElementById('nomeEditViaggio').focus(), 300);
+}
+
+function renderEmojiCatTabs() {
+    document.getElementById('emojiCatTabs').innerHTML = Object.keys(EMOJI_DB).map(cat =>
+        `<button class="emoji-cat-btn${cat === emojiEditCatAttiva ? ' active' : ''}" onclick="setEmojiCat('${cat}')" title="${EMOJI_CAT_LABELS[cat] || cat}">${cat}</button>`
+    ).join('');
+}
+
+function setEmojiCat(cat) {
+    emojiEditCatAttiva = cat;
+    document.querySelectorAll('.emoji-cat-btn').forEach(b => b.classList.toggle('active', b.textContent === cat));
+    renderEmojiFullGrid();
+}
+
+function renderEmojiFullGrid() {
+    const emojis = EMOJI_DB[emojiEditCatAttiva] || [];
+    document.getElementById('emojiFullGrid').innerHTML = emojis.map(e =>
+        `<button class="${e === emojiEditScelta ? 'active' : ''}" onclick="setEmojiEdit('${e}')">${e}</button>`
+    ).join('');
+}
+
+function setEmojiEdit(e) {
+    emojiEditScelta = e;
+    document.getElementById('emojiEditPreview').textContent = e;
+    document.querySelectorAll('#emojiFullGrid button').forEach(b => b.classList.toggle('active', b.textContent === e));
+}
+
+async function salvaModificheViaggio() {
+    const nome = document.getElementById('nomeEditViaggio').value.trim();
+    if (!nome) { toast('Inserisci il nome del viaggio'); return; }
+    const dataInizio = document.getElementById('dataInizioEditViaggio').value || null;
+    const dataFine   = document.getElementById('dataFineEditViaggio').value   || null;
+    const patchBody = { nome, emoji: emojiEditScelta, data_inizio: dataInizio, data_fine: dataFine };
+    const res = await apiPatch(`/sv_viaggi?id=eq.${viaggioCorrenteId}`, patchBody);
+    if (!res.ok) {
+        // Fallback senza colonne opzionali
+        const res2 = await apiPatch(`/sv_viaggi?id=eq.${viaggioCorrenteId}`, { nome, emoji: emojiEditScelta });
+        if (!res2.ok) { toast('Errore nel salvataggio'); return; }
+    }
+    const v = viaggi.find(x => x.id === viaggioCorrenteId);
+    if (v) { v.nome = nome; v.emoji = emojiEditScelta; v.data_inizio = dataInizio; v.data_fine = dataFine; }
+    document.getElementById('titoloViaggio').textContent = `${emojiEditScelta} ${nome}`;
+    document.getElementById('modalEditViaggio').classList.remove('open');
+    toast('✓ Viaggio aggiornato');
+}
+
+// ── Piano ─────────────────────────────────────────────────────────
+const PIANO_TIPO_ICONS = {
+    volo:'✈️', treno:'🚆', bus:'🚌', nave:'⛴️', auto:'🚗',
+    pernottamento:'🏨', traghetto:'🛳️', trasferimento:'🚕',
+    attivita:'🎭', altro:'📌'
+};
+const PIANO_TIPO_LABEL = {
+    volo:'Volo', treno:'Treno', bus:'Bus', nave:'Nave', auto:'Auto',
+    pernottamento:'Pernottamento', traghetto:'Traghetto', trasferimento:'Trasferimento',
+    attivita:'Attività', altro:'Altro'
+};
+
+async function caricaPianificazione() {
+    pianificazioneAttuale = await apiGetArr(`/sv_piano?viaggio_id=eq.${viaggioCorrenteId}&order=data_inizio.asc`);
+}
+
+function renderPiano() {
+    const el = document.getElementById('elencoPiano');
+    if (!pianificazioneAttuale.length) {
+        el.innerHTML = '<div class="empty-msg">Nessun elemento nel piano.<br>Tocca + per aggiungere.</div>';
+        return;
+    }
+    el.innerHTML = pianificazioneAttuale.map(p => {
+        const icon = PIANO_TIPO_ICONS[p.tipo] || '📌';
+        const dateStr = p.data_inizio ? formatPianoDate(p.data_inizio) : '';
+        const oraStr = p.data_inizio && p.data_inizio.length > 10 ? ' · ' + p.data_inizio.substring(11, 16) : '';
+        const routeStr = (p.luogo_partenza && p.luogo_arrivo)
+            ? `${p.luogo_partenza} → ${p.luogo_arrivo}`
+            : (p.luogo || '');
+        return `<div class="piano-card" onclick="apriModalEditPianoItem(${p.id})">
+            <div class="piano-tipo-icon">${icon}</div>
+            <div class="piano-body">
+                <div class="piano-titolo">${p.titolo}</div>
+                ${routeStr ? `<div class="piano-sub">${routeStr}</div>` : ''}
+                ${p.mezzo_trasporto ? `<div class="piano-sub">🔖 ${p.mezzo_trasporto}</div>` : ''}
+                <div class="piano-date">${dateStr}${oraStr}</div>
+                <span class="piano-badge${p.confermato ? ' confermato' : ''}">${p.confermato ? '✓ Confermato' : 'Tentativo'}</span>
+            </div>
+            <button class="btn-card-sm del" onclick="event.stopPropagation(); eliminaPianoItemById(${p.id})" style="margin-top:2px">
+                <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>`;
+    }).join('');
+}
+
+function formatPianoDate(iso) {
+    const d = new Date(iso);
+    return d.toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function _pianoTimestamp(dateVal, timeVal) {
+    if (!dateVal) return null;
+    const t = timeVal || '00:00';
+    return `${dateVal}T${t}:00+00:00`;
+}
+
+function renderPianoTipoRow() {
+    document.getElementById('pianoTipoRow').innerHTML = Object.entries(PIANO_TIPO_ICONS).map(([tipo, icon]) =>
+        `<button class="macro-cat-chip${tipo === pianoTipoScelto ? ' active' : ''}" onclick="setPianoTipo('${tipo}')">${icon} ${PIANO_TIPO_LABEL[tipo]}</button>`
+    ).join('');
+}
+
+function setPianoTipo(tipo) {
+    pianoTipoScelto = tipo;
+    renderPianoTipoRow();
+}
+
+function apriModalNuovoPianoItem() {
+    pianoItemEditId = null;
+    pianoTipoScelto = 'altro';
+    document.getElementById('titoloModalPiano').textContent = 'Nuovo elemento';
+    ['pTitolo','pLuogo','pDa','pA','pMezzo','pNote'].forEach(id => document.getElementById(id).value = '');
+    ['pDataInizio','pOraInizio','pDataFine','pOraFine'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('pConfermato').checked = false;
+    document.getElementById('btnEliminaPiano').style.display = 'none';
+    renderPianoTipoRow();
+    document.getElementById('modalPianoItem').classList.add('open');
+    setTimeout(() => document.getElementById('pTitolo').focus(), 300);
+}
+
+function apriModalEditPianoItem(id) {
+    const p = pianificazioneAttuale.find(x => x.id === id);
+    if (!p) return;
+    pianoItemEditId = id;
+    pianoTipoScelto = p.tipo || 'altro';
+    document.getElementById('titoloModalPiano').textContent = 'Modifica';
+    document.getElementById('pTitolo').value = p.titolo || '';
+    document.getElementById('pDataInizio').value = p.data_inizio ? p.data_inizio.substring(0, 10) : '';
+    document.getElementById('pOraInizio').value = p.data_inizio && p.data_inizio.length > 10 ? p.data_inizio.substring(11, 16) : '';
+    document.getElementById('pDataFine').value = p.data_fine ? p.data_fine.substring(0, 10) : '';
+    document.getElementById('pOraFine').value = p.data_fine && p.data_fine.length > 10 ? p.data_fine.substring(11, 16) : '';
+    document.getElementById('pLuogo').value = p.luogo || '';
+    document.getElementById('pDa').value = p.luogo_partenza || '';
+    document.getElementById('pA').value = p.luogo_arrivo || '';
+    document.getElementById('pMezzo').value = p.mezzo_trasporto || '';
+    document.getElementById('pNote').value = p.note || '';
+    document.getElementById('pConfermato').checked = !!p.confermato;
+    document.getElementById('btnEliminaPiano').style.display = '';
+    renderPianoTipoRow();
+    document.getElementById('modalPianoItem').classList.add('open');
+}
+
+async function salvaPianoItem() {
+    const titolo = document.getElementById('pTitolo').value.trim();
+    const dataInizioVal = document.getElementById('pDataInizio').value;
+    if (!titolo) { toast('Inserisci un titolo'); return; }
+    if (!dataInizioVal) { toast('Inserisci la data di inizio'); return; }
+    const body = {
+        viaggio_id: viaggioCorrenteId,
+        tipo: pianoTipoScelto,
+        titolo,
+        data_inizio: _pianoTimestamp(dataInizioVal, document.getElementById('pOraInizio').value),
+        data_fine: _pianoTimestamp(document.getElementById('pDataFine').value, document.getElementById('pOraFine').value),
+        luogo: document.getElementById('pLuogo').value.trim() || null,
+        luogo_partenza: document.getElementById('pDa').value.trim() || null,
+        luogo_arrivo: document.getElementById('pA').value.trim() || null,
+        mezzo_trasporto: document.getElementById('pMezzo').value.trim() || null,
+        note: document.getElementById('pNote').value.trim() || null,
+        confermato: document.getElementById('pConfermato').checked,
+    };
+    const res = pianoItemEditId
+        ? await apiPatch(`/sv_piano?id=eq.${pianoItemEditId}`, body)
+        : await apiPost('/sv_piano', body);
+    if (!res.ok) { toast('Errore nel salvataggio'); return; }
+    document.getElementById('modalPianoItem').classList.remove('open');
+    toast('✓ Salvato');
+    await caricaPianificazione();
+    renderPiano();
+}
+
+async function eliminaPianoItemById(id) {
+    if (!confirm('Eliminare questo elemento?')) return;
+    await apiDel(`/sv_piano?id=eq.${id}`);
+    await caricaPianificazione(); renderPiano(); toast('Elemento eliminato');
+}
+
+async function eliminaPianoItemModal() {
+    if (!pianoItemEditId || !confirm('Eliminare questo elemento?')) return;
+    await apiDel(`/sv_piano?id=eq.${pianoItemEditId}`);
+    document.getElementById('modalPianoItem').classList.remove('open');
+    await caricaPianificazione(); renderPiano(); toast('Elemento eliminato');
+}
+
+// ── Budget ────────────────────────────────────────────────────────
+const BUDGET_CAT_ICONS = {
+    alloggio:'🏨', trasporto:'🚗', carburante:'⛽', pedaggi:'🛣️',
+    parcheggio:'🅿️', ristorante:'🍽️', alimentari:'🛒', attivita:'🎭',
+    ingressi:'🏛️', shopping:'🛍️', assicurazione:'🛡️', commissioni:'💳', altro:'💡'
+};
+const BUDGET_CAT_LABEL = {
+    alloggio:'Alloggio', trasporto:'Trasporto', carburante:'Carburante',
+    pedaggi:'Pedaggi', parcheggio:'Parcheggio', ristorante:'Ristorante',
+    alimentari:'Alimentari', attivita:'Attività', ingressi:'Ingressi',
+    shopping:'Shopping', assicurazione:'Assicurazione', commissioni:'Commissioni', altro:'Altro'
+};
+
+async function caricaBudget() {
+    budgetAttuale = await apiGetArr(`/sv_budget?viaggio_id=eq.${viaggioCorrenteId}&order=created_at.asc`);
+}
+
+function renderBudget() {
+    const cur = symb(viaggioCorrenteValuta);
+    const attive = budgetAttuale.filter(b => b.stato !== 'annullata');
+    const totPrevisto = attive.reduce((s, b) => s + parseFloat(b.importo_previsto || 0), 0);
+
+    document.getElementById('riepilogoBudget').innerHTML = budgetAttuale.length ? `
+        <div class="budget-summary">
+            <div class="budget-summary-row">
+                <span class="budget-summary-label">Budget totale previsto</span>
+                <span class="budget-summary-val">${cur}${totPrevisto.toFixed(2)}</span>
+            </div>
+            <div class="budget-summary-meta">
+                <span>Voci attive: ${attive.length}</span>
+                <span>Annullate: ${budgetAttuale.length - attive.length}</span>
+            </div>
+        </div>` : '';
+
+    const el = document.getElementById('elencoBudget');
+    if (!budgetAttuale.length) {
+        el.innerHTML = '<div class="empty-msg">Nessuna voce di budget.<br>Tocca + per aggiungere.</div>';
+        return;
+    }
+    el.innerHTML = budgetAttuale.map(b => {
+        const icon = BUDGET_CAT_ICONS[b.categoria] || '💡';
+        const catLabel = BUDGET_CAT_LABEL[b.categoria] || b.categoria;
+        return `<div class="budget-card" onclick="apriModalEditBudgetItem(${b.id})" style="opacity:${b.stato === 'annullata' ? 0.45 : 1}">
+            <div class="budget-cat-icon">${icon}</div>
+            <div class="budget-body">
+                <div class="budget-titolo">${b.titolo}</div>
+                <div class="budget-sub">${catLabel}</div>
+                <span class="budget-stato ${b.stato}">${b.stato}</span>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0">
+                <div class="budget-importo">${cur}${parseFloat(b.importo_previsto).toFixed(2)}</div>
+                <button class="btn-card-sm del" onclick="event.stopPropagation(); eliminaBudgetItemById(${b.id})">
+                    <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function renderBudgetCatRow() {
+    document.getElementById('budgetCatRow').innerHTML = Object.entries(BUDGET_CAT_ICONS).map(([cat, icon]) =>
+        `<button class="macro-cat-chip${cat === budgetCatScelta ? ' active' : ''}" onclick="setBudgetCat('${cat}')">${icon} ${BUDGET_CAT_LABEL[cat]}</button>`
+    ).join('');
+}
+
+function setBudgetCat(cat) {
+    budgetCatScelta = cat;
+    renderBudgetCatRow();
+}
+
+function setBudgetStato(stato) {
+    budgetStatoScelto = stato;
+    ['prevista','confermata','annullata'].forEach(s => {
+        const el = document.getElementById('bStato' + s.charAt(0).toUpperCase() + s.slice(1));
+        if (el) el.className = 'period-pill' + (s === stato ? ' active' : '');
+    });
+}
+
+function apriModalNuovoBudgetItem() {
+    budgetItemEditId = null;
+    budgetCatScelta = 'altro';
+    document.getElementById('titoloModalBudget').textContent = 'Nuova voce budget';
+    document.getElementById('bTitolo').value = '';
+    document.getElementById('bImporto').value = '';
+    document.getElementById('bNote').value = '';
+    document.getElementById('btnEliminaBudget').style.display = 'none';
+    populateCurrencySelects('bValuta');
+    document.getElementById('bValuta').value = viaggioCorrenteValuta;
+    setBudgetStato('prevista');
+    renderBudgetCatRow();
+    document.getElementById('modalBudgetItem').classList.add('open');
+    setTimeout(() => document.getElementById('bTitolo').focus(), 300);
+}
+
+function apriModalEditBudgetItem(id) {
+    const b = budgetAttuale.find(x => x.id === id);
+    if (!b) return;
+    budgetItemEditId = id;
+    budgetCatScelta = b.categoria || 'altro';
+    document.getElementById('titoloModalBudget').textContent = 'Modifica voce';
+    document.getElementById('bTitolo').value = b.titolo || '';
+    document.getElementById('bImporto').value = b.importo_previsto || '';
+    document.getElementById('bNote').value = b.note || '';
+    document.getElementById('btnEliminaBudget').style.display = '';
+    populateCurrencySelects('bValuta');
+    document.getElementById('bValuta').value = b.valuta || viaggioCorrenteValuta;
+    setBudgetStato(b.stato || 'prevista');
+    renderBudgetCatRow();
+    document.getElementById('modalBudgetItem').classList.add('open');
+}
+
+async function salvaBudgetItem() {
+    const titolo = document.getElementById('bTitolo').value.trim();
+    const importo = parseFloat(document.getElementById('bImporto').value);
+    if (!titolo) { toast('Inserisci un titolo'); return; }
+    if (isNaN(importo) || importo < 0) { toast('Inserisci un importo valido'); return; }
+    const body = {
+        viaggio_id: viaggioCorrenteId,
+        titolo,
+        categoria: budgetCatScelta,
+        importo_previsto: importo,
+        valuta: document.getElementById('bValuta').value || viaggioCorrenteValuta,
+        stato: budgetStatoScelto,
+        note: document.getElementById('bNote').value.trim() || null,
+    };
+    const res = budgetItemEditId
+        ? await apiPatch(`/sv_budget?id=eq.${budgetItemEditId}`, body)
+        : await apiPost('/sv_budget', body);
+    if (!res.ok) { toast('Errore nel salvataggio'); return; }
+    document.getElementById('modalBudgetItem').classList.remove('open');
+    toast('✓ Salvato');
+    await caricaBudget();
+    renderBudget();
+}
+
+async function eliminaBudgetItemById(id) {
+    if (!confirm('Eliminare questa voce?')) return;
+    await apiDel(`/sv_budget?id=eq.${id}`);
+    await caricaBudget(); renderBudget(); toast('Voce eliminata');
+}
+
+async function eliminaBudgetItemModal() {
+    if (!budgetItemEditId || !confirm('Eliminare questa voce?')) return;
+    await apiDel(`/sv_budget?id=eq.${budgetItemEditId}`);
+    document.getElementById('modalBudgetItem').classList.remove('open');
+    await caricaBudget(); renderBudget(); toast('Voce eliminata');
+}
+
+if (_joinId) { handleJoinFromLink(_joinId); } else { caricaViaggi(); }
+</script>
+</body>
+</html>
