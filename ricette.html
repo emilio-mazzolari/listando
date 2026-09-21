@@ -253,7 +253,7 @@
         .parse-status { text-align: center; padding: 8px 0 0; font-size: 13px; font-weight: 700; color: var(--accent); }
         .ocr-drop { border: 2px dashed var(--grey); border-radius: 14px; padding: 20px; text-align: center; cursor: pointer; overflow: hidden; position: relative; }
         .ocr-drop-label { font-size: 13px; font-weight: 700; color: #aaa; }
-        #ocrPreview { max-width: 100%; max-height: 160px; border-radius: 10px; display: none; margin-top: 8px; }
+        #ocrPreview { max-width: 100%; max-height: 160px; border-radius: 10px; display: none; margin-top: 8px; image-orientation: from-image; }
         .ocr-drop input[type=file] { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
 
         .tab-bar {
@@ -428,14 +428,33 @@ function toggleImport(mode) {
     panel.classList.add('open');
 }
 
-function onOcrFileChange(e) {
+async function onOcrFileChange(e) {
     ocrFile = e.target.files[0];
     if (!ocrFile) return;
+    // Fix EXIF orientation for preview via canvas
+    const oriented = await _orientedBlob(ocrFile);
     const img = document.getElementById('ocrPreview');
-    img.src = URL.createObjectURL(ocrFile);
+    img.src = URL.createObjectURL(oriented);
     img.style.display = 'block';
     document.getElementById('ocrLabel').style.display = 'none';
     document.getElementById('btnOcrAnalizza').style.display = '';
+    // Store the orientation-corrected blob for OCR
+    ocrFile = oriented;
+}
+
+// Draws the file through createImageBitmap (which respects EXIF) onto a canvas,
+// returning a correctly-oriented Blob for both display and OCR.
+async function _orientedBlob(file) {
+    try {
+        const bitmap = await createImageBitmap(file);
+        const canvas = document.createElement('canvas');
+        canvas.width = bitmap.width;
+        canvas.height = bitmap.height;
+        canvas.getContext('2d').drawImage(bitmap, 0, 0);
+        return await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.9));
+    } catch (_) {
+        return file;
+    }
 }
 
 function analizzaTesto() {
@@ -443,7 +462,7 @@ function analizzaTesto() {
     if (!testo) { toast('Incolla prima del testo'); return; }
     const dati = parseRicettaDaTesto(testo);
     popolaForm(dati);
-    toggleImport('testo');
+    toggleImport(importMode);
     toast('✓ Campi compilati! Controlla e aggiusta.');
 }
 
@@ -451,18 +470,20 @@ async function analizzaFoto() {
     if (!ocrFile) return;
     const status = document.getElementById('parseStatus');
     const btn = document.getElementById('btnOcrAnalizza');
-    status.style.display = ''; status.textContent = '⏳ Riconoscimento testo in corso…';
+    status.style.display = ''; status.textContent = '⏳ Estrazione testo in corso…';
     btn.disabled = true;
     try {
         if (!window.Tesseract) await loadScript('https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js');
         const worker = await Tesseract.createWorker('ita');
         const { data: { text } } = await worker.recognize(ocrFile);
         await worker.terminate();
-        status.textContent = '🔍 Analisi testo…';
-        const dati = parseRicettaDaTesto(text);
-        popolaForm(dati);
-        toggleImport('foto');
-        toast('✓ Campi compilati! Controlla e aggiusta.');
+        // Show extracted text for review — user can fix OCR errors before parsing
+        const panel = document.getElementById('importPanel');
+        panel.innerHTML = `
+            <div class="import-panel-label">✏️ Controlla e correggi il testo estratto</div>
+            <textarea class="import-textarea" id="importTestoArea" style="height:180px">${text.trim().replace(/</g,'&lt;')}</textarea>
+            <button class="btn-analizza" onclick="analizzaTesto()">🔍 Compila i campi della ricetta</button>
+            <div class="parse-status" id="parseStatus" style="display:none"></div>`;
     } catch(e) {
         status.textContent = '❌ ' + e.message;
         btn.disabled = false;
