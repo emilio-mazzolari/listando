@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <title>Listando - Lista Spesa</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/logolistando.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Listando">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
@@ -21,7 +26,6 @@
         }
 
         * { box-sizing: border-box; }
-
         html, body { overflow-x: hidden; max-width: 100%; }
 
         body {
@@ -45,6 +49,7 @@
             align-items: center;
             justify-content: space-between;
             margin-bottom: 24px;
+            gap: 10px;
         }
 
         .page-title {
@@ -63,9 +68,58 @@
             padding: 4px 12px;
             border-radius: 20px;
             display: none;
+            flex-shrink: 0;
         }
 
-        /* ── Card Lista ── */
+        /* ── Back button ── */
+        .btn-back {
+            background: none; border: none; cursor: pointer;
+            padding: 8px; border-radius: 12px; color: var(--dark);
+            display: flex; align-items: center; justify-content: center;
+            margin-left: -8px; flex-shrink: 0;
+            transition: background 0.15s;
+        }
+        .btn-back:active { background: var(--grey-light); }
+
+        /* ── Nuova lista button ── */
+        .btn-new-lista {
+            background: var(--blue); color: white; border: none;
+            border-radius: 16px; padding: 10px 16px;
+            font-weight: 800; font-size: 13px; cursor: pointer;
+            font-family: inherit; text-transform: uppercase; letter-spacing: 0.3px;
+            white-space: nowrap; flex-shrink: 0;
+            transition: opacity 0.15s;
+        }
+        .btn-new-lista:active { opacity: 0.85; }
+
+        /* ── Lista cards ── */
+        .lista-card {
+            background: var(--white); border-radius: 20px;
+            border: 3px solid var(--grey); padding: 16px 18px;
+            margin-bottom: 12px; display: flex; align-items: center; gap: 14px;
+            cursor: pointer; box-shadow: var(--shadow); transition: all 0.15s;
+        }
+        .lista-card:active { transform: scale(0.98); background: var(--grey-light); }
+
+        .lista-card-icon { font-size: 30px; flex-shrink: 0; }
+
+        .lista-card-info { flex: 1; min-width: 0; }
+        .lista-card-nome { font-weight: 900; font-size: 16px; margin-bottom: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .lista-card-sub { font-size: 12px; color: #999; font-weight: 600; }
+
+        .lista-card-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+        .btn-lista-action {
+            background: none; border: 2px solid var(--grey);
+            border-radius: 10px; width: 38px; height: 38px;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            color: #888; transition: all 0.15s; font-family: inherit;
+        }
+        .btn-lista-action:active { background: var(--grey-light); }
+        .btn-lista-action.danger { border-color: #ffd6d6; color: var(--red); }
+        .btn-lista-action.danger:active { background: #fff0f0; }
+
+        /* ── Card Lista (items view) ── */
         .card {
             background: var(--white);
             border-radius: 28px;
@@ -146,10 +200,10 @@
         .btn-small.check.done:active  { opacity: 0.85; background: var(--green); }
         .btn-small.delete:active      { background: #fff0f0; }
 
+        .item-nome-col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
         .testo-prodotto {
             font-weight: 700;
             font-size: 16px;
-            flex: 1;
             transition: all 0.25s;
             line-height: 1.3;
         }
@@ -158,6 +212,7 @@
             color: #b5b5b5;
             font-weight: 600;
         }
+        .item-qta { font-size: 12px; font-weight: 800; color: var(--blue); cursor: pointer; display: inline-block; }
 
         /* ── Stato vuoto ── */
         .empty-state {
@@ -239,6 +294,7 @@
             transition: all 0.15s;
             letter-spacing: 0.3px;
             box-shadow: var(--shadow);
+            font-family: inherit;
         }
         .btn-action:active { background: var(--grey-light); transform: scale(0.98); }
 
@@ -289,6 +345,7 @@
             font-weight: 800;
             cursor: pointer;
             font-size: 15px;
+            font-family: inherit;
             transition: opacity 0.15s;
         }
         .btn-modal:active { opacity: 0.85; }
@@ -344,17 +401,10 @@
         /* ── Desktop (≥1024px): sidebar navigation ── */
         @media (min-width: 1024px) {
             body { display: block; }
-
-            .app {
-                margin-left: 240px;
-                max-width: 900px;
-                padding: 48px 56px 60px;
-            }
-
+            .app { margin-left: 240px; max-width: 900px; padding: 48px 56px 60px; }
             .tab-bar {
                 top: 0; bottom: 0; right: auto;
-                width: 240px;
-                height: 100vh;
+                width: 240px; height: 100vh;
                 flex-direction: column;
                 justify-content: flex-start;
                 align-items: stretch;
@@ -363,36 +413,24 @@
                 padding: 28px 12px 24px;
                 overflow-y: auto;
             }
-
             .tab-bar::before {
                 content: "LISTANDO";
                 display: block;
-                font-weight: 900;
-                font-size: 20px;
-                letter-spacing: -0.8px;
-                color: var(--green);
+                font-weight: 900; font-size: 20px;
+                letter-spacing: -0.8px; color: var(--green);
                 padding: 0 8px 28px;
                 font-family: 'Segoe UI', system-ui, sans-serif;
             }
-
             .tab-item {
-                flex: none;
-                flex-direction: row;
+                flex: none; flex-direction: row;
                 justify-content: flex-start;
-                padding: 13px 16px;
-                font-size: 13px;
-                gap: 12px;
-                text-align: left;
-                border-radius: 14px;
-                letter-spacing: 0;
-                min-height: 44px;
-                margin-bottom: 2px;
+                padding: 13px 16px; font-size: 13px;
+                gap: 12px; text-align: left;
+                border-radius: 14px; letter-spacing: 0;
+                min-height: 44px; margin-bottom: 2px;
             }
-
             .tab-active { background: rgba(15, 186, 141, 0.1); }
-
             .icon-tab { width: 20px; height: 20px; flex-shrink: 0; }
-
             .modal-overlay { align-items: center; padding-bottom: 0; }
             .modal-box { border-radius: 28px; }
         }
@@ -408,51 +446,113 @@
             .item { padding: 12px 14px; }
             .testo-prodotto { word-break: break-word; min-width: 0; }
         }
+
+        /* ── Condivisione ── */
+        .shared-banner { background:#eef2ff; border:2px solid #5856d6; border-radius:20px; padding:13px 16px; margin-bottom:14px; display:none; align-items:center; gap:10px; }
+        .shared-banner-text { flex:1; font-weight:700; font-size:14px; color:#5856d6; }
+        .btn-torna-lista { padding:9px 14px; border-radius:11px; border:2px solid #5856d6; background:white; color:#5856d6; font-weight:800; font-size:12px; cursor:pointer; white-space:nowrap; font-family:inherit; }
+        .btn-condividi-hdr { padding:9px 14px; border-radius:11px; border:none; background:#5856d6; color:white; font-weight:800; font-size:12px; cursor:pointer; font-family:inherit; }
+        .form-inp { width:100%; padding:12px 14px; border-radius:14px; border:2.5px solid var(--grey); font-size:15px; font-family:inherit; outline:none; margin-bottom:10px; background:var(--white); color:var(--dark); }
+        .form-inp:focus { border-color:#5856d6; }
+        .form-lbl { font-size:12px; font-weight:800; color:#888; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px; display:block; }
+        .btn-share-wa { display:flex; align-items:center; justify-content:center; gap:10px; width:100%; padding:14px; border-radius:16px; background:#25d366; color:white; font-weight:900; font-size:15px; cursor:pointer; margin-bottom:8px; text-decoration:none; font-family:inherit; border:none; }
+        .btn-share-em { display:flex; align-items:center; justify-content:center; gap:10px; width:100%; padding:14px; border-radius:16px; background:#5856d6; color:white; font-weight:900; font-size:15px; cursor:pointer; margin-bottom:8px; text-decoration:none; font-family:inherit; border:none; }
+        .s-toast { position:fixed; bottom:105px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--dark); color:white; padding:11px 18px; border-radius:13px; font-weight:700; font-size:13px; opacity:0; transition:all 0.25s; white-space:nowrap; z-index:9999; pointer-events:none; }
+        .s-toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+        /* ── nl modal input ── */
+        #nlNome { text-align: left; }
+
+        /* ── Note lista ── */
+        .note-card-inner { padding: 16px 20px; }
+        .note-card-label { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px; color: #bbb; margin-bottom: 10px; }
+        .note-textarea {
+            width: 100%; border: none; outline: none;
+            font-size: 15px; font-family: inherit; color: var(--dark);
+            background: transparent; resize: none;
+            min-height: 72px; line-height: 1.6;
+            field-sizing: content;
+        }
+        .note-textarea::placeholder { color: #ccc; }
     </style>
 </head>
 <body>
 
 <div class="app">
 
-    <div class="page-header">
-        <h2 class="page-title">Lista Spesa</h2>
-        <span class="badge-count" id="badgeCount"></span>
-    </div>
-
-    <div class="card" id="cardLista">
-        <div id="cardHeader" class="card-header">
-            <span class="card-header-label" id="labelProgresso">0 prodotti</span>
-            <a href="spesa_prodotti.html" class="btn-add-inline">
-                <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                Aggiungi
-            </a>
+    <!-- ── VIEW: Le mie liste ─────────────────────────────────── -->
+    <div id="viewListe">
+        <div class="page-header">
+            <h2 class="page-title">Liste Spesa</h2>
+            <button class="btn-new-lista" onclick="apriModalNuovaLista()">+ Nuova</button>
         </div>
-
-        <div id="progressWrap" class="progress-wrap">
-            <div class="progress-label">
-                <span id="progressText">Avanzamento</span>
-                <span id="progressPct">0%</span>
-            </div>
-            <div class="progress-bar-bg">
-                <div class="progress-bar-fill" id="progressFill"></div>
-            </div>
-        </div>
-
-        <div id="contenitoreLista">
+        <div id="contenitoreListe">
             <div class="empty-state">
-                <div class="empty-icon">
-                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg>
-                </div>
                 <div class="empty-title">Caricamento…</div>
             </div>
         </div>
     </div>
 
-    <div id="controlliLista" class="controls-group" style="display:none;">
-        <button class="btn-action" onclick="eliminaAcquistati()">✓ Elimina Acquistati</button>
-        <button class="btn-action" onclick="ripristinaLista()">↺ Ripristina tutto</button>
-        <button class="btn-action primary" onclick="apriModalSvuota()">Svuota Lista</button>
+    <!-- ── VIEW: Items di una lista ──────────────────────────── -->
+    <div id="viewItems" style="display:none">
+        <div class="page-header">
+            <button class="btn-back" onclick="tornaAlleListe()" aria-label="Torna alle liste">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <h2 class="page-title" id="titoloListaAttiva" style="flex:1;font-size:20px;text-align:center">Lista</h2>
+            <span class="badge-count" id="badgeCount"></span>
+        </div>
+
+        <div id="sharedBanner" class="shared-banner">
+            <span class="shared-banner-text">👥 Lista di <strong id="sharedNomeEl">...</strong></span>
+            <button class="btn-torna-lista" onclick="tornaAMiaLista()">← La mia lista</button>
+        </div>
+
+        <div class="card" id="cardLista">
+            <div id="cardHeader" class="card-header">
+                <span class="card-header-label" id="labelProgresso">0 prodotti</span>
+                <a id="btnAggiungiProdotti" href="spesa_prodotti.html" class="btn-add-inline">
+                    <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    Aggiungi
+                </a>
+            </div>
+
+            <div id="progressWrap" class="progress-wrap">
+                <div class="progress-label">
+                    <span id="progressText">Avanzamento</span>
+                    <span id="progressPct">0%</span>
+                </div>
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" id="progressFill"></div>
+                </div>
+            </div>
+
+            <div id="contenitoreLista">
+                <div class="empty-state">
+                    <div class="empty-icon">
+                        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg>
+                    </div>
+                    <div class="empty-title">Caricamento…</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" id="cardNote" style="display:none">
+            <div class="note-card-inner">
+                <div class="note-card-label">📝 Note</div>
+                <textarea id="noteTextarea" class="note-textarea" placeholder="Aggiungi note per questa lista…" oninput="salvaNote()"></textarea>
+            </div>
+        </div>
+
+        <div id="controlliLista" class="controls-group" style="display:none;">
+            <button class="btn-action" id="btnCondividiLista" onclick="apriModalCondividi()" style="background:#5856d6;color:white;border-color:#5856d6">👥 Condividi lista</button>
+            <button class="btn-action" onclick="eliminaAcquistati()">✓ Elimina Acquistati</button>
+            <button class="btn-action" onclick="ripristinaLista()">↺ Ripristina tutto</button>
+            <button class="btn-action primary" onclick="apriModalSvuota()">Svuota Lista</button>
+            <button class="btn-action danger" id="btnEliminaListaCtrl" onclick="apriModalEliminaLista()">🗑 Elimina questa lista</button>
+        </div>
     </div>
+
 </div>
 
 <!-- Modal Svuota -->
@@ -460,11 +560,59 @@
     <div class="modal-box">
         <div class="modal-emoji">🗑️</div>
         <h3>Svuota tutto?</h3>
-        <p>Questa azione cancellerà tutti i prodotti dalla tua lista attuale.</p>
+        <p>Questa azione cancellerà tutti i prodotti dalla lista attuale.</p>
         <button class="btn-modal" style="background:var(--red); color:white;" onclick="confermaSvuota()">Sì, cancella tutto</button>
-        <button class="btn-modal" style="background:var(--grey-light); color:var(--dark);" onclick="chiudiModal()">Annulla</button>
+        <button class="btn-modal" style="background:var(--grey-light); color:var(--dark);" onclick="chiudiModal('svuotaModal')">Annulla</button>
     </div>
 </div>
+
+<!-- Modal Elimina Lista -->
+<div id="eliminaListaModal" class="modal-overlay">
+    <div class="modal-box">
+        <div class="modal-emoji">⚠️</div>
+        <h3>Elimina lista?</h3>
+        <p id="eliminaListaDesc">Tutti i prodotti saranno cancellati permanentemente.</p>
+        <button class="btn-modal" style="background:var(--red); color:white;" onclick="confermaEliminaLista()">Sì, elimina lista</button>
+        <button class="btn-modal" style="background:var(--grey-light); color:var(--dark);" onclick="chiudiModal('eliminaListaModal')">Annulla</button>
+    </div>
+</div>
+
+<!-- Modal Nuova / Rinomina Lista -->
+<div id="nuovaListaModal" class="modal-overlay">
+    <div class="modal-box">
+        <div class="modal-emoji" id="nlEmoji">📋</div>
+        <h3 id="nlTitle">Nuova lista</h3>
+        <input class="form-inp" id="nlNome" type="text" placeholder="Nome lista…" maxlength="50"
+               onkeydown="if(event.key==='Enter') confermaNuovaLista()">
+        <button class="btn-modal" style="background:var(--blue);color:white;margin-top:2px" id="nlBtnConferma" onclick="confermaNuovaLista()">Crea</button>
+        <button class="btn-modal" style="background:var(--grey-light);color:var(--dark);margin-top:4px" onclick="chiudiModal('nuovaListaModal')">Annulla</button>
+    </div>
+</div>
+
+<!-- Modal Condividi -->
+<div id="invitaModal" class="modal-overlay">
+    <div class="modal-box" style="text-align:left;max-height:85vh;overflow-y:auto;padding-bottom:max(24px,env(safe-area-inset-bottom,24px))">
+        <div style="font-weight:900;font-size:18px;margin-bottom:4px">👥 Condividi lista</div>
+        <p style="font-size:13px;color:#888;font-weight:600;margin:0 0 14px;line-height:1.5">Aggiungi il nome di chi vuoi invitare (opzionale), poi scegli come condividere.</p>
+        <label class="form-lbl">Nome destinatario (opzionale)</label>
+        <input class="form-inp" id="nomeCondivisione" type="text" placeholder="Es. Marco…" autocomplete="off">
+        <button id="btnShareNativoSpesa" onclick="condividiNativo()" class="btn-share-wa" style="display:none;margin-top:4px">
+            📤 Condividi
+        </button>
+        <button onclick="condividiWA()" class="btn-share-wa" style="margin-top:4px">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.122 1.532 5.852L.072 23.928l6.23-1.428A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.938a9.932 9.932 0 01-5.031-1.362l-.361-.214-3.741.857.905-3.638-.235-.374A9.936 9.936 0 012.062 12C2.062 6.534 6.534 2.062 12 2.062c5.465 0 9.938 4.472 9.938 9.938 0 5.465-4.473 9.938-9.938 9.938z"/></svg>
+            WhatsApp
+        </button>
+        <button onclick="condividiEmail()" class="btn-share-em">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="white" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            Email
+        </button>
+        <button onclick="copiaLinkSpesa()" class="btn-modal" style="background:var(--grey-light);color:var(--dark)">📋 Copia link</button>
+        <button onclick="chiudiModal('invitaModal')" class="btn-modal" style="background:transparent;color:#aaa;margin-top:2px">Chiudi</button>
+    </div>
+</div>
+
+<div class="s-toast" id="sToast"></div>
 
 <!-- Tab Bar -->
 <nav class="tab-bar">
@@ -498,9 +646,48 @@
         "Content-Type": "application/json",
         "Authorization": "Bearer " + KEY
     };
+
     const userEmail = localStorage.getItem('userEmail');
     if (!userEmail) window.location.href = 'login.html';
 
+    // ── Join param (condivisione) ────────────────────────────────────
+    const _joinParamSpesa = new URLSearchParams(location.search).get('join');
+    if (_joinParamSpesa) {
+        if (!userEmail) {
+            localStorage.setItem('pendingUrl', location.href);
+            window.location.href = 'login.html';
+        } else {
+            try { localStorage.setItem('spesaSharedEmail', atob(_joinParamSpesa)); } catch(e) {}
+            history.replaceState({}, '', location.pathname);
+        }
+    }
+
+    // ── Multi-lista state ────────────────────────────────────────────
+    let liste = JSON.parse(localStorage.getItem('spesa_liste') || '[]');
+    if (!liste.length) {
+        liste = [{ id: 'default', nome: 'Lista principale' }];
+        salvaListe();
+    }
+    let listaAttivaId = null;
+    let _rinominaId = null;
+    let _eliminaListaId = null;
+
+    function salvaListe() {
+        localStorage.setItem('spesa_liste', JSON.stringify(liste));
+    }
+
+    function listEmailFor(id) {
+        return id === 'default' ? userEmail : userEmail + '||' + id;
+    }
+
+    function getListaEmail() {
+        const shared = localStorage.getItem('spesaSharedEmail');
+        if (shared) return shared;
+        if (listaAttivaId && listaAttivaId !== 'default') return userEmail + '||' + listaAttivaId;
+        return userEmail;
+    }
+
+    // ── Utility ─────────────────────────────────────────────────────
     function withTimeout(promise, ms) {
         return Promise.race([
             promise,
@@ -508,24 +695,168 @@
         ]);
     }
 
+    function chiudiModal(id) { document.getElementById(id).style.display = 'none'; }
+
+    document.querySelectorAll('.modal-overlay').forEach(m => {
+        m.addEventListener('click', e => { if (e.target === m) m.style.display = 'none'; });
+    });
+
+    // ── VIEW: Le mie liste ───────────────────────────────────────────
+    async function caricaListe() {
+        const div = document.getElementById('contenitoreListe');
+        try {
+            const allEmails = liste.map(l => listEmailFor(l.id));
+            let counts = {};
+            if (allEmails.length > 0) {
+                const { data } = await supabaseClient
+                    .from('spesa_lista')
+                    .select('email_utente, completato')
+                    .in('email_utente', allEmails);
+                (data || []).forEach(item => {
+                    const k = item.email_utente;
+                    if (!counts[k]) counts[k] = { total: 0, completati: 0 };
+                    counts[k].total++;
+                    if (item.completato) counts[k].completati++;
+                });
+            }
+
+            if (!liste.length) {
+                div.innerHTML = `<div class="empty-state">
+                    <div class="empty-icon"><svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></div>
+                    <div class="empty-title">Nessuna lista</div>
+                    <div class="empty-sub">Crea la tua prima lista della spesa</div>
+                </div>`;
+                return;
+            }
+
+            div.innerHTML = '';
+            liste.forEach(l => {
+                const email = listEmailFor(l.id);
+                const cnt = counts[email] || { total: 0, completati: 0 };
+                const daFare = cnt.total - cnt.completati;
+                const sub = cnt.total === 0
+                    ? 'Lista vuota'
+                    : `${cnt.total} prodott${cnt.total === 1 ? 'o' : 'i'}${daFare > 0 ? ` · ${daFare} da prendere` : ' · tutto preso ✓'}`;
+                const safeName = l.nome.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                const card = document.createElement('div');
+                card.className = 'lista-card';
+                card.onclick = () => apriLista(l.id);
+                card.innerHTML = `
+                    <div class="lista-card-icon">🛒</div>
+                    <div class="lista-card-info">
+                        <div class="lista-card-nome">${l.nome}</div>
+                        <div class="lista-card-sub">${sub}</div>
+                    </div>
+                    <div class="lista-card-actions">
+                        <button class="btn-lista-action" title="Rinomina" onclick="event.stopPropagation();apriRinominaLista('${l.id}','${safeName}')">
+                            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        </button>
+                        <button class="btn-lista-action danger" title="Elimina lista" onclick="event.stopPropagation();apriModalEliminaListaDaListe('${l.id}','${safeName}')">
+                            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                        </button>
+                    </div>`;
+                div.appendChild(card);
+            });
+        } catch(e) {
+            console.error(e);
+            div.innerHTML = `<div class="empty-state"><div class="empty-title">Errore di caricamento</div><div class="empty-sub">Controlla la connessione e <a href="" style="color:var(--blue);text-decoration:underline">ricarica</a></div></div>`;
+        }
+    }
+
+    // ── VIEW: Items ──────────────────────────────────────────────────
+    function apriLista(id) {
+        listaAttivaId = id;
+        sessionStorage.setItem('spesa_lista_id', id);
+        localStorage.setItem('spesaListaEmailUtente', listEmailFor(id));
+        const lista = liste.find(l => l.id === id);
+        document.getElementById('titoloListaAttiva').textContent = lista?.nome || 'Lista';
+        document.getElementById('noteTextarea').value = lista?.note || '';
+        document.getElementById('noteTextarea').readOnly = false;
+        document.getElementById('cardNote').style.display = '';
+        document.getElementById('viewListe').style.display = 'none';
+        document.getElementById('viewItems').style.display = '';
+        initSharedBanner();
+        caricaLista();
+    }
+
+    function tornaAlleListe() {
+        listaAttivaId = null;
+        sessionStorage.removeItem('spesa_lista_id');
+        localStorage.removeItem('spesaListaEmailUtente');
+        document.getElementById('cardNote').style.display = 'none';
+        document.getElementById('viewItems').style.display = 'none';
+        document.getElementById('viewListe').style.display = '';
+        caricaListe();
+    }
+
+    function salvaNote() {
+        if (!listaAttivaId || listaAttivaId === '_shared') return;
+        const lista = liste.find(l => l.id === listaAttivaId);
+        if (lista) {
+            lista.note = document.getElementById('noteTextarea').value;
+            salvaListe();
+        }
+    }
+
+    // ── Shared view ──────────────────────────────────────────────────
+    function mostrarViewItemsShared() {
+        listaAttivaId = '_shared';
+        document.getElementById('titoloListaAttiva').textContent = 'Lista condivisa';
+        document.getElementById('cardNote').style.display = 'none';
+        document.getElementById('viewListe').style.display = 'none';
+        document.getElementById('viewItems').style.display = '';
+        document.getElementById('btnEliminaListaCtrl').style.display = 'none';
+        initSharedBanner();
+        caricaLista();
+    }
+
+    function initSharedBanner() {
+        const shared = localStorage.getItem('spesaSharedEmail');
+        const banner = document.getElementById('sharedBanner');
+        const btnCondividi = document.getElementById('btnCondividiLista');
+        const btnElimina = document.getElementById('btnEliminaListaCtrl');
+        if (shared && shared.split('||')[0] !== userEmail) {
+            banner.style.display = 'flex';
+            document.getElementById('sharedNomeEl').textContent = shared.split('||')[0].split('@')[0];
+            if (btnCondividi) btnCondividi.style.display = 'none';
+            if (btnElimina) btnElimina.style.display = 'none';
+        } else {
+            banner.style.display = 'none';
+            if (btnCondividi) btnCondividi.style.display = '';
+            if (btnElimina) btnElimina.style.display = '';
+        }
+    }
+
+    function tornaAMiaLista() {
+        localStorage.removeItem('spesaSharedEmail');
+        listaAttivaId = null;
+        sessionStorage.removeItem('spesa_lista_id');
+        document.getElementById('viewItems').style.display = 'none';
+        document.getElementById('viewListe').style.display = '';
+        caricaListe();
+    }
+
+    // ── Carica items ─────────────────────────────────────────────────
     async function caricaLista() {
         if (!userEmail) return;
-        const div = document.getElementById("contenitoreLista");
+        const divItems = document.getElementById('contenitoreLista');
+        const cardHeader = document.getElementById('cardHeader');
+        const controlli = document.getElementById('controlliLista');
+        const progressWrap = document.getElementById('progressWrap');
+        const badge = document.getElementById('badgeCount');
+
         try {
             const [{ data: listaData, error: errLista }, { data: prodottiData }] = await withTimeout(
                 Promise.all([
-                    supabaseClient.from('spesa_lista').select('*').eq('email_utente', userEmail),
+                    supabaseClient.from('spesa_lista').select('*').eq('email_utente', getListaEmail()),
                     supabaseClient.from('spesa_prodotti').select('id, nome')
                 ]),
                 12000
             );
 
             if (errLista) {
-                console.error("Errore SELECT spesa_lista:", errLista);
-                div.innerHTML = `<div class="empty-state">
-                    <div class="empty-title">Errore di caricamento</div>
-                    <div class="empty-sub">Controlla la connessione e <a href="" style="color:var(--blue);text-decoration:underline">ricarica</a></div>
-                </div>`;
+                console.error('Errore SELECT spesa_lista:', errLista);
+                divItems.innerHTML = `<div class="empty-state"><div class="empty-title">Errore di caricamento</div><div class="empty-sub">Controlla la connessione e <a href="" style="color:var(--blue);text-decoration:underline">ricarica</a></div></div>`;
                 return;
             }
 
@@ -535,18 +866,12 @@
                 prodottiData.forEach(p => { prodottiMap[p.id] = p.nome; });
             }
 
-            const div       = document.getElementById("contenitoreLista");
-            const cardHeader = document.getElementById("cardHeader");
-            const controlli = document.getElementById("controlliLista");
-            const progressWrap = document.getElementById("progressWrap");
-            const badge     = document.getElementById("badgeCount");
-
-            if (!Array.isArray(data) || data.length === 0) {
-                cardHeader.style.display = "none";
-                progressWrap.style.display = "none";
-                controlli.style.display = "none";
-                badge.style.display = "none";
-                div.innerHTML = `
+            if (!data.length) {
+                cardHeader.style.display = 'none';
+                progressWrap.style.display = 'none';
+                controlli.style.display = 'none';
+                badge.style.display = 'none';
+                divItems.innerHTML = `
                     <div class="empty-state">
                         <div class="empty-icon">
                             <svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
@@ -558,26 +883,21 @@
                 return;
             }
 
-            // Calcolo progresso
-            const totale    = data.length;
+            const totale = data.length;
             const completati = data.filter(i => i.completato).length;
-            const pct       = Math.round((completati / totale) * 100);
+            const pct = Math.round((completati / totale) * 100);
             const rimanenti = totale - completati;
 
-            // Aggiorna badge e label
-            badge.style.display = rimanenti > 0 ? "inline-block" : "none";
-            badge.textContent   = rimanenti;
+            badge.style.display = rimanenti > 0 ? 'inline-block' : 'none';
+            badge.textContent = rimanenti;
+            document.getElementById('labelProgresso').textContent = `${totale} prodotto${totale !== 1 ? 'i' : ''}`;
+            document.getElementById('progressText').textContent = `${completati} di ${totale} presi`;
+            document.getElementById('progressPct').textContent = `${pct}%`;
+            document.getElementById('progressFill').style.width = `${pct}%`;
 
-            document.getElementById("labelProgresso").textContent =
-                `${totale} prodotto${totale !== 1 ? 'i' : ''}`;
-            document.getElementById("progressText").textContent =
-                `${completati} di ${totale} presi`;
-            document.getElementById("progressPct").textContent = `${pct}%`;
-            document.getElementById("progressFill").style.width = `${pct}%`;
-
-            cardHeader.style.display    = "flex";
-            progressWrap.style.display  = "block";
-            controlli.style.display     = "flex";
+            cardHeader.style.display = 'flex';
+            progressWrap.style.display = 'block';
+            controlli.style.display = 'flex';
 
             data.sort((a, b) => {
                 const nomeA = prodottiMap[a.prodotto_id] || a.nome || '';
@@ -585,29 +905,30 @@
                 return nomeA.localeCompare(nomeB, 'it');
             });
 
-            div.innerHTML = "";
+            divItems.innerHTML = '';
             data.forEach(item => {
-                const nome = prodottiMap[item.prodotto_id] || item.nome || "Prodotto";
-                const riga = document.createElement("div");
+                const nome = prodottiMap[item.prodotto_id] || item.nome || 'Prodotto';
+                const riga = document.createElement('div');
                 riga.className = `item${item.completato ? ' completato-row' : ''}`;
+                const qtaHtml = item.quantita
+                    ? `<span class="item-qta" onclick="event.stopPropagation(); editQta(${item.id}, '${(item.quantita||'').replace(/'/g,"\\'")}')">📦 ${item.quantita}</span>`
+                    : `<span class="item-qta" style="color:#ccc" onclick="event.stopPropagation(); editQta(${item.id}, '')">+ qtà</span>`;
                 riga.innerHTML = `
                     <button class="btn-small check ${item.completato ? 'done' : ''}" onclick="toggle(${item.id}, ${item.completato})" aria-label="${item.completato ? 'Ripristina' : 'Segna come preso'}">
                         <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
                     </button>
-                    <span class="testo-prodotto ${item.completato ? 'barrato' : ''}">${nome}</span>
+                    <div class="item-nome-col">
+                        <span class="testo-prodotto ${item.completato ? 'barrato' : ''}">${nome}</span>
+                        ${qtaHtml}
+                    </div>
                     <button class="btn-small delete" onclick="elimina(${item.id})" aria-label="Elimina">
                         <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                    </button>
-                `;
-                div.appendChild(riga);
+                    </button>`;
+                divItems.appendChild(riga);
             });
-
-        } catch (e) {
+        } catch(e) {
             console.error(e);
-            div.innerHTML = `<div class="empty-state">
-                <div class="empty-title">Errore di rete</div>
-                <div class="empty-sub">Controlla la connessione e <a href="" style="color:var(--blue);text-decoration:underline">ricarica</a></div>
-            </div>`;
+            divItems.innerHTML = `<div class="empty-state"><div class="empty-title">Errore di rete</div><div class="empty-sub">Controlla la connessione e <a href="" style="color:var(--blue);text-decoration:underline">ricarica</a></div></div>`;
         }
     }
 
@@ -621,38 +942,187 @@
         caricaLista();
     }
 
+    async function editQta(id, attuale) {
+        const val = prompt('Quantità (lascia vuoto per rimuovere):', attuale);
+        if (val === null) return;
+        await supabaseClient.from('spesa_lista').update({ quantita: val.trim() || null }).eq('id', id);
+        caricaLista();
+    }
+
     async function eliminaAcquistati() {
-        if (confirm("Eliminare i prodotti già presi?")) {
-            await supabaseClient.from('spesa_lista')
-                .delete()
-                .eq('email_utente', userEmail)
-                .eq('completato', true);
+        if (confirm('Eliminare i prodotti già presi?')) {
+            await supabaseClient.from('spesa_lista').delete().eq('email_utente', getListaEmail()).eq('completato', true);
             caricaLista();
         }
     }
 
     async function ripristinaLista() {
-        await supabaseClient.from('spesa_lista')
-            .update({ completato: false })
-            .eq('email_utente', userEmail);
+        await supabaseClient.from('spesa_lista').update({ completato: false }).eq('email_utente', getListaEmail());
         caricaLista();
     }
 
-    function apriModalSvuota()  { document.getElementById('svuotaModal').style.display = 'flex'; }
-    function chiudiModal()      { document.getElementById('svuotaModal').style.display = 'none'; }
+    function apriModalSvuota() { document.getElementById('svuotaModal').style.display = 'flex'; }
 
     async function confermaSvuota() {
-        await supabaseClient.from('spesa_lista').delete().eq('email_utente', userEmail);
-        chiudiModal();
+        await supabaseClient.from('spesa_lista').delete().eq('email_utente', getListaEmail());
+        chiudiModal('svuotaModal');
         caricaLista();
+    }
+
+    // ── Gestione liste ───────────────────────────────────────────────
+    function apriModalNuovaLista() {
+        _rinominaId = null;
+        document.getElementById('nlEmoji').textContent = '📋';
+        document.getElementById('nlTitle').textContent = 'Nuova lista';
+        document.getElementById('nlBtnConferma').textContent = 'Crea';
+        document.getElementById('nlNome').value = '';
+        document.getElementById('nuovaListaModal').style.display = 'flex';
+        setTimeout(() => document.getElementById('nlNome').focus(), 300);
+    }
+
+    function apriRinominaLista(id, nome) {
+        _rinominaId = id;
+        document.getElementById('nlEmoji').textContent = '✏️';
+        document.getElementById('nlTitle').textContent = 'Rinomina lista';
+        document.getElementById('nlBtnConferma').textContent = 'Rinomina';
+        document.getElementById('nlNome').value = nome;
+        document.getElementById('nuovaListaModal').style.display = 'flex';
+        setTimeout(() => { const inp = document.getElementById('nlNome'); inp.focus(); inp.select(); }, 300);
+    }
+
+    function confermaNuovaLista() {
+        const nome = document.getElementById('nlNome').value.trim();
+        if (!nome) { sToast('Inserisci un nome per la lista'); return; }
+        chiudiModal('nuovaListaModal');
+        if (_rinominaId) {
+            const l = liste.find(l => l.id === _rinominaId);
+            if (l) {
+                l.nome = nome;
+                salvaListe();
+                if (listaAttivaId === _rinominaId) {
+                    document.getElementById('titoloListaAttiva').textContent = nome;
+                } else {
+                    caricaListe();
+                }
+            }
+        } else {
+            const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+            liste.push({ id, nome });
+            salvaListe();
+            apriLista(id);
+        }
+    }
+
+    function apriModalEliminaLista() {
+        _eliminaListaId = listaAttivaId;
+        const lista = liste.find(l => l.id === listaAttivaId);
+        document.getElementById('eliminaListaDesc').textContent =
+            `Tutti i prodotti di "${lista?.nome || 'questa lista'}" saranno cancellati permanentemente.`;
+        document.getElementById('eliminaListaModal').style.display = 'flex';
+    }
+
+    function apriModalEliminaListaDaListe(id, nome) {
+        _eliminaListaId = id;
+        document.getElementById('eliminaListaDesc').textContent =
+            `Tutti i prodotti di "${nome}" saranno cancellati permanentemente.`;
+        document.getElementById('eliminaListaModal').style.display = 'flex';
+    }
+
+    async function confermaEliminaLista() {
+        chiudiModal('eliminaListaModal');
+        if (!_eliminaListaId) return;
+        const idToDelete = _eliminaListaId;
+        _eliminaListaId = null;
+        const email = listEmailFor(idToDelete);
+        await supabaseClient.from('spesa_lista').delete().eq('email_utente', email);
+        liste = liste.filter(l => l.id !== idToDelete);
+        salvaListe();
+        if (listaAttivaId === idToDelete) {
+            tornaAlleListe();
+        } else {
+            caricaListe();
+        }
+    }
+
+    // ── Condivisione ─────────────────────────────────────────────────
+    function apriModalCondividi() {
+        document.getElementById('nomeCondivisione').value = '';
+        document.getElementById('btnShareNativoSpesa').style.display = navigator.share ? '' : 'none';
+        document.getElementById('invitaModal').style.display = 'flex';
+        setTimeout(() => document.getElementById('nomeCondivisione').focus(), 300);
+    }
+
+    async function getMioNomeSpesa() {
+        try {
+            const r = await fetch(`${URL_BASE}/profili?email_utente=eq.${encodeURIComponent(userEmail)}&select=nome,cognome`, { headers });
+            const rows = await r.json();
+            const p = Array.isArray(rows) ? rows[0] : null;
+            return p ? [p.nome, p.cognome].filter(Boolean).join(' ') || userEmail.split('@')[0] : userEmail.split('@')[0];
+        } catch(e) { return userEmail.split('@')[0]; }
+    }
+
+    async function buildMessaggio() {
+        const nome = document.getElementById('nomeCondivisione').value.trim();
+        const mioNome = await getMioNomeSpesa();
+        const joinUrl = `https://listando.it/spesa.html?join=${btoa(getListaEmail())}`;
+        if (nome) {
+            return `Ciao ${nome}! 👋\n${mioNome} ti ha condiviso la lista della spesa su Listando 🛒\n\nClicca qui per vederla:\n${joinUrl}\n\n(Se non hai ancora Listando, accedi su https://listando.it con la tua email e poi riapri il link)`;
+        }
+        return `Dai un'occhiata alla mia lista della spesa su Listando 🛒\n\n${joinUrl}`;
+    }
+
+    async function condividiWA() {
+        const msg = await buildMessaggio();
+        window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+    }
+
+    async function condividiEmail() {
+        const msg = await buildMessaggio();
+        const mioNome = await getMioNomeSpesa();
+        window.location.href = `mailto:?subject=${encodeURIComponent(`${mioNome} ti condivide la lista spesa su Listando`)}&body=${encodeURIComponent(msg)}`;
+    }
+
+    async function condividiNativo() {
+        const msg = await buildMessaggio();
+        try { await navigator.share({ text: msg }); } catch(e) {}
+    }
+
+    async function copiaLinkSpesa() {
+        const joinUrl = `https://listando.it/spesa.html?join=${btoa(getListaEmail())}`;
+        try {
+            await navigator.clipboard.writeText(joinUrl);
+            sToast('📋 Link copiato!');
+        } catch(e) { sToast('Impossibile copiare'); }
+    }
+
+    // ── Toast ────────────────────────────────────────────────────────
+    let _sToastTimer;
+    function sToast(msg) {
+        const t = document.getElementById('sToast');
+        t.textContent = msg; t.classList.add('show');
+        clearTimeout(_sToastTimer);
+        _sToastTimer = setTimeout(() => t.classList.remove('show'), 2500);
     }
 
     function logout() { localStorage.clear(); window.location.href = 'login.html'; }
 
-    caricaLista();
+    // ── Init ─────────────────────────────────────────────────────────
+    const _sharedEmail = localStorage.getItem('spesaSharedEmail');
+    const _savedListaId = sessionStorage.getItem('spesa_lista_id');
+
+    if (_sharedEmail && _sharedEmail.split('||')[0] !== userEmail) {
+        mostrarViewItemsShared();
+    } else if (_savedListaId && liste.find(l => l.id === _savedListaId)) {
+        apriLista(_savedListaId);
+    } else {
+        caricaListe();
+    }
 
     document.addEventListener('visibilitychange', () => {
-        if (!document.hidden) caricaLista();
+        if (!document.hidden) {
+            if (listaAttivaId) caricaLista();
+            else caricaListe();
+        }
     });
 </script>
 </body>

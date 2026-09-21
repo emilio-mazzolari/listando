@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <title>Listando - Prodotti</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/logolistando.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Listando">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
@@ -150,11 +155,26 @@
         }
         .item:last-child { border-bottom: none; }
 
-        .item-nome {
+        .item-nome-wrap {
             flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .item-nome {
             font-weight: 700;
             font-size: 16px;
             line-height: 1.3;
+        }
+
+        .item-cat-badge {
+            font-size: 11px;
+            font-weight: 800;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
         }
 
         .btn-actions { display: flex; gap: 7px; }
@@ -268,6 +288,13 @@
             transition: opacity 0.15s;
         }
         .btn-modal:active { opacity: 0.85; }
+
+        /* ── Quantità modal ── */
+        .qty-product-name { font-weight: 900; font-size: 18px; text-align: center; margin-bottom: 4px; }
+        .qty-chips { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; margin-bottom: 14px; margin-top: 8px; }
+        .qty-chip { padding: 7px 14px; border-radius: 20px; border: 2px solid var(--grey); background: white; font-size: 13px; font-weight: 800; cursor: pointer; transition: all 0.15s; font-family: inherit; }
+        .qty-chip.sel { background: var(--blue); color: white; border-color: var(--blue); }
+        .btn-skip-qty { background: none; border: none; color: #aaa; font-size: 13px; font-weight: 800; cursor: pointer; width: 100%; text-align: center; padding: 10px; font-family: inherit; }
 
         /* ── Tab Bar ── */
         .tab-bar {
@@ -467,6 +494,24 @@
     </div>
 </div>
 
+<div id="modalQta" class="modal-overlay">
+    <div class="modal-box">
+        <div class="modal-emoji">🛒</div>
+        <div class="qty-product-name" id="qtaProductName"></div>
+        <p style="margin-bottom:0">Quante/quanto? (opzionale)</p>
+        <div class="qty-chips" id="qtaChips">
+            <button class="qty-chip" onclick="setQtaChip('1 pz')">1 pz</button>
+            <button class="qty-chip" onclick="setQtaChip('2 pz')">2 pz</button>
+            <button class="qty-chip" onclick="setQtaChip('500 g')">500 g</button>
+            <button class="qty-chip" onclick="setQtaChip('1 kg')">1 kg</button>
+            <button class="qty-chip" onclick="setQtaChip('1 l')">1 l</button>
+        </div>
+        <input class="modal-input" id="qtaInput" type="text" placeholder="es. 2 kg, 5 pezzi, 1 bottiglia…" autocomplete="off" oninput="syncQtaChips()">
+        <button class="btn-modal" style="background:var(--blue);color:white" onclick="confermaMetti()">🛒 Aggiungi</button>
+        <button class="btn-skip-qty" onclick="confermaMetti(true)">Aggiungi senza quantità</button>
+    </div>
+</div>
+
 <!-- Tab Bar -->
 <nav class="tab-bar">
     <a href="index.html" class="tab-item">
@@ -501,6 +546,7 @@
 
     const userEmail = localStorage.getItem('userEmail');
     if (!userEmail) window.location.href = 'login.html';
+    function getListaEmailProd() { return localStorage.getItem('spesaSharedEmail') || localStorage.getItem('spesaListaEmailUtente') || userEmail; }
 
     let prodottiBase      = [];
     let categoriaCorrente = 'Cibo';
@@ -554,9 +600,11 @@
     function render() {
         const div   = document.getElementById("listaCard");
         const query = document.getElementById("ricerca").value.trim().toLowerCase();
+        const globalSearch = query.length > 0;
 
-        let filtrati = prodottiBase.filter(p => p.categoria === categoriaCorrente);
-        if (query) filtrati = filtrati.filter(p => p.nome.toLowerCase().includes(query));
+        let filtrati = globalSearch
+            ? prodottiBase.filter(p => p.nome.toLowerCase().includes(query))
+            : prodottiBase.filter(p => p.categoria === categoriaCorrente);
 
         if (filtrati.length === 0) {
             div.innerHTML = `
@@ -564,8 +612,8 @@
                     <div class="empty-icon">
                         <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
                     </div>
-                    <div class="empty-title">${query ? 'Nessun risultato' : 'Nessun prodotto'}</div>
-                    <div class="empty-sub">${query ? `Nessun prodotto per "${query}"` : 'Aggiungi il primo prodotto in questa categoria'}</div>
+                    <div class="empty-title">${globalSearch ? 'Nessun risultato' : 'Nessun prodotto'}</div>
+                    <div class="empty-sub">${globalSearch ? `Nessun prodotto per "${query}"` : 'Aggiungi il primo prodotto in questa categoria'}</div>
                 </div>`;
             return;
         }
@@ -575,7 +623,10 @@
             const riga = document.createElement("div");
             riga.className = "item";
             riga.innerHTML = `
-                <span class="item-nome">${p.nome}</span>
+                <div class="item-nome-wrap">
+                    <span class="item-nome">${p.nome}</span>
+                    ${globalSearch ? `<span class="item-cat-badge">${p.categoria}</span>` : ''}
+                </div>
                 <div class="btn-actions">
                     <button class="btn-ic add"
                             onclick="mettiInLista(${p.id}, this)"
@@ -602,6 +653,8 @@
     }
 
     // ── Aggiungi alla lista spesa ──────────────────────────────────
+    let _qtaProdottoId = null, _qtaBtnEl = null;
+
     async function mettiInLista(prodottoId, btnEl) {
         btnEl.textContent = '…';
         btnEl.disabled = true;
@@ -611,7 +664,7 @@
                 .from('spesa_lista')
                 .select('id')
                 .eq('prodotto_id', prodottoId)
-                .eq('email_utente', userEmail)
+                .eq('email_utente', getListaEmailProd())
                 .limit(1);
 
             if (esistente && esistente.length > 0) {
@@ -627,38 +680,71 @@
                 }, 1500);
                 return;
             }
-
-            const { error } = await supabaseClient
-                .from('spesa_lista')
-                .insert({
-                    prodotto_id: prodottoId,
-                    email_utente: userEmail,
-                    completato: false
-                });
-
-            if (!error) {
-                btnEl.textContent = '✓';
-                btnEl.style.borderColor = 'var(--green)';
-                btnEl.style.color = 'var(--green)';
-                mostraToast("✓ Aggiunto alla lista!");
-                setTimeout(() => {
-                    btnEl.textContent = '+';
-                    btnEl.style.borderColor = '';
-                    btnEl.style.color = '';
-                    btnEl.disabled = false;
-                }, 1500);
-            } else {
-                console.error("Errore insert spesa_lista:", error);
-                mostraToast(`Errore: ${error.message}`);
-                btnEl.textContent = '+';
-                btnEl.disabled = false;
-            }
         } catch (e) {
-            console.error("mettiInLista:", e);
             mostraToast("Errore di rete");
             btnEl.textContent = '+';
             btnEl.disabled = false;
+            return;
         }
+
+        // Open qty modal
+        _qtaProdottoId = prodottoId;
+        _qtaBtnEl = btnEl;
+        const nomeProd = btnEl.closest('.item')?.querySelector('.item-nome')?.textContent || 'Prodotto';
+        document.getElementById('qtaProductName').textContent = nomeProd;
+        document.getElementById('qtaInput').value = '';
+        document.querySelectorAll('.qty-chip').forEach(c => c.classList.remove('sel'));
+        document.getElementById('modalQta').style.display = 'flex';
+        setTimeout(() => document.getElementById('qtaInput').focus(), 200);
+    }
+
+    function setQtaChip(val) {
+        document.getElementById('qtaInput').value = val;
+        document.querySelectorAll('.qty-chip').forEach(c => c.classList.toggle('sel', c.textContent === val));
+    }
+
+    function syncQtaChips() {
+        const val = document.getElementById('qtaInput').value;
+        document.querySelectorAll('.qty-chip').forEach(c => c.classList.toggle('sel', c.textContent === val));
+    }
+
+    async function confermaMetti(skip) {
+        const quantita = skip ? null : (document.getElementById('qtaInput').value.trim() || null);
+        chiudiModal('modalQta');
+        if (!_qtaBtnEl || !_qtaProdottoId) return;
+
+        try {
+            const { error } = await supabaseClient
+                .from('spesa_lista')
+                .insert({
+                    prodotto_id: _qtaProdottoId,
+                    email_utente: getListaEmailProd(),
+                    completato: false,
+                    quantita,
+                });
+
+            if (!error) {
+                _qtaBtnEl.textContent = '✓';
+                _qtaBtnEl.style.borderColor = 'var(--green)';
+                _qtaBtnEl.style.color = 'var(--green)';
+                mostraToast(quantita ? `✓ Aggiunto (${quantita})` : "✓ Aggiunto alla lista!");
+                setTimeout(() => {
+                    _qtaBtnEl.textContent = '+';
+                    _qtaBtnEl.style.borderColor = '';
+                    _qtaBtnEl.style.color = '';
+                    _qtaBtnEl.disabled = false;
+                }, 1500);
+            } else {
+                mostraToast(`Errore: ${error.message}`);
+                _qtaBtnEl.textContent = '+';
+                _qtaBtnEl.disabled = false;
+            }
+        } catch (e) {
+            mostraToast("Errore di rete");
+            _qtaBtnEl.textContent = '+';
+            _qtaBtnEl.disabled = false;
+        }
+        _qtaProdottoId = null; _qtaBtnEl = null;
     }
 
     // ── Nuovo prodotto ───────────────────────────────────────────
