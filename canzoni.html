@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <title>Listando - Canzoni</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/logolistando.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Listando">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -334,6 +339,7 @@ function songItemHtml(s, i) {
 // ── Playlist detail ────────────────────────────────────────────────────
 function apriPlaylist(id) {
     currentPlaylistId = id;
+    sessionStorage.setItem('can_pid', id);
     const pl = playlists.find(p => p.id === id);
     if (!pl) return;
     const plSongs = songs.filter(s => s.playlist_id === id);
@@ -348,6 +354,7 @@ function apriPlaylist(id) {
 
 function tornaAlMain() {
     currentPlaylistId = null;
+    sessionStorage.removeItem('can_pid');
     document.getElementById('mainView').style.display = '';
     document.getElementById('playlistView').style.display = 'none';
     document.getElementById('headerTitle').textContent = 'CANZONI';
@@ -596,7 +603,10 @@ function toast(msg) {
     toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
 }
 
-carica();
+carica().then(() => {
+    const savedPid = parseInt(sessionStorage.getItem('can_pid'));
+    if (savedPid && playlists.find(p => p.id === savedPid)) apriPlaylist(savedPid);
+});
 </script>
 </body>
 </html>

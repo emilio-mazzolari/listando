@@ -167,6 +167,12 @@ const statusDiv = document.getElementById('status');
 const BIO_KEY   = 'bioCredId';
 const BIO_EMAIL = 'bioEmail';
 
+function getRedirectUrl() {
+    const url = localStorage.getItem('pendingUrl');
+    if (url) { localStorage.removeItem('pendingUrl'); return url; }
+    return 'index.html';
+}
+
 // ── Rilevamento supporto ────────────────────────────────────────────
 async function bioSupportato() {
     return !!(window.PublicKeyCredential &&
@@ -216,7 +222,7 @@ async function accediConBiometria() {
         });
         if (assertion) {
             localStorage.setItem('userEmail', localStorage.getItem(BIO_EMAIL));
-            window.location.assign('index.html');
+            window.location.assign(getRedirectUrl());
         }
     } catch (e) {
         if (e.name === 'NotAllowedError') {
@@ -277,7 +283,7 @@ async function loginManuale() {
     const ok = await registraBiometria(email);
     if (ok) statusDiv.innerHTML = '<span class="success">✓ Face ID / Touch ID configurato!</span>';
 
-    setTimeout(() => window.location.assign('index.html'), ok ? 700 : 300);
+    setTimeout(() => window.location.assign(getRedirectUrl()), ok ? 700 : 300);
 }
 
 // ── Google OAuth ────────────────────────────────────────────────────
@@ -301,7 +307,7 @@ supabaseClient.auth.onAuthStateChange(async (event, session) => {
             statusDiv.innerHTML = 'Configuro Face ID / Touch ID…';
             await registraBiometria(email);
         }
-        window.location.assign('index.html');
+        window.location.assign(getRedirectUrl());
     }
     if (event === 'SIGNED_OUT') {
         localStorage.removeItem('userEmail');

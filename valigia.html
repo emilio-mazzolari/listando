@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <title>Listando - Valigia</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/logolistando.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Listando">
     <style>
         :root {
             color-scheme: light;
@@ -26,8 +31,8 @@
         }
         .btn-back { width: 40px; height: 40px; border-radius: 12px; border: 2.5px solid var(--grey); background: var(--white); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
         .btn-back svg { width: 18px; height: 18px; stroke: var(--dark); fill: none; stroke-width: 2.5; }
-        .header-title { font-weight: 900; font-size: 18px; flex: 1; }
-        .btn-add-hdr { width: 40px; height: 40px; border-radius: 12px; border: none; background: var(--accent); color: white; font-size: 22px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: 900; }
+        .header-title { font-weight: 900; font-size: 18px; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .btn-add-hdr { width: 40px; height: 40px; border-radius: 12px; border: none; background: var(--accent); color: white; font-size: 22px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: 900; flex-shrink: 0; }
 
         .body-content { padding: 12px 16px 110px; }
 
@@ -47,16 +52,30 @@
         .btn-del-valigia { width: 36px; height: 36px; border-radius: 10px; border: 2px solid var(--grey); background: var(--white); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--red); }
         .btn-del-valigia svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2.5; }
 
-        .progress-wrap { margin-top: 6px; }
         .progress-bar-bg { background: var(--grey-light); border-radius: 6px; height: 6px; overflow: hidden; }
         .progress-bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), #ffd64f); border-radius: 6px; transition: width 0.4s ease; }
 
-        /* ── Items list ── */
-        .items-card { background: var(--white); border-radius: 20px; box-shadow: var(--shadow); overflow: hidden; margin-bottom: 12px; }
+        /* ── Hub cards ── */
+        .hub-card {
+            background: var(--white); border-radius: 20px; box-shadow: var(--shadow);
+            padding: 20px 18px; margin-bottom: 14px;
+            display: flex; align-items: center; gap: 16px;
+            cursor: pointer; transition: transform 0.15s;
+        }
+        .hub-card:active { transform: scale(0.98); }
+        .hub-icon { font-size: 40px; flex-shrink: 0; }
+        .hub-info { flex: 1; min-width: 0; }
+        .hub-title { font-weight: 900; font-size: 17px; margin-bottom: 5px; }
+        .hub-sub { font-size: 13px; color: #888; font-weight: 700; }
+        .hub-chevron { color: #ccc; flex-shrink: 0; }
+        .hub-chevron svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2.5; }
+        .hub-progress { margin-top: 8px; }
 
+        /* ── Items list ── */
         .item-row {
             display: flex; align-items: center; gap: 10px;
             padding: 13px 16px; border-bottom: 1.5px solid var(--grey-light);
+            background: var(--white);
         }
         .item-row:last-child { border-bottom: none; }
         .item-row.done { background: #fafafa; }
@@ -73,19 +92,69 @@
         .qty-btn:active { background: var(--grey-light); }
         .qty-num { font-size: 14px; font-weight: 900; min-width: 22px; text-align: center; }
 
-        .btn-del-item { width: 32px; height: 32px; border-radius: 9px; border: 2px solid var(--grey); background: var(--white); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--red); }
-        .btn-del-item svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2.5; }
+        .btn-del-item { width: 36px; height: 36px; border-radius: 10px; border: 2.5px solid var(--red); background: var(--white); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--red); transition: all 0.15s; }
+        .btn-del-item:active { background: var(--red); color: white; }
+        .btn-del-item svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2.5; }
+
+        .items-wrap { background: var(--white); border-radius: 20px; box-shadow: var(--shadow); overflow: hidden; margin-bottom: 12px; }
+
+        /* ── Stats bar ── */
+        .stats-bar { display: flex; gap: 8px; padding: 10px 16px 12px; }
+        .stat-chip { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 10px; background: var(--grey-light); color: #666; }
 
         /* ── Controls ── */
-        .controls-group { display: flex; flex-direction: column; gap: 8px; }
-        .btn-action { width: 100%; padding: 14px; border-radius: 16px; border: 2.5px solid var(--grey); background: var(--white); font-weight: 800; font-size: 13px; cursor: pointer; color: var(--dark); transition: all 0.15s; }
+        .controls-wrap { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+        .btn-action { width: 100%; padding: 14px; border-radius: 16px; border: 2.5px solid var(--grey); background: var(--white); font-weight: 800; font-size: 13px; cursor: pointer; color: var(--dark); transition: all 0.15s; box-shadow: var(--shadow); }
         .btn-action:active { background: var(--grey-light); }
         .btn-action.danger { border-color: #ffd6d6; color: var(--red); }
         .btn-action.catalog { border-color: var(--accent); color: #a07000; }
 
-        /* ── Stats bar ── */
-        .stats-bar { display: flex; gap: 8px; padding: 10px 0 12px; }
-        .stat-chip { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 10px; background: var(--grey-light); color: #666; }
+        /* ── Documenti ── */
+        .doc-row { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1.5px solid var(--grey-light); background: var(--white); cursor: pointer; }
+        .doc-row:last-child { border-bottom: none; }
+        .doc-row:active { background: var(--grey-light); }
+        .doc-icon { font-size: 22px; flex-shrink: 0; }
+        .doc-nome { flex: 1; font-size: 14px; font-weight: 700; word-break: break-word; }
+        .btn-del-doc, .btn-edit-doc { width: 32px; height: 32px; border-radius: 9px; border: 2px solid var(--grey); background: var(--white); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .btn-del-doc { color: var(--red); }
+        .btn-edit-doc { color: var(--accent); border-color: var(--accent); }
+        .btn-del-doc svg, .btn-edit-doc svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2.5; }
+        .doc-ord-btns { display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; }
+        .btn-ord-doc { width: 28px; height: 22px; border-radius: 7px; border: 1.5px solid var(--grey); background: var(--white); cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center; color: #888; padding: 0; line-height: 1; }
+        .btn-ord-doc:active { background: var(--grey-light); }
+        .btn-ord-doc[disabled] { opacity: 0; pointer-events: none; }
+        .docs-wrap { background: var(--white); border-radius: 20px; box-shadow: var(--shadow); overflow: hidden; margin-bottom: 12px; }
+
+        /* ── Emoji grid (expanded picker) ── */
+        .emoji-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; max-height: 186px; overflow-y: auto; margin-bottom: 14px; padding: 2px; }
+        .emoji-grid .emoji-opt { font-size: 20px; aspect-ratio: 1; width: 100%; border-radius: 10px; border: 2px solid var(--grey); background: var(--white); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; transition: all 0.15s; }
+        .emoji-grid .emoji-opt.active { border-color: var(--accent); background: var(--accent-bg); }
+
+        /* ── Modifica valigia ── */
+        .btn-edit-valigia { width: 36px; height: 36px; border-radius: 10px; border: 2px solid var(--grey); background: var(--white); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: #888; margin-right: 4px; }
+        .btn-edit-valigia svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2.5; }
+
+        /* ── Upload ── */
+        .upload-area { border: 2.5px dashed var(--grey); border-radius: 16px; padding: 16px; cursor: pointer; font-weight: 700; font-size: 14px; color: #888; transition: all 0.15s; margin-bottom: 14px; display: flex; align-items: center; gap: 12px; }
+        .upload-area:active { background: var(--grey-light); }
+        .upload-area.has-file { border-color: var(--accent); color: var(--dark); background: var(--accent-bg); }
+        .upload-icon { font-size: 28px; flex-shrink: 0; }
+        .upload-text { flex: 1; min-width: 0; }
+        .upload-text small { display: block; font-size: 11px; font-weight: 600; color: #bbb; margin-top: 2px; }
+        .upload-area.has-file .upload-text small { color: #a07000; }
+        .progress-upload { width: 100%; height: 6px; background: var(--grey-light); border-radius: 6px; margin-bottom: 14px; overflow: hidden; display: none; }
+        .progress-upload-fill { height: 100%; background: var(--accent); border-radius: 6px; transition: width 0.3s; }
+
+        /* ── Note ── */
+        .note-card { background: var(--white); border-radius: 16px; padding: 14px 16px; margin-bottom: 10px; box-shadow: var(--shadow); display: flex; align-items: flex-start; gap: 12px; cursor: pointer; transition: transform 0.12s; }
+        .note-card:active { transform: scale(0.98); }
+        .note-card-body { flex: 1; min-width: 0; }
+        .note-preview { font-size: 14px; font-weight: 600; color: var(--dark); line-height: 1.55; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; white-space: pre-wrap; word-break: break-word; }
+        .note-data { font-size: 11px; color: #bbb; font-weight: 700; margin-top: 6px; }
+        .btn-del-nota { width: 32px; height: 32px; border-radius: 9px; border: 2px solid var(--grey); background: var(--white); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--red); }
+        .btn-del-nota svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2.5; }
+        .nota-textarea { width: 100%; min-height: 220px; padding: 14px; border-radius: 16px; border: 2.5px solid var(--grey); font-size: 15px; font-family: inherit; outline: none; resize: none; background: white; box-sizing: border-box; line-height: 1.6; margin-bottom: 10px; }
+        .nota-textarea:focus { border-color: var(--accent); }
 
         /* ── Empty ── */
         .empty-msg { text-align: center; padding: 48px 24px; color: #bbb; font-weight: 700; font-size: 15px; }
@@ -101,11 +170,9 @@
         .add-cosa-row { display: flex; gap: 10px; margin-bottom: 10px; }
         .add-cosa-row .form-input { margin-bottom: 0; }
         .qty-input { width: 72px; flex-shrink: 0; text-align: center; padding-left: 8px; padding-right: 8px; }
-
         .emoji-picker { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
         .emoji-opt { font-size: 24px; width: 44px; height: 44px; border-radius: 12px; border: 2.5px solid var(--grey); background: var(--white); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
         .emoji-opt.active { border-color: var(--accent); background: var(--accent-bg); }
-
         .btn-save-modal { width: 100%; padding: 15px; border-radius: 16px; border: none; background: var(--accent); color: white; font-weight: 900; font-size: 16px; cursor: pointer; }
 
         /* ── Tab Bar ── */
@@ -115,39 +182,8 @@
         .tab-item.esci { color: var(--red); }
         .icon-tab { width: 24px; height: 24px; stroke-width: 2.5; stroke: currentColor; fill: none; }
 
-        .toast { position: fixed; bottom: 105px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--dark); color: white; padding: 12px 20px; border-radius: 14px; font-weight: 700; font-size: 14px; opacity: 0; transition: all 0.25s; white-space: nowrap; z-index: 999; pointer-events: none; }
+        .toast { position: fixed; bottom: 105px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--dark); color: white; padding: 12px 20px; border-radius: 14px; font-weight: 700; font-size: 14px; opacity: 0; transition: all 0.25s; white-space: nowrap; z-index: 9999; pointer-events: none; }
         .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-
-        /* ── Section cards ── */
-        .section-card { background: var(--white); border-radius: 20px; box-shadow: var(--shadow); margin-bottom: 14px; overflow: hidden; }
-        .section-card-header { display: flex; align-items: center; gap: 10px; padding: 14px 16px 12px; border-bottom: 2px solid var(--grey-light); }
-        .section-card-title { font-size: 13px; font-weight: 900; color: #888; text-transform: uppercase; letter-spacing: 0.5px; flex: 1; }
-        .section-card-footer { padding: 10px 16px 14px; display: flex; flex-direction: column; gap: 8px; border-top: 2px solid var(--grey-light); }
-
-        /* ── Documenti ── */
-        .section-label { font-size: 11px; font-weight: 800; color: #aaa; text-transform: uppercase; letter-spacing: 0.6px; padding: 16px 0 6px; }
-        .doc-row { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1.5px solid var(--grey-light); cursor: pointer; }
-        .doc-row:last-child { border-bottom: none; }
-        .doc-row:active { background: var(--grey-light); }
-        .doc-icon { font-size: 22px; flex-shrink: 0; }
-        .doc-nome { flex: 1; font-size: 14px; font-weight: 700; word-break: break-word; }
-        .btn-del-doc, .btn-edit-doc { width: 32px; height: 32px; border-radius: 9px; border: 2px solid var(--grey); background: var(--white); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-        .btn-del-doc { color: var(--red); }
-        .btn-edit-doc { color: var(--accent); border-color: var(--accent); }
-        .btn-del-doc svg, .btn-edit-doc svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2.5; }
-        .doc-ord-btns { display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; }
-        .btn-ord-doc { width: 28px; height: 22px; border-radius: 7px; border: 1.5px solid var(--grey); background: var(--white); cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center; color: #888; padding: 0; line-height: 1; }
-        .btn-ord-doc:active { background: var(--grey-light); }
-        .btn-ord-doc[disabled] { opacity: 0; pointer-events: none; }
-        .upload-area { border: 2.5px dashed var(--grey); border-radius: 16px; padding: 16px; cursor: pointer; font-weight: 700; font-size: 14px; color: #888; transition: all 0.15s; margin-bottom: 14px; display: flex; align-items: center; gap: 12px; }
-        .upload-area:active { background: var(--grey-light); }
-        .upload-area.has-file { border-color: var(--accent); color: var(--dark); background: var(--accent-bg); }
-        .upload-icon { font-size: 28px; flex-shrink: 0; }
-        .upload-text { flex: 1; min-width: 0; }
-        .upload-text small { display: block; font-size: 11px; font-weight: 600; color: #bbb; margin-top: 2px; }
-        .upload-area.has-file .upload-text small { color: #a07000; }
-        .progress-upload { width: 100%; height: 6px; background: var(--grey-light); border-radius: 6px; margin-bottom: 14px; overflow: hidden; display: none; }
-        .progress-upload-fill { height: 100%; background: var(--accent); border-radius: 6px; transition: width 0.3s; }
     </style>
 </head>
 <body>
@@ -164,43 +200,104 @@
     <div class="body-content" id="listaValigie"></div>
 </div>
 
-<!-- ════ VIEW 2: Dentro una valigia ════ -->
-<div id="viewValigia" style="display:none">
+<!-- ════ VIEW 2: Hub (2 card) ════ -->
+<div id="viewHub" style="display:none">
     <div class="page-header">
         <button class="btn-back" onclick="tornaALista()">
             <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
         </button>
-        <div class="header-title" id="titoloValigia">🧳 Valigia</div>
+        <div class="header-title" id="titoloHub">🧳 Valigia</div>
     </div>
     <div class="body-content">
-        <!-- ── Card 1: Cose ── -->
-        <div style="background:#fff;border-radius:20px;box-shadow:0 2px 10px rgba(0,0,0,0.06);margin-bottom:14px;overflow:hidden">
-            <div style="display:flex;align-items:center;gap:10px;padding:14px 16px 12px;border-bottom:2px solid #f2f2f7">
-                <span style="font-size:13px;font-weight:900;color:#aaa;text-transform:uppercase;letter-spacing:0.5px;flex:1">🎒 Cose per il viaggio</span>
-                <button class="btn-add-hdr" onclick="apriModalAggiungi()">+</button>
-            </div>
-            <div class="stats-bar" id="statsValigia" style="padding:8px 16px 0;margin:0"></div>
-            <div id="progressWrap" style="display:none;padding:6px 16px 10px">
-                <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill" style="width:0%"></div></div>
-            </div>
-            <div id="itemsValigia"></div>
-            <div style="padding:10px 16px 14px;display:flex;flex-direction:column;gap:8px;border-top:2px solid #f2f2f7">
-                <button class="btn-action catalog" onclick="vaiAlCatalogo()">📋 Aggiungi cose</button>
-                <div class="controls-group" id="controlliValigia" style="display:none;flex-direction:column;gap:8px">
-                    <button class="btn-action" onclick="ripristina()">↺ Ripristina tutto</button>
-                    <button class="btn-action" onclick="eliminaMessi()">✓ Rimuovi messi in valigia</button>
-                    <button class="btn-action danger" onclick="svuotaValigia()">🗑 Svuota lista</button>
+        <div class="hub-card" onclick="apriCose()">
+            <div class="hub-icon">🎒</div>
+            <div class="hub-info">
+                <div class="hub-title">Cose</div>
+                <div class="hub-sub" id="subCose">Caricamento…</div>
+                <div class="hub-progress" id="hubProgressWrap" style="display:none">
+                    <div class="progress-bar-bg"><div class="progress-bar-fill" id="hubProgressFill" style="width:0%"></div></div>
                 </div>
             </div>
+            <div class="hub-chevron"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
         </div>
-        <!-- ── Card 2: Documenti ── -->
-        <div style="background:#fff;border-radius:20px;box-shadow:0 2px 10px rgba(0,0,0,0.06);margin-bottom:14px;overflow:hidden">
-            <div style="display:flex;align-items:center;gap:10px;padding:14px 16px 12px;border-bottom:2px solid #f2f2f7">
-                <span style="font-size:13px;font-weight:900;color:#aaa;text-transform:uppercase;letter-spacing:0.5px;flex:1">📄 Documenti di viaggio</span>
-                <button class="btn-add-hdr" onclick="apriModalDocumento()">+</button>
+        <div class="hub-card" onclick="apriDocumenti()">
+            <div class="hub-icon">📄</div>
+            <div class="hub-info">
+                <div class="hub-title">Documenti</div>
+                <div class="hub-sub" id="subDocumenti">Caricamento…</div>
             </div>
-            <div id="documentiValigia"></div>
+            <div class="hub-chevron"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
         </div>
+        <div class="hub-card" onclick="apriNote()">
+            <div class="hub-icon">📝</div>
+            <div class="hub-info">
+                <div class="hub-title">Note</div>
+                <div class="hub-sub" id="subNote">…</div>
+            </div>
+            <div class="hub-chevron"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+        </div>
+    </div>
+</div>
+
+<!-- ════ VIEW 3: Cose per il viaggio ════ -->
+<div id="viewCose" style="display:none">
+    <div class="page-header">
+        <button class="btn-back" onclick="tornaAlHub()">
+            <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div class="header-title">🎒 Cose</div>
+        <button class="btn-add-hdr" onclick="vaiAlCatalogo()">+</button>
+    </div>
+    <div class="body-content">
+        <div class="stats-bar" id="statsValigia" style="padding-left:0;padding-right:0"></div>
+        <div id="progressWrap" style="display:none;margin-bottom:12px">
+            <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill" style="width:0%"></div></div>
+        </div>
+        <div class="items-wrap" id="itemsValigia"></div>
+        <div class="controls-wrap">
+            <button class="btn-action catalog" onclick="vaiAlCatalogo()">📋 Aggiungi cose</button>
+            <div id="controlliValigia" style="display:none;flex-direction:column;gap:8px">
+                <button class="btn-action" onclick="ripristina()">↺ Ripristina tutto</button>
+                <button class="btn-action" onclick="eliminaMessi()">✓ Rimuovi messi in valigia</button>
+                <button class="btn-action danger" onclick="svuotaValigia()">🗑 Svuota lista</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ════ VIEW 4: Documenti di viaggio ════ -->
+<div id="viewDocumenti" style="display:none">
+    <div class="page-header">
+        <button class="btn-back" onclick="tornaAlHub()">
+            <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div class="header-title">📄 Documenti</div>
+        <button class="btn-add-hdr" onclick="apriModalDocumento()">+</button>
+    </div>
+    <div class="body-content">
+        <div class="docs-wrap" id="documentiValigia"></div>
+    </div>
+</div>
+
+<!-- ════ VIEW 5: Note ════ -->
+<div id="viewNote" style="display:none">
+    <div class="page-header">
+        <button class="btn-back" onclick="tornaAlHub()">
+            <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div class="header-title">📝 Note</div>
+        <button class="btn-add-hdr" onclick="apriNuovaNota()">+</button>
+    </div>
+    <div class="body-content" id="listaNote"></div>
+</div>
+
+<!-- Modal: Nota -->
+<div class="modal-overlay" id="modalNota">
+    <div class="modal-box">
+        <div class="modal-handle"></div>
+        <textarea class="nota-textarea" id="notaTextarea" placeholder="Scrivi la tua nota…"></textarea>
+        <button class="btn-save-modal" onclick="salvaNotaModal()">SALVA</button>
+        <button id="btnEliminaNota" class="btn-action danger" onclick="eliminaNotaCorrente()" style="margin-top:8px;display:none">🗑 Elimina nota</button>
     </div>
 </div>
 
@@ -209,14 +306,7 @@
     <div class="modal-box">
         <div class="modal-handle"></div>
         <div class="modal-title">Nuova valigia</div>
-        <div class="emoji-picker" id="emojiPicker">
-            <button class="emoji-opt active" onclick="setEmoji('🧳')">🧳</button>
-            <button class="emoji-opt" onclick="setEmoji('🎒')">🎒</button>
-            <button class="emoji-opt" onclick="setEmoji('💼')">💼</button>
-            <button class="emoji-opt" onclick="setEmoji('👜')">👜</button>
-            <button class="emoji-opt" onclick="setEmoji('🛄')">🛄</button>
-            <button class="emoji-opt" onclick="setEmoji('📦')">📦</button>
-        </div>
+        <div class="emoji-grid" id="emojiPickerNew"></div>
         <input class="form-input" id="nomeNuovaValigia" placeholder="es. Valigia grande, Zaino, Bagaglio a mano…" type="text" onkeydown="if(event.key==='Enter') salvaValigia()">
         <button class="btn-save-modal" onclick="salvaValigia()">CREA</button>
     </div>
@@ -235,6 +325,17 @@
         <div id="uploadError" style="display:none;background:#fff0f0;border-radius:12px;padding:10px 14px;margin-bottom:10px;color:#ff3b30;font-size:13px;font-weight:700;word-break:break-word"></div>
         <div class="progress-upload" id="progressUpload"><div class="progress-upload-fill" id="progressUploadFill" style="width:0%"></div></div>
         <button class="btn-save-modal" id="btnCarica" onclick="uploadDocumento()" style="display:none">CARICA</button>
+    </div>
+</div>
+
+<!-- Modal: Modifica valigia -->
+<div class="modal-overlay" id="modalEditValigia">
+    <div class="modal-box">
+        <div class="modal-handle"></div>
+        <div class="modal-title">Modifica valigia</div>
+        <div class="emoji-grid" id="emojiPickerEdit"></div>
+        <input class="form-input" id="nomeEditValigia" placeholder="Nome valigia…" type="text" onkeydown="if(event.key==='Enter') salvaEditValigia()">
+        <button class="btn-save-modal" onclick="salvaEditValigia()">SALVA</button>
     </div>
 </div>
 
@@ -275,7 +376,7 @@
 <script>
 const URL = "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1";
 const KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlamRwb3BoZnhzcnFkdnN1Y3llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2NTMzMDQsImV4cCI6MjA5MzIyOTMwNH0.mpxbwlJyIdZgqKIdutHbLd85JR1P11yiglbYeApi17k";
-const H ={ "apikey": KEY, "Authorization": "Bearer " + KEY, "Content-Type": "application/json", "Prefer": "return=minimal" };
+const H  = { "apikey": KEY, "Authorization": "Bearer " + KEY, "Content-Type": "application/json", "Prefer": "return=minimal" };
 const HR = { "apikey": KEY, "Authorization": "Bearer " + KEY };
 const userEmail = localStorage.getItem('userEmail');
 if (!userEmail) location.href = 'login.html';
@@ -283,24 +384,38 @@ if (!userEmail) location.href = 'login.html';
 let valigie = [];
 let valigiaCorrenteId = null;
 let emojiScelta = '🧳';
+let emojiEditScelta = '🧳';
+let valigiaEditId = null;
 let fileSelezionatoObj = null;
 let docsAttuali = [];
 
-// ── API helpers ───────────────────────────────────────────────
+const EMOJIS = ['🧳','🎒','💼','👜','🛄','📦','✈️','🚀','🛳️','🚂','🚗','🛻','🌍','🗺️','🧭','🏕️','⛺','🌐','🏖️','☀️','🌊','🌴','🐚','🍹','⛷️','🏔️','❄️','🎿','🏂','🧣','🤿','🎣','🏄','🚵','🧗','🎯','📸','🎭','💎','🌙','🌅','🎪','🏰','🗼','🌋','🏜️','🌈','🎁'];
+
+function renderEmojiPicker(containerId, current, fnName) {
+    document.getElementById(containerId).innerHTML = EMOJIS.map(e =>
+        `<button class="emoji-opt${e === current ? ' active' : ''}" onclick="${fnName}('${e}')">${e}</button>`
+    ).join('');
+}
+
+// ── Helpers ───────────────────────────────────────────────────
+function showView(id) {
+    ['viewLista','viewHub','viewCose','viewDocumenti','viewNote'].forEach(v =>
+        document.getElementById(v).style.display = v === id ? '' : 'none'
+    );
+}
 async function get(path) {
     const r = await fetch(`${URL}${path}`, { headers: HR });
     return r.json();
 }
 async function post(path, body) {
-    await fetch(`${URL}${path}`, { method: 'POST', headers: H, body: JSON.stringify(body) });
+    return fetch(`${URL}${path}`, { method: 'POST', headers: H, body: JSON.stringify(body) });
 }
 async function patch(path, body) {
-    await fetch(`${URL}${path}`, { method: 'PATCH', headers: H, body: JSON.stringify(body) });
+    return fetch(`${URL}${path}`, { method: 'PATCH', headers: H, body: JSON.stringify(body) });
 }
 async function del(path) {
-    await fetch(`${URL}${path}`, { method: 'DELETE', headers: H });
+    return fetch(`${URL}${path}`, { method: 'DELETE', headers: H });
 }
-
 function logout() { localStorage.clear(); location.href = 'login.html'; }
 
 // ── View 1: Lista valigie ─────────────────────────────────────
@@ -320,10 +435,22 @@ async function caricaValigie() {
             return;
         }
 
-        const savedId = parseInt(localStorage.getItem('valigiaAttivaId'));
-        const fromCatalog = document.referrer.includes('valigia_elencocose');
-        if (savedId && fromCatalog && valigie.some(v => v.id === savedId)) {
-            apriValigia(savedId);
+        // Ripristina stato dopo refresh
+        const _vaVid = parseInt(sessionStorage.getItem('va_vid'));
+        const _vaView = sessionStorage.getItem('va_view') || 'viewHub';
+        if (_vaVid && valigie.some(v => v.id === _vaVid)) {
+            await apriValigia(_vaVid);
+            if (_vaView === 'viewCose') apriCose();
+            else if (_vaView === 'viewDocumenti') apriDocumenti();
+            else if (_vaView === 'viewNote') apriNote();
+            return;
+        }
+        // Torna da valigia_elencocose
+        const _fromCatalog = document.referrer.includes('valigia_elencocose');
+        const _savedLS = parseInt(localStorage.getItem('valigiaAttivaId'));
+        if (_savedLS && _fromCatalog && valigie.some(v => v.id === _savedLS)) {
+            await apriValigia(_savedLS);
+            apriCose();
             return;
         }
 
@@ -336,12 +463,13 @@ async function caricaValigie() {
                 <div class="valigia-emoji">${v.emoji || '🧳'}</div>
                 <div class="valigia-info">
                     <div class="valigia-nome">${v.nome}</div>
-                    <div class="valigia-sub">${tot ? `${fatti}/${tot} cose messe` : 'Lista vuota'}</div>
-                    ${tot ? `<div class="progress-wrap" style="margin-top:6px">
-                        <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${pct}%"></div></div>
-                    </div>` : ''}
+                    <div class="valigia-sub">${tot ? `${fatti}/${tot} cose pronte` : 'Lista vuota'}</div>
+                    ${tot ? `<div style="margin-top:6px"><div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${pct}%"></div></div></div>` : ''}
                 </div>
-                <button class="btn-del-valigia" onclick="event.stopPropagation(); eliminaValigia(${v.id})" title="Elimina valigia">
+                <button class="btn-edit-valigia" onclick="event.stopPropagation(); apriModalEditValigia(${v.id})">
+                    <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                </button>
+                <button class="btn-del-valigia" onclick="event.stopPropagation(); eliminaValigia(${v.id})">
                     <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                 </button>
             </div>`;
@@ -351,35 +479,81 @@ async function caricaValigie() {
     }
 }
 
+// ── View 2: Hub ───────────────────────────────────────────────
 async function apriValigia(id) {
     valigiaCorrenteId = id;
     const v = valigie.find(x => x.id === id);
-    document.getElementById('titoloValigia').textContent = `${v.emoji || '🧳'} ${v.nome}`;
-    document.getElementById('viewLista').style.display = 'none';
-    document.getElementById('viewValigia').style.display = '';
+    document.getElementById('titoloHub').textContent = `${v.emoji || '🧳'} ${v.nome}`;
     localStorage.setItem('valigiaAttivaId', id);
-    await Promise.all([caricaItems(), caricaDocumenti()]);
+    sessionStorage.setItem('va_vid', id);
+    sessionStorage.setItem('va_view', 'viewHub');
+    showView('viewHub');
+    caricaHubStats();
+}
+
+async function caricaHubStats() {
+    document.getElementById('subCose').textContent = '…';
+    document.getElementById('subDocumenti').textContent = '…';
+    try {
+        const [items, docsRes] = await Promise.all([
+            get(`/cose_valigia?email_utente=eq.${userEmail}&valigia_id=eq.${valigiaCorrenteId}`),
+            fetch(`${URL}/documenti_valigia?email_utente=eq.${encodeURIComponent(userEmail)}&valigia_id=eq.${valigiaCorrenteId}&select=id`, { headers: HR })
+        ]);
+        const tot = items.length;
+        const fatti = items.filter(i => i.completato).length;
+        const pct = tot ? Math.round(fatti / tot * 100) : 0;
+        document.getElementById('subCose').textContent = tot ? `${tot} cose · ${fatti} pronte` : 'Nessuna cosa ancora';
+        const pw = document.getElementById('hubProgressWrap');
+        if (tot) {
+            pw.style.display = '';
+            document.getElementById('hubProgressFill').style.width = pct + '%';
+        } else {
+            pw.style.display = 'none';
+        }
+        let nDocs = 0;
+        if (docsRes.ok) {
+            const docs = await docsRes.json();
+            nDocs = Array.isArray(docs) ? docs.length : 0;
+        }
+        document.getElementById('subDocumenti').textContent = nDocs ? `${nDocs} document${nDocs === 1 ? 'o' : 'i'}` : 'Nessun documento ancora';
+        const nNote = _getNotes().length;
+        document.getElementById('subNote').textContent = nNote
+            ? `${nNote} not${nNote === 1 ? 'a' : 'e'}`
+            : 'Nessuna nota ancora';
+    } catch(e) {}
 }
 
 function tornaALista() {
     valigiaCorrenteId = null;
     localStorage.removeItem('valigiaAttivaId');
-    document.getElementById('viewValigia').style.display = 'none';
-    document.getElementById('viewLista').style.display = '';
+    sessionStorage.removeItem('va_vid');
+    sessionStorage.removeItem('va_view');
+    showView('viewLista');
     caricaValigie();
 }
 
-// ── View 2: Items ─────────────────────────────────────────────
+function tornaAlHub() {
+    sessionStorage.setItem('va_view', 'viewHub');
+    showView('viewHub');
+    caricaHubStats();
+}
+
+// ── View 3: Cose ─────────────────────────────────────────────
+function apriCose() {
+    sessionStorage.setItem('va_view', 'viewCose');
+    showView('viewCose');
+    caricaItems();
+}
+
 async function caricaItems() {
     const items = await get(`/cose_valigia?email_utente=eq.${userEmail}&valigia_id=eq.${valigiaCorrenteId}&order=nome.asc`);
-
     const tot = items.length;
     const fatti = items.filter(i => i.completato).length;
     const pct = tot ? Math.round(fatti / tot * 100) : 0;
 
     document.getElementById('statsValigia').innerHTML =
         `<span class="stat-chip">📦 ${tot} cose</span>` +
-        (tot ? `<span class="stat-chip">${fatti}/${tot} pronti</span>` : '');
+        (tot ? `<span class="stat-chip">${fatti}/${tot} pronte</span>` : '');
     document.getElementById('progressFill').style.width = pct + '%';
     document.getElementById('progressWrap').style.display = tot ? '' : 'none';
     document.getElementById('controlliValigia').style.display = tot ? 'flex' : 'none';
@@ -389,7 +563,6 @@ async function caricaItems() {
         el.innerHTML = `<div class="empty-msg">📦 Nessuna cosa ancora<br>Tocca + per aggiungere</div>`;
         return;
     }
-
     el.innerHTML = items.map(i => `
         <div class="item-row${i.completato ? ' done' : ''}" id="row-${i.id}">
             <button class="btn-check${i.completato ? ' done' : ''}" onclick="toggleCheck(${i.id}, ${i.completato})">
@@ -397,9 +570,9 @@ async function caricaItems() {
             </button>
             <span class="item-nome${i.completato ? ' barrato' : ''}">${i.nome}</span>
             <div class="qty-ctrl">
-                <button class="qty-btn" onclick="cambiaQty(${i.id}, ${i.quantita || 1}, -1)">−</button>
+                <button class="qty-btn" onclick="cambiaQty(${i.id}, -1)">−</button>
                 <span class="qty-num" id="qty-${i.id}">${i.quantita || 1}</span>
-                <button class="qty-btn" onclick="cambiaQty(${i.id}, ${i.quantita || 1}, +1)">+</button>
+                <button class="qty-btn" onclick="cambiaQty(${i.id}, +1)">+</button>
             </div>
             <button class="btn-del-item" onclick="eliminaItem(${i.id})">
                 <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -412,9 +585,10 @@ async function toggleCheck(id, stato) {
     caricaItems();
 }
 
-async function cambiaQty(id, qta, delta) {
-    const nuova = Math.max(1, qta + delta);
-    document.getElementById('qty-' + id).textContent = nuova;
+async function cambiaQty(id, delta) {
+    const el = document.getElementById('qty-' + id);
+    const nuova = Math.max(1, parseInt(el.textContent || '1') + delta);
+    el.textContent = nuova;
     await patch(`/cose_valigia?id=eq.${id}`, { quantita: nuova });
 }
 
@@ -444,70 +618,25 @@ function vaiAlCatalogo() {
     location.href = `valigia_elencocose.html?vid=${valigiaCorrenteId}`;
 }
 
-// ── Modal: Nuova valigia ──────────────────────────────────────
-function setEmoji(e) {
-    emojiScelta = e;
-    document.querySelectorAll('.emoji-opt').forEach(b => b.classList.toggle('active', b.textContent === e));
+// ── View 4: Documenti ─────────────────────────────────────────
+function apriDocumenti() {
+    sessionStorage.setItem('va_view', 'viewDocumenti');
+    showView('viewDocumenti');
+    caricaDocumenti();
 }
 
-function apriModalNuova() {
-    emojiScelta = '🧳';
-    document.getElementById('nomeNuovaValigia').value = '';
-    document.querySelectorAll('.emoji-opt').forEach((b, i) => b.classList.toggle('active', i === 0));
-    document.getElementById('modalNuova').classList.add('open');
-    setTimeout(() => document.getElementById('nomeNuovaValigia').focus(), 300);
-}
-
-async function salvaValigia() {
-    const nome = document.getElementById('nomeNuovaValigia').value.trim();
-    if (!nome) { toast('Inserisci il nome'); return; }
-    await post('/valigie', { email_utente: userEmail, nome, emoji: emojiScelta });
-    document.getElementById('modalNuova').classList.remove('open');
-    toast('✓ Valigia creata');
-    caricaValigie();
-}
-
-// ── Modal: Aggiungi cosa ──────────────────────────────────────
-function apriModalAggiungi() {
-    document.getElementById('nomeNuovaCosa').value = '';
-    document.getElementById('qtaNuovaCosa').value = '1';
-    document.getElementById('modalAggiungi').classList.add('open');
-    setTimeout(() => document.getElementById('nomeNuovaCosa').focus(), 300);
-}
-
-async function salvaCosa() {
-    const nome = document.getElementById('nomeNuovaCosa').value.trim();
-    if (!nome) { toast('Inserisci il nome'); return; }
-    const qta = parseInt(document.getElementById('qtaNuovaCosa').value) || 1;
-    await post('/cose_valigia', { email_utente: userEmail, nome, quantita: qta, completato: false, valigia_id: valigiaCorrenteId });
-    document.getElementById('modalAggiungi').classList.remove('open');
-    caricaItems();
-}
-
-// ── Elimina valigia ───────────────────────────────────────────
-async function eliminaValigia(id) {
-    const v = valigie.find(x => x.id === id);
-    if (!confirm(`Eliminare la valigia "${v.nome}" e tutte le sue cose?`)) return;
-    await del(`/cose_valigia?email_utente=eq.${userEmail}&valigia_id=eq.${id}`);
-    await del(`/valigie?id=eq.${id}`);
-    toast('Valigia eliminata');
-    caricaValigie();
-}
-
-// ── Documenti di viaggio ──────────────────────────────────────
 async function caricaDocumenti() {
     const el = document.getElementById('documentiValigia');
     try {
         let r = await fetch(`${URL}/documenti_valigia?email_utente=eq.${encodeURIComponent(userEmail)}&valigia_id=eq.${valigiaCorrenteId}&order=ordine.asc,created_at.asc&select=id,nome,tipo,dimensione,ordine`, { headers: HR });
         if (!r.ok) {
-            // Colonna ordine non ancora presente → fallback senza ordine
             r = await fetch(`${URL}/documenti_valigia?email_utente=eq.${encodeURIComponent(userEmail)}&valigia_id=eq.${valigiaCorrenteId}&order=created_at.asc&select=id,nome,tipo,dimensione`, { headers: HR });
         }
         if (!r.ok) { docsAttuali = []; el.innerHTML = ''; return; }
         const docs = await r.json();
         if (!Array.isArray(docs) || !docs.length) {
             docsAttuali = [];
-            el.innerHTML = `<div style="text-align:center;padding:14px 16px;color:#bbb;font-size:13px;font-weight:700">Nessun documento ancora</div>`;
+            el.innerHTML = `<div class="empty-msg">📄 Nessun documento ancora<br>Tocca + per aggiungere</div>`;
             return;
         }
         docsAttuali = docs;
@@ -518,7 +647,10 @@ async function caricaDocumenti() {
 function renderDocumenti() {
     const el = document.getElementById('documentiValigia');
     const docs = docsAttuali;
-    if (!docs.length) { el.innerHTML = `<div style="text-align:center;padding:14px 16px;color:#bbb;font-size:13px;font-weight:700">Nessun documento ancora</div>`; return; }
+    if (!docs.length) {
+        el.innerHTML = `<div class="empty-msg">📄 Nessun documento ancora<br>Tocca + per aggiungere</div>`;
+        return;
+    }
     el.innerHTML = docs.map((d, i) => {
         const isPdf = d.tipo === 'application/pdf' || (d.nome && d.nome.toLowerCase().endsWith('.pdf'));
         const icon = isPdf ? '📄' : '🖼️';
@@ -546,12 +678,10 @@ async function spostaDoc(idx, dir) {
     if (newIdx < 0 || newIdx >= docsAttuali.length) return;
     const docA = docsAttuali[idx];
     const docB = docsAttuali[newIdx];
-    // Swap in local array and re-render immediately
     docsAttuali[idx] = docB;
     docsAttuali[newIdx] = docA;
     docsAttuali.forEach((d, i) => d.ordine = i + 1);
     renderDocumenti();
-    // Persist
     await Promise.all([
         patch(`/documenti_valigia?id=eq.${docA.id}`, { ordine: newIdx + 1 }),
         patch(`/documenti_valigia?id=eq.${docB.id}`, { ordine: idx + 1 })
@@ -559,7 +689,6 @@ async function spostaDoc(idx, dir) {
 }
 
 async function apriDocumento(id, tipo) {
-    // Apri subito (gesto utente attivo) — prima di qualsiasi await
     const win = window.open('about:blank', '_blank');
     if (!win) { toast('Consenti i popup per aprire i documenti'); return; }
     win.document.write('<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width"><style>body{margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif;color:#aaa;font-size:16px;background:#f5f6f8}</style></head><body>Caricamento…</body></html>');
@@ -585,39 +714,100 @@ async function apriDocumento(id, tipo) {
     }
 }
 
-function bufToB64(buffer) {
-    let s = '';
-    const b = new Uint8Array(buffer);
-    for (let i = 0; i < b.length; i += 8192) s += String.fromCharCode.apply(null, b.subarray(i, i + 8192));
-    return btoa(s);
+async function rinominaDocumento(id, nomeAttuale) {
+    const nuovo = prompt('Nome documento:', nomeAttuale);
+    if (!nuovo || nuovo.trim() === nomeAttuale) return;
+    await patch(`/documenti_valigia?id=eq.${id}`, { nome: nuovo.trim() });
+    caricaDocumenti();
+    toast('✓ Rinominato');
 }
 
-async function comprimiGzip(buffer) {
-    try {
-        const cs = new CompressionStream('gzip');
-        const w = cs.writable.getWriter();
-        w.write(new Uint8Array(buffer)); w.close();
-        const chunks = []; const rd = cs.readable.getReader();
-        while (true) { const { done, value } = await rd.read(); if (done) break; chunks.push(value); }
-        const tot = chunks.reduce((a, c) => a + c.length, 0);
-        const out = new Uint8Array(tot); let off = 0;
-        for (const c of chunks) { out.set(c, off); off += c.length; }
-        return out.buffer;
-    } catch(e) { return buffer; }
+async function eliminaDocumento(id) {
+    if (!confirm('Eliminare questo documento?')) return;
+    await del(`/documenti_valigia?id=eq.${id}`);
+    caricaDocumenti();
+    toast('Documento eliminato');
 }
 
-async function decomprimiGzip(buffer) {
-    const ds = new DecompressionStream('gzip');
-    const w = ds.writable.getWriter();
-    w.write(new Uint8Array(buffer)); w.close();
-    const chunks = []; const rd = ds.readable.getReader();
-    while (true) { const { done, value } = await rd.read(); if (done) break; chunks.push(value); }
-    const tot = chunks.reduce((a, c) => a + c.length, 0);
-    const out = new Uint8Array(tot); let off = 0;
-    for (const c of chunks) { out.set(c, off); off += c.length; }
-    return out.buffer;
+// ── Modal: Nuova valigia ──────────────────────────────────────
+function setEmoji(e) {
+    emojiScelta = e;
+    document.querySelectorAll('#emojiPickerNew .emoji-opt').forEach(b => b.classList.toggle('active', b.textContent === e));
 }
 
+function setEmojiEdit(e) {
+    emojiEditScelta = e;
+    document.querySelectorAll('#emojiPickerEdit .emoji-opt').forEach(b => b.classList.toggle('active', b.textContent === e));
+}
+
+function apriModalNuova() {
+    emojiScelta = '🧳';
+    document.getElementById('nomeNuovaValigia').value = '';
+    renderEmojiPicker('emojiPickerNew', '🧳', 'setEmoji');
+    document.getElementById('modalNuova').classList.add('open');
+    setTimeout(() => document.getElementById('nomeNuovaValigia').focus(), 300);
+}
+
+function apriModalEditValigia(id) {
+    valigiaEditId = id;
+    const v = valigie.find(x => x.id === id);
+    emojiEditScelta = v.emoji || '🧳';
+    document.getElementById('nomeEditValigia').value = v.nome;
+    renderEmojiPicker('emojiPickerEdit', emojiEditScelta, 'setEmojiEdit');
+    document.getElementById('modalEditValigia').classList.add('open');
+    setTimeout(() => document.getElementById('nomeEditValigia').focus(), 300);
+}
+
+async function salvaEditValigia() {
+    const nome = document.getElementById('nomeEditValigia').value.trim();
+    if (!nome) { toast('Inserisci il nome'); return; }
+    await patch(`/valigie?id=eq.${valigiaEditId}`, { nome, emoji: emojiEditScelta });
+    document.getElementById('modalEditValigia').classList.remove('open');
+    toast('✓ Valigia aggiornata');
+    if (valigiaCorrenteId === valigiaEditId) {
+        document.getElementById('titoloHub').textContent = `${emojiEditScelta} ${nome}`;
+    }
+    caricaValigie();
+}
+
+async function salvaValigia() {
+    const nome = document.getElementById('nomeNuovaValigia').value.trim();
+    if (!nome) { toast('Inserisci il nome'); return; }
+    await post('/valigie', { email_utente: userEmail, nome, emoji: emojiScelta });
+    document.getElementById('modalNuova').classList.remove('open');
+    toast('✓ Valigia creata');
+    caricaValigie();
+}
+
+// ── Modal: Aggiungi cosa ──────────────────────────────────────
+function apriModalAggiungi() {
+    document.getElementById('nomeNuovaCosa').value = '';
+    document.getElementById('qtaNuovaCosa').value = '1';
+    document.getElementById('modalAggiungi').classList.add('open');
+    setTimeout(() => document.getElementById('nomeNuovaCosa').focus(), 300);
+}
+
+async function salvaCosa() {
+    const nome = document.getElementById('nomeNuovaCosa').value.trim();
+    if (!nome) { toast('Inserisci il nome'); return; }
+    const qta = parseInt(document.getElementById('qtaNuovaCosa').value) || 1;
+    const res = await post('/cose_valigia', { email_utente: userEmail, nome, quantita: qta, completato: false, valigia_id: valigiaCorrenteId });
+    if (!res.ok) { toast('Errore nel salvataggio'); return; }
+    document.getElementById('modalAggiungi').classList.remove('open');
+    caricaItems();
+}
+
+// ── Elimina valigia ───────────────────────────────────────────
+async function eliminaValigia(id) {
+    const v = valigie.find(x => x.id === id);
+    if (!confirm(`Eliminare la valigia "${v.nome}" e tutte le sue cose?`)) return;
+    await del(`/cose_valigia?email_utente=eq.${userEmail}&valigia_id=eq.${id}`);
+    await del(`/valigie?id=eq.${id}`);
+    toast('Valigia eliminata');
+    caricaValigie();
+}
+
+// ── Modal: Documento ──────────────────────────────────────────
 function apriModalDocumento() {
     fileSelezionatoObj = null;
     document.getElementById('fileInput').value = '';
@@ -657,7 +847,7 @@ async function comprimeImmagine(file) {
         reader.onerror = reject;
         reader.onload = e => {
             const img = new Image();
-            img.onerror = () => resolve(file); // not an image → return original
+            img.onerror = () => resolve(file);
             img.onload = () => {
                 const MAX = 1600;
                 const scale = Math.min(1, MAX / Math.max(img.width, img.height));
@@ -666,14 +856,46 @@ async function comprimeImmagine(file) {
                 canvas.height = Math.round(img.height * scale);
                 canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
                 canvas.toBlob(blob => {
-                    const outName = file.name.replace(/\.(png|jpeg|jpg)$/i, '.jpg');
-                    resolve(new File([blob], outName, { type: 'image/jpeg' }));
+                    resolve(new File([blob], file.name.replace(/\.(png|jpeg|jpg)$/i, '.jpg'), { type: 'image/jpeg' }));
                 }, 'image/jpeg', 0.82);
             };
             img.src = e.target.result;
         };
         reader.readAsDataURL(file);
     });
+}
+
+function bufToB64(buffer) {
+    let s = '';
+    const b = new Uint8Array(buffer);
+    for (let i = 0; i < b.length; i += 8192) s += String.fromCharCode.apply(null, b.subarray(i, i + 8192));
+    return btoa(s);
+}
+
+async function comprimiGzip(buffer) {
+    try {
+        const cs = new CompressionStream('gzip');
+        const w = cs.writable.getWriter();
+        w.write(new Uint8Array(buffer)); w.close();
+        const chunks = []; const rd = cs.readable.getReader();
+        while (true) { const { done, value } = await rd.read(); if (done) break; chunks.push(value); }
+        const tot = chunks.reduce((a, c) => a + c.length, 0);
+        const out = new Uint8Array(tot); let off = 0;
+        for (const c of chunks) { out.set(c, off); off += c.length; }
+        return out.buffer;
+    } catch(e) { return buffer; }
+}
+
+async function decomprimiGzip(buffer) {
+    const ds = new DecompressionStream('gzip');
+    const w = ds.writable.getWriter();
+    w.write(new Uint8Array(buffer)); w.close();
+    const chunks = []; const rd = ds.readable.getReader();
+    while (true) { const { done, value } = await rd.read(); if (done) break; chunks.push(value); }
+    const tot = chunks.reduce((a, c) => a + c.length, 0);
+    const out = new Uint8Array(tot); let off = 0;
+    for (const c of chunks) { out.set(c, off); off += c.length; }
+    return out.buffer;
 }
 
 async function uploadDocumento() {
@@ -686,10 +908,8 @@ async function uploadDocumento() {
     prog.style.display = '';
     fill.style.width = '10%';
     document.getElementById('uploadError').style.display = 'none';
-
     try {
         let b64, tipoFinale, dimensioneFinale;
-
         if (rilevaPdf(fileSelezionatoObj)) {
             const buf = await fileSelezionatoObj.arrayBuffer();
             fill.style.width = '30%';
@@ -714,21 +934,11 @@ async function uploadDocumento() {
                 reader.readAsDataURL(imgCompressed);
             });
         }
-
         fill.style.width = '65%';
         btn.textContent = 'Caricamento…';
-
         const res = await fetch(`${URL}/documenti_valigia`, {
-            method: 'POST',
-            headers: H,
-            body: JSON.stringify({
-                valigia_id: valigiaCorrenteId,
-                email_utente: userEmail,
-                nome: fileSelezionatoObj.name,
-                tipo: tipoFinale,
-                data: b64,
-                dimensione: dimensioneFinale
-            })
+            method: 'POST', headers: H,
+            body: JSON.stringify({ valigia_id: valigiaCorrenteId, email_utente: userEmail, nome: fileSelezionatoObj.name, tipo: tipoFinale, data: b64, dimensione: dimensioneFinale })
         });
         fill.style.width = '100%';
         if (!res.ok) {
@@ -737,9 +947,7 @@ async function uploadDocumento() {
             throw new Error(detail);
         }
         const rispKb = Math.round((fileSelezionatoObj.size - dimensioneFinale) / 1024);
-        const msg = rispKb > 0
-            ? `✓ Caricato · ${(dimensioneFinale / 1024).toFixed(0)} KB (risparmiati ${rispKb} KB)`
-            : `✓ Documento caricato`;
+        const msg = rispKb > 0 ? `✓ Caricato · ${(dimensioneFinale/1024).toFixed(0)} KB (risparmiati ${rispKb} KB)` : `✓ Documento caricato`;
         setTimeout(() => {
             document.getElementById('modalDocumento').classList.remove('open');
             caricaDocumenti();
@@ -756,22 +964,113 @@ async function uploadDocumento() {
     }
 }
 
-async function rinominaDocumento(id, nomeAttuale) {
-    const nuovo = prompt('Nome documento:', nomeAttuale);
-    if (!nuovo || nuovo.trim() === nomeAttuale) return;
-    await patch(`/documenti_valigia?id=eq.${id}`, { nome: nuovo.trim() });
-    caricaDocumenti();
-    toast('✓ Rinominato');
+// ── View 5: Note ─────────────────────────────────────────────
+let notaEditId = null;
+
+function _noteKey() { return `notes_valigia_${valigiaCorrenteId}`; }
+
+function _getNotes() {
+    // Migrazione dal vecchio formato stringa singola
+    const oldKey = `note_valigia_${valigiaCorrenteId}`;
+    const oldVal = localStorage.getItem(oldKey);
+    if (oldVal !== null) {
+        const notes = oldVal.trim()
+            ? [{ id: Date.now(), testo: oldVal.trim(), creatoIl: new Date().toISOString() }]
+            : [];
+        localStorage.setItem(_noteKey(), JSON.stringify(notes));
+        localStorage.removeItem(oldKey);
+        return notes;
+    }
+    try { return JSON.parse(localStorage.getItem(_noteKey()) || '[]'); } catch(e) { return []; }
 }
 
-async function eliminaDocumento(id) {
-    if (!confirm('Eliminare questo documento?')) return;
-    await del(`/documenti_valigia?id=eq.${id}`);
-    caricaDocumenti();
-    toast('Documento eliminato');
+function _setNotes(notes) {
+    localStorage.setItem(_noteKey(), JSON.stringify(notes));
 }
 
-// ── Close modals on backdrop click ───────────────────────────
+function _fmtData(iso) {
+    const d = new Date(iso);
+    return d.toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric' }) +
+           ', ' + d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+}
+
+function apriNote() {
+    sessionStorage.setItem('va_view', 'viewNote');
+    showView('viewNote');
+    renderNote();
+}
+
+function renderNote() {
+    const notes = _getNotes();
+    const el = document.getElementById('listaNote');
+    if (!notes.length) {
+        el.innerHTML = `<div class="empty-msg">📝 Nessuna nota ancora<br><small style="font-weight:600;color:#ccc">Tocca + per aggiungerne una</small></div>`;
+        return;
+    }
+    el.innerHTML = notes.map(n => {
+        const preview = n.testo.trim();
+        return `<div class="note-card" onclick="apriEditNota(${n.id})">
+            <div class="note-card-body">
+                <div class="note-preview">${preview}</div>
+                <div class="note-data">${_fmtData(n.creatoIl)}</div>
+            </div>
+            <button class="btn-del-nota" onclick="event.stopPropagation(); eliminaNota(${n.id})">
+                <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>`;
+    }).join('');
+}
+
+function apriNuovaNota() {
+    notaEditId = null;
+    document.getElementById('notaTextarea').value = '';
+    document.getElementById('btnEliminaNota').style.display = 'none';
+    document.getElementById('modalNota').classList.add('open');
+    setTimeout(() => document.getElementById('notaTextarea').focus(), 300);
+}
+
+function apriEditNota(id) {
+    notaEditId = id;
+    const notes = _getNotes();
+    const nota = notes.find(n => n.id === id);
+    if (!nota) return;
+    document.getElementById('notaTextarea').value = nota.testo;
+    document.getElementById('btnEliminaNota').style.display = '';
+    document.getElementById('modalNota').classList.add('open');
+    setTimeout(() => document.getElementById('notaTextarea').focus(), 300);
+}
+
+function salvaNotaModal() {
+    const testo = document.getElementById('notaTextarea').value.trim();
+    if (!testo) { toast('Scrivi qualcosa prima di salvare'); return; }
+    const notes = _getNotes();
+    if (notaEditId !== null) {
+        const idx = notes.findIndex(n => n.id === notaEditId);
+        if (idx !== -1) notes[idx].testo = testo;
+    } else {
+        notes.unshift({ id: Date.now(), testo, creatoIl: new Date().toISOString() });
+    }
+    _setNotes(notes);
+    document.getElementById('modalNota').classList.remove('open');
+    renderNote();
+    toast('✓ Nota salvata');
+}
+
+function eliminaNotaCorrente() {
+    if (notaEditId === null) return;
+    eliminaNota(notaEditId);
+    document.getElementById('modalNota').classList.remove('open');
+}
+
+function eliminaNota(id) {
+    if (!confirm('Eliminare questa nota?')) return;
+    const notes = _getNotes().filter(n => n.id !== id);
+    _setNotes(notes);
+    renderNote();
+    toast('Nota eliminata');
+}
+
+// ── Close modals on backdrop ──────────────────────────────────
 document.querySelectorAll('.modal-overlay').forEach(m => {
     m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
 });

@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <title>Listando - Debiti & Crediti</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/logolistando.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Listando">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -396,6 +401,7 @@ function render() {
 
 function setTab(t) {
     tab = t;
+    sessionStorage.setItem('deb_tab', t);
     TABS.forEach(id => {
         const el = document.getElementById('tab' + id.charAt(0).toUpperCase() + id.slice(1));
         el.className = 'tab' + (t === id ? ' active ' + id : '');
@@ -520,7 +526,10 @@ function toast(msg) {
     toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
 }
 
-carica();
+carica().then(() => {
+    const savedTab = sessionStorage.getItem('deb_tab');
+    if (savedTab) setTab(savedTab);
+});
 </script>
 </body>
 </html>

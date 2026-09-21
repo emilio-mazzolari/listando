@@ -278,6 +278,18 @@
         .macro-cat-chips::-webkit-scrollbar { display: none; }
         .macro-cat-chip { flex-shrink: 0; padding: 5px 10px; border-radius: 10px; border: 2px solid var(--grey); background: var(--white); font-size: 12px; font-weight: 800; cursor: pointer; white-space: nowrap; font-family: inherit; display: flex; align-items: center; gap: 4px; color: #555; transition: all 0.15s; }
         .macro-cat-chip.active { border-color: var(--accent); background: var(--accent-bg); color: #9f1239; }
+        /* veicolo chips */
+        .vei-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+        .vei-chip { padding: 7px 13px; border-radius: 20px; border: 1.5px solid var(--grey); background: var(--white); font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; font-family: inherit; color: #555; transition: all 0.15s; }
+        .vei-chip.active { border-color: #5856d6; background: rgba(88,86,214,0.1); color: #5856d6; }
+        /* budget da piano */
+        .bp-row { display: flex; align-items: center; gap: 12px; padding: 11px 4px; border-bottom: 1px solid var(--grey-light); cursor: pointer; }
+        .bp-cb { width: 18px; height: 18px; flex-shrink: 0; cursor: pointer; accent-color: #5856d6; }
+        .bp-icon { font-size: 20px; flex-shrink: 0; }
+        .bp-info { flex: 1; min-width: 0; }
+        .bp-nome { font-weight: 800; font-size: 13px; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .bp-cat { font-size: 11px; color: #888; font-weight: 700; }
+        .bp-costo { font-weight: 900; font-size: 14px; flex-shrink: 0; color: #5856d6; }
 
         /* category suggestion banner */
         .cat-suggerita-banner { background: var(--accent-bg); border: 1.5px solid var(--accent); border-radius: 10px; padding: 9px 12px; margin-top: 8px; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: #9f1239; }
@@ -336,9 +348,9 @@
         .cost-field label { font-size: 11px; font-weight: 800; color: #666; text-transform: uppercase; letter-spacing: 0.3px; display: block; margin-bottom: 3px; }
         .cost-field input { width: 100%; padding: 9px 10px; border-radius: 12px; border: 2px solid var(--grey); font-size: 14px; font-family: inherit; outline: none; }
         .cost-field input:focus { border-color: #5856d6; }
-        .piano-add-row { display: flex; gap: 8px; margin-bottom: 14px; }
-        .btn-add-spost { flex: 1; padding: 12px; border-radius: 14px; border: 2px solid #5856d6; background: rgba(88,86,214,0.06); color: #5856d6; font-weight: 800; font-size: 14px; cursor: pointer; font-family: inherit; }
-        .btn-add-tappa { flex: 1; padding: 12px; border-radius: 14px; border: 2px solid var(--teal); background: rgba(48,176,199,0.06); color: var(--teal); font-weight: 800; font-size: 14px; cursor: pointer; font-family: inherit; }
+        .piano-add-row { display: flex; gap: 10px; margin-bottom: 16px; }
+        .btn-add-spost { flex: 1; padding: 16px 10px; border-radius: 16px; border: 2.5px solid #5856d6; background: #5856d6; color: white; font-weight: 900; font-size: 15px; cursor: pointer; font-family: inherit; letter-spacing: 0.1px; }
+        .btn-add-tappa { flex: 1; padding: 16px 10px; border-radius: 16px; border: 2.5px solid var(--teal); background: var(--teal); color: white; font-weight: 900; font-size: 15px; cursor: pointer; font-family: inherit; letter-spacing: 0.1px; }
 
         /* Budget */
         .budget-summary { background: var(--white); border-radius: 16px; padding: 16px; margin-bottom: 14px; box-shadow: var(--shadow); }
@@ -436,15 +448,18 @@
         <!-- TAB PIANO -->
         <div id="tabPiano" style="display:none">
             <div class="piano-add-row">
-                <button class="btn-add-spost" onclick="apriModalNuovoPianoItem('spostamento')">🚗 Spostamento</button>
-                <button class="btn-add-tappa" onclick="apriModalNuovoPianoItem('tappa')">📍 Tappa</button>
+                <button class="btn-add-spost" onclick="apriModalNuovoPianoItem('spostamento')">Aggiungi spostamento</button>
+                <button class="btn-add-tappa" onclick="apriModalNuovoPianoItem('tappa')">Aggiungi tappa</button>
             </div>
             <div id="elencoPiano"></div>
         </div>
 
         <!-- TAB BUDGET -->
         <div id="tabBudget" style="display:none">
-            <button class="btn-save-modal" onclick="apriModalNuovoBudgetItem()" style="background:var(--green);margin-bottom:12px">+ Aggiungi voce budget</button>
+            <div style="display:flex;gap:8px;margin-bottom:12px">
+                <button class="btn-save-modal" onclick="apriModalNuovoBudgetItem()" style="background:var(--green);margin:0;flex:1">+ Voce libera</button>
+                <button class="btn-save-modal" onclick="apriModalBudgetDaPiano()" style="background:#5856d6;margin:0;flex:1">+ Da piano</button>
+            </div>
             <div id="riepilogoBudget"></div>
             <div id="elencoBudget"></div>
         </div>
@@ -681,17 +696,34 @@
                 <label class="form-label" style="font-size:11px">Data arrivo (se diversa)</label>
                 <input class="form-input" id="pDataFine" type="date" style="margin:0;padding:9px 8px">
             </div>
-            <label class="form-label" style="font-size:11px">Tipo veicolo (per stima)</label>
-            <select class="form-input" id="pTipoVeicolo" style="margin-bottom:10px;padding:10px 12px">
-                <option value="media_benzina">🚗 Auto media — benzina (~7,5 L/100km)</option>
-                <option value="piccola_benzina">🚗 Auto piccola — benzina (~6 L/100km)</option>
-                <option value="grande_benzina">🚙 Auto grande/SUV — benzina (~9 L/100km)</option>
-                <option value="media_diesel">🚗 Auto media — diesel (~6 L/100km)</option>
-                <option value="grande_diesel">🚙 Auto grande/SUV — diesel (~7,5 L/100km)</option>
-                <option value="furgone">🚐 Furgone (~12 L/100km)</option>
-                <option value="moto">🏍️ Moto (~4 L/100km)</option>
-                <option value="elettrica">⚡ Elettrica (no carburante)</option>
-            </select>
+            <label class="form-label" style="font-size:11px">Mezzo</label>
+            <div class="vei-chips" id="chipsMezzo">
+                <button class="vei-chip active" data-val="auto" onclick="setMezzo('auto')">Auto</button>
+                <button class="vei-chip" data-val="moto" onclick="setMezzo('moto')">Moto</button>
+                <button class="vei-chip" data-val="furgone" onclick="setMezzo('furgone')">Furgone</button>
+                <button class="vei-chip" data-val="treno" onclick="setMezzo('treno')">Treno</button>
+                <button class="vei-chip" data-val="aereo" onclick="setMezzo('aereo')">Aereo</button>
+                <button class="vei-chip" data-val="nave" onclick="setMezzo('nave')">Nave</button>
+                <button class="vei-chip" data-val="altro" onclick="setMezzo('altro')">Altro</button>
+            </div>
+            <div id="rowGrandezza">
+                <label class="form-label" style="font-size:11px">Grandezza</label>
+                <div class="vei-chips" id="chipsGrandezza">
+                    <button class="vei-chip" data-val="piccola" onclick="setGrandezza('piccola')">Piccola</button>
+                    <button class="vei-chip active" data-val="media" onclick="setGrandezza('media')">Media</button>
+                    <button class="vei-chip" data-val="grande" onclick="setGrandezza('grande')">Grande / SUV</button>
+                </div>
+            </div>
+            <div id="rowCarburante">
+                <label class="form-label" style="font-size:11px">Carburante</label>
+                <div class="vei-chips" id="chipsCarburante">
+                    <button class="vei-chip active" data-val="benzina" onclick="setCarburante('benzina')">Benzina</button>
+                    <button class="vei-chip" data-val="diesel" onclick="setCarburante('diesel')">Diesel</button>
+                    <button class="vei-chip" data-val="ibrida" onclick="setCarburante('ibrida')">Ibrida</button>
+                    <button class="vei-chip" data-val="gpl" onclick="setCarburante('gpl')">GPL</button>
+                    <button class="vei-chip" data-val="elettrica" onclick="setCarburante('elettrica')">Elettrica</button>
+                </div>
+            </div>
             <label class="form-label">Costi spostamento</label>
             <div class="cost-row">
                 <div class="cost-field"><label>⛽ Carburante €</label><input type="number" id="pCostoCarburante" min="0" step="0.01" placeholder="0,00"></div>
@@ -701,8 +733,9 @@
                 <div class="cost-field"><label>🅿️ Parcheggio €</label><input type="number" id="pCostoParcheggio" min="0" step="0.01" placeholder="0,00"></div>
                 <div class="cost-field"><label>🎫 Biglietto trsp. €</label><input type="number" id="pCostoTrasporto" min="0" step="0.01" placeholder="0,00"></div>
             </div>
-            <label class="form-label">Mezzo / Riferimento</label>
-            <input class="form-input" id="pMezzo" placeholder="es. FR4521, IC 700, targa AB123…" type="text">
+            <label class="form-label">Targa / riferimento</label>
+            <input class="form-input" id="pMezzo" placeholder="es. AB123CD, IC 700…" type="text" oninput="onTargaInput(this.value)">
+            <div id="targaNota" style="font-size:11px;color:var(--green);font-weight:700;margin-top:-6px;margin-bottom:8px;display:none"></div>
         </div>
 
         <!-- SEZIONE TAPPA -->
@@ -795,6 +828,36 @@
         <button class="btn-save-modal" style="background:var(--green);margin-top:10px" onclick="salvaBudgetItem()">SALVA</button>
         <button class="btn-save-modal" id="btnEliminaBudget" style="display:none;background:#fff0f0;color:var(--red);border:2px solid #fcc;margin-top:8px" onclick="eliminaBudgetItemModal()">ELIMINA</button>
         <button style="width:100%;padding:14px;border-radius:14px;border:2px solid var(--grey);background:var(--white);font-weight:800;font-size:15px;cursor:pointer;font-family:inherit;margin-top:8px;color:#aaa" onclick="document.getElementById('modalBudgetItem').classList.remove('open')">Chiudi</button>
+    </div>
+</div>
+
+<!-- Modal: Budget da Piano -->
+<div class="modal-overlay" id="modalPianoBudget">
+    <div class="modal-box">
+        <div class="modal-handle"></div>
+        <div class="modal-title">Aggiungi dal Piano</div>
+        <div style="display:flex;background:var(--grey-light);border-radius:12px;padding:3px;gap:2px;margin-bottom:14px">
+            <button class="inner-tab active" id="bpTabSingole" onclick="mostraBpTab('singole')">Voci singole</button>
+            <button class="inner-tab" id="bpTabCategoria" onclick="mostraBpTab('categoria')">Per categoria</button>
+        </div>
+        <div id="bpSezSingole">
+            <div style="display:flex;justify-content:flex-end;margin-bottom:6px">
+                <button onclick="bpSelezionaTutto()" style="font-size:12px;font-weight:800;color:#5856d6;background:none;border:none;cursor:pointer;font-family:inherit">Seleziona tutto</button>
+            </div>
+            <div id="bpListaSingole"></div>
+        </div>
+        <div id="bpSezCategoria" style="display:none">
+            <div style="display:flex;justify-content:flex-end;margin-bottom:6px">
+                <button onclick="bpSelezionaTutto()" style="font-size:12px;font-weight:800;color:#5856d6;background:none;border:none;cursor:pointer;font-family:inherit">Seleziona tutto</button>
+            </div>
+            <div id="bpListaCategoria"></div>
+        </div>
+        <div id="bpTotaleRow" style="display:none;justify-content:space-between;align-items:center;padding:12px 4px;border-top:1.5px solid var(--grey-light);margin-top:6px">
+            <span style="font-weight:800;font-size:13px;color:#555">Totale selezionato</span>
+            <span id="bpTotaleVal" style="font-weight:900;font-size:16px;color:var(--green)">€0.00</span>
+        </div>
+        <button class="btn-save-modal" style="background:var(--green);margin-top:10px" onclick="aggiungiDaPiano()">Aggiungi al budget</button>
+        <button style="width:100%;padding:14px;border-radius:14px;border:2px solid var(--grey);background:var(--white);font-weight:800;font-size:15px;cursor:pointer;font-family:inherit;margin-top:8px;color:#aaa" onclick="document.getElementById('modalPianoBudget').classList.remove('open')">Chiudi</button>
     </div>
 </div>
 
@@ -2521,7 +2584,7 @@ async function salvaModificheViaggio() {
 
 // ── Piano ─────────────────────────────────────────────────────────
 const SPOSTAMENTO_TIPI = ['auto','moto','volo','treno','bus','nave','traghetto','trasferimento','bici','piedi'];
-const TAPPA_TIPI = ['ristorante','bar','caffe','alloggio','museo','chiesa','centro_storico','parco','spiaggia','escursione','shopping','evento','mercato','benessere','ospedale','altro'];
+const TAPPA_TIPI = ['ristorante','bar','caffe','alloggio','museo','chiesa','centro_storico','parco','spiaggia','escursione','shopping','evento','mercato','benessere','yoga','fitness','ospedale','altro'];
 
 const PIANO_TIPO_ICONS = {
     // Spostamenti
@@ -2531,7 +2594,7 @@ const PIANO_TIPO_ICONS = {
     ristorante:'🍽️', bar:'🍺', caffe:'☕', alloggio:'🏨',
     museo:'🏛️', chiesa:'⛪', centro_storico:'🏰', parco:'🌳', spiaggia:'🏖️',
     escursione:'🥾', shopping:'🛍️', evento:'🎭', mercato:'🏪',
-    benessere:'💆', ospedale:'🏥', altro:'📌',
+    benessere:'💆', yoga:'🧘', fitness:'🏋️', ospedale:'🏥', altro:'📌',
     // Legacy (pre-redesign)
     pernottamento:'🏨', attivita:'🎭',
 };
@@ -2541,21 +2604,107 @@ const PIANO_TIPO_LABEL = {
     ristorante:'Ristorante', bar:'Bar', caffe:'Caffè', alloggio:'Alloggio',
     museo:'Museo', chiesa:'Chiesa', centro_storico:'Centro storico', parco:'Parco', spiaggia:'Spiaggia',
     escursione:'Escursione', shopping:'Shopping', evento:'Evento', mercato:'Mercato',
-    benessere:'Benessere', ospedale:'Medico', altro:'Altro',
+    benessere:'Benessere', yoga:'Yoga', fitness:'Fitness', ospedale:'Medico', altro:'Altro',
     pernottamento:'Pernottamento', attivita:'Attività',
 };
 // Maps old tipo values to their nearest new equivalents
 const TIPO_LEGACY_MAP = { pernottamento: 'alloggio', attivita: 'evento' };
-const CONSUMI_VEICOLO = {
-    media_benzina: { l100: 7.5, prezzol: 1.75 },
-    piccola_benzina: { l100: 6.0, prezzol: 1.75 },
-    grande_benzina: { l100: 9.0, prezzol: 1.75 },
-    media_diesel:   { l100: 6.0, prezzol: 1.65 },
-    grande_diesel:  { l100: 7.5, prezzol: 1.65 },
-    furgone:        { l100: 12,  prezzol: 1.65 },
-    moto:           { l100: 4.0, prezzol: 1.75 },
-    elettrica:      { l100: 0,   prezzol: 0 },
+const CONSUMI = {
+    auto: {
+        piccola: { benzina:{l100:6.0,prezzol:1.75}, diesel:{l100:5.0,prezzol:1.65}, ibrida:{l100:4.5,prezzol:1.75}, gpl:{l100:8.5,prezzol:0.85}, elettrica:{l100:0,prezzol:0} },
+        media:   { benzina:{l100:7.5,prezzol:1.75}, diesel:{l100:6.0,prezzol:1.65}, ibrida:{l100:5.5,prezzol:1.75}, gpl:{l100:10, prezzol:0.85}, elettrica:{l100:0,prezzol:0} },
+        grande:  { benzina:{l100:10, prezzol:1.75}, diesel:{l100:8.0,prezzol:1.65}, ibrida:{l100:7.0,prezzol:1.75}, gpl:{l100:13, prezzol:0.85}, elettrica:{l100:0,prezzol:0} },
+    },
+    moto: {
+        piccola: { benzina:{l100:3.5,prezzol:1.75}, diesel:{l100:3.5,prezzol:1.65}, ibrida:{l100:3.0,prezzol:1.75}, gpl:{l100:0,prezzol:0}, elettrica:{l100:0,prezzol:0} },
+        media:   { benzina:{l100:4.5,prezzol:1.75}, diesel:{l100:4.0,prezzol:1.65}, ibrida:{l100:3.5,prezzol:1.75}, gpl:{l100:0,prezzol:0}, elettrica:{l100:0,prezzol:0} },
+        grande:  { benzina:{l100:6.0,prezzol:1.75}, diesel:{l100:5.5,prezzol:1.65}, ibrida:{l100:5.0,prezzol:1.75}, gpl:{l100:0,prezzol:0}, elettrica:{l100:0,prezzol:0} },
+    },
+    furgone: {
+        piccola: { benzina:{l100:10,prezzol:1.75}, diesel:{l100:9, prezzol:1.65}, ibrida:{l100:8, prezzol:1.75}, gpl:{l100:0,prezzol:0}, elettrica:{l100:0,prezzol:0} },
+        media:   { benzina:{l100:12,prezzol:1.75}, diesel:{l100:10,prezzol:1.65}, ibrida:{l100:9, prezzol:1.75}, gpl:{l100:0,prezzol:0}, elettrica:{l100:0,prezzol:0} },
+        grande:  { benzina:{l100:15,prezzol:1.75}, diesel:{l100:13,prezzol:1.65}, ibrida:{l100:12,prezzol:1.75}, gpl:{l100:0,prezzol:0}, elettrica:{l100:0,prezzol:0} },
+    },
 };
+let _vMezzo = 'auto', _vGrandezza = 'media', _vCarburante = 'benzina', _stimaKm = null;
+
+function _veicoloConsumi() {
+    return CONSUMI[_vMezzo]?.[_vGrandezza]?.[_vCarburante] || { l100: 0, prezzol: 0 };
+}
+function _aggiornaChip(containerId, activeVal) {
+    document.querySelectorAll(`#${containerId} .vei-chip`).forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.val === activeVal);
+    });
+}
+function setMezzo(v) {
+    _vMezzo = v;
+    _aggiornaChip('chipsMezzo', v);
+    const motorizzato = ['auto','moto','furgone'].includes(v);
+    document.getElementById('rowGrandezza').style.display = (v === 'auto' || v === 'furgone') ? '' : 'none';
+    document.getElementById('rowCarburante').style.display = motorizzato ? '' : 'none';
+    _ricalcolaCarburante();
+}
+function setGrandezza(v) {
+    _vGrandezza = v;
+    _aggiornaChip('chipsGrandezza', v);
+    _ricalcolaCarburante();
+}
+function setCarburante(v) {
+    _vCarburante = v;
+    _aggiornaChip('chipsCarburante', v);
+    _ricalcolaCarburante();
+}
+function _ricalcolaCarburante() {
+    if (!_stimaKm) return;
+    const motorizzato = ['auto','moto','furgone'].includes(_vMezzo);
+    if (!motorizzato || _vCarburante === 'elettrica') {
+        document.getElementById('pCostoCarburante').value = '';
+        return;
+    }
+    const cv = _veicoloConsumi();
+    const carb = Math.round(_stimaKm * cv.l100 / 100 * cv.prezzol * 100) / 100;
+    document.getElementById('pCostoCarburante').value = carb > 0 ? carb.toFixed(2) : '';
+}
+function _getVeicoliSalvati() {
+    try { return JSON.parse(localStorage.getItem('veicoliSalvati') || '{}'); } catch(e) { return {}; }
+}
+function onTargaInput(val) {
+    const targa = val.trim().toUpperCase().replace(/\s+/g, '');
+    if (targa.length < 5) { document.getElementById('targaNota').style.display = 'none'; return; }
+    const saved = _getVeicoliSalvati();
+    if (saved[targa]) {
+        const v = saved[targa];
+        setMezzo(v.mezzo || 'auto');
+        setGrandezza(v.grandezza || 'media');
+        setCarburante(v.carburante || 'benzina');
+        const nota = document.getElementById('targaNota');
+        nota.textContent = `Veicolo riconosciuto: ${v.mezzo} ${v.grandezza} ${v.carburante}`;
+        nota.style.display = '';
+    } else {
+        document.getElementById('targaNota').style.display = 'none';
+    }
+}
+function _caricaVeicoloViaggio() {
+    try {
+        const v = JSON.parse(localStorage.getItem('veicolo_v' + viaggioCorrenteId) || 'null');
+        if (v) {
+            setMezzo(v.mezzo || 'auto');
+            setGrandezza(v.grandezza || 'media');
+            setCarburante(v.carburante || 'benzina');
+        } else {
+            setMezzo('auto'); setGrandezza('media'); setCarburante('benzina');
+        }
+    } catch(e) { setMezzo('auto'); setGrandezza('media'); setCarburante('benzina'); }
+}
+function _salvaVeicoloViaggio() {
+    localStorage.setItem('veicolo_v' + viaggioCorrenteId, JSON.stringify({ mezzo: _vMezzo, grandezza: _vGrandezza, carburante: _vCarburante }));
+    const targa = (document.getElementById('pMezzo')?.value || '').trim().toUpperCase().replace(/\s+/g, '');
+    if (targa.length >= 5) {
+        const saved = _getVeicoliSalvati();
+        saved[targa] = { mezzo: _vMezzo, grandezza: _vGrandezza, carburante: _vCarburante };
+        localStorage.setItem('veicoliSalvati', JSON.stringify(saved));
+    }
+}
 let pianoModo = 'spostamento';
 
 async function caricaPianificazione() {
@@ -2615,7 +2764,7 @@ function _renderPianoCard(p) {
         if (totCosti > 0) costiHtml = `<div class="piano-costi">${cur}${totCosti.toFixed(2)}</div>`;
     } else {
         headerHtml = `<div class="piano-titolo">${p.titolo}</div>`;
-        if (p.luogo) timingHtml = `<div class="piano-sub">📍 ${p.luogo}</div>`;
+        if (p.luogo) timingHtml = `<div class="piano-sub">${_cittaDaLuogo(p.luogo)}</div>`;
         const oraI = p.data_inizio?.length > 10 ? p.data_inizio.substring(11, 16) : '';
         const oraF = p.data_fine?.length  > 10 ? p.data_fine.substring(11, 16)  : '';
         const dataStr = p.data_inizio ? formatPianoDate(p.data_inizio) : '';
@@ -2678,7 +2827,7 @@ function setPianoTipo(tipo) {
     renderPianoTipoRow();
 }
 
-// Stima percorso con OSRM + Nominatim
+// Stima percorso con Valhalla + Nominatim
 async function stimaPercorso() {
     const da = document.getElementById('pDa').value.trim();
     const a  = document.getElementById('pA').value.trim();
@@ -2690,21 +2839,44 @@ async function stimaPercorso() {
     try {
         const [c1, c2] = await Promise.all([_geocode(da), _geocode(a)]);
         if (!c1 || !c2) { info.textContent = '⚠️ Luogo non trovato. Inserisci manualmente.'; return; }
-        const r = await fetch(`https://router.project-osrm.org/route/v1/driving/${c1.lon},${c1.lat};${c2.lon},${c2.lat}?overview=false`, { headers: { 'User-Agent': 'Listando/1.0' } });
+        const body = {
+            locations: [{ lon: parseFloat(c1.lon), lat: parseFloat(c1.lat) }, { lon: parseFloat(c2.lon), lat: parseFloat(c2.lat) }],
+            costing: 'auto',
+            directions_options: { language: 'it' }
+        };
+        const r = await fetch('https://valhalla1.openstreetmap.de/route', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
         const data = await r.json();
-        if (data.code !== 'Ok') { info.textContent = '⚠️ Percorso non trovato.'; return; }
-        const km = data.routes[0].distance / 1000;
-        const min = Math.round(data.routes[0].duration / 60);
+        if (!data.trip) { info.textContent = '⚠️ Percorso non trovato.'; return; }
+        const km = data.trip.summary.length;
+        const min = Math.round(data.trip.summary.time / 60);
         const ore = Math.floor(min / 60), minR = min % 60;
         const durStr = ore > 0 ? `${ore}h ${minR}min` : `${minR}min`;
-        const veicolo = document.getElementById('pTipoVeicolo').value;
-        const cv = CONSUMI_VEICOLO[veicolo] || CONSUMI_VEICOLO.media_benzina;
-        const carburante = veicolo === 'elettrica' ? 0 : Math.round(km * cv.l100 / 100 * cv.prezzol * 100) / 100;
+        _stimaKm = km;
+        const motorizzato = ['auto','moto','furgone'].includes(_vMezzo);
+        const cv = _veicoloConsumi();
+        const carburante = (motorizzato && _vCarburante !== 'elettrica') ? Math.round(km * cv.l100 / 100 * cv.prezzol * 100) / 100 : 0;
         const pedaggi = Math.round(km * 0.6 * 0.08 * 100) / 100;
-        info.innerHTML = `📍 <strong>~${Math.round(km)} km · ${durStr}</strong>${veicolo !== 'elettrica' ? ` · ⛽ stima €${carburante.toFixed(2)} · 🛣️ stima €${pedaggi.toFixed(2)}` : ' · ⚡ elettrica'}`;
+        const isElettrica = _vCarburante === 'elettrica' && motorizzato;
+        info.innerHTML = `📍 <strong>~${Math.round(km)} km · ${durStr}</strong>${motorizzato && !isElettrica ? ` · ⛽ stima €${carburante.toFixed(2)} · 🛣️ stima €${pedaggi.toFixed(2)}` : isElettrica ? ' · ⚡ elettrica' : ''}`;
         if (carburante > 0) document.getElementById('pCostoCarburante').value = carburante.toFixed(2);
         document.getElementById('pCostoPedaggi').value = pedaggi.toFixed(2);
     } catch(e) { info.textContent = '⚠️ Errore di rete. Inserisci manualmente.'; }
+}
+
+function _cittaDaLuogo(luogo) {
+    if (!luogo) return '';
+    const parts = luogo.split(',').map(s => s.trim()).filter(Boolean);
+    if (parts.length === 1) return parts[0];
+    const skip = /^(via |viale |corso |piazza |largo |vicolo |loc\b|fraz\b|sp \d|ss \d|provincia di|comune di|città di|toscana|lombardia|piemonte|veneto|lazio|campania|sicilia|sardegna|emilia|liguria|puglia|calabria|marche|abruzzo|friuli|umbria|molise|basilicata|italia|italy)/i;
+    for (const p of parts) {
+        if (skip.test(p) || /^\d/.test(p) || p.length > 25) continue;
+        return p;
+    }
+    return parts[0];
 }
 
 async function _geocode(q) {
@@ -2811,8 +2983,11 @@ function apriModalNuovoPianoItem(modo) {
     document.getElementById('pConfermato').checked = false;
     document.getElementById('btnEliminaPiano').style.display = 'none';
     document.getElementById('stimaBar').className = 'stima-bar';
+    document.getElementById('targaNota').style.display = 'none';
+    _stimaKm = null;
     const boxSug = document.getElementById('luogoSuggerimenti'); if (boxSug) boxSug.innerHTML = '';
     const linkP = document.getElementById('btnCercaPrezzo'); if (linkP) linkP.style.display = 'none';
+    if (modo === 'spostamento') _caricaVeicoloViaggio();
     renderPianoTipoRow();
     document.getElementById('modalPianoItem').classList.add('open');
 }
@@ -2834,6 +3009,9 @@ function apriModalEditPianoItem(id) {
         document.getElementById('pDataFine').value = p.data_fine ? p.data_fine.substring(0, 10) : '';
         document.getElementById('pOraFine').value = p.data_fine && p.data_fine.length > 10 ? p.data_fine.substring(11, 16) : '';
         document.getElementById('pMezzo').value = p.mezzo_trasporto || '';
+        document.getElementById('targaNota').style.display = 'none';
+        _stimaKm = null;
+        _caricaVeicoloViaggio();
         document.getElementById('pCostoCarburante').value = p.costo_carburante || '';
         document.getElementById('pCostoPedaggi').value = p.costo_pedaggi || '';
         document.getElementById('pCostoParcheggio').value = p.costo_parcheggio || '';
@@ -2894,6 +3072,7 @@ async function salvaPianoItem() {
         ? await apiPatch(`/sv_piano?id=eq.${pianoItemEditId}`, body)
         : await apiPost('/sv_piano', body);
     if (!res.ok) { toast('Errore nel salvataggio'); return; }
+    if (pianoModo === 'spostamento') _salvaVeicoloViaggio();
     document.getElementById('modalPianoItem').classList.remove('open');
     toast('✓ Salvato');
     await caricaPianificazione();
@@ -3062,6 +3241,160 @@ async function eliminaBudgetItemModal() {
     await apiDel(`/sv_budget?id=eq.${budgetItemEditId}`);
     document.getElementById('modalBudgetItem').classList.remove('open');
     await caricaBudget(); renderBudget(); toast('Voce eliminata');
+}
+
+// ── Budget da Piano ───────────────────────────────────────────────
+const BP_CAT_MAP = {
+    auto:'trasporto', moto:'trasporto', volo:'trasporto', treno:'trasporto', bus:'trasporto',
+    nave:'trasporto', traghetto:'trasporto', trasferimento:'trasporto', bici:'trasporto', piedi:'trasporto',
+    ristorante:'ristorante', bar:'ristorante', caffe:'ristorante',
+    alloggio:'alloggio',
+    museo:'ingressi', chiesa:'ingressi', centro_storico:'ingressi', parco:'ingressi',
+    spiaggia:'attivita', escursione:'attivita', benessere:'attivita', yoga:'attivita', fitness:'attivita', evento:'attivita',
+    shopping:'shopping', mercato:'shopping',
+    ospedale:'altro', altro:'altro',
+};
+let _bpTab = 'singole', _bpSelSingole = new Set(), _bpSelCategoria = new Set();
+let _bpItems = [], _bpGruppi = {};
+
+function _pianoItemCosto(p) {
+    return _isSpostamento(p.tipo)
+        ? (+p.costo_carburante||0) + (+p.costo_pedaggi||0) + (+p.costo_parcheggio||0) + (+p.costo_trasporto||0)
+        : (+p.costo_tappa||0);
+}
+
+function apriModalBudgetDaPiano() {
+    const conCosto = pianificazioneAttuale.filter(p => _pianoItemCosto(p) > 0);
+    if (!conCosto.length) { toast('Nessuna voce con costo nel piano'); return; }
+    _bpSelSingole = new Set();
+    _bpSelCategoria = new Set();
+    mostraBpTab('singole');
+    document.getElementById('modalPianoBudget').classList.add('open');
+}
+
+function mostraBpTab(tab) {
+    _bpTab = tab;
+    document.getElementById('bpTabSingole').className = 'inner-tab' + (tab === 'singole' ? ' active' : '');
+    document.getElementById('bpTabCategoria').className = 'inner-tab' + (tab === 'categoria' ? ' active' : '');
+    document.getElementById('bpSezSingole').style.display = tab === 'singole' ? '' : 'none';
+    document.getElementById('bpSezCategoria').style.display = tab === 'categoria' ? '' : 'none';
+    if (tab === 'singole') _renderBpSingole();
+    else _renderBpCategoria();
+}
+
+function _renderBpSingole() {
+    const cur = symb(viaggioCorrenteValuta);
+    _bpItems = pianificazioneAttuale.filter(p => _pianoItemCosto(p) > 0);
+    if (!_bpItems.length) {
+        document.getElementById('bpListaSingole').innerHTML = '<div class="empty-msg">Nessuna voce con costo nel piano.</div>';
+        _aggiornaBpTotale(); return;
+    }
+    document.getElementById('bpListaSingole').innerHTML = _bpItems.map(p => {
+        const costo = _pianoItemCosto(p);
+        const isSpost = _isSpostamento(p.tipo);
+        const nome = isSpost ? (p.luogo_partenza && p.luogo_arrivo ? `${p.luogo_partenza} → ${p.luogo_arrivo}` : p.titolo) : p.titolo;
+        const checked = _bpSelSingole.has(p.id);
+        return `<label class="bp-row">
+            <input type="checkbox" class="bp-cb" ${checked ? 'checked' : ''} onchange="toggleBpSingola(${p.id}, this.checked)">
+            <span class="bp-icon">${PIANO_TIPO_ICONS[p.tipo] || '📌'}</span>
+            <span class="bp-info">
+                <span class="bp-nome">${nome}</span>
+                <span class="bp-cat">${PIANO_TIPO_LABEL[p.tipo] || p.tipo}</span>
+            </span>
+            <span class="bp-costo">${cur}${costo.toFixed(2)}</span>
+        </label>`;
+    }).join('');
+    _aggiornaBpTotale();
+}
+
+function _buildBpGruppi() {
+    _bpGruppi = {};
+    pianificazioneAttuale.forEach(p => {
+        const costo = _pianoItemCosto(p);
+        if (costo <= 0) return;
+        const cat = BP_CAT_MAP[p.tipo] || 'altro';
+        if (!_bpGruppi[cat]) _bpGruppi[cat] = { cat, label: BUDGET_CAT_LABEL[cat] || cat, icon: BUDGET_CAT_ICONS[cat] || '💡', count: 0, totale: 0 };
+        _bpGruppi[cat].count++;
+        _bpGruppi[cat].totale += costo;
+    });
+}
+
+function _renderBpCategoria() {
+    const cur = symb(viaggioCorrenteValuta);
+    _buildBpGruppi();
+    const entries = Object.entries(_bpGruppi);
+    if (!entries.length) {
+        document.getElementById('bpListaCategoria').innerHTML = '<div class="empty-msg">Nessuna voce con costo nel piano.</div>';
+        _aggiornaBpTotale(); return;
+    }
+    document.getElementById('bpListaCategoria').innerHTML = entries.map(([key, g]) =>
+        `<label class="bp-row">
+            <input type="checkbox" class="bp-cb" ${_bpSelCategoria.has(key) ? 'checked' : ''} onchange="toggleBpCategoria('${key}', this.checked)">
+            <span class="bp-icon">${g.icon}</span>
+            <span class="bp-info">
+                <span class="bp-nome">${g.label}</span>
+                <span class="bp-cat">${g.count} ${g.count === 1 ? 'voce' : 'voci'} dal piano</span>
+            </span>
+            <span class="bp-costo">${cur}${g.totale.toFixed(2)}</span>
+        </label>`
+    ).join('');
+    _aggiornaBpTotale();
+}
+
+function toggleBpSingola(id, checked) {
+    if (checked) _bpSelSingole.add(id); else _bpSelSingole.delete(id);
+    _aggiornaBpTotale();
+}
+function toggleBpCategoria(key, checked) {
+    if (checked) _bpSelCategoria.add(key); else _bpSelCategoria.delete(key);
+    _aggiornaBpTotale();
+}
+function bpSelezionaTutto() {
+    if (_bpTab === 'singole') {
+        const allChecked = _bpItems.every(p => _bpSelSingole.has(p.id));
+        if (allChecked) _bpSelSingole = new Set();
+        else _bpItems.forEach(p => _bpSelSingole.add(p.id));
+        _renderBpSingole();
+    } else {
+        const keys = Object.keys(_bpGruppi);
+        const allChecked = keys.every(k => _bpSelCategoria.has(k));
+        if (allChecked) _bpSelCategoria = new Set();
+        else keys.forEach(k => _bpSelCategoria.add(k));
+        _renderBpCategoria();
+    }
+}
+function _aggiornaBpTotale() {
+    const cur = symb(viaggioCorrenteValuta);
+    let tot = 0;
+    if (_bpTab === 'singole') _bpItems.filter(p => _bpSelSingole.has(p.id)).forEach(p => tot += _pianoItemCosto(p));
+    else Object.entries(_bpGruppi).forEach(([k, g]) => { if (_bpSelCategoria.has(k)) tot += g.totale; });
+    const hasSel = _bpTab === 'singole' ? _bpSelSingole.size > 0 : _bpSelCategoria.size > 0;
+    document.getElementById('bpTotaleRow').style.display = hasSel ? 'flex' : 'none';
+    document.getElementById('bpTotaleVal').textContent = `${cur}${tot.toFixed(2)}`;
+}
+async function aggiungiDaPiano() {
+    const hasSel = _bpTab === 'singole' ? _bpSelSingole.size > 0 : _bpSelCategoria.size > 0;
+    if (!hasSel) { toast('Seleziona almeno una voce'); return; }
+    const voci = [];
+    if (_bpTab === 'singole') {
+        _bpItems.filter(p => _bpSelSingole.has(p.id)).forEach(p => {
+            const isSpost = _isSpostamento(p.tipo);
+            const nome = isSpost ? (p.luogo_partenza && p.luogo_arrivo ? `${p.luogo_partenza} → ${p.luogo_arrivo}` : p.titolo) : p.titolo;
+            voci.push({ titolo: nome, categoria: BP_CAT_MAP[p.tipo] || 'altro', importo: _pianoItemCosto(p) });
+        });
+    } else {
+        Object.entries(_bpGruppi).forEach(([k, g]) => {
+            if (_bpSelCategoria.has(k)) voci.push({ titolo: g.label, categoria: g.cat, importo: g.totale });
+        });
+    }
+    await Promise.all(voci.map(v => apiPost('/sv_budget', {
+        viaggio_id: viaggioCorrenteId, email_utente: userEmail,
+        titolo: v.titolo, categoria: v.categoria,
+        importo_previsto: v.importo, valuta: viaggioCorrenteValuta, stato: 'prevista',
+    })));
+    document.getElementById('modalPianoBudget').classList.remove('open');
+    await caricaBudget(); renderBudget();
+    toast(`✓ ${voci.length} ${voci.length === 1 ? 'voce aggiunta' : 'voci aggiunte'} al budget`);
 }
 
 if (_joinId) { handleJoinFromLink(_joinId); } else { caricaViaggi(); }
