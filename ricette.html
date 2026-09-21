@@ -419,7 +419,7 @@ function toggleImport(mode) {
             <div class="ocr-drop">
                 <div class="ocr-drop-label" id="ocrLabel">📷 Tocca per fotografare o scegliere immagine</div>
                 <img id="ocrPreview">
-                <input type="file" accept="image/*" capture="environment" onchange="onOcrFileChange(event)">
+                <input type="file" accept="image/*" onchange="onOcrFileChange(event)">
             </div>
             <button class="btn-analizza" id="btnOcrAnalizza" onclick="analizzaFoto()" style="display:none;margin-top:10px">🔍 Estrai testo e compila</button>
             <div class="parse-status" id="parseStatus" style="display:none"></div>`;
