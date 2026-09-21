@@ -712,8 +712,23 @@
                     <input class="form-input" id="pOraFineT" type="time" style="margin:0;padding:10px 6px">
                 </div>
             </div>
-            <label class="form-label">Costo (biglietto / pasto / etc.) €</label>
-            <input class="form-input" id="pCostoTappa" type="number" min="0" step="0.01" placeholder="es. 12,50" style="margin-bottom:8px">
+            <label class="form-label">Costo</label>
+            <div style="display:flex;gap:6px;align-items:flex-end;margin-bottom:6px">
+                <div style="flex:1">
+                    <div style="font-size:11px;color:#aaa;font-weight:800;margin-bottom:3px">€ a persona</div>
+                    <input class="form-input" id="pCostoAPersona" type="number" min="0" step="0.01" placeholder="0,00" style="margin:0;padding:10px 10px" oninput="calcolaCostoTappa()">
+                </div>
+                <div style="font-size:18px;font-weight:900;color:#aaa;padding-bottom:10px;flex-shrink:0">×</div>
+                <div style="flex:1">
+                    <div style="font-size:11px;color:#aaa;font-weight:800;margin-bottom:3px">N. persone</div>
+                    <input class="form-input" id="pNPersone" type="number" min="1" step="1" placeholder="1" style="margin:0;padding:10px 10px" oninput="calcolaCostoTappa()">
+                </div>
+                <div style="font-size:18px;font-weight:900;color:#aaa;padding-bottom:10px;flex-shrink:0">=</div>
+                <div style="flex:1.2">
+                    <div style="font-size:11px;color:#5856d6;font-weight:800;margin-bottom:3px">Totale €</div>
+                    <input class="form-input" id="pCostoTappa" type="number" min="0" step="0.01" placeholder="0,00" style="margin:0;padding:10px 10px;border-color:rgba(88,86,214,0.3)">
+                </div>
+            </div>
         </div>
 
         <label class="form-label">Note</label>
@@ -2535,6 +2550,12 @@ async function caricaPianificazione() {
 
 function _isSpostamento(tipo) { return SPOSTAMENTO_TIPI.includes(tipo); }
 
+function calcolaCostoTappa() {
+    const pp = parseFloat(document.getElementById('pCostoAPersona').value) || 0;
+    const n  = parseFloat(document.getElementById('pNPersone').value) || 0;
+    if (pp > 0 && n > 0) document.getElementById('pCostoTappa').value = (pp * n).toFixed(2);
+}
+
 function renderPiano() {
     const el = document.getElementById('elencoPiano');
     if (!pianificazioneAttuale.length) {
@@ -2709,7 +2730,7 @@ function apriModalNuovoPianoItem(modo) {
     setPianoModo(modo || 'spostamento');
     pianoTipoScelto = modo === 'tappa' ? 'ristorante' : 'auto';
     ['pTitolo','pLuogo','pDa','pA','pMezzo','pNote'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-    ['pDataInizio','pOraInizio','pDataFine','pOraFine','pDataInizioT','pOraInizioT','pOraFineT'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    ['pDataInizio','pOraInizio','pDataFine','pOraFine','pDataInizioT','pOraInizioT','pOraFineT','pCostoAPersona','pNPersone'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
     ['pCostoCarburante','pCostoPedaggi','pCostoParcheggio','pCostoTrasporto','pCostoTappa'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
     document.getElementById('pConfermato').checked = false;
     document.getElementById('btnEliminaPiano').style.display = 'none';
