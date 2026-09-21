@@ -308,6 +308,10 @@
         .piano-badge { display: inline-block; font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 6px; background: #eef2ff; color: #5856d6; margin-top: 5px; }
         .piano-badge.confermato { background: #e8f5e9; color: var(--green); }
         .piano-section-hdr { font-size: 11px; font-weight: 900; color: #aaa; text-transform: uppercase; letter-spacing: 1px; margin: 14px 0 6px; }
+        .piano-date-hdr { display: flex; align-items: center; gap: 10px; margin: 18px 0 8px; }
+        .piano-date-hdr-line { flex: 1; height: 1.5px; background: var(--grey-light); }
+        .piano-date-hdr-label { font-size: 12px; font-weight: 900; color: #888; white-space: nowrap; }
+        .piano-nodate-hdr { font-size: 11px; font-weight: 900; color: #ccc; text-transform: uppercase; letter-spacing: 0.8px; margin: 18px 0 8px; }
         .piano-check-btn { width: 30px; height: 30px; flex-shrink: 0; border-radius: 50%; border: 2.5px solid var(--grey); background: white; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; transition: all 0.15s; margin-top: 2px; }
         .piano-check-btn.done { background: var(--green); border-color: var(--green); color: white; }
         .modo-btn { flex: 1; padding: 11px 8px; border-radius: 14px; border: 2.5px solid var(--grey); font-weight: 800; font-size: 14px; cursor: pointer; background: white; color: #999; transition: all 0.15s; font-family: inherit; }
@@ -630,7 +634,8 @@
         <div class="modal-handle"></div>
         <div class="modal-title" id="titoloModalPiano">Nuovo spostamento</div>
 
-        <!-- Spostamento / Tappa -->
+        <!-- Spostamento / Tappa (cambio tipo = conversione) -->
+        <div style="font-size:11px;font-weight:800;color:#aaa;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px">Tipo</div>
         <div style="display:flex;gap:8px;margin-bottom:14px">
             <button id="pModoSpost" class="modo-btn active spost" onclick="setPianoModo('spostamento')">🚗 Spostamento</button>
             <button id="pModoTappa" class="modo-btn tappa" onclick="setPianoModo('tappa')">📍 Tappa</button>
@@ -2536,17 +2541,27 @@ function renderPiano() {
         el.innerHTML = '<div class="empty-msg">Nessun elemento nel piano.<br>Aggiungi uno spostamento o una tappa.</div>';
         return;
     }
-    const spostamenti = pianificazioneAttuale.filter(p => _isSpostamento(p.tipo));
-    const tappe = pianificazioneAttuale.filter(p => !_isSpostamento(p.tipo));
+    // Sort chronologically: items with date first (by date), then items without date by id
+    const withDate    = pianificazioneAttuale.filter(p => p.data_inizio).sort((a, b) => a.data_inizio.localeCompare(b.data_inizio));
+    const withoutDate = pianificazioneAttuale.filter(p => !p.data_inizio).sort((a, b) => a.id - b.id);
+    const sorted = [...withDate, ...withoutDate];
+
     let html = '';
-    if (spostamenti.length) {
-        html += '<div class="piano-section-hdr">🚗 Spostamenti</div>';
-        html += spostamenti.map(p => _renderPianoCard(p)).join('');
-    }
-    if (tappe.length) {
-        html += '<div class="piano-section-hdr">📍 Tappe</div>';
-        html += tappe.map(p => _renderPianoCard(p)).join('');
-    }
+    let lastDate = null;
+    sorted.forEach(p => {
+        const dateKey = p.data_inizio ? p.data_inizio.substring(0, 10) : null;
+        if (dateKey !== lastDate) {
+            if (dateKey) {
+                const d = new Date(dateKey + 'T12:00:00');
+                const label = d.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' });
+                html += `<div class="piano-date-hdr"><div class="piano-date-hdr-line"></div><div class="piano-date-hdr-label">📅 ${label.charAt(0).toUpperCase() + label.slice(1)}</div><div class="piano-date-hdr-line"></div></div>`;
+            } else {
+                html += `<div class="piano-nodate-hdr">📋 Senza data</div>`;
+            }
+            lastDate = dateKey;
+        }
+        html += _renderPianoCard(p);
+    });
     el.innerHTML = html;
 }
 
