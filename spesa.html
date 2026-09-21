@@ -911,7 +911,7 @@
                 const riga = document.createElement('div');
                 riga.className = `item${item.completato ? ' completato-row' : ''}`;
                 const qtaHtml = item.quantita
-                    ? `<span class="item-qta" onclick="event.stopPropagation(); editQta(${item.id}, '${(item.quantita||'').replace(/'/g,"\\'")}')">📦 ${item.quantita}</span>`
+                    ? `<span class="item-qta" onclick="event.stopPropagation(); editQta(${item.id}, '${(item.quantita||'').replace(/'/g,"\\'")}')"> ${item.quantita}</span>`
                     : `<span class="item-qta" style="color:#ccc" onclick="event.stopPropagation(); editQta(${item.id}, '')">+ qtà</span>`;
                 riga.innerHTML = `
                     <button class="btn-small check ${item.completato ? 'done' : ''}" onclick="toggle(${item.id}, ${item.completato})" aria-label="${item.completato ? 'Ripristina' : 'Segna come preso'}">
