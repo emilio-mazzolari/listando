@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <title>Listando - Ricette</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/logolistando.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Listando">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -234,6 +239,22 @@
             background: #fff0f0; color: #ff3b30; font-weight: 800; font-size: 14px;
             cursor: pointer; font-family: inherit; margin-top: 8px;
         }
+        /* Import from text/photo */
+        .import-row { display: flex; gap: 8px; margin-bottom: 14px; }
+        .btn-import { flex: 1; padding: 10px 8px; border-radius: 12px; border: 2px solid var(--grey); background: var(--white); font-weight: 800; font-size: 13px; cursor: pointer; font-family: inherit; color: #666; transition: all 0.15s; }
+        .btn-import.active { border-color: var(--accent); background: rgba(255,107,53,0.07); color: var(--accent); }
+        .import-panel { display: none; background: #fff8f5; border-radius: 14px; padding: 14px; margin-bottom: 14px; border: 1.5px solid rgba(255,107,53,0.2); }
+        .import-panel.open { display: block; }
+        .import-panel-label { font-size: 11px; font-weight: 800; color: #888; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 8px; }
+        .import-textarea { width: 100%; height: 110px; padding: 12px; border-radius: 12px; border: 2px solid var(--grey); font-size: 14px; font-family: inherit; outline: none; resize: none; }
+        .import-textarea:focus { border-color: var(--accent); }
+        .btn-analizza { width: 100%; padding: 12px; border-radius: 12px; border: none; background: var(--accent); color: white; font-weight: 900; font-size: 14px; cursor: pointer; margin-top: 10px; font-family: inherit; }
+        .btn-analizza:disabled { opacity: 0.5; cursor: default; }
+        .parse-status { text-align: center; padding: 8px 0 0; font-size: 13px; font-weight: 700; color: var(--accent); }
+        .ocr-drop { border: 2px dashed var(--grey); border-radius: 14px; padding: 20px; text-align: center; cursor: pointer; overflow: hidden; position: relative; }
+        .ocr-drop-label { font-size: 13px; font-weight: 700; color: #aaa; }
+        #ocrPreview { max-width: 100%; max-height: 160px; border-radius: 10px; display: none; margin-top: 8px; }
+        .ocr-drop input[type=file] { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
 
         .tab-bar {
             position: fixed; bottom: 0; left: 0; right: 0; height: 70px;
@@ -278,6 +299,12 @@
     <div class="modal-box">
         <div class="modal-handle"></div>
         <div class="modal-title" id="modalTitle">Nuova ricetta</div>
+
+        <div class="import-row">
+            <button class="btn-import" id="btnImportTesto" onclick="toggleImport('testo')">📝 Da testo</button>
+            <button class="btn-import" id="btnImportFoto" onclick="toggleImport('foto')">📷 Da foto</button>
+        </div>
+        <div class="import-panel" id="importPanel"></div>
 
         <div class="form-group">
             <label class="form-label">Titolo *</label>
@@ -363,6 +390,160 @@ const UNITA = ['','g','kg','ml','l','n.','q.b.','cucchiai','cucchiaini','tazze',
 
 let ricette = [], catAttiva = 'Tutte', editId = null;
 let pendingMediaFile = null, currentMediaUrl = null, currentMediaPath = null;
+let importMode = null, ocrFile = null;
+
+// ── Import from text/photo ────────────────────────────────────────────
+function toggleImport(mode) {
+    const panel = document.getElementById('importPanel');
+    const btnT = document.getElementById('btnImportTesto');
+    const btnF = document.getElementById('btnImportFoto');
+    if (importMode === mode) {
+        importMode = null;
+        panel.classList.remove('open');
+        btnT.classList.remove('active');
+        btnF.classList.remove('active');
+        return;
+    }
+    importMode = mode;
+    btnT.classList.toggle('active', mode === 'testo');
+    btnF.classList.toggle('active', mode === 'foto');
+    if (mode === 'testo') {
+        panel.innerHTML = `
+            <div class="import-panel-label">Incolla il testo della ricetta</div>
+            <textarea class="import-textarea" id="importTestoArea" placeholder="Incolla qui la ricetta…"></textarea>
+            <button class="btn-analizza" onclick="analizzaTesto()">🔍 Analizza e compila i campi</button>
+            <div class="parse-status" id="parseStatus" style="display:none"></div>`;
+    } else {
+        panel.innerHTML = `
+            <div class="import-panel-label">Fotografa la ricetta</div>
+            <div class="ocr-drop">
+                <div class="ocr-drop-label" id="ocrLabel">📷 Tocca per fotografare o scegliere immagine</div>
+                <img id="ocrPreview">
+                <input type="file" accept="image/*" capture="environment" onchange="onOcrFileChange(event)">
+            </div>
+            <button class="btn-analizza" id="btnOcrAnalizza" onclick="analizzaFoto()" style="display:none;margin-top:10px">🔍 Estrai testo e compila</button>
+            <div class="parse-status" id="parseStatus" style="display:none"></div>`;
+        ocrFile = null;
+    }
+    panel.classList.add('open');
+}
+
+function onOcrFileChange(e) {
+    ocrFile = e.target.files[0];
+    if (!ocrFile) return;
+    const img = document.getElementById('ocrPreview');
+    img.src = URL.createObjectURL(ocrFile);
+    img.style.display = 'block';
+    document.getElementById('ocrLabel').style.display = 'none';
+    document.getElementById('btnOcrAnalizza').style.display = '';
+}
+
+function analizzaTesto() {
+    const testo = document.getElementById('importTestoArea')?.value?.trim();
+    if (!testo) { toast('Incolla prima del testo'); return; }
+    const dati = parseRicettaDaTesto(testo);
+    popolaForm(dati);
+    toggleImport('testo');
+    toast('✓ Campi compilati! Controlla e aggiusta.');
+}
+
+async function analizzaFoto() {
+    if (!ocrFile) return;
+    const status = document.getElementById('parseStatus');
+    const btn = document.getElementById('btnOcrAnalizza');
+    status.style.display = ''; status.textContent = '⏳ Riconoscimento testo in corso…';
+    btn.disabled = true;
+    try {
+        if (!window.Tesseract) await loadScript('https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js');
+        const worker = await Tesseract.createWorker('ita');
+        const { data: { text } } = await worker.recognize(ocrFile);
+        await worker.terminate();
+        status.textContent = '🔍 Analisi testo…';
+        const dati = parseRicettaDaTesto(text);
+        popolaForm(dati);
+        toggleImport('foto');
+        toast('✓ Campi compilati! Controlla e aggiusta.');
+    } catch(e) {
+        status.textContent = '❌ ' + e.message;
+        btn.disabled = false;
+    }
+}
+
+function loadScript(src) {
+    return new Promise((res, rej) => {
+        const s = document.createElement('script');
+        s.src = src; s.onload = res; s.onerror = rej;
+        document.head.appendChild(s);
+    });
+}
+
+function parseRicettaDaTesto(text) {
+    const linee = text.split('\n').map(l => l.trim()).filter(l => l);
+    if (!linee.length) return {};
+    let titolo = '';
+    for (const l of linee) {
+        if (l.length < 80 && !/^\d/.test(l)) { titolo = l.replace(/^(?:ricetta\s+(?:di\s+|d[ei]'\s*)?:?\s*)/i, ''); break; }
+    }
+    let porzioni = null;
+    const pm = text.match(/(?:per\s+|x\s*)?(\d+)\s*(?:person[ae]|porzion[ei]|portaion[ei])/i);
+    if (pm) porzioni = parseInt(pm[1]);
+    let tempo = null;
+    const th = text.match(/(\d+)\s*(?:ore?|hours?)/i);
+    const tm = text.match(/(\d+)\s*(?:min(?:ut[oi])?|minutes?)/i);
+    if (th) tempo = parseInt(th[1]) * 60;
+    if (tm) tempo = (tempo || 0) + parseInt(tm[1]);
+    let categoria = 'Altro';
+    const tl = text.toLowerCase();
+    if (/\b(pasta|spaghetti|rigatoni|penne|risotto|lasagne|gnocchi|tagliatelle)\b/.test(tl)) categoria = 'Primi';
+    else if (/\b(torta|dolce|biscotti|crostata|mousse|tiramisù|tiramisu|panna cotta|gelato|budino)\b/.test(tl)) categoria = 'Dolci';
+    else if (/\b(bistecca|pollo|maiale|agnello|salmone|tonno|filetto|arrosto|spezzatino)\b/.test(tl)) categoria = 'Secondi';
+    else if (/\b(insalata|verdure|zucchine|melanzane|contorno|patate al forno)\b/.test(tl)) categoria = 'Contorni';
+    else if (/\b(antipasto|bruschetta|frittata|crostini)\b/.test(tl)) categoria = 'Antipasti';
+    else if (/\b(succo|smoothie|frullato|drink|cocktail|bevanda)\b/.test(tl)) categoria = 'Bevande';
+    let ingredienti = [], proceduraLinee = [], inIng = false, inProc = false;
+    for (const linea of linee) {
+        const ll = linea.toLowerCase();
+        if (/^ingredienti\s*:?\s*$/.test(ll)) { inIng = true; inProc = false; continue; }
+        if (/^(?:procedimento|procedura|preparazione|istruzioni|metodo|come si fa)\s*:?\s*$/.test(ll)) { inIng = false; inProc = true; continue; }
+        if (inIng) { const i = _parseIngLine(linea); if (i) ingredienti.push(i); }
+        else if (inProc) proceduraLinee.push(linea);
+    }
+    if (!ingredienti.length) {
+        for (const linea of linee) {
+            const i = _parseIngLine(linea);
+            if (i) ingredienti.push(i);
+        }
+    }
+    return { titolo, porzioni, tempo, categoria, ingredienti, procedura: proceduraLinee.join('\n') };
+}
+
+function _parseIngLine(linea) {
+    const s = linea.replace(/^[-•·*–]\s*/, '').trim();
+    if (!s || s.length > 80) return null;
+    const m = s.match(/^(\d+(?:[.,]\d+)?)\s*(g|kg|ml|l|n\.|q\.b\.?|cucchiai[ni]?|cucchiaini?|tazze?|fette?|spicchi?|rametti?|foglie?)?\s+(.+)$/i);
+    if (m) return { quantita: m[1].replace(',','.'), unita: (m[2]||'').toLowerCase(), nome: m[3].trim() };
+    const m2 = s.match(/^(.+?)\s+(\d+(?:[.,]\d+)?)\s*(g|kg|ml|l)$/i);
+    if (m2) return { quantita: m2[2].replace(',','.'), unita: m2[3].toLowerCase(), nome: m2[1].trim() };
+    if (/\d/.test(s) || s.length < 50) return { quantita: '', unita: '', nome: s };
+    return null;
+}
+
+function popolaForm(dati) {
+    if (dati.titolo) document.getElementById('fTitolo').value = dati.titolo;
+    if (dati.porzioni) document.getElementById('fPorzioni').value = dati.porzioni;
+    if (dati.tempo) document.getElementById('fTempo').value = dati.tempo;
+    if (dati.categoria) {
+        const sel = document.getElementById('fCategoria');
+        for (let i = 0; i < sel.options.length; i++) {
+            if (sel.options[i].value === dati.categoria) { sel.selectedIndex = i; break; }
+        }
+    }
+    if (dati.procedura) document.getElementById('fProcedura').value = dati.procedura;
+    if (dati.ingredienti?.length) {
+        document.getElementById('ingList').innerHTML = '';
+        dati.ingredienti.forEach(i => aggiungiRigaIng(i));
+    }
+}
 
 // ── Carica ────────────────────────────────────────────────────────────
 async function carica() {
@@ -524,9 +705,13 @@ function apriDettaglio(id) {
                 <button class="btn-detail-action btn-detail-del" onclick="eliminaDaDettaglio(${id})">🗑 Elimina</button>
             </div>
         </div>`;
+    sessionStorage.setItem('ric_id', id);
     document.getElementById('detailOverlay').classList.add('open');
 }
-function chiudiDettaglio() { document.getElementById('detailOverlay').classList.remove('open'); }
+function chiudiDettaglio() {
+    sessionStorage.removeItem('ric_id');
+    document.getElementById('detailOverlay').classList.remove('open');
+}
 
 async function aggiungiAllaSpesa(id) {
     const r = ricette.find(x => x.id === id);
@@ -549,6 +734,10 @@ function resetModal() {
     document.getElementById('ingList').innerHTML = '';
     pendingMediaFile = null; currentMediaUrl = null; currentMediaPath = null;
     resetMediaUI();
+    importMode = null; ocrFile = null;
+    document.getElementById('importPanel').classList.remove('open');
+    document.getElementById('btnImportTesto').classList.remove('active');
+    document.getElementById('btnImportFoto').classList.remove('active');
 }
 
 function apriModale() {
@@ -738,7 +927,10 @@ function toast(msg) {
     toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
 }
 
-carica();
+carica().then(() => {
+    const savedRicId = parseInt(sessionStorage.getItem('ric_id'));
+    if (savedRicId && ricette.find(r => r.id === savedRicId)) apriDettaglio(savedRicId);
+});
 </script>
 </body>
 </html>
