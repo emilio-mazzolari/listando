@@ -291,6 +291,16 @@
         .inner-tabs::-webkit-scrollbar { display: none; }
         .inner-tab { flex-shrink: 0; }
 
+        /* Luogo autocomplete */
+        .luogo-suggestions { background: var(--white); border: 2px solid var(--grey); border-radius: 14px; overflow: hidden; margin-top: 2px; margin-bottom: 8px; box-shadow: 0 6px 24px rgba(0,0,0,0.1); }
+        .luogo-sug-item { padding: 12px 14px; font-size: 13px; font-weight: 700; cursor: pointer; border-bottom: 1px solid var(--grey-light); line-height: 1.3; }
+        .luogo-sug-item:last-child { border-bottom: none; }
+        .luogo-sug-item:active { background: var(--grey-light); }
+        .luogo-sug-nome { font-weight: 800; font-size: 14px; }
+        .luogo-sug-addr { font-size: 12px; color: #888; font-weight: 600; margin-top: 1px; }
+        .luogo-sug-searching { padding: 12px 14px; font-size: 13px; font-weight: 700; color: #aaa; }
+        .btn-cerca-prezzo { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 800; color: #4285f4; background: none; border: none; cursor: pointer; padding: 4px 0; font-family: inherit; text-decoration: none; }
+
         /* Piano */
         .piano-card { background: var(--white); border-radius: 14px; padding: 12px 14px; margin-bottom: 8px; border: 1.5px solid var(--grey-light); display: flex; align-items: flex-start; gap: 10px; cursor: pointer; transition: transform 0.15s; }
         .piano-card:active { transform: scale(0.98); }
@@ -698,7 +708,8 @@
         <!-- SEZIONE TAPPA -->
         <div id="sezTappa" style="display:none">
             <label class="form-label">Nome tappa *</label>
-            <input class="form-input" id="pTitolo" placeholder="es. Orto Botanico, Ristorante Al Porto…" type="text">
+            <input class="form-input" id="pTitolo" placeholder="es. Orto Botanico, Ristorante Al Porto…" type="text" oninput="cercaLuogoTappa(this.value)" autocomplete="off">
+            <div id="luogoSuggerimenti"></div>
             <label class="form-label">Luogo / Indirizzo</label>
             <input class="form-input" id="pLuogo" placeholder="es. Via Roma 5, Pontremoli…" type="text">
             <div style="display:flex;gap:6px;margin-bottom:8px;align-items:flex-end">
@@ -712,7 +723,10 @@
                     <input class="form-input" id="pOraFineT" type="time" style="margin:0;padding:10px 6px">
                 </div>
             </div>
-            <label class="form-label">Costo</label>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+                <label class="form-label" style="margin:0">Costo</label>
+                <a id="btnCercaPrezzo" class="btn-cerca-prezzo" target="_blank" rel="noopener" style="display:none">🔍 Cerca prezzo su Google</a>
+            </div>
             <div style="display:flex;gap:6px;align-items:flex-end;margin-bottom:6px">
                 <div style="flex:1">
                     <div style="font-size:11px;color:#aaa;font-weight:800;margin-bottom:3px">€ a persona</div>
@@ -2701,6 +2715,72 @@ async function _geocode(q) {
     } catch(e) { return null; }
 }
 
+// ── Autocomplete luogo tappa ──────────────────────────────────────────
+let _luogoTimer = null, _luogoResults = [];
+
+function cercaLuogoTappa(q) {
+    // Update "Cerca prezzo" link in real time
+    const linkPrezzo = document.getElementById('btnCercaPrezzo');
+    if (linkPrezzo) {
+        if (q.trim().length > 2) {
+            linkPrezzo.href = `https://www.google.com/search?q=${encodeURIComponent(q + ' biglietto prezzo ingresso')}`;
+            linkPrezzo.style.display = '';
+        } else {
+            linkPrezzo.style.display = 'none';
+        }
+    }
+    clearTimeout(_luogoTimer);
+    const box = document.getElementById('luogoSuggerimenti');
+    if (!box) return;
+    if (q.trim().length < 3) { box.innerHTML = ''; return; }
+    box.innerHTML = `<div class="luogo-sug-searching">🔍 Ricerca…</div>`;
+    _luogoTimer = setTimeout(() => _eseguiCercaLuogo(q), 600);
+}
+
+async function _eseguiCercaLuogo(q) {
+    const box = document.getElementById('luogoSuggerimenti');
+    if (!box) return;
+    try {
+        const res = await fetch(
+            `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=5&addressdetails=1&accept-language=it`,
+            { headers: { 'User-Agent': 'Listando/1.0' } }
+        );
+        const data = await res.json();
+        _luogoResults = data;
+        if (!data.length) { box.innerHTML = '<div class="luogo-sug-searching">Nessun risultato</div>'; return; }
+        box.innerHTML = data.map((r, i) => {
+            const parts = r.display_name.split(',');
+            const nome  = parts[0].trim();
+            const addr  = parts.slice(1, 4).map(s => s.trim()).filter(Boolean).join(', ');
+            return `<div class="luogo-sug-item" onclick="selezionaLuogoTappa(${i})">
+                <div class="luogo-sug-nome">${nome}</div>
+                ${addr ? `<div class="luogo-sug-addr">${addr}</div>` : ''}
+            </div>`;
+        }).join('');
+    } catch(e) {
+        box.innerHTML = '<div class="luogo-sug-searching">Errore di rete</div>';
+    }
+}
+
+function selezionaLuogoTappa(idx) {
+    const r = _luogoResults[idx];
+    if (!r) return;
+    const parts = r.display_name.split(',');
+    // Fill nome only if the field is not already typed by hand
+    const titolo = document.getElementById('pTitolo');
+    if (!titolo.value.trim()) titolo.value = parts[0].trim();
+    // Build address: first 4 meaningful parts
+    const addr = parts.slice(0, 5).map(s => s.trim()).filter(Boolean).join(', ');
+    document.getElementById('pLuogo').value = addr;
+    document.getElementById('luogoSuggerimenti').innerHTML = '';
+    // Update Google price link with confirmed name
+    const linkPrezzo = document.getElementById('btnCercaPrezzo');
+    if (linkPrezzo) {
+        linkPrezzo.href = `https://www.google.com/search?q=${encodeURIComponent(titolo.value + ' biglietto prezzo ingresso')}`;
+        linkPrezzo.style.display = '';
+    }
+}
+
 async function sincronizzaBudgetPiano(pianoId) {
     await apiDel(`/sv_budget?piano_id=eq.${pianoId}&viaggio_id=eq.${viaggioCorrenteId}`);
     const p = pianificazioneAttuale.find(x => x.id === pianoId) || {};
@@ -2731,6 +2811,8 @@ function apriModalNuovoPianoItem(modo) {
     document.getElementById('pConfermato').checked = false;
     document.getElementById('btnEliminaPiano').style.display = 'none';
     document.getElementById('stimaBar').className = 'stima-bar';
+    const boxSug = document.getElementById('luogoSuggerimenti'); if (boxSug) boxSug.innerHTML = '';
+    const linkP = document.getElementById('btnCercaPrezzo'); if (linkP) linkP.style.display = 'none';
     renderPianoTipoRow();
     document.getElementById('modalPianoItem').classList.add('open');
 }
