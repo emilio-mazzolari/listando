@@ -2596,13 +2596,9 @@ function _renderPianoCard(p) {
         headerHtml = `<div class="piano-rotta">${rotta}</div>`;
         const tPart = p.data_inizio ? p.data_inizio.substring(11, 16) : '';
         const tArr  = p.data_fine  ? p.data_fine.substring(11, 16)  : '';
-        if (tPart || tArr) timingHtml = `<div class="piano-timing">${tPart ? '🛫 ' + tPart : ''}${tPart && tArr ? ' → ' : ''}${tArr ? '🛬 ' + tArr : ''}</div>`;
-        const voci = [];
-        if (p.costo_carburante > 0) voci.push(`⛽ ${cur}${(+p.costo_carburante).toFixed(2)}`);
-        if (p.costo_pedaggi > 0)    voci.push(`🛣️ ${cur}${(+p.costo_pedaggi).toFixed(2)}`);
-        if (p.costo_parcheggio > 0) voci.push(`🅿️ ${cur}${(+p.costo_parcheggio).toFixed(2)}`);
-        if (p.costo_trasporto > 0)  voci.push(`🎫 ${cur}${(+p.costo_trasporto).toFixed(2)}`);
-        if (voci.length) costiHtml = `<div class="piano-costi">${voci.join(' · ')}</div>`;
+        if (tPart || tArr) timingHtml = `<div class="piano-timing">${[tPart, tArr].filter(Boolean).join(' → ')}</div>`;
+        const totCosti = (+p.costo_carburante||0) + (+p.costo_pedaggi||0) + (+p.costo_parcheggio||0) + (+p.costo_trasporto||0);
+        if (totCosti > 0) costiHtml = `<div class="piano-costi">${cur}${totCosti.toFixed(2)}</div>`;
     } else {
         headerHtml = `<div class="piano-titolo">${p.titolo}</div>`;
         if (p.luogo) timingHtml = `<div class="piano-sub">📍 ${p.luogo}</div>`;
