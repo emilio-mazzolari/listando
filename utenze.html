@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Listando - Utenze</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/logolistando.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Listando">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            color-scheme: light;
+            --sky: #0ea5e9;
+            --green: #0fba8d; --red: #ff3b30;
+            --grey: #d8dddc; --grey-light: #f2f2f7;
+            --dark: #111; --bg: #f5f6f8; --white: #fff;
+        }
+        * { box-sizing: border-box; }
+        html, body { overflow-x: hidden; max-width: 100%; margin: 0; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--dark); }
+
+        .page-header { position: sticky; top: 0; z-index: 100; background: var(--white); border-bottom: 2px solid var(--grey-light); padding: 14px 16px; padding-top: max(14px, env(safe-area-inset-top, 14px)); display: flex; align-items: center; gap: 10px; }
+        .btn-back { width: 40px; height: 40px; border-radius: 12px; border: 2.5px solid var(--grey); background: var(--white); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+        .btn-back svg { width: 18px; height: 18px; stroke: var(--dark); fill: none; stroke-width: 2.5; }
+        .header-title { font-weight: 900; font-size: 18px; flex: 1; }
+        .btn-add-hdr { width: 40px; height: 40px; border-radius: 12px; border: none; background: var(--sky); color: white; font-size: 22px; font-weight: 300; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+
+        .body-content { padding: 14px 16px 110px; }
+
+        /* Summary bar */
+        .summary-bar { background: var(--sky); border-radius: 18px; padding: 18px 20px; margin-bottom: 16px; color: white; display: flex; align-items: center; gap: 16px; }
+        .summary-icon { font-size: 32px; }
+        .summary-body { flex: 1; }
+        .summary-label { font-size: 12px; font-weight: 800; opacity: 0.85; text-transform: uppercase; letter-spacing: 0.5px; }
+        .summary-amount { font-size: 28px; font-weight: 900; line-height: 1.1; }
+        .summary-sub { font-size: 12px; opacity: 0.8; font-weight: 700; margin-top: 2px; }
+
+        /* Cats filter */
+        .cats-scroll { overflow-x: auto; white-space: nowrap; scrollbar-width: none; margin-bottom: 14px; }
+        .cats-scroll::-webkit-scrollbar { display: none; }
+        .chip-cat { display: inline-block; padding: 7px 14px; border-radius: 20px; border: 2.5px solid var(--grey); background: var(--white); font-weight: 800; font-size: 13px; cursor: pointer; margin-right: 6px; transition: all 0.15s; }
+        .chip-cat.active { border-color: var(--sky); background: var(--sky); color: white; }
+
+        /* Utenza cards */
+        .utenza-card { background: var(--white); border-radius: 16px; padding: 14px 16px; margin-bottom: 8px; border: 1.5px solid var(--grey-light); display: flex; align-items: center; gap: 12px; cursor: pointer; transition: transform 0.15s; }
+        .utenza-card:active { transform: scale(0.98); }
+        .utenza-card.inattiva { opacity: 0.45; }
+        .utenza-icon { font-size: 28px; flex-shrink: 0; width: 40px; text-align: center; }
+        .utenza-body { flex: 1; min-width: 0; }
+        .utenza-nome { font-weight: 900; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .utenza-sub { font-size: 12px; color: #888; font-weight: 700; margin-top: 3px; }
+        .utenza-importo { font-weight: 900; font-size: 17px; color: var(--sky); flex-shrink: 0; white-space: nowrap; }
+        .utenza-badge { display: inline-block; font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 6px; margin-top: 4px; }
+        .utenza-badge.attiva { background: #e6f7f3; color: var(--green); }
+        .utenza-badge.inattiva { background: var(--grey-light); color: #aaa; }
+
+        /* Modal */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 200; display: none; align-items: flex-end; }
+        .modal-overlay.open { display: flex; }
+        .modal-box { background: var(--white); border-radius: 24px 24px 0 0; padding: 20px 20px 40px; width: 100%; max-height: 92vh; overflow-y: auto; }
+        .modal-title { font-weight: 900; font-size: 18px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; }
+        .btn-close-modal { width: 32px; height: 32px; border-radius: 10px; border: 2px solid var(--grey); background: var(--white); cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; }
+        label { display: block; font-size: 12px; font-weight: 800; color: #666; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 4px; margin-top: 12px; }
+        input[type=text], input[type=number], select, textarea { width: 100%; padding: 12px 14px; border-radius: 14px; border: 2.5px solid var(--grey); font-size: 15px; font-family: inherit; outline: none; background: var(--white); }
+        input:focus, select:focus, textarea:focus { border-color: var(--sky); }
+        textarea { resize: none; height: 80px; }
+        .chip-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+        .tipo-chip { padding: 8px 14px; border-radius: 20px; border: 2px solid var(--grey); background: var(--white); font-size: 13px; font-weight: 800; cursor: pointer; }
+        .tipo-chip.active { border-color: var(--sky); background: rgba(14,165,233,0.1); color: var(--sky); }
+        .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 0 4px; }
+        .toggle-label { font-size: 15px; font-weight: 800; }
+        .toggle-switch { position: relative; width: 50px; height: 28px; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .toggle-slider { position: absolute; inset: 0; background: var(--grey); border-radius: 28px; cursor: pointer; transition: background 0.2s; }
+        .toggle-slider:before { content: ''; position: absolute; width: 22px; height: 22px; left: 3px; top: 3px; background: white; border-radius: 50%; transition: transform 0.2s; }
+        .toggle-switch input:checked + .toggle-slider { background: var(--green); }
+        .toggle-switch input:checked + .toggle-slider:before { transform: translateX(22px); }
+        .btn-save-modal { width: 100%; padding: 16px; border-radius: 16px; border: none; background: var(--sky); color: white; font-size: 16px; font-weight: 900; cursor: pointer; margin-top: 16px; font-family: inherit; }
+        .btn-del-modal { width: 100%; padding: 14px; border-radius: 16px; border: 2px solid var(--red); background: var(--white); color: var(--red); font-size: 15px; font-weight: 900; cursor: pointer; margin-top: 8px; font-family: inherit; }
+
+        .empty-msg { text-align: center; padding: 64px 24px; color: #bbb; font-weight: 700; font-size: 15px; }
+        .sezione-titolo { font-size: 11px; font-weight: 900; color: #aaa; text-transform: uppercase; letter-spacing: 0.6px; margin: 16px 0 8px; }
+
+        .toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--dark); color: white; padding: 12px 20px; border-radius: 14px; font-weight: 700; font-size: 14px; opacity: 0; transition: all 0.25s; white-space: nowrap; z-index: 999; pointer-events: none; }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        .tab-bar { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: var(--white); border-top: 2px solid var(--grey-light); display: flex; padding: 6px 0; padding-bottom: max(6px, env(safe-area-inset-bottom, 6px)); z-index: 100; }
+        .tab-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; text-decoration: none; color: #aaa; font-size: 10px; font-weight: 800; padding: 4px 0; }
+        .tab-item.tab-active { color: var(--sky); }
+        .icon-tab { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+    </style>
+</head>
+<body>
+
+<div class="page-header">
+    <button class="btn-back" onclick="history.back()">
+        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <span class="header-title">⚡ Utenze</span>
+    <button class="btn-add-hdr" onclick="apriModalNuova()">+</button>
+</div>
+
+<div class="body-content">
+    <div class="summary-bar">
+        <div class="summary-icon">⚡</div>
+        <div class="summary-body">
+            <div class="summary-label">Spesa mensile totale</div>
+            <div class="summary-amount" id="totaleMensile">€ 0,00</div>
+            <div class="summary-sub" id="totaleAnno">€ 0,00 / anno</div>
+        </div>
+    </div>
+
+    <div class="cats-scroll" id="catsRow"></div>
+
+    <div id="listaUtenze"></div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalUtenza">
+    <div class="modal-box">
+        <div class="modal-title">
+            <span id="titoloModal">Nuova utenza</span>
+            <button class="btn-close-modal" onclick="chiudiModal()">✕</button>
+        </div>
+
+        <label>Categoria</label>
+        <div class="chip-row" id="catChips"></div>
+
+        <label>Nome</label>
+        <input type="text" id="fNome" placeholder="es. Enel, Tim, Netflix…">
+
+        <label>Fornitore</label>
+        <input type="text" id="fFornitore" placeholder="opzionale">
+
+        <label>Importo mensile (€)</label>
+        <input type="number" id="fImporto" placeholder="0.00" step="0.01" min="0">
+
+        <label>Giorno scadenza (1–31)</label>
+        <input type="number" id="fGiorno" placeholder="es. 15" min="1" max="31">
+
+        <label>Note</label>
+        <textarea id="fNote" placeholder="opzionale"></textarea>
+
+        <div class="toggle-row">
+            <span class="toggle-label">Attiva</span>
+            <label class="toggle-switch">
+                <input type="checkbox" id="fAttiva" checked>
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+
+        <button class="btn-save-modal" onclick="salva()">SALVA</button>
+        <button class="btn-del-modal" id="btnElimina" style="display:none" onclick="elimina()">ELIMINA</button>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="tab-bar">
+    <a href="index.html" class="tab-item">
+        <svg class="icon-tab" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 15 22"/></svg>
+        HOME
+    </a>
+    <a href="profilo.html" class="tab-item">
+        <svg class="icon-tab" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        PROFILO
+    </a>
+</div>
+
+<script>
+const SUPABASE_URL = "https://eejdpophfxsrqdvsucye.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlamRwb3BoZnhzcnFkdnN1Y3llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2NTMzMDQsImV4cCI6MjA5MzIyOTMwNH0.mpxbwlJyIdZgqKIdutHbLd85JR1P11yiglbYeApi17k";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const userEmail = localStorage.getItem('userEmail');
+if (!userEmail) location.href = 'login.html';
+
+const CATEGORIE = [
+    { id: 'luce',         label: 'Luce',        icon: '💡' },
+    { id: 'gas',          label: 'Gas',         icon: '🔥' },
+    { id: 'acqua',        label: 'Acqua',       icon: '💧' },
+    { id: 'internet',     label: 'Internet',    icon: '📶' },
+    { id: 'telefono',     label: 'Telefono',    icon: '📱' },
+    { id: 'tv',           label: 'TV',          icon: '📺' },
+    { id: 'streaming',    label: 'Streaming',   icon: '🎬' },
+    { id: 'abbonamento',  label: 'Abbonamento', icon: '📦' },
+    { id: 'altro',        label: 'Altro',       icon: '⚡' },
+];
+
+const CAT_MAP = Object.fromEntries(CATEGORIE.map(c => [c.id, c]));
+
+let utenze = [];
+let filtroCategoria = 'tutte';
+let editId = null;
+let catScelta = 'luce';
+
+async function carica() {
+    const { data, error } = await sb.from('sv_utenze').select('*')
+        .eq('email_utente', userEmail)
+        .order('attiva', { ascending: false })
+        .order('categoria')
+        .order('nome');
+    if (error) { toast('Errore caricamento'); return; }
+    utenze = data || [];
+    renderCats();
+    render();
+}
+
+function renderCats() {
+    const conti = {};
+    utenze.forEach(u => { if (u.attiva) conti[u.categoria] = (conti[u.categoria] || 0) + 1; });
+    let html = `<span class="chip-cat${filtroCategoria === 'tutte' ? ' active' : ''}" onclick="setFiltro('tutte')">Tutte</span>`;
+    CATEGORIE.forEach(c => {
+        if (!utenze.find(u => u.categoria === c.id)) return;
+        html += `<span class="chip-cat${filtroCategoria === c.id ? ' active' : ''}" onclick="setFiltro('${c.id}')">${c.icon} ${c.label}</span>`;
+    });
+    document.getElementById('catsRow').innerHTML = html;
+}
+
+function setFiltro(cat) {
+    filtroCategoria = cat;
+    renderCats();
+    render();
+}
+
+function render() {
+    const lista = filtroCategoria === 'tutte' ? utenze : utenze.filter(u => u.categoria === filtroCategoria);
+    const attive = lista.filter(u => u.attiva);
+    const inattive = lista.filter(u => !u.attiva);
+
+    // Summary
+    const totMensile = utenze.filter(u => u.attiva).reduce((s, u) => s + (parseFloat(u.importo_mensile) || 0), 0);
+    document.getElementById('totaleMensile').textContent = `€ ${totMensile.toFixed(2).replace('.', ',')}`;
+    document.getElementById('totaleAnno').textContent = `€ ${(totMensile * 12).toFixed(2).replace('.', ',')} / anno`;
+
+    if (!lista.length) {
+        document.getElementById('listaUtenze').innerHTML = '<div class="empty-msg">Nessuna utenza.<br>Premi + per aggiungerne una.</div>';
+        return;
+    }
+
+    let html = '';
+    if (attive.length) {
+        html += `<div class="sezione-titolo">Attive (${attive.length})</div>`;
+        html += attive.map(renderCard).join('');
+    }
+    if (inattive.length) {
+        html += `<div class="sezione-titolo">Non attive</div>`;
+        html += inattive.map(renderCard).join('');
+    }
+    document.getElementById('listaUtenze').innerHTML = html;
+}
+
+function renderCard(u) {
+    const cat = CAT_MAP[u.categoria] || { icon: '⚡', label: u.categoria };
+    const importoStr = u.importo_mensile != null ? `€ ${parseFloat(u.importo_mensile).toFixed(2).replace('.', ',')}` : '—';
+    const subParts = [];
+    if (u.fornitore) subParts.push(u.fornitore);
+    if (u.giorno_scadenza) subParts.push(`scadenza il ${u.giorno_scadenza}`);
+    const sub = subParts.join(' · ') || cat.label;
+    return `<div class="utenza-card${u.attiva ? '' : ' inattiva'}" onclick="apriModalModifica(${u.id})">
+        <div class="utenza-icon">${cat.icon}</div>
+        <div class="utenza-body">
+            <div class="utenza-nome">${u.nome}</div>
+            <div class="utenza-sub">${sub}</div>
+            ${u.attiva ? '' : '<span class="utenza-badge inattiva">Sospesa</span>'}
+        </div>
+        <div class="utenza-importo">${importoStr}<div style="font-size:11px;color:#aaa;font-weight:700;text-align:right">/mese</div></div>
+    </div>`;
+}
+
+function renderCatChips() {
+    document.getElementById('catChips').innerHTML = CATEGORIE.map(c =>
+        `<span class="tipo-chip${catScelta === c.id ? ' active' : ''}" onclick="setCat('${c.id}')">${c.icon} ${c.label}</span>`
+    ).join('');
+}
+
+function setCat(id) {
+    catScelta = id;
+    renderCatChips();
+}
+
+function apriModalNuova() {
+    editId = null;
+    catScelta = 'luce';
+    document.getElementById('titoloModal').textContent = 'Nuova utenza';
+    document.getElementById('fNome').value = '';
+    document.getElementById('fFornitore').value = '';
+    document.getElementById('fImporto').value = '';
+    document.getElementById('fGiorno').value = '';
+    document.getElementById('fNote').value = '';
+    document.getElementById('fAttiva').checked = true;
+    document.getElementById('btnElimina').style.display = 'none';
+    renderCatChips();
+    document.getElementById('modalUtenza').classList.add('open');
+    setTimeout(() => document.getElementById('fNome').focus(), 150);
+}
+
+function apriModalModifica(id) {
+    const u = utenze.find(x => x.id === id);
+    if (!u) return;
+    editId = id;
+    catScelta = u.categoria || 'altro';
+    document.getElementById('titoloModal').textContent = 'Modifica utenza';
+    document.getElementById('fNome').value = u.nome || '';
+    document.getElementById('fFornitore').value = u.fornitore || '';
+    document.getElementById('fImporto').value = u.importo_mensile != null ? u.importo_mensile : '';
+    document.getElementById('fGiorno').value = u.giorno_scadenza || '';
+    document.getElementById('fNote').value = u.note || '';
+    document.getElementById('fAttiva').checked = !!u.attiva;
+    document.getElementById('btnElimina').style.display = '';
+    renderCatChips();
+    document.getElementById('modalUtenza').classList.add('open');
+}
+
+function chiudiModal() {
+    document.getElementById('modalUtenza').classList.remove('open');
+}
+
+async function salva() {
+    const nome = document.getElementById('fNome').value.trim();
+    if (!nome) { toast('Inserisci un nome'); return; }
+    const body = {
+        email_utente: userEmail,
+        nome,
+        categoria: catScelta,
+        fornitore: document.getElementById('fFornitore').value.trim() || null,
+        importo_mensile: document.getElementById('fImporto').value ? parseFloat(document.getElementById('fImporto').value) : null,
+        giorno_scadenza: document.getElementById('fGiorno').value ? parseInt(document.getElementById('fGiorno').value) : null,
+        note: document.getElementById('fNote').value.trim() || null,
+        attiva: document.getElementById('fAttiva').checked,
+    };
+    let error;
+    if (editId) {
+        ({ error } = await sb.from('sv_utenze').update(body).eq('id', editId));
+    } else {
+        ({ error } = await sb.from('sv_utenze').insert(body));
+    }
+    if (error) { toast('Errore: ' + error.message); return; }
+    chiudiModal();
+    toast(editId ? '✓ Aggiornata' : '✓ Aggiunta');
+    await carica();
+}
+
+async function elimina() {
+    if (!editId) return;
+    if (!confirm('Eliminare questa utenza?')) return;
+    const { error } = await sb.from('sv_utenze').delete().eq('id', editId);
+    if (error) { toast('Errore eliminazione'); return; }
+    chiudiModal();
+    toast('Eliminata');
+    await carica();
+}
+
+let toastTimer;
+function toast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+document.getElementById('modalUtenza').addEventListener('click', e => {
+    if (e.target === document.getElementById('modalUtenza')) chiudiModal();
+});
+
+carica();
+</script>
+</body>
+</html>

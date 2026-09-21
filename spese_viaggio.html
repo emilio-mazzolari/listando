@@ -292,10 +292,10 @@
         .inner-tab { flex-shrink: 0; }
 
         /* Piano */
-        .piano-card { background: var(--white); border-radius: 16px; padding: 12px 14px; margin-bottom: 10px; box-shadow: var(--shadow); display: flex; align-items: flex-start; gap: 10px; cursor: pointer; transition: transform 0.15s; border-left: 4px solid transparent; }
+        .piano-card { background: var(--white); border-radius: 14px; padding: 12px 14px; margin-bottom: 8px; border: 1.5px solid var(--grey-light); display: flex; align-items: flex-start; gap: 10px; cursor: pointer; transition: transform 0.15s; }
         .piano-card:active { transform: scale(0.98); }
-        .piano-card.spostamento { border-left-color: #5856d6; }
-        .piano-card.tappa { border-left-color: var(--teal); }
+        .piano-card.spostamento { border-color: rgba(88,86,214,0.25); }
+        .piano-card.tappa { border-color: rgba(48,176,199,0.25); }
         .piano-card.completato-card { opacity: 0.5; }
         .piano-tipo-icon { font-size: 24px; flex-shrink: 0; width: 34px; text-align: center; margin-top: 2px; }
         .piano-body { flex: 1; min-width: 0; }
@@ -2494,7 +2494,9 @@ const PIANO_TIPO_ICONS = {
     ristorante:'🍽️', bar:'🍺', caffe:'☕', alloggio:'🏨',
     museo:'🏛️', chiesa:'⛪', parco:'🌳', spiaggia:'🏖️',
     escursione:'🥾', shopping:'🛍️', evento:'🎭', mercato:'🏪',
-    benessere:'💆', ospedale:'🏥', altro:'📌'
+    benessere:'💆', ospedale:'🏥', altro:'📌',
+    // Legacy (pre-redesign)
+    pernottamento:'🏨', attivita:'🎭',
 };
 const PIANO_TIPO_LABEL = {
     auto:'Auto', moto:'Moto', volo:'Volo', treno:'Treno', bus:'Bus',
@@ -2502,8 +2504,11 @@ const PIANO_TIPO_LABEL = {
     ristorante:'Ristorante', bar:'Bar', caffe:'Caffè', alloggio:'Alloggio',
     museo:'Museo', chiesa:'Chiesa', parco:'Parco', spiaggia:'Spiaggia',
     escursione:'Escursione', shopping:'Shopping', evento:'Evento', mercato:'Mercato',
-    benessere:'Benessere', ospedale:'Medico', altro:'Altro'
+    benessere:'Benessere', ospedale:'Medico', altro:'Altro',
+    pernottamento:'Pernottamento', attivita:'Attività',
 };
+// Maps old tipo values to their nearest new equivalents
+const TIPO_LEGACY_MAP = { pernottamento: 'alloggio', attivita: 'evento' };
 const CONSUMI_VEICOLO = {
     media_benzina: { l100: 7.5, prezzol: 1.75 },
     piccola_benzina: { l100: 6.0, prezzol: 1.75 },
@@ -2697,7 +2702,8 @@ function apriModalEditPianoItem(id) {
     if (!p) return;
     pianoItemEditId = id;
     const modo = _isSpostamento(p.tipo) ? 'spostamento' : 'tappa';
-    pianoTipoScelto = p.tipo || (modo === 'spostamento' ? 'auto' : 'ristorante');
+    const tipoResolved = TIPO_LEGACY_MAP[p.tipo] || p.tipo || (modo === 'spostamento' ? 'auto' : 'ristorante');
+    pianoTipoScelto = tipoResolved;
     setPianoModo(modo);
     document.getElementById('titoloModalPiano').textContent = 'Modifica';
     if (modo === 'spostamento') {
