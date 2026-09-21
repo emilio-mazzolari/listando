@@ -2484,7 +2484,7 @@ async function salvaModificheViaggio() {
 
 // ── Piano ─────────────────────────────────────────────────────────
 const SPOSTAMENTO_TIPI = ['auto','moto','volo','treno','bus','nave','traghetto','trasferimento','bici','piedi'];
-const TAPPA_TIPI = ['ristorante','bar','caffe','alloggio','museo','chiesa','parco','spiaggia','escursione','shopping','evento','mercato','benessere','ospedale','altro'];
+const TAPPA_TIPI = ['ristorante','bar','caffe','alloggio','museo','chiesa','centro_storico','parco','spiaggia','escursione','shopping','evento','mercato','benessere','ospedale','altro'];
 
 const PIANO_TIPO_ICONS = {
     // Spostamenti
@@ -2492,7 +2492,7 @@ const PIANO_TIPO_ICONS = {
     nave:'🛳️', traghetto:'⛴️', trasferimento:'🚕', bici:'🚲', piedi:'🚶',
     // Tappe
     ristorante:'🍽️', bar:'🍺', caffe:'☕', alloggio:'🏨',
-    museo:'🏛️', chiesa:'⛪', parco:'🌳', spiaggia:'🏖️',
+    museo:'🏛️', chiesa:'⛪', centro_storico:'🏰', parco:'🌳', spiaggia:'🏖️',
     escursione:'🥾', shopping:'🛍️', evento:'🎭', mercato:'🏪',
     benessere:'💆', ospedale:'🏥', altro:'📌',
     // Legacy (pre-redesign)
@@ -2502,7 +2502,7 @@ const PIANO_TIPO_LABEL = {
     auto:'Auto', moto:'Moto', volo:'Volo', treno:'Treno', bus:'Bus',
     nave:'Nave', traghetto:'Traghetto', trasferimento:'Taxi/Transfer', bici:'Bici', piedi:'A piedi',
     ristorante:'Ristorante', bar:'Bar', caffe:'Caffè', alloggio:'Alloggio',
-    museo:'Museo', chiesa:'Chiesa', parco:'Parco', spiaggia:'Spiaggia',
+    museo:'Museo', chiesa:'Chiesa', centro_storico:'Centro storico', parco:'Parco', spiaggia:'Spiaggia',
     escursione:'Escursione', shopping:'Shopping', evento:'Evento', mercato:'Mercato',
     benessere:'Benessere', ospedale:'Medico', altro:'Altro',
     pernottamento:'Pernottamento', attivita:'Attività',
