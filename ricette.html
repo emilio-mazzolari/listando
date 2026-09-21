@@ -92,7 +92,12 @@
         .detail-cover { width: 100%; max-height: 240px; object-fit: cover; display: block; }
         .detail-cover-video { width: 100%; max-height: 240px; display: block; }
         .detail-content { padding: 20px; }
-        .detail-cat-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+        .detail-cat-row { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 6px; cursor: pointer; padding: 4px 8px 4px 4px; border-radius: 20px; border: 1.5px solid transparent; transition: border-color 0.15s; }
+        .detail-cat-row:hover { border-color: var(--grey); }
+        .detail-cat-edit-icon { font-size: 11px; color: #bbb; margin-left: 2px; }
+        .cat-chip-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 8px; }
+        .cat-chip { padding: 9px 16px; border-radius: 20px; border: 2px solid var(--grey); background: var(--white); font-size: 14px; font-weight: 800; cursor: pointer; font-family: inherit; transition: all 0.15s; }
+        .cat-chip.active { border-color: var(--accent); background: var(--accent-bg); color: var(--accent); }
         .detail-title { font-size: 22px; font-weight: 900; line-height: 1.2; margin-bottom: 12px; }
         .detail-meta { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
         .detail-meta-item {
@@ -374,6 +379,16 @@
         HOME
     </a>
 </div>
+<!-- Modal: Cambia Categoria -->
+<div class="modal-overlay" id="modalCambiaCategoria">
+    <div class="modal-box" style="padding-bottom:24px">
+        <div class="modal-handle"></div>
+        <div class="modal-title">Cambia tipologia</div>
+        <div class="cat-chip-row" id="catChipRow"></div>
+        <button style="width:100%;padding:13px;border-radius:14px;border:2px solid var(--grey);background:var(--white);font-weight:800;font-size:15px;cursor:pointer;font-family:inherit;color:#aaa;margin-top:4px" onclick="document.getElementById('modalCambiaCategoria').classList.remove('open')">Annulla</button>
+    </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -715,9 +730,10 @@ function apriDettaglio(id) {
     document.getElementById('detailBody').innerHTML = `
         ${mediaHtml}
         <div class="detail-content">
-            <div class="detail-cat-row">
+            <div class="detail-cat-row" onclick="apriCambiaCategoria(${id})">
                 <div class="recipe-cat-dot" style="background:${col};width:8px;height:8px"></div>
                 <span style="font-size:11px;font-weight:800;color:${col};text-transform:uppercase;letter-spacing:0.5px">${r.categoria||'Altro'}</span>
+                <span class="detail-cat-edit-icon">✏️</span>
             </div>
             <div class="detail-title">${r.titolo}</div>
             ${metaHtml}${fonteHtml}${ingHtml}${procHtml}${noteHtml}${spesaHtml}
@@ -732,6 +748,30 @@ function apriDettaglio(id) {
 function chiudiDettaglio() {
     sessionStorage.removeItem('ric_id');
     document.getElementById('detailOverlay').classList.remove('open');
+}
+
+function apriCambiaCategoria(id) {
+    const r = ricette.find(x => x.id === id);
+    if (!r) return;
+    const cats = CATEGORIE.filter(c => c !== 'Tutte');
+    document.getElementById('catChipRow').innerHTML = cats.map(cat => {
+        const emoji = CAT_EMOJI[cat] || '🍽️';
+        const isActive = (r.categoria || 'Altro') === cat;
+        return `<button class="cat-chip${isActive ? ' active' : ''}" onclick="cambiaCategoria(${id},'${cat}')">${emoji} ${cat}</button>`;
+    }).join('');
+    document.getElementById('modalCambiaCategoria').classList.add('open');
+}
+
+async function cambiaCategoria(id, nuovaCat) {
+    const r = ricette.find(x => x.id === id);
+    if (!r || r.categoria === nuovaCat) { document.getElementById('modalCambiaCategoria').classList.remove('open'); return; }
+    const { error } = await sb.from('ricette').update({ categoria: nuovaCat }).eq('id', id);
+    if (error) { toast('Errore nel salvataggio'); return; }
+    r.categoria = nuovaCat;
+    document.getElementById('modalCambiaCategoria').classList.remove('open');
+    toast(`✓ Tipologia → ${nuovaCat}`);
+    render();
+    apriDettaglio(id);
 }
 
 async function aggiungiAllaSpesa(id) {
