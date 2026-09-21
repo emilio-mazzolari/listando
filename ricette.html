@@ -158,6 +158,10 @@
             cursor: pointer; font-family: inherit; margin-top: 20px;
             display: flex; align-items: center; justify-content: center; gap: 8px;
         }
+        .ing-sel-row { display: flex; align-items: center; gap: 12px; padding: 10px 4px; border-bottom: 1px solid var(--grey-light); cursor: pointer; }
+        .ing-sel-cb { width: 18px; height: 18px; flex-shrink: 0; cursor: pointer; accent-color: #3384d4; }
+        .ing-sel-nome { flex: 1; font-weight: 700; font-size: 14px; }
+        .ing-sel-qta { font-size: 12px; color: #888; font-weight: 700; flex-shrink: 0; }
         .detail-actions { display: flex; gap: 10px; margin-top: 10px; }
         .btn-detail-action {
             flex: 1; padding: 14px; border-radius: 16px; border: none;
@@ -379,6 +383,25 @@
         HOME
     </a>
 </div>
+<!-- Modal: Aggiungi alla spesa -->
+<div class="modal-overlay" id="modalSpesa">
+    <div class="modal-box">
+        <div class="modal-handle"></div>
+        <div class="modal-title">Aggiungi alla lista spesa</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <span style="font-size:12px;font-weight:800;color:#888">Ingredienti</span>
+            <button onclick="ingSelTutto()" style="font-size:12px;font-weight:800;color:#3384d4;background:none;border:none;cursor:pointer;font-family:inherit">Seleziona tutto</button>
+        </div>
+        <div id="ingSelList"></div>
+        <div id="listaDestinazioneWrap" style="margin-top:14px;display:none">
+            <label style="font-size:12px;font-weight:800;color:#888;display:block;margin-bottom:6px">Lista di destinazione</label>
+            <select id="listaDestinazioneSelect" style="width:100%;padding:10px 12px;border-radius:12px;border:2px solid var(--grey);font-size:14px;font-family:inherit;outline:none"></select>
+        </div>
+        <button class="btn-save-modal" style="background:#3384d4;margin-top:14px" onclick="confermaAggiungiSpesa()">🛒 Aggiungi selezionati</button>
+        <button style="width:100%;padding:13px;border-radius:14px;border:2px solid var(--grey);background:var(--white);font-weight:800;font-size:15px;cursor:pointer;font-family:inherit;margin-top:8px;color:#aaa" onclick="document.getElementById('modalSpesa').classList.remove('open')">Annulla</button>
+    </div>
+</div>
+
 <!-- Modal: Cambia Categoria -->
 <div class="modal-overlay" id="modalCambiaCategoria">
     <div class="modal-box" style="padding-bottom:24px">
@@ -774,18 +797,72 @@ async function cambiaCategoria(id, nuovaCat) {
     apriDettaglio(id);
 }
 
-async function aggiungiAllaSpesa(id) {
+let _spesaRicId = null;
+
+function aggiungiAllaSpesa(id) {
     const r = ricette.find(x => x.id === id);
     const ings = Array.isArray(r?.ingredienti) ? r.ingredienti : [];
-    if (!ings.length) return;
-    const rows = ings.map(i => ({
-        email_utente: userEmail,
-        nome: `${[i.quantita, i.unita].filter(Boolean).join(' ')} ${i.nome}`.trim(),
-        completato: false
+    if (!ings.length) { toast('Nessun ingrediente'); return; }
+    _spesaRicId = id;
+
+    // Render ingredient checkboxes (all pre-checked)
+    document.getElementById('ingSelList').innerHTML = ings.map((ing, idx) => {
+        const qtaStr = [ing.quantita, ing.unita].filter(Boolean).join(' ');
+        return `<label class="ing-sel-row">
+            <input type="checkbox" class="ing-sel-cb" data-idx="${idx}" checked>
+            <span class="ing-sel-nome">${ing.nome}</span>
+            ${qtaStr ? `<span class="ing-sel-qta">${qtaStr}</span>` : ''}
+        </label>`;
+    }).join('');
+
+    // Populate lista selector from localStorage
+    const liste = JSON.parse(localStorage.getItem('spesa_liste') || '[]');
+    const wrap = document.getElementById('listaDestinazioneWrap');
+    const sel = document.getElementById('listaDestinazioneSelect');
+    if (liste.length > 1) {
+        sel.innerHTML = liste.map(l => `<option value="${l.id}">${l.nome}</option>`).join('');
+        wrap.style.display = '';
+    } else {
+        wrap.style.display = 'none';
+    }
+
+    document.getElementById('modalSpesa').classList.add('open');
+}
+
+function ingSelTutto() {
+    const cbs = document.querySelectorAll('#ingSelList .ing-sel-cb');
+    const allChecked = Array.from(cbs).every(cb => cb.checked);
+    cbs.forEach(cb => cb.checked = !allChecked);
+}
+
+async function confermaAggiungiSpesa() {
+    const r = ricette.find(x => x.id === _spesaRicId);
+    const ings = Array.isArray(r?.ingredienti) ? r.ingredienti : [];
+    const selected = Array.from(document.querySelectorAll('#ingSelList .ing-sel-cb:checked'))
+        .map(cb => ings[parseInt(cb.dataset.idx)])
+        .filter(Boolean);
+    if (!selected.length) { toast('Seleziona almeno un ingrediente'); return; }
+
+    // Determine email_utente for the chosen list
+    const liste = JSON.parse(localStorage.getItem('spesa_liste') || '[]');
+    const wrap = document.getElementById('listaDestinazioneWrap');
+    let emailUtente = userEmail;
+    if (wrap.style.display !== 'none') {
+        const listaId = document.getElementById('listaDestinazioneSelect').value;
+        emailUtente = listaId === 'default' ? userEmail : userEmail + '||' + listaId;
+    }
+
+    const rows = selected.map(i => ({
+        email_utente: emailUtente,
+        nome: i.nome,
+        quantita: [i.quantita, i.unita].filter(Boolean).join(' ') || null,
+        completato: false,
     }));
+
     const { error } = await sb.from('spesa_lista').insert(rows);
     if (error) { toast('Errore: ' + error.message); return; }
-    toast(`✓ ${rows.length} ingredienti aggiunti alla spesa!`);
+    document.getElementById('modalSpesa').classList.remove('open');
+    toast(`✓ ${rows.length} ingredient${rows.length === 1 ? 'e aggiunto' : 'i aggiunti'} alla lista!`);
 }
 
 // ── Modal ─────────────────────────────────────────────────────────────
