@@ -650,21 +650,21 @@
             <div id="stimaBar" class="stima-bar">
                 <div id="stimaInfo" class="stima-loading">Calcolo in corso…</div>
             </div>
-            <div style="display:flex;gap:8px;margin-bottom:4px">
-                <div style="flex:1.3"><label class="form-label" style="font-size:11px">Partenza</label>
-                    <div style="display:flex;gap:5px">
-                        <input class="form-input" id="pDataInizio" type="date" style="margin:0;padding:9px 8px;flex:1.4">
-                        <input class="form-input" id="pOraInizio" type="time" style="margin:0;padding:9px 6px;flex:1">
-                    </div>
+            <div style="display:flex;gap:6px;margin-bottom:4px;align-items:flex-end">
+                <div style="flex:1.5"><label class="form-label" style="font-size:11px">Data partenza</label>
+                    <input class="form-input" id="pDataInizio" type="date" style="margin:0;padding:9px 8px"
+                        onchange="if(!document.getElementById('pDataFine').value) document.getElementById('pDataFine').value=this.value">
+                </div>
+                <div style="flex:1"><label class="form-label" style="font-size:11px">Ora parten.</label>
+                    <input class="form-input" id="pOraInizio" type="time" style="margin:0;padding:9px 6px">
+                </div>
+                <div style="flex:1"><label class="form-label" style="font-size:11px">Ora arrivo</label>
+                    <input class="form-input" id="pOraFine" type="time" style="margin:0;padding:9px 6px">
                 </div>
             </div>
-            <div style="display:flex;gap:8px;margin-bottom:8px">
-                <div style="flex:1.3"><label class="form-label" style="font-size:11px">Arrivo</label>
-                    <div style="display:flex;gap:5px">
-                        <input class="form-input" id="pDataFine" type="date" style="margin:0;padding:9px 8px;flex:1.4">
-                        <input class="form-input" id="pOraFine" type="time" style="margin:0;padding:9px 6px;flex:1">
-                    </div>
-                </div>
+            <div style="margin-bottom:8px">
+                <label class="form-label" style="font-size:11px">Data arrivo (se diversa)</label>
+                <input class="form-input" id="pDataFine" type="date" style="margin:0;padding:9px 8px">
             </div>
             <label class="form-label" style="font-size:11px">Tipo veicolo (per stima)</label>
             <select class="form-input" id="pTipoVeicolo" style="margin-bottom:10px;padding:10px 12px">
@@ -696,12 +696,15 @@
             <input class="form-input" id="pTitolo" placeholder="es. Orto Botanico, Ristorante Al Porto…" type="text">
             <label class="form-label">Luogo / Indirizzo</label>
             <input class="form-input" id="pLuogo" placeholder="es. Via Roma 5, Pontremoli…" type="text">
-            <div style="display:flex;gap:8px;margin-bottom:8px">
-                <div style="flex:1.4"><label class="form-label">Data</label>
-                    <input class="form-input" id="pDataInizioT" type="date" style="margin:0;padding:10px 12px">
+            <div style="display:flex;gap:6px;margin-bottom:8px;align-items:flex-end">
+                <div style="flex:1.5"><label class="form-label">Data</label>
+                    <input class="form-input" id="pDataInizioT" type="date" style="margin:0;padding:10px 8px">
                 </div>
-                <div style="flex:1"><label class="form-label">Ora</label>
-                    <input class="form-input" id="pOraInizioT" type="time" style="margin:0;padding:10px 12px">
+                <div style="flex:1"><label class="form-label">Ora inizio</label>
+                    <input class="form-input" id="pOraInizioT" type="time" style="margin:0;padding:10px 6px">
+                </div>
+                <div style="flex:1"><label class="form-label">Ora fine</label>
+                    <input class="form-input" id="pOraFineT" type="time" style="margin:0;padding:10px 6px">
                 </div>
             </div>
             <label class="form-label">Costo (biglietto / pasto / etc.) €</label>
@@ -2567,8 +2570,11 @@ function _renderPianoCard(p) {
     } else {
         headerHtml = `<div class="piano-titolo">${p.titolo}</div>`;
         if (p.luogo) timingHtml = `<div class="piano-sub">📍 ${p.luogo}</div>`;
-        const dataStr = p.data_inizio ? formatPianoDate(p.data_inizio) + (p.data_inizio.length > 10 ? ' ' + p.data_inizio.substring(11, 16) : '') : '';
-        if (dataStr) timingHtml += `<div class="piano-date">${dataStr}</div>`;
+        const oraI = p.data_inizio?.length > 10 ? p.data_inizio.substring(11, 16) : '';
+        const oraF = p.data_fine?.length  > 10 ? p.data_fine.substring(11, 16)  : '';
+        const dataStr = p.data_inizio ? formatPianoDate(p.data_inizio) : '';
+        const orario = oraI && oraF ? `${oraI} → ${oraF}` : oraI;
+        if (dataStr || orario) timingHtml += `<div class="piano-date">${[dataStr, orario].filter(Boolean).join(' · ')}</div>`;
         if (p.costo_tappa > 0) costiHtml = `<div class="piano-costi">💶 ${cur}${(+p.costo_tappa).toFixed(2)}</div>`;
     }
     const badgeHtml = p.confermato ? `<span class="piano-badge confermato">✓ Confermato</span>` : '';
@@ -2688,7 +2694,7 @@ function apriModalNuovoPianoItem(modo) {
     setPianoModo(modo || 'spostamento');
     pianoTipoScelto = modo === 'tappa' ? 'ristorante' : 'auto';
     ['pTitolo','pLuogo','pDa','pA','pMezzo','pNote'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-    ['pDataInizio','pOraInizio','pDataFine','pOraFine','pDataInizioT','pOraInizioT'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    ['pDataInizio','pOraInizio','pDataFine','pOraFine','pDataInizioT','pOraInizioT','pOraFineT'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
     ['pCostoCarburante','pCostoPedaggi','pCostoParcheggio','pCostoTrasporto','pCostoTappa'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
     document.getElementById('pConfermato').checked = false;
     document.getElementById('btnEliminaPiano').style.display = 'none';
@@ -2703,8 +2709,8 @@ function apriModalEditPianoItem(id) {
     pianoItemEditId = id;
     const modo = _isSpostamento(p.tipo) ? 'spostamento' : 'tappa';
     const tipoResolved = TIPO_LEGACY_MAP[p.tipo] || p.tipo || (modo === 'spostamento' ? 'auto' : 'ristorante');
-    pianoTipoScelto = tipoResolved;
-    setPianoModo(modo);
+    setPianoModo(modo);          // sets pianoTipoScelto to default first
+    pianoTipoScelto = tipoResolved; // then override with the actual tipo
     document.getElementById('titoloModalPiano').textContent = 'Modifica';
     if (modo === 'spostamento') {
         document.getElementById('pDa').value = p.luogo_partenza || '';
@@ -2723,6 +2729,7 @@ function apriModalEditPianoItem(id) {
         document.getElementById('pLuogo').value = p.luogo || '';
         document.getElementById('pDataInizioT').value = p.data_inizio ? p.data_inizio.substring(0, 10) : '';
         document.getElementById('pOraInizioT').value = p.data_inizio && p.data_inizio.length > 10 ? p.data_inizio.substring(11, 16) : '';
+        document.getElementById('pOraFineT').value = p.data_fine && p.data_fine.length > 10 ? p.data_fine.substring(11, 16) : '';
         document.getElementById('pCostoTappa').value = p.costo_tappa || '';
     }
     document.getElementById('pNote').value = p.note || '';
@@ -2743,7 +2750,7 @@ async function salvaPianoItem() {
         dataInizioVal = document.getElementById('pDataInizio').value;
         titolo = da && a ? `${da} → ${a}` : (da || a);
         body = {
-            viaggio_id: viaggioCorrenteId, tipo: pianoTipoScelto, titolo,
+            viaggio_id: viaggioCorrenteId, tipo: pianoTipoScelto || 'auto', titolo,
             luogo_partenza: da || null, luogo_arrivo: a || null,
             data_inizio: _pianoTimestamp(dataInizioVal, document.getElementById('pOraInizio').value),
             data_fine:   _pianoTimestamp(document.getElementById('pDataFine').value, document.getElementById('pOraFine').value),
@@ -2760,9 +2767,10 @@ async function salvaPianoItem() {
         dataInizioVal = document.getElementById('pDataInizioT').value;
         if (!titolo) { toast('Inserisci il nome della tappa'); return; }
         body = {
-            viaggio_id: viaggioCorrenteId, tipo: pianoTipoScelto, titolo,
+            viaggio_id: viaggioCorrenteId, tipo: pianoTipoScelto || 'altro', titolo,
             luogo: document.getElementById('pLuogo').value.trim() || null,
             data_inizio: _pianoTimestamp(dataInizioVal, document.getElementById('pOraInizioT').value),
+            data_fine: document.getElementById('pOraFineT').value ? _pianoTimestamp(dataInizioVal, document.getElementById('pOraFineT').value) : null,
             costo_tappa: parseFloat(document.getElementById('pCostoTappa').value) || null,
             note: document.getElementById('pNote').value.trim() || null,
             confermato: document.getElementById('pConfermato').checked,
