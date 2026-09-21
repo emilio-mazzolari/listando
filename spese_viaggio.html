@@ -390,8 +390,7 @@
                 <input type="text" id="nomeNuovaPersona" placeholder="Nome partecipante…" onkeydown="if(event.key==='Enter') aggiungiPartecipante()">
                 <button class="btn-add-part" onclick="aggiungiPartecipante()">+ Aggiungi</button>
             </div>
-            <button class="btn-invita" onclick="apriModalInvita()">📧 Invita via email</button>
-            <button class="btn-link-viaggio" onclick="condividiLinkViaggio()">🔗 Invita con link</button>
+            <button class="btn-invita" onclick="aggiungiMeStesso()" style="background:#e8f5e9;color:#0fba8d;border:2px solid #0fba8d;border-radius:14px;width:100%;padding:13px;font-weight:800;font-size:14px;cursor:pointer;font-family:inherit;margin-top:4px">👤 Aggiungi me stesso</button>
         </div>
 
         <!-- TAB PIANO -->
@@ -495,13 +494,16 @@
     <div class="modal-box">
         <div class="modal-handle"></div>
         <div id="inviteStep1">
-            <div class="modal-title">Invita partecipante</div>
-            <p style="font-size:13px;color:#888;font-weight:600;margin:0 0 14px">Aggiungi il nome e l'email di chi vuoi invitare.</p>
-            <label class="form-label">Email</label>
-            <input class="form-input" id="emailInvitato" type="email" placeholder="email@esempio.com" autocomplete="off">
-            <label class="form-label">Nome</label>
-            <input class="form-input" id="nomeInvitato" type="text" placeholder="Come si chiama?" onkeydown="if(event.key==='Enter') inviaInvito()">
-            <button class="btn-save-modal" style="background:#5856d6" onclick="inviaInvito()">AVANTI →</button>
+            <div class="modal-title" id="modalInvitaTitolo">Invita partecipante</div>
+            <p style="font-size:13px;color:#888;font-weight:600;margin:0 0 14px">Condividi il link o inserisci l'email — il tuo invitato si unirà con il nome già inserito.</p>
+            <div id="inviteNomeWrap">
+                <label class="form-label">Nome</label>
+                <input class="form-input" id="nomeInvitato" type="text" placeholder="Come si chiama?" style="margin-bottom:12px">
+            </div>
+            <label class="form-label">Email <span style="font-weight:500;color:#aaa">(opzionale)</span></label>
+            <input class="form-input" id="emailInvitato" type="email" placeholder="email@esempio.com" autocomplete="off" onkeydown="if(event.key==='Enter') inviaInvito()">
+            <button class="btn-save-modal" style="background:#5856d6;margin-top:14px" onclick="inviaInvito()">CONDIVIDI INVITO →</button>
+            <button onclick="chiudiModalInvita()" style="width:100%;padding:14px;border-radius:14px;border:none;background:transparent;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit;margin-top:4px;color:#aaa">Salta</button>
         </div>
         <div id="inviteStep2" style="display:none">
             <div class="modal-title">✓ Partecipante aggiunto!</div>
@@ -842,6 +844,7 @@ let filtroTesto = '', filtroPagatore = '';
 let convCurA = 'EUR', convCurB = 'USD', convSearchSide = 'A';
 let pianificazioneAttuale = [], budgetAttuale = [];
 let pianoItemEditId = null, budgetItemEditId = null;
+let _invitePartId = null;
 let pianoTipoScelto = 'altro', budgetCatScelta = 'altro', budgetStatoScelto = 'prevista';
 
 function logout() { localStorage.clear(); location.href = 'login.html'; }
@@ -1697,12 +1700,18 @@ function renderPartecipanti() {
     if (!partecipantiAttuali.length) { el.innerHTML = `<div class="empty-msg" style="padding:24px 0">Nessun partecipante ancora.</div>`; return; }
     el.innerHTML = partecipantiAttuali.map(p => {
         const fp = p.email_collegata ? fotoProfili[p.email_collegata] : null;
+        const isSelf = p.email_collegata === userEmail;
+        const inviteBtn = !p.email_collegata
+            ? `<button title="Invia invito" onclick="event.stopPropagation(); invitaPartecipante(${p.id})" style="width:36px;height:36px;border-radius:10px;border:2px solid #5856d6;background:rgba(88,86,214,0.08);color:#5856d6;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#5856d6" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+               </button>` : '';
         return `<div class="partecipante-row">
             ${avatarHtml(p.nome, fp?.foto || null, 40)}
-            <div class="part-info">
-                <div class="partecipante-nome">${p.nome}</div>
-                ${p.email_collegata ? `<div class="partecipante-sub">📧 ${p.email_collegata}</div>` : ''}
+            <div class="part-info" style="flex:1;min-width:0">
+                <div class="partecipante-nome">${p.nome}${isSelf ? ' <span style="font-size:11px;color:var(--green);font-weight:700">(tu)</span>' : ''}</div>
+                ${p.email_collegata ? `<div class="partecipante-sub">📧 ${p.email_collegata}</div>` : '<div class="partecipante-sub" style="color:#f0a500">⚠️ Non ancora accettato</div>'}
             </div>
+            ${inviteBtn}
             <button class="btn-del-viaggio" onclick="eliminaPartecipante(${p.id})">
                 <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
@@ -1718,6 +1727,25 @@ async function aggiungiPartecipante() {
     input.value = '';
     await caricaPartecipanti(); renderPartecipanti();
     toast(`✓ ${nome} aggiunto`);
+    const parts = await apiGetArr(`/sv_partecipanti?viaggio_id=eq.${viaggioCorrenteId}&nome=eq.${encodeURIComponent(nome)}&order=id.desc&limit=1`);
+    _invitePartId = parts[0]?.id || null;
+    apriModalInvita(nome);
+}
+
+async function aggiungiMeStesso() {
+    const already = partecipantiAttuali.find(p => p.email_collegata === userEmail);
+    if (already) { toast(`Sei già nel viaggio come "${already.nome}"`); return; }
+    const mioNome = await getMioNome();
+    await apiPost('/sv_partecipanti', { viaggio_id: viaggioCorrenteId, email_utente: userEmail, nome: mioNome, email_collegata: userEmail });
+    await caricaPartecipanti(); renderPartecipanti();
+    toast(`✓ Aggiunto come ${mioNome}`);
+}
+
+function invitaPartecipante(partId) {
+    const p = partecipantiAttuali.find(x => x.id === partId);
+    if (!p) return;
+    _invitePartId = partId;
+    apriModalInvita(p.nome);
 }
 
 async function eliminaPartecipante(id) {
@@ -1735,41 +1763,52 @@ function condividiLinkViaggio() {
 }
 
 // ── Invita ────────────────────────────────────────────────────────
-function apriModalInvita() {
+function apriModalInvita(nome) {
     document.getElementById('emailInvitato').value = '';
-    document.getElementById('nomeInvitato').value = '';
+    document.getElementById('nomeInvitato').value = nome || '';
     document.getElementById('inviteStep1').style.display = '';
     document.getElementById('inviteStep2').style.display = 'none';
+    document.getElementById('modalInvitaTitolo').textContent = nome ? `Invita ${nome}` : 'Invita partecipante';
+    document.getElementById('inviteNomeWrap').style.display = nome ? 'none' : '';
     document.getElementById('modalInvita').classList.add('open');
     setTimeout(() => document.getElementById('emailInvitato').focus(), 300);
 }
-function chiudiModalInvita() { document.getElementById('modalInvita').classList.remove('open'); }
+function chiudiModalInvita() { document.getElementById('modalInvita').classList.remove('open'); _invitePartId = null; }
 
 async function inviaInvito() {
     const email = document.getElementById('emailInvitato').value.trim().toLowerCase();
     const nome = document.getElementById('nomeInvitato').value.trim();
-    if (!email || !email.includes('@')) { toast('Inserisci un email valida'); return; }
     if (!nome) { toast('Inserisci il nome'); return; }
+    if (email && !email.includes('@')) { toast('Email non valida'); return; }
     const viaggio = viaggi.find(v => v.id === viaggioCorrenteId);
     const mioNome = await getMioNome();
-    await apiDel(`/sv_inviti?viaggio_id=eq.${viaggioCorrenteId}&email_invitato=eq.${encodeURIComponent(email)}`);
-    await apiPost('/sv_inviti', {
-        viaggio_id: viaggioCorrenteId, viaggio_nome: viaggio?.nome || '',
-        email_invitante: userEmail, nome_invitante: mioNome,
-        email_invitato: email, stato: 'attesa'
-    });
-    const resP = await apiPost('/sv_partecipanti', { viaggio_id: viaggioCorrenteId, email_utente: userEmail, nome, email_collegata: email });
-    if (!resP.ok) await apiPost('/sv_partecipanti', { viaggio_id: viaggioCorrenteId, email_utente: userEmail, nome });
-    await caricaPartecipanti(); renderPartecipanti();
-    const nomeViaggio = viaggio?.nome || 'viaggio';
     const joinUrl = `https://listando.it/spese_viaggio.html?join=${viaggioCorrenteId}`;
+    if (email) {
+        await apiDel(`/sv_inviti?viaggio_id=eq.${viaggioCorrenteId}&email_invitato=eq.${encodeURIComponent(email)}`);
+        await apiPost('/sv_inviti', {
+            viaggio_id: viaggioCorrenteId, viaggio_nome: viaggio?.nome || '',
+            email_invitante: userEmail, nome_invitante: mioNome,
+            email_invitato: email, stato: 'attesa'
+        });
+        if (_invitePartId) {
+            await apiPatch(`/sv_partecipanti?id=eq.${_invitePartId}`, { email_collegata: email });
+        } else {
+            const resP = await apiPost('/sv_partecipanti', { viaggio_id: viaggioCorrenteId, email_utente: userEmail, nome, email_collegata: email });
+            if (!resP.ok) await apiPost('/sv_partecipanti', { viaggio_id: viaggioCorrenteId, email_utente: userEmail, nome });
+        }
+        await caricaPartecipanti(); renderPartecipanti();
+    }
+    _invitePartId = null;
+    const nomeViaggio = viaggio?.nome || 'viaggio';
     const msg = `Ciao ${nome}! 👋\n${mioNome} ti ha aggiunto alle spese di "${nomeViaggio}" su Listando 🧳\n\nClicca qui per vedere il viaggio:\n${joinUrl}\n\n(Se non hai ancora Listando, accedi su https://listando.it con la tua email e poi riapri il link)`;
     window._inviteMsg = msg;
     document.getElementById('inviteStep1').style.display = 'none';
     document.getElementById('inviteStep2').style.display = '';
-    document.getElementById('inviteShareDesc').textContent = `Condividi il messaggio con ${nome} per farglielo sapere.`;
+    document.getElementById('inviteShareDesc').textContent = `Condividi il messaggio con ${nome}.`;
     document.getElementById('btnShareWA').href = `https://wa.me/?text=${encodeURIComponent(msg)}`;
-    document.getElementById('btnShareEmail').href = `mailto:${email}?subject=${encodeURIComponent(`${mioNome} ti invita su Listando — ${nomeViaggio}`)}&body=${encodeURIComponent(msg)}`;
+    const emailBtn = document.getElementById('btnShareEmail');
+    emailBtn.href = `mailto:${email}?subject=${encodeURIComponent(`${mioNome} ti invita su Listando — ${nomeViaggio}`)}&body=${encodeURIComponent(msg)}`;
+    emailBtn.style.display = email ? '' : 'none';
     if (navigator.share) document.getElementById('btnShareNativo').style.display = '';
 }
 async function condividiNativo() { try { await navigator.share({ text: window._inviteMsg }); } catch(e) {} }
