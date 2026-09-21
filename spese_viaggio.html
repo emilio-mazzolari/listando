@@ -3264,8 +3264,7 @@ function _pianoItemCosto(p) {
 }
 
 function apriModalBudgetDaPiano() {
-    const conCosto = pianificazioneAttuale.filter(p => _pianoItemCosto(p) > 0);
-    if (!conCosto.length) { toast('Nessuna voce con costo nel piano'); return; }
+    if (!pianificazioneAttuale.length) { toast('Il piano è vuoto'); return; }
     _bpSelSingole = new Set();
     _bpSelCategoria = new Set();
     mostraBpTab('singole');
@@ -3387,11 +3386,13 @@ async function aggiungiDaPiano() {
             if (_bpSelCategoria.has(k)) voci.push({ titolo: g.label, categoria: g.cat, importo: g.totale });
         });
     }
-    await Promise.all(voci.map(v => apiPost('/sv_budget', {
-        viaggio_id: viaggioCorrenteId, email_utente: userEmail,
+    const results = await Promise.all(voci.map(v => apiPost('/sv_budget', {
+        viaggio_id: viaggioCorrenteId,
         titolo: v.titolo, categoria: v.categoria,
         importo_previsto: v.importo, valuta: viaggioCorrenteValuta, stato: 'prevista',
     })));
+    const failed = results.filter(r => !r.ok).length;
+    if (failed > 0) { toast(`⚠️ Errore: ${failed} voci non salvate`); return; }
     document.getElementById('modalPianoBudget').classList.remove('open');
     await caricaBudget(); renderBudget();
     toast(`✓ ${voci.length} ${voci.length === 1 ? 'voce aggiunta' : 'voci aggiunte'} al budget`);
