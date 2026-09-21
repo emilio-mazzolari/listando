@@ -291,15 +291,39 @@
         .inner-tab { flex-shrink: 0; }
 
         /* Piano */
-        .piano-card { background: var(--white); border-radius: 16px; padding: 14px 16px; margin-bottom: 10px; box-shadow: var(--shadow); display: flex; align-items: flex-start; gap: 12px; cursor: pointer; transition: transform 0.15s; }
+        .piano-card { background: var(--white); border-radius: 16px; padding: 12px 14px; margin-bottom: 10px; box-shadow: var(--shadow); display: flex; align-items: flex-start; gap: 10px; cursor: pointer; transition: transform 0.15s; border-left: 4px solid transparent; }
         .piano-card:active { transform: scale(0.98); }
-        .piano-tipo-icon { font-size: 26px; flex-shrink: 0; width: 36px; text-align: center; margin-top: 2px; }
+        .piano-card.spostamento { border-left-color: #5856d6; }
+        .piano-card.tappa { border-left-color: var(--teal); }
+        .piano-card.completato-card { opacity: 0.5; }
+        .piano-tipo-icon { font-size: 24px; flex-shrink: 0; width: 34px; text-align: center; margin-top: 2px; }
         .piano-body { flex: 1; min-width: 0; }
-        .piano-titolo { font-weight: 800; font-size: 15px; }
-        .piano-sub { font-size: 12px; color: #888; font-weight: 700; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .piano-date { font-size: 11px; color: #5856d6; font-weight: 800; margin-top: 5px; }
+        .piano-rotta { font-weight: 900; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .piano-titolo { font-weight: 800; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .piano-timing { font-size: 11px; color: #5856d6; font-weight: 800; margin-top: 3px; }
+        .piano-sub { font-size: 12px; color: #888; font-weight: 700; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .piano-costi { font-size: 11px; font-weight: 800; color: var(--green); margin-top: 4px; display: flex; gap: 8px; flex-wrap: wrap; }
+        .piano-date { font-size: 11px; color: #5856d6; font-weight: 800; margin-top: 4px; }
         .piano-badge { display: inline-block; font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 6px; background: #eef2ff; color: #5856d6; margin-top: 5px; }
         .piano-badge.confermato { background: #e8f5e9; color: var(--green); }
+        .piano-section-hdr { font-size: 11px; font-weight: 900; color: #aaa; text-transform: uppercase; letter-spacing: 1px; margin: 14px 0 6px; }
+        .piano-check-btn { width: 30px; height: 30px; flex-shrink: 0; border-radius: 50%; border: 2.5px solid var(--grey); background: white; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; transition: all 0.15s; margin-top: 2px; }
+        .piano-check-btn.done { background: var(--green); border-color: var(--green); color: white; }
+        .modo-btn { flex: 1; padding: 11px 8px; border-radius: 14px; border: 2.5px solid var(--grey); font-weight: 800; font-size: 14px; cursor: pointer; background: white; color: #999; transition: all 0.15s; font-family: inherit; }
+        .modo-btn.active.spost { border-color: #5856d6; background: rgba(88,86,214,0.08); color: #5856d6; }
+        .modo-btn.active.tappa { border-color: var(--teal); background: rgba(48,176,199,0.08); color: var(--teal); }
+        .stima-bar { background: rgba(88,86,214,0.06); border-radius: 12px; padding: 10px 14px; margin-bottom: 10px; display: none; }
+        .stima-bar.visible { display: block; }
+        .stima-loading { color: #5856d6; font-weight: 700; font-size: 13px; }
+        .btn-stima { padding: 8px 14px; border-radius: 10px; border: 2px solid #5856d6; background: rgba(88,86,214,0.08); color: #5856d6; font-weight: 800; font-size: 13px; cursor: pointer; font-family: inherit; width: 100%; margin-bottom: 8px; }
+        .cost-row { display: flex; gap: 8px; margin-bottom: 6px; }
+        .cost-field { flex: 1; }
+        .cost-field label { font-size: 11px; font-weight: 800; color: #666; text-transform: uppercase; letter-spacing: 0.3px; display: block; margin-bottom: 3px; }
+        .cost-field input { width: 100%; padding: 9px 10px; border-radius: 12px; border: 2px solid var(--grey); font-size: 14px; font-family: inherit; outline: none; }
+        .cost-field input:focus { border-color: #5856d6; }
+        .piano-add-row { display: flex; gap: 8px; margin-bottom: 14px; }
+        .btn-add-spost { flex: 1; padding: 12px; border-radius: 14px; border: 2px solid #5856d6; background: rgba(88,86,214,0.06); color: #5856d6; font-weight: 800; font-size: 14px; cursor: pointer; font-family: inherit; }
+        .btn-add-tappa { flex: 1; padding: 12px; border-radius: 14px; border: 2px solid var(--teal); background: rgba(48,176,199,0.06); color: var(--teal); font-weight: 800; font-size: 14px; cursor: pointer; font-family: inherit; }
 
         /* Budget */
         .budget-summary { background: var(--white); border-radius: 16px; padding: 16px; margin-bottom: 14px; box-shadow: var(--shadow); }
@@ -395,7 +419,10 @@
 
         <!-- TAB PIANO -->
         <div id="tabPiano" style="display:none">
-            <button class="btn-save-modal" onclick="apriModalNuovoPianoItem()" style="background:#5856d6;margin-bottom:12px">+ Aggiungi elemento</button>
+            <div class="piano-add-row">
+                <button class="btn-add-spost" onclick="apriModalNuovoPianoItem('spostamento')">🚗 Spostamento</button>
+                <button class="btn-add-tappa" onclick="apriModalNuovoPianoItem('tappa')">📍 Tappa</button>
+            </div>
             <div id="elencoPiano"></div>
         </div>
 
@@ -599,49 +626,88 @@
 <div class="modal-overlay" id="modalPianoItem">
     <div class="modal-box">
         <div class="modal-handle"></div>
-        <div class="modal-title" id="titoloModalPiano">Nuovo elemento</div>
+        <div class="modal-title" id="titoloModalPiano">Nuovo spostamento</div>
 
-        <label class="form-label">Tipo</label>
-        <div id="pianoTipoRow" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px"></div>
-
-        <label class="form-label">Titolo *</label>
-        <input class="form-input" id="pTitolo" placeholder="es. Volo Roma → Lisbona…" type="text">
-
-        <div style="display:flex;gap:8px;margin-bottom:8px">
-            <div style="flex:1.4">
-                <label class="form-label">Data inizio *</label>
-                <input class="form-input" id="pDataInizio" type="date" style="margin:0;padding:10px 12px">
-            </div>
-            <div style="flex:1">
-                <label class="form-label">Ora</label>
-                <input class="form-input" id="pOraInizio" type="time" style="margin:0;padding:10px 12px">
-            </div>
-        </div>
-        <div style="display:flex;gap:8px;margin-bottom:8px">
-            <div style="flex:1.4">
-                <label class="form-label">Data fine</label>
-                <input class="form-input" id="pDataFine" type="date" style="margin:0;padding:10px 12px">
-            </div>
-            <div style="flex:1">
-                <label class="form-label">Ora fine</label>
-                <input class="form-input" id="pOraFine" type="time" style="margin:0;padding:10px 12px">
-            </div>
+        <!-- Spostamento / Tappa -->
+        <div style="display:flex;gap:8px;margin-bottom:14px">
+            <button id="pModoSpost" class="modo-btn active spost" onclick="setPianoModo('spostamento')">🚗 Spostamento</button>
+            <button id="pModoTappa" class="modo-btn tappa" onclick="setPianoModo('tappa')">📍 Tappa</button>
         </div>
 
-        <label class="form-label">Da → A</label>
-        <div style="display:flex;gap:8px;margin-bottom:8px">
-            <input class="form-input" id="pDa" placeholder="Partenza" type="text" style="margin:0;padding:10px 12px;flex:1">
-            <input class="form-input" id="pA" placeholder="Arrivo" type="text" style="margin:0;padding:10px 12px;flex:1">
+        <!-- Tipo chips -->
+        <div id="pianoTipoRow" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px"></div>
+
+        <!-- SEZIONE SPOSTAMENTO -->
+        <div id="sezSpostamento">
+            <label class="form-label">Da → A *</label>
+            <div style="display:flex;gap:8px;margin-bottom:6px">
+                <input class="form-input" id="pDa" placeholder="Partenza" type="text" style="margin:0;padding:10px 12px;flex:1">
+                <input class="form-input" id="pA" placeholder="Arrivo" type="text" style="margin:0;padding:10px 12px;flex:1">
+            </div>
+            <button class="btn-stima" onclick="stimaPercorso()">🔍 Stima distanza, tempo e costi</button>
+            <div id="stimaBar" class="stima-bar">
+                <div id="stimaInfo" class="stima-loading">Calcolo in corso…</div>
+            </div>
+            <div style="display:flex;gap:8px;margin-bottom:4px">
+                <div style="flex:1.3"><label class="form-label" style="font-size:11px">Partenza</label>
+                    <div style="display:flex;gap:5px">
+                        <input class="form-input" id="pDataInizio" type="date" style="margin:0;padding:9px 8px;flex:1.4">
+                        <input class="form-input" id="pOraInizio" type="time" style="margin:0;padding:9px 6px;flex:1">
+                    </div>
+                </div>
+            </div>
+            <div style="display:flex;gap:8px;margin-bottom:8px">
+                <div style="flex:1.3"><label class="form-label" style="font-size:11px">Arrivo</label>
+                    <div style="display:flex;gap:5px">
+                        <input class="form-input" id="pDataFine" type="date" style="margin:0;padding:9px 8px;flex:1.4">
+                        <input class="form-input" id="pOraFine" type="time" style="margin:0;padding:9px 6px;flex:1">
+                    </div>
+                </div>
+            </div>
+            <label class="form-label" style="font-size:11px">Tipo veicolo (per stima)</label>
+            <select class="form-input" id="pTipoVeicolo" style="margin-bottom:10px;padding:10px 12px">
+                <option value="media_benzina">🚗 Auto media — benzina (~7,5 L/100km)</option>
+                <option value="piccola_benzina">🚗 Auto piccola — benzina (~6 L/100km)</option>
+                <option value="grande_benzina">🚙 Auto grande/SUV — benzina (~9 L/100km)</option>
+                <option value="media_diesel">🚗 Auto media — diesel (~6 L/100km)</option>
+                <option value="grande_diesel">🚙 Auto grande/SUV — diesel (~7,5 L/100km)</option>
+                <option value="furgone">🚐 Furgone (~12 L/100km)</option>
+                <option value="moto">🏍️ Moto (~4 L/100km)</option>
+                <option value="elettrica">⚡ Elettrica (no carburante)</option>
+            </select>
+            <label class="form-label">Costi spostamento</label>
+            <div class="cost-row">
+                <div class="cost-field"><label>⛽ Carburante €</label><input type="number" id="pCostoCarburante" min="0" step="0.01" placeholder="0,00"></div>
+                <div class="cost-field"><label>🛣️ Pedaggi €</label><input type="number" id="pCostoPedaggi" min="0" step="0.01" placeholder="0,00"></div>
+            </div>
+            <div class="cost-row">
+                <div class="cost-field"><label>🅿️ Parcheggio €</label><input type="number" id="pCostoParcheggio" min="0" step="0.01" placeholder="0,00"></div>
+                <div class="cost-field"><label>🎫 Biglietto trsp. €</label><input type="number" id="pCostoTrasporto" min="0" step="0.01" placeholder="0,00"></div>
+            </div>
+            <label class="form-label">Mezzo / Riferimento</label>
+            <input class="form-input" id="pMezzo" placeholder="es. FR4521, IC 700, targa AB123…" type="text">
         </div>
 
-        <label class="form-label">Luogo</label>
-        <input class="form-input" id="pLuogo" placeholder="es. Hotel Bairro Alto…" type="text">
-
-        <label class="form-label">Mezzo / Dettaglio</label>
-        <input class="form-input" id="pMezzo" placeholder="es. Ryanair FR4521, IC 700…" type="text">
+        <!-- SEZIONE TAPPA -->
+        <div id="sezTappa" style="display:none">
+            <label class="form-label">Nome tappa *</label>
+            <input class="form-input" id="pTitolo" placeholder="es. Orto Botanico, Ristorante Al Porto…" type="text">
+            <label class="form-label">Luogo / Indirizzo</label>
+            <input class="form-input" id="pLuogo" placeholder="es. Via Roma 5, Pontremoli…" type="text">
+            <div style="display:flex;gap:8px;margin-bottom:8px">
+                <div style="flex:1.4"><label class="form-label">Data</label>
+                    <input class="form-input" id="pDataInizioT" type="date" style="margin:0;padding:10px 12px">
+                </div>
+                <div style="flex:1"><label class="form-label">Ora</label>
+                    <input class="form-input" id="pOraInizioT" type="time" style="margin:0;padding:10px 12px">
+                </div>
+            </div>
+            <label class="form-label">Costo (biglietto / pasto / etc.) €</label>
+            <input class="form-input" id="pCostoTappa" type="number" min="0" step="0.01" placeholder="es. 12,50" style="margin-bottom:8px">
+        </div>
 
         <label class="form-label">Note</label>
-        <textarea class="form-input" id="pNote" rows="2" style="resize:none" placeholder="Conferma, orari, riferimenti…"></textarea>
+        <textarea class="form-input" id="pNote" rows="2" style="resize:none" placeholder="Dettagli, prenotazione, orari…"></textarea>
 
         <div style="display:flex;align-items:center;gap:10px;margin:12px 0 4px">
             <input type="checkbox" id="pConfermato" style="width:20px;height:20px;cursor:pointer;flex-shrink:0">
@@ -845,7 +911,7 @@ let convCurA = 'EUR', convCurB = 'USD', convSearchSide = 'A';
 let pianificazioneAttuale = [], budgetAttuale = [];
 let pianoItemEditId = null, budgetItemEditId = null;
 let _invitePartId = null;
-let pianoTipoScelto = 'altro', budgetCatScelta = 'altro', budgetStatoScelto = 'prevista';
+let pianoTipoScelto = 'auto', budgetCatScelta = 'altro', budgetStatoScelto = 'prevista';
 
 function logout() { localStorage.clear(); location.href = 'login.html'; }
 function showView(id) {
@@ -2408,53 +2474,113 @@ async function salvaModificheViaggio() {
 }
 
 // ── Piano ─────────────────────────────────────────────────────────
+const SPOSTAMENTO_TIPI = ['auto','moto','volo','treno','bus','nave','traghetto','trasferimento','bici','piedi'];
+const TAPPA_TIPI = ['ristorante','bar','caffe','alloggio','museo','chiesa','parco','spiaggia','escursione','shopping','evento','mercato','benessere','ospedale','altro'];
+
 const PIANO_TIPO_ICONS = {
-    volo:'✈️', treno:'🚆', bus:'🚌', nave:'⛴️', auto:'🚗',
-    pernottamento:'🏨', traghetto:'🛳️', trasferimento:'🚕',
-    attivita:'🎭', altro:'📌'
+    // Spostamenti
+    auto:'🚗', moto:'🏍️', volo:'✈️', treno:'🚆', bus:'🚌',
+    nave:'🛳️', traghetto:'⛴️', trasferimento:'🚕', bici:'🚲', piedi:'🚶',
+    // Tappe
+    ristorante:'🍽️', bar:'🍺', caffe:'☕', alloggio:'🏨',
+    museo:'🏛️', chiesa:'⛪', parco:'🌳', spiaggia:'🏖️',
+    escursione:'🥾', shopping:'🛍️', evento:'🎭', mercato:'🏪',
+    benessere:'💆', ospedale:'🏥', altro:'📌'
 };
 const PIANO_TIPO_LABEL = {
-    volo:'Volo', treno:'Treno', bus:'Bus', nave:'Nave', auto:'Auto',
-    pernottamento:'Pernottamento', traghetto:'Traghetto', trasferimento:'Trasferimento',
-    attivita:'Attività', altro:'Altro'
+    auto:'Auto', moto:'Moto', volo:'Volo', treno:'Treno', bus:'Bus',
+    nave:'Nave', traghetto:'Traghetto', trasferimento:'Taxi/Transfer', bici:'Bici', piedi:'A piedi',
+    ristorante:'Ristorante', bar:'Bar', caffe:'Caffè', alloggio:'Alloggio',
+    museo:'Museo', chiesa:'Chiesa', parco:'Parco', spiaggia:'Spiaggia',
+    escursione:'Escursione', shopping:'Shopping', evento:'Evento', mercato:'Mercato',
+    benessere:'Benessere', ospedale:'Medico', altro:'Altro'
 };
+const CONSUMI_VEICOLO = {
+    media_benzina: { l100: 7.5, prezzol: 1.75 },
+    piccola_benzina: { l100: 6.0, prezzol: 1.75 },
+    grande_benzina: { l100: 9.0, prezzol: 1.75 },
+    media_diesel:   { l100: 6.0, prezzol: 1.65 },
+    grande_diesel:  { l100: 7.5, prezzol: 1.65 },
+    furgone:        { l100: 12,  prezzol: 1.65 },
+    moto:           { l100: 4.0, prezzol: 1.75 },
+    elettrica:      { l100: 0,   prezzol: 0 },
+};
+let pianoModo = 'spostamento';
 
 async function caricaPianificazione() {
-    pianificazioneAttuale = await apiGetArr(`/sv_piano?viaggio_id=eq.${viaggioCorrenteId}&order=data_inizio.asc`);
+    pianificazioneAttuale = await apiGetArr(`/sv_piano?viaggio_id=eq.${viaggioCorrenteId}&order=data_inizio.asc,id.asc`);
 }
+
+function _isSpostamento(tipo) { return SPOSTAMENTO_TIPI.includes(tipo); }
 
 function renderPiano() {
     const el = document.getElementById('elencoPiano');
     if (!pianificazioneAttuale.length) {
-        el.innerHTML = '<div class="empty-msg">Nessun elemento nel piano.<br>Tocca + per aggiungere.</div>';
+        el.innerHTML = '<div class="empty-msg">Nessun elemento nel piano.<br>Aggiungi uno spostamento o una tappa.</div>';
         return;
     }
-    el.innerHTML = pianificazioneAttuale.map(p => {
-        const icon = PIANO_TIPO_ICONS[p.tipo] || '📌';
-        const dateStr = p.data_inizio ? formatPianoDate(p.data_inizio) : '';
-        const oraStr = p.data_inizio && p.data_inizio.length > 10 ? ' · ' + p.data_inizio.substring(11, 16) : '';
-        const routeStr = (p.luogo_partenza && p.luogo_arrivo)
-            ? `${p.luogo_partenza} → ${p.luogo_arrivo}`
-            : (p.luogo || '');
-        return `<div class="piano-card" onclick="apriModalEditPianoItem(${p.id})">
-            <div class="piano-tipo-icon">${icon}</div>
-            <div class="piano-body">
-                <div class="piano-titolo">${p.titolo}</div>
-                ${routeStr ? `<div class="piano-sub">${routeStr}</div>` : ''}
-                ${p.mezzo_trasporto ? `<div class="piano-sub">🔖 ${p.mezzo_trasporto}</div>` : ''}
-                <div class="piano-date">${dateStr}${oraStr}</div>
-                <span class="piano-badge${p.confermato ? ' confermato' : ''}">${p.confermato ? '✓ Confermato' : 'Tentativo'}</span>
-            </div>
-            <button class="btn-card-sm del" onclick="event.stopPropagation(); eliminaPianoItemById(${p.id})" style="margin-top:2px">
-                <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
-        </div>`;
-    }).join('');
+    const spostamenti = pianificazioneAttuale.filter(p => _isSpostamento(p.tipo));
+    const tappe = pianificazioneAttuale.filter(p => !_isSpostamento(p.tipo));
+    let html = '';
+    if (spostamenti.length) {
+        html += '<div class="piano-section-hdr">🚗 Spostamenti</div>';
+        html += spostamenti.map(p => _renderPianoCard(p)).join('');
+    }
+    if (tappe.length) {
+        html += '<div class="piano-section-hdr">📍 Tappe</div>';
+        html += tappe.map(p => _renderPianoCard(p)).join('');
+    }
+    el.innerHTML = html;
+}
+
+function _renderPianoCard(p) {
+    const isSpost = _isSpostamento(p.tipo);
+    const icon = PIANO_TIPO_ICONS[p.tipo] || '📌';
+    const cur = symb(viaggioCorrenteValuta);
+    let headerHtml = '', timingHtml = '', costiHtml = '';
+    if (isSpost) {
+        const rotta = (p.luogo_partenza && p.luogo_arrivo) ? `${p.luogo_partenza} → ${p.luogo_arrivo}` : (p.titolo || '');
+        headerHtml = `<div class="piano-rotta">${rotta}</div>`;
+        const tPart = p.data_inizio ? p.data_inizio.substring(11, 16) : '';
+        const tArr  = p.data_fine  ? p.data_fine.substring(11, 16)  : '';
+        if (tPart || tArr) timingHtml = `<div class="piano-timing">${tPart ? '🛫 ' + tPart : ''}${tPart && tArr ? ' → ' : ''}${tArr ? '🛬 ' + tArr : ''}</div>`;
+        const voci = [];
+        if (p.costo_carburante > 0) voci.push(`⛽ ${cur}${(+p.costo_carburante).toFixed(2)}`);
+        if (p.costo_pedaggi > 0)    voci.push(`🛣️ ${cur}${(+p.costo_pedaggi).toFixed(2)}`);
+        if (p.costo_parcheggio > 0) voci.push(`🅿️ ${cur}${(+p.costo_parcheggio).toFixed(2)}`);
+        if (p.costo_trasporto > 0)  voci.push(`🎫 ${cur}${(+p.costo_trasporto).toFixed(2)}`);
+        if (voci.length) costiHtml = `<div class="piano-costi">${voci.join(' · ')}</div>`;
+    } else {
+        headerHtml = `<div class="piano-titolo">${p.titolo}</div>`;
+        if (p.luogo) timingHtml = `<div class="piano-sub">📍 ${p.luogo}</div>`;
+        const dataStr = p.data_inizio ? formatPianoDate(p.data_inizio) + (p.data_inizio.length > 10 ? ' ' + p.data_inizio.substring(11, 16) : '') : '';
+        if (dataStr) timingHtml += `<div class="piano-date">${dataStr}</div>`;
+        if (p.costo_tappa > 0) costiHtml = `<div class="piano-costi">💶 ${cur}${(+p.costo_tappa).toFixed(2)}</div>`;
+    }
+    const badgeHtml = p.confermato ? `<span class="piano-badge confermato">✓ Confermato</span>` : '';
+    return `<div class="piano-card ${isSpost ? 'spostamento' : 'tappa'}${p.completato ? ' completato-card' : ''}" onclick="apriModalEditPianoItem(${p.id})">
+        <button class="piano-check-btn${p.completato ? ' done' : ''}" onclick="event.stopPropagation(); togglePianoCompletato(${p.id})">${p.completato ? '✓' : ''}</button>
+        <div class="piano-tipo-icon">${icon}</div>
+        <div class="piano-body">
+            ${headerHtml}${timingHtml}${costiHtml}${badgeHtml}
+        </div>
+        <button class="btn-card-sm del" onclick="event.stopPropagation(); eliminaPianoItemById(${p.id})" style="margin-top:2px">
+            <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+    </div>`;
+}
+
+async function togglePianoCompletato(id) {
+    const p = pianificazioneAttuale.find(x => x.id === id);
+    if (!p) return;
+    p.completato = !p.completato;
+    await apiPatch(`/sv_piano?id=eq.${id}`, { completato: p.completato });
+    renderPiano();
 }
 
 function formatPianoDate(iso) {
     const d = new Date(iso);
-    return d.toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric' });
+    return d.toLocaleDateString('it-IT', { day: 'numeric', month: 'short' });
 }
 
 function _pianoTimestamp(dateVal, timeVal) {
@@ -2464,9 +2590,21 @@ function _pianoTimestamp(dateVal, timeVal) {
 }
 
 function renderPianoTipoRow() {
-    document.getElementById('pianoTipoRow').innerHTML = Object.entries(PIANO_TIPO_ICONS).map(([tipo, icon]) =>
-        `<button class="macro-cat-chip${tipo === pianoTipoScelto ? ' active' : ''}" onclick="setPianoTipo('${tipo}')">${icon} ${PIANO_TIPO_LABEL[tipo]}</button>`
+    const tipi = pianoModo === 'spostamento' ? SPOSTAMENTO_TIPI : TAPPA_TIPI;
+    document.getElementById('pianoTipoRow').innerHTML = tipi.map(tipo =>
+        `<button class="macro-cat-chip${tipo === pianoTipoScelto ? ' active' : ''}" onclick="setPianoTipo('${tipo}')">${PIANO_TIPO_ICONS[tipo]} ${PIANO_TIPO_LABEL[tipo]}</button>`
     ).join('');
+}
+
+function setPianoModo(modo) {
+    pianoModo = modo;
+    pianoTipoScelto = modo === 'spostamento' ? 'auto' : 'ristorante';
+    document.getElementById('pModoSpost').className = `modo-btn spost${modo === 'spostamento' ? ' active' : ''}`;
+    document.getElementById('pModoTappa').className = `modo-btn tappa${modo === 'tappa' ? ' active' : ''}`;
+    document.getElementById('sezSpostamento').style.display = modo === 'spostamento' ? '' : 'none';
+    document.getElementById('sezTappa').style.display = modo === 'tappa' ? '' : 'none';
+    document.getElementById('titoloModalPiano').textContent = pianoItemEditId ? 'Modifica' : (modo === 'spostamento' ? 'Nuovo spostamento' : 'Nuova tappa');
+    renderPianoTipoRow();
 }
 
 function setPianoTipo(tipo) {
@@ -2474,59 +2612,147 @@ function setPianoTipo(tipo) {
     renderPianoTipoRow();
 }
 
-function apriModalNuovoPianoItem() {
+// Stima percorso con OSRM + Nominatim
+async function stimaPercorso() {
+    const da = document.getElementById('pDa').value.trim();
+    const a  = document.getElementById('pA').value.trim();
+    if (!da || !a) { toast('Inserisci partenza e arrivo'); return; }
+    const bar = document.getElementById('stimaBar');
+    const info = document.getElementById('stimaInfo');
+    bar.className = 'stima-bar visible';
+    info.textContent = '🔍 Calcolo percorso…';
+    try {
+        const [c1, c2] = await Promise.all([_geocode(da), _geocode(a)]);
+        if (!c1 || !c2) { info.textContent = '⚠️ Luogo non trovato. Inserisci manualmente.'; return; }
+        const r = await fetch(`https://router.project-osrm.org/route/v1/driving/${c1.lon},${c1.lat};${c2.lon},${c2.lat}?overview=false`, { headers: { 'User-Agent': 'Listando/1.0' } });
+        const data = await r.json();
+        if (data.code !== 'Ok') { info.textContent = '⚠️ Percorso non trovato.'; return; }
+        const km = data.routes[0].distance / 1000;
+        const min = Math.round(data.routes[0].duration / 60);
+        const ore = Math.floor(min / 60), minR = min % 60;
+        const durStr = ore > 0 ? `${ore}h ${minR}min` : `${minR}min`;
+        const veicolo = document.getElementById('pTipoVeicolo').value;
+        const cv = CONSUMI_VEICOLO[veicolo] || CONSUMI_VEICOLO.media_benzina;
+        const carburante = veicolo === 'elettrica' ? 0 : Math.round(km * cv.l100 / 100 * cv.prezzol * 100) / 100;
+        const pedaggi = Math.round(km * 0.6 * 0.08 * 100) / 100;
+        info.innerHTML = `📍 <strong>~${Math.round(km)} km · ${durStr}</strong>${veicolo !== 'elettrica' ? ` · ⛽ stima €${carburante.toFixed(2)} · 🛣️ stima €${pedaggi.toFixed(2)}` : ' · ⚡ elettrica'}`;
+        if (carburante > 0) document.getElementById('pCostoCarburante').value = carburante.toFixed(2);
+        document.getElementById('pCostoPedaggi').value = pedaggi.toFixed(2);
+    } catch(e) { info.textContent = '⚠️ Errore di rete. Inserisci manualmente.'; }
+}
+
+async function _geocode(q) {
+    try {
+        const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1`, { headers: { 'User-Agent': 'Listando/1.0' } });
+        const d = await r.json();
+        return d.length ? { lat: d[0].lat, lon: d[0].lon } : null;
+    } catch(e) { return null; }
+}
+
+async function sincronizzaBudgetPiano(pianoId) {
+    await apiDel(`/sv_budget?piano_id=eq.${pianoId}&viaggio_id=eq.${viaggioCorrenteId}`);
+    const p = pianificazioneAttuale.find(x => x.id === pianoId) || {};
+    const voci = [];
+    if (_isSpostamento(p.tipo)) {
+        if (p.costo_carburante > 0) voci.push({ categoria: 'carburante', importo: +p.costo_carburante, desc: p.titolo || `${p.luogo_partenza}→${p.luogo_arrivo}` });
+        if (p.costo_pedaggi > 0)    voci.push({ categoria: 'pedaggi',    importo: +p.costo_pedaggi,    desc: p.titolo || `${p.luogo_partenza}→${p.luogo_arrivo}` });
+        if (p.costo_parcheggio > 0) voci.push({ categoria: 'parcheggio', importo: +p.costo_parcheggio, desc: p.titolo || '' });
+        if (p.costo_trasporto > 0)  voci.push({ categoria: 'trasporto',  importo: +p.costo_trasporto,  desc: p.titolo || '' });
+    } else {
+        const catMap = { ristorante:'ristorante', bar:'ristorante', caffe:'ristorante', alloggio:'alloggio', museo:'ingressi', chiesa:'ingressi', escursione:'attivita', evento:'attivita', spiaggia:'attivita', mercato:'shopping', shopping:'shopping' };
+        if (p.costo_tappa > 0) voci.push({ categoria: catMap[p.tipo] || 'altro', importo: +p.costo_tappa, desc: p.titolo || '' });
+    }
+    await Promise.all(voci.map(v => apiPost('/sv_budget', {
+        viaggio_id: viaggioCorrenteId, email_utente: userEmail,
+        piano_id: pianoId, categoria: v.categoria,
+        descrizione: v.desc, importo_previsto: v.importo, stato: 'prevista'
+    })));
+}
+
+function apriModalNuovoPianoItem(modo) {
     pianoItemEditId = null;
-    pianoTipoScelto = 'altro';
-    document.getElementById('titoloModalPiano').textContent = 'Nuovo elemento';
-    ['pTitolo','pLuogo','pDa','pA','pMezzo','pNote'].forEach(id => document.getElementById(id).value = '');
-    ['pDataInizio','pOraInizio','pDataFine','pOraFine'].forEach(id => document.getElementById(id).value = '');
+    setPianoModo(modo || 'spostamento');
+    pianoTipoScelto = modo === 'tappa' ? 'ristorante' : 'auto';
+    ['pTitolo','pLuogo','pDa','pA','pMezzo','pNote'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    ['pDataInizio','pOraInizio','pDataFine','pOraFine','pDataInizioT','pOraInizioT'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    ['pCostoCarburante','pCostoPedaggi','pCostoParcheggio','pCostoTrasporto','pCostoTappa'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
     document.getElementById('pConfermato').checked = false;
     document.getElementById('btnEliminaPiano').style.display = 'none';
+    document.getElementById('stimaBar').className = 'stima-bar';
     renderPianoTipoRow();
     document.getElementById('modalPianoItem').classList.add('open');
-    setTimeout(() => document.getElementById('pTitolo').focus(), 300);
 }
 
 function apriModalEditPianoItem(id) {
     const p = pianificazioneAttuale.find(x => x.id === id);
     if (!p) return;
     pianoItemEditId = id;
-    pianoTipoScelto = p.tipo || 'altro';
+    const modo = _isSpostamento(p.tipo) ? 'spostamento' : 'tappa';
+    pianoTipoScelto = p.tipo || (modo === 'spostamento' ? 'auto' : 'ristorante');
+    setPianoModo(modo);
     document.getElementById('titoloModalPiano').textContent = 'Modifica';
-    document.getElementById('pTitolo').value = p.titolo || '';
-    document.getElementById('pDataInizio').value = p.data_inizio ? p.data_inizio.substring(0, 10) : '';
-    document.getElementById('pOraInizio').value = p.data_inizio && p.data_inizio.length > 10 ? p.data_inizio.substring(11, 16) : '';
-    document.getElementById('pDataFine').value = p.data_fine ? p.data_fine.substring(0, 10) : '';
-    document.getElementById('pOraFine').value = p.data_fine && p.data_fine.length > 10 ? p.data_fine.substring(11, 16) : '';
-    document.getElementById('pLuogo').value = p.luogo || '';
-    document.getElementById('pDa').value = p.luogo_partenza || '';
-    document.getElementById('pA').value = p.luogo_arrivo || '';
-    document.getElementById('pMezzo').value = p.mezzo_trasporto || '';
+    if (modo === 'spostamento') {
+        document.getElementById('pDa').value = p.luogo_partenza || '';
+        document.getElementById('pA').value = p.luogo_arrivo || '';
+        document.getElementById('pDataInizio').value = p.data_inizio ? p.data_inizio.substring(0, 10) : '';
+        document.getElementById('pOraInizio').value = p.data_inizio && p.data_inizio.length > 10 ? p.data_inizio.substring(11, 16) : '';
+        document.getElementById('pDataFine').value = p.data_fine ? p.data_fine.substring(0, 10) : '';
+        document.getElementById('pOraFine').value = p.data_fine && p.data_fine.length > 10 ? p.data_fine.substring(11, 16) : '';
+        document.getElementById('pMezzo').value = p.mezzo_trasporto || '';
+        document.getElementById('pCostoCarburante').value = p.costo_carburante || '';
+        document.getElementById('pCostoPedaggi').value = p.costo_pedaggi || '';
+        document.getElementById('pCostoParcheggio').value = p.costo_parcheggio || '';
+        document.getElementById('pCostoTrasporto').value = p.costo_trasporto || '';
+    } else {
+        document.getElementById('pTitolo').value = p.titolo || '';
+        document.getElementById('pLuogo').value = p.luogo || '';
+        document.getElementById('pDataInizioT').value = p.data_inizio ? p.data_inizio.substring(0, 10) : '';
+        document.getElementById('pOraInizioT').value = p.data_inizio && p.data_inizio.length > 10 ? p.data_inizio.substring(11, 16) : '';
+        document.getElementById('pCostoTappa').value = p.costo_tappa || '';
+    }
     document.getElementById('pNote').value = p.note || '';
     document.getElementById('pConfermato').checked = !!p.confermato;
     document.getElementById('btnEliminaPiano').style.display = '';
+    document.getElementById('stimaBar').className = 'stima-bar';
     renderPianoTipoRow();
     document.getElementById('modalPianoItem').classList.add('open');
 }
 
 async function salvaPianoItem() {
-    const titolo = document.getElementById('pTitolo').value.trim();
-    const dataInizioVal = document.getElementById('pDataInizio').value;
-    if (!titolo) { toast('Inserisci un titolo'); return; }
-    if (!dataInizioVal) { toast('Inserisci la data di inizio'); return; }
-    const body = {
-        viaggio_id: viaggioCorrenteId,
-        tipo: pianoTipoScelto,
-        titolo,
-        data_inizio: _pianoTimestamp(dataInizioVal, document.getElementById('pOraInizio').value),
-        data_fine: _pianoTimestamp(document.getElementById('pDataFine').value, document.getElementById('pOraFine').value),
-        luogo: document.getElementById('pLuogo').value.trim() || null,
-        luogo_partenza: document.getElementById('pDa').value.trim() || null,
-        luogo_arrivo: document.getElementById('pA').value.trim() || null,
-        mezzo_trasporto: document.getElementById('pMezzo').value.trim() || null,
-        note: document.getElementById('pNote').value.trim() || null,
-        confermato: document.getElementById('pConfermato').checked,
-    };
+    const isSpost = pianoModo === 'spostamento';
+    let titolo, dataInizioVal, body;
+    if (isSpost) {
+        const da = document.getElementById('pDa').value.trim();
+        const a  = document.getElementById('pA').value.trim();
+        if (!da || !a) { toast('Inserisci partenza e arrivo'); return; }
+        dataInizioVal = document.getElementById('pDataInizio').value;
+        titolo = da && a ? `${da} → ${a}` : (da || a);
+        body = {
+            viaggio_id: viaggioCorrenteId, tipo: pianoTipoScelto, titolo,
+            luogo_partenza: da || null, luogo_arrivo: a || null,
+            data_inizio: _pianoTimestamp(dataInizioVal, document.getElementById('pOraInizio').value),
+            data_fine:   _pianoTimestamp(document.getElementById('pDataFine').value, document.getElementById('pOraFine').value),
+            mezzo_trasporto: document.getElementById('pMezzo').value.trim() || null,
+            costo_carburante: parseFloat(document.getElementById('pCostoCarburante').value) || null,
+            costo_pedaggi:    parseFloat(document.getElementById('pCostoPedaggi').value)    || null,
+            costo_parcheggio: parseFloat(document.getElementById('pCostoParcheggio').value) || null,
+            costo_trasporto:  parseFloat(document.getElementById('pCostoTrasporto').value)  || null,
+            note: document.getElementById('pNote').value.trim() || null,
+            confermato: document.getElementById('pConfermato').checked,
+        };
+    } else {
+        titolo = document.getElementById('pTitolo').value.trim();
+        dataInizioVal = document.getElementById('pDataInizioT').value;
+        if (!titolo) { toast('Inserisci il nome della tappa'); return; }
+        body = {
+            viaggio_id: viaggioCorrenteId, tipo: pianoTipoScelto, titolo,
+            luogo: document.getElementById('pLuogo').value.trim() || null,
+            data_inizio: _pianoTimestamp(dataInizioVal, document.getElementById('pOraInizioT').value),
+            costo_tappa: parseFloat(document.getElementById('pCostoTappa').value) || null,
+            note: document.getElementById('pNote').value.trim() || null,
+            confermato: document.getElementById('pConfermato').checked,
+        };
+    }
     const res = pianoItemEditId
         ? await apiPatch(`/sv_piano?id=eq.${pianoItemEditId}`, body)
         : await apiPost('/sv_piano', body);
@@ -2535,19 +2761,22 @@ async function salvaPianoItem() {
     toast('✓ Salvato');
     await caricaPianificazione();
     renderPiano();
+    // Sincronizza budget
+    const savedId = pianoItemEditId || (await apiGetArr(`/sv_piano?viaggio_id=eq.${viaggioCorrenteId}&titolo=eq.${encodeURIComponent(titolo)}&order=id.desc&limit=1`))[0]?.id;
+    if (savedId) { await sincronizzaBudgetPiano(savedId); await caricaBudget(); }
 }
 
 async function eliminaPianoItemById(id) {
     if (!confirm('Eliminare questo elemento?')) return;
     await apiDel(`/sv_piano?id=eq.${id}`);
-    await caricaPianificazione(); renderPiano(); toast('Elemento eliminato');
+    await caricaPianificazione(); renderPiano(); toast('Eliminato');
 }
 
 async function eliminaPianoItemModal() {
     if (!pianoItemEditId || !confirm('Eliminare questo elemento?')) return;
     await apiDel(`/sv_piano?id=eq.${pianoItemEditId}`);
     document.getElementById('modalPianoItem').classList.remove('open');
-    await caricaPianificazione(); renderPiano(); toast('Elemento eliminato');
+    await caricaPianificazione(); renderPiano(); toast('Eliminato');
 }
 
 // ── Budget ────────────────────────────────────────────────────────
