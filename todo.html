@@ -293,7 +293,10 @@ function getAllCats() {
 }
 
 function getCats() {
-    return ['Tutte', ...getAllCats()];
+    // solo categorie effettivamente usate nei task o create dall'utente
+    const fromTasks = tasks.filter(t => t.categoria && t.categoria !== 'Generale').map(t => t.categoria);
+    const used = [...new Set([...customCats, ...fromTasks])];
+    return used.length ? ['Tutte', ...used] : ['Tutte'];
 }
 
 function renderCats() {
