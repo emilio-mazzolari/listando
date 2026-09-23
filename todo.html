@@ -541,7 +541,6 @@ function render() {
     const body = document.getElementById('listBody');
     if (!filtered.length) { body.innerHTML = '<div class="empty-msg">✅ Nessuna attività</div>'; return; }
 
-    const oggi  = new Date(); oggi.setHours(0,0,0,0);
     const domani = new Date(oggi); domani.setDate(domani.getDate() + 1);
 
     const renderTask = t => {

@@ -128,7 +128,7 @@
             .view-list .menu-container { grid-template-columns: 1fr; }
             .view-list .btn-big { aspect-ratio: unset; flex-direction: row; justify-content: flex-start; padding: 14px 20px; gap: 14px; font-size: 14px; }
         }
-        @media (min-width: 1024px) { .edit-bar { bottom: 0; left: 240px; } #btnViewToggle { display: none !important; } }
+        @media (min-width: 1024px) { .edit-bar { bottom: 0; left: 240px; } }
 
         /* ── Desktop (≥1024px): sidebar navigation ── */
         @media (min-width: 1024px) {
@@ -304,6 +304,39 @@
         <button class="btn-done-edit" onclick="toggleEditMode()">✓ Fatto — ordine salvato</button>
     </div>
 
+    <!-- Impostazioni bottom sheet -->
+    <div id="impostazioniOverlay" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.45);align-items:flex-end;justify-content:center" onclick="if(event.target===this)chiudiImpostazioni()">
+        <div style="background:white;border-radius:28px 28px 0 0;padding:24px 20px;padding-bottom:max(24px,env(safe-area-inset-bottom,24px));width:100%;max-width:500px">
+            <div style="width:40px;height:4px;background:#ddd;border-radius:4px;margin:0 auto 20px"></div>
+            <div style="font-weight:900;font-size:18px;margin-bottom:20px">Impostazioni</div>
+
+            <!-- Vista -->
+            <button onclick="impostazioniToggleVista()" style="width:100%;display:flex;align-items:center;gap:16px;padding:16px;border-radius:16px;border:none;background:#f5f6f8;cursor:pointer;font-family:inherit;margin-bottom:10px;text-align:left">
+                <svg id="settingsViewIcon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+                    <circle cx="3" cy="6" r="1" fill="#333" stroke="none"/><circle cx="3" cy="12" r="1" fill="#333" stroke="none"/><circle cx="3" cy="18" r="1" fill="#333" stroke="none"/>
+                </svg>
+                <div style="flex:1">
+                    <div style="font-weight:800;font-size:15px;color:#111">Visualizzazione</div>
+                    <div id="settingsViewLabel" style="font-size:13px;color:#888;font-weight:600;margin-top:2px">Lista</div>
+                </div>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+
+            <!-- Riordina -->
+            <button onclick="impostazioniRiordina()" style="width:100%;display:flex;align-items:center;gap:16px;padding:16px;border-radius:16px;border:none;background:#f5f6f8;cursor:pointer;font-family:inherit;text-align:left">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2.5" stroke-linecap="round">
+                    <path d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+                </svg>
+                <div style="flex:1">
+                    <div style="font-weight:800;font-size:15px;color:#111">Riordina sezioni</div>
+                    <div style="font-size:13px;color:#888;font-weight:600;margin-top:2px">Trascina le card per riordinare</div>
+                </div>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+        </div>
+    </div>
+
     <div class="tab-bar">
         <a href="index.html" class="tab-item tab-active">
             <svg class="icon-tab" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
@@ -312,18 +345,11 @@
             </svg>
             HOME
         </a>
-        <button class="tab-item" id="btnViewToggle" onclick="toggleView()" style="background:none;border:none;cursor:pointer;">
-            <svg class="icon-tab" id="viewIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
-                <circle cx="3" cy="6" r="1" fill="currentColor" stroke="none"/><circle cx="3" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="3" cy="18" r="1" fill="currentColor" stroke="none"/>
-            </svg>
-            <span id="viewLabel">LISTA</span>
-        </button>
-        <button class="tab-item" id="btnEditMode" onclick="toggleEditMode()" style="background:none;border:none;cursor:pointer;">
+        <button class="tab-item" id="btnImpostazioni" onclick="apriImpostazioni()" style="background:none;border:none;cursor:pointer;">
             <svg class="icon-tab" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+                <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
             </svg>
-            RIORDINA
+            IMPOSTAZIONI
         </button>
         <a href="profilo.html" class="tab-item">
             <svg class="icon-tab" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
@@ -454,10 +480,37 @@
             editMode = !editMode;
             document.getElementById('menuGrid').classList.toggle('editing', editMode);
             document.getElementById('editBar').classList.toggle('open', editMode);
-            const btn = document.getElementById('btnEditMode');
+            const btn = document.getElementById('btnImpostazioni');
             if (btn) btn.style.color = editMode ? 'var(--green)' : '';
             sortable.option('disabled', !editMode);
             if (!editMode) saveOrder();
+        }
+
+        function apriImpostazioni() {
+            aggiornaSettingsView();
+            const ov = document.getElementById('impostazioniOverlay');
+            ov.style.display = 'flex';
+        }
+        function chiudiImpostazioni() {
+            document.getElementById('impostazioniOverlay').style.display = 'none';
+        }
+        function aggiornaSettingsView() {
+            const lbl = document.getElementById('settingsViewLabel');
+            const ico = document.getElementById('settingsViewIcon');
+            if (lbl) lbl.textContent = viewMode === 'list' ? 'Visualizzazione lista' : 'Visualizzazione griglia';
+            if (ico) {
+                ico.innerHTML = viewMode === 'list'
+                    ? '<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>'
+                    : '<line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3" cy="6" r="1" fill="#333" stroke="none"/><circle cx="3" cy="12" r="1" fill="#333" stroke="none"/><circle cx="3" cy="18" r="1" fill="#333" stroke="none"/>';
+            }
+        }
+        function impostazioniToggleVista() {
+            toggleView();
+            aggiornaSettingsView();
+        }
+        function impostazioniRiordina() {
+            chiudiImpostazioni();
+            if (!editMode) toggleEditMode();
         }
 
         // Block navigation clicks while in edit mode
@@ -471,14 +524,6 @@
 
         function applyView() {
             document.body.classList.toggle('view-list', viewMode === 'list');
-            const lbl = document.getElementById('viewLabel');
-            const ico = document.getElementById('viewIcon');
-            if (lbl) lbl.textContent = viewMode === 'list' ? 'GRIGLIA' : 'LISTA';
-            if (ico) {
-                ico.innerHTML = viewMode === 'list'
-                    ? '<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>'
-                    : '<line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3" cy="6" r="1" fill="currentColor" stroke="none"/><circle cx="3" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="3" cy="18" r="1" fill="currentColor" stroke="none"/>';
-            }
         }
 
         function toggleView() {
