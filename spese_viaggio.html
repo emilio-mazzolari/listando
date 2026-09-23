@@ -1367,9 +1367,11 @@ async function apriViaggio(id) {
     filtroTesto = ''; filtroPagatore = '';
     sessionStorage.setItem('sv_vid', id);
     sessionStorage.setItem('sv_tab', 'piano');
+    _collapsedDays = {};
     showView('viewViaggio');
     mostraTab('piano');
     await Promise.all([caricaPartecipanti(), caricaSpese(), caricaPianificazione(), caricaBudget()]);
+    renderPiano();
     renderSpese();
 }
 
@@ -2795,7 +2797,8 @@ function renderPiano() {
 
     let html = '';
     groups.forEach(g => {
-        const collapsed = !!_collapsedDays[g.key];
+        if (_collapsedDays[g.key] === undefined) _collapsedDays[g.key] = true;
+        const collapsed = _collapsedDays[g.key];
         const chevClass = collapsed ? ' collapsed' : '';
         const bodyClass = collapsed ? ' collapsed' : '';
         const safeKey = g.key.replace(/[^a-z0-9_-]/gi, '_');
