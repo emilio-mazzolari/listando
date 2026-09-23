@@ -393,9 +393,10 @@
             <button onclick="ingSelTutto()" style="font-size:12px;font-weight:800;color:#3384d4;background:none;border:none;cursor:pointer;font-family:inherit">Seleziona tutto</button>
         </div>
         <div id="ingSelList"></div>
-        <div id="listaDestinazioneWrap" style="margin-top:14px;display:none">
-            <label style="font-size:12px;font-weight:800;color:#888;display:block;margin-bottom:6px">Lista di destinazione</label>
-            <select id="listaDestinazioneSelect" style="width:100%;padding:10px 12px;border-radius:12px;border:2px solid var(--grey);font-size:14px;font-family:inherit;outline:none"></select>
+        <div id="listaDestinazioneWrap" style="margin-top:14px">
+            <label style="font-size:12px;font-weight:800;color:#888;display:block;margin-bottom:6px">Aggiungi a quale lista?</label>
+            <select id="listaDestinazioneSelect" style="width:100%;padding:10px 12px;border-radius:12px;border:2px solid var(--grey);font-size:14px;font-family:inherit;outline:none" onchange="onListaDestinazioneChange(this.value)"></select>
+            <input id="nuovaListaNome" type="text" placeholder="Nome nuova lista…" maxlength="50" style="display:none;margin-top:8px;width:100%;padding:10px 12px;border-radius:12px;border:2px solid var(--green);font-size:14px;font-family:inherit;outline:none;box-sizing:border-box">
         </div>
         <button class="btn-save-modal" style="background:#3384d4;margin-top:14px" onclick="confermaAggiungiSpesa()">🛒 Aggiungi selezionati</button>
         <button style="width:100%;padding:13px;border-radius:14px;border:2px solid var(--grey);background:var(--white);font-weight:800;font-size:15px;cursor:pointer;font-family:inherit;margin-top:8px;color:#aaa" onclick="document.getElementById('modalSpesa').classList.remove('open')">Annulla</button>
@@ -429,6 +430,8 @@ const UNITA = ['','g','kg','ml','l','n.','q.b.','cucchiai','cucchiaini','tazze',
 let ricette = [], catAttiva = 'Tutte', editId = null;
 let pendingMediaFile = null, currentMediaUrl = null, currentMediaPath = null;
 let importMode = null, ocrFile = null;
+
+const cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 
 // ── Import from text/photo ────────────────────────────────────────────
 function toggleImport(mode) {
@@ -685,7 +688,7 @@ function renderIngHtml(ings, fattore) {
         const qtaScalata = scalaQta(i.quantita, fattore);
         return `<div class="ingredient-row">
             <div class="ing-qty">${[qtaScalata, i.unita].filter(Boolean).join(' ')}</div>
-            <div class="ing-nome">${i.nome}</div>
+            <div class="ing-nome">${cap(i.nome)}</div>
         </div>`;
     }).join('');
     return `<div class="section-label">Ingredienti</div>${scalerHtml}<div id="ingList">${rows}</div>`;
@@ -701,7 +704,7 @@ function cambiaPortions(delta) {
         const qtaScalata = scalaQta(i.quantita, fattore);
         return `<div class="ingredient-row">
             <div class="ing-qty">${[qtaScalata, i.unita].filter(Boolean).join(' ')}</div>
-            <div class="ing-nome">${i.nome}</div>
+            <div class="ing-nome">${cap(i.nome)}</div>
         </div>`;
     }).join('');
 }
@@ -810,23 +813,27 @@ function aggiungiAllaSpesa(id) {
         const qtaStr = [ing.quantita, ing.unita].filter(Boolean).join(' ');
         return `<label class="ing-sel-row">
             <input type="checkbox" class="ing-sel-cb" data-idx="${idx}" checked>
-            <span class="ing-sel-nome">${ing.nome}</span>
+            <span class="ing-sel-nome">${cap(ing.nome)}</span>
             ${qtaStr ? `<span class="ing-sel-qta">${qtaStr}</span>` : ''}
         </label>`;
     }).join('');
 
     // Populate lista selector from localStorage
     const liste = JSON.parse(localStorage.getItem('spesa_liste') || '[]');
-    const wrap = document.getElementById('listaDestinazioneWrap');
     const sel = document.getElementById('listaDestinazioneSelect');
-    if (liste.length > 1) {
-        sel.innerHTML = liste.map(l => `<option value="${l.id}">${l.nome}</option>`).join('');
-        wrap.style.display = '';
-    } else {
-        wrap.style.display = 'none';
-    }
+    sel.innerHTML = [
+        `<option value="default">📋 Lista principale</option>`,
+        ...liste.map(l => `<option value="${l.id}">${l.nome}</option>`),
+        `<option value="__nuova__">+ Crea nuova lista…</option>`,
+    ].join('');
+    document.getElementById('nuovaListaNome').style.display = 'none';
+    document.getElementById('nuovaListaNome').value = '';
 
     document.getElementById('modalSpesa').classList.add('open');
+}
+
+function onListaDestinazioneChange(val) {
+    document.getElementById('nuovaListaNome').style.display = val === '__nuova__' ? '' : 'none';
 }
 
 function ingSelTutto() {
@@ -844,17 +851,21 @@ async function confermaAggiungiSpesa() {
     if (!selected.length) { toast('Seleziona almeno un ingrediente'); return; }
 
     // Determine email_utente for the chosen list
-    const liste = JSON.parse(localStorage.getItem('spesa_liste') || '[]');
-    const wrap = document.getElementById('listaDestinazioneWrap');
-    let emailUtente = userEmail;
-    if (wrap.style.display !== 'none') {
-        const listaId = document.getElementById('listaDestinazioneSelect').value;
-        emailUtente = listaId === 'default' ? userEmail : userEmail + '||' + listaId;
+    let liste = JSON.parse(localStorage.getItem('spesa_liste') || '[]');
+    let listaId = document.getElementById('listaDestinazioneSelect').value;
+    if (listaId === '__nuova__') {
+        const nomeNuova = document.getElementById('nuovaListaNome').value.trim();
+        if (!nomeNuova) { toast('Inserisci il nome della nuova lista'); return; }
+        const newId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+        liste.push({ id: newId, nome: nomeNuova });
+        localStorage.setItem('spesa_liste', JSON.stringify(liste));
+        listaId = newId;
     }
+    const emailUtente = listaId === 'default' ? userEmail : userEmail + '||' + listaId;
 
     const rows = selected.map(i => ({
         email_utente: emailUtente,
-        nome: i.nome,
+        nome: cap(i.nome),
         quantita: [i.quantita, i.unita].filter(Boolean).join(' ') || null,
         completato: false,
     }));
@@ -984,7 +995,7 @@ function aggiungiRigaIng(ing = {}) {
 
 function leggiIngredienti() {
     return Array.from(document.querySelectorAll('.ing-row-edit')).map(row => ({
-        nome: row.querySelector('.ing-input-nome').value.trim(),
+        nome: cap(row.querySelector('.ing-input-nome').value.trim()),
         quantita: row.querySelector('.ing-input-qty').value.trim(),
         unita: row.querySelector('.ing-select-unit').value,
     })).filter(i => i.nome);

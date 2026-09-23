@@ -121,6 +121,8 @@
         .icon-tab { width: 24px; height: 24px; stroke-width: 2.5px; stroke: var(--dark); fill: none; }
         .toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--dark); color: white; padding: 12px 20px; border-radius: 14px; font-weight: 700; font-size: 14px; opacity: 0; transition: all 0.25s; white-space: nowrap; z-index: 999; pointer-events: none; }
         .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        .cat-modal-wrap { display: flex; flex-wrap: wrap; gap: 5px; }
+        .cat-modal-wrap .chip-cat { margin-right: 0; font-size: 12px; padding: 6px 12px; }
     </style>
 </head>
 <body>
@@ -171,8 +173,11 @@
 
         <div class="form-group">
             <label class="form-label">Categoria</label>
-            <input class="form-input" id="fCat" list="catList" placeholder="Generale">
-            <datalist id="catList"></datalist>
+            <div class="cat-modal-wrap" id="catChips"></div>
+            <div id="nuovaCatWrap" style="display:none; margin-top:8px">
+                <input class="form-input" id="fNuovaCat" placeholder="Nome categoria…" type="text" style="font-size:14px" onkeydown="if(event.key==='Enter')confermaAggiuntaCat()">
+                <button type="button" onclick="confermaAggiuntaCat()" style="margin-top:6px;width:100%;padding:10px;border-radius:12px;border:none;background:var(--teal);color:white;font-weight:800;font-size:14px;cursor:pointer;font-family:inherit">Aggiungi</button>
+            </div>
         </div>
 
         <div class="form-group">
@@ -210,6 +215,14 @@
                     <button type="button" class="dow-btn" data-dow="0" onclick="toggleDow(0)">Do</button>
                 </div>
             </div>
+            <div id="sezFascia" style="display:none; margin-top:10px">
+                <div style="font-size:11px;font-weight:800;color:#999;margin-bottom:6px;">Di che parte della giornata?</div>
+                <div class="dow-row">
+                    <button type="button" class="dow-btn" id="fasciaM" onclick="setFascia('mattina','08:00')">🌅 Mattina</button>
+                    <button type="button" class="dow-btn" id="fasciaP" onclick="setFascia('pomeriggio','14:00')">☀️ Pomeriggio</button>
+                    <button type="button" class="dow-btn" id="fasciaS" onclick="setFascia('sera','20:00')">🌙 Sera</button>
+                </div>
+            </div>
         </div>
 
         <!-- Promemoria — visibile solo se c'è una data -->
@@ -244,14 +257,19 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const userEmail = localStorage.getItem('userEmail');
 if (!userEmail) location.href = 'login.html';
 
+const DEFAULT_CATS = ['Casa','Lavoro','Spesa','Salute','Finanze','Famiglia','Sport','Viaggi','Scuola','Hobby'];
+let customCats = JSON.parse(localStorage.getItem('todo_categorie_custom') || '[]');
+
 let tasks = [];
 let catFiltro = 'Tutte';
+let catSelezionata = 'Generale';
 let prioCorrente = 'media';
 let editId = null;
 let promemoriaPush = false;
 let promemoriaMail = false;
 let periodicita = null;
 let giorniSettimana = [];
+let fasciaCorrente = null;
 
 const PERIOD_OPTIONS = [null, 'giornaliera', 'settimanale', 'mensile', 'annuale'];
 const PERIOD_IDS    = ['periodNo', 'periodG', 'periodS', 'periodM', 'periodA'];
@@ -269,17 +287,55 @@ async function carica() {
     render();
 }
 
+function getAllCats() {
+    const fromTasks = tasks.filter(t => t.categoria && t.categoria !== 'Generale').map(t => t.categoria);
+    return [...new Set([...DEFAULT_CATS, ...customCats, ...fromTasks])];
+}
+
 function getCats() {
-    return ['Tutte', ...new Set(tasks.filter(t => t.categoria).map(t => t.categoria))];
+    return ['Tutte', ...getAllCats()];
 }
 
 function renderCats() {
     const cats = getCats();
     document.getElementById('catsScroll').innerHTML = cats.map(c =>
-        `<button class="chip-cat${catFiltro === c ? ' active' : ''}" onclick="setCat('${c.replace(/'/g,"\\'")}'">${c}</button>`
+        `<button class="chip-cat${catFiltro === c ? ' active' : ''}" onclick="setCat(${JSON.stringify(c)})">${c}</button>`
     ).join('');
-    const dl = document.getElementById('catList');
-    if (dl) dl.innerHTML = [...new Set(tasks.map(t => t.categoria).filter(Boolean))].map(c => `<option value="${c}">`).join('');
+}
+
+function renderCatChips() {
+    const el = document.getElementById('catChips');
+    if (!el) return;
+    const cats = ['Generale', ...getAllCats()];
+    el.innerHTML = cats.map(c =>
+        `<button type="button" class="chip-cat${catSelezionata === c ? ' active' : ''}" onclick="setCatModal(${JSON.stringify(c)})">${c}</button>`
+    ).join('') + `<button type="button" class="chip-cat" onclick="mostraNuovaCat()">+ Nuova</button>`;
+}
+
+function setCatModal(c) {
+    catSelezionata = c;
+    document.getElementById('nuovaCatWrap').style.display = 'none';
+    renderCatChips();
+}
+
+function mostraNuovaCat() {
+    document.getElementById('nuovaCatWrap').style.display = '';
+    const inp = document.getElementById('fNuovaCat');
+    inp.value = '';
+    inp.focus();
+}
+
+function confermaAggiuntaCat() {
+    const val = document.getElementById('fNuovaCat').value.trim();
+    if (!val) return;
+    const nome = val.charAt(0).toUpperCase() + val.slice(1);
+    if (!customCats.includes(nome) && !DEFAULT_CATS.includes(nome)) {
+        customCats.push(nome);
+        localStorage.setItem('todo_categorie_custom', JSON.stringify(customCats));
+    }
+    catSelezionata = nome;
+    document.getElementById('nuovaCatWrap').style.display = 'none';
+    renderCatChips();
 }
 
 function setCat(c) { catFiltro = c; renderCats(); render(); }
@@ -322,7 +378,10 @@ function render() {
         const catHtml    = t.categoria && t.categoria !== 'Generale' ? `<span class="badge-cat">${t.categoria}</span>` : '';
         const DOW_LABELS = ['Do','Lu','Ma','Me','Gi','Ve','Sa'];
         const dowStr = t.giorni_settimana ? t.giorni_settimana.split(',').map(d => DOW_LABELS[parseInt(d)]).join(' ') : '';
-        const periodHtml = t.periodicita ? `<span class="badge-period">${dowStr ? '🔄 ' + dowStr : (PERIOD_LABEL[t.periodicita] || '🔄')}</span>` : '';
+        const FASCIA_ICON = { mattina:'🌅', pomeriggio:'☀️', sera:'🌙' };
+        const _fascia = localStorage.getItem('todo_fascia_' + t.id);
+        const fasciaStr = _fascia ? ' ' + (FASCIA_ICON[_fascia] || '') : '';
+        const periodHtml = t.periodicita ? `<span class="badge-period">${dowStr ? '🔄 ' + dowStr + fasciaStr : (PERIOD_LABEL[t.periodicita] || '🔄') + fasciaStr}</span>` : '';
         const remHtml    = (t.promemoria_push || t.promemoria_email)
             ? `<span class="badge-reminder">${t.promemoria_push ? '📱' : ''}${t.promemoria_email ? '📧' : ''}</span>` : '';
 
@@ -432,6 +491,27 @@ function setPeriod(p) {
     const showDow = p === 'settimanale';
     document.getElementById('sezGiorniSettimana').style.display = showDow ? '' : 'none';
     if (!showDow) { giorniSettimana = []; renderDowBtns(); }
+    const showFascia = p === 'giornaliera' || p === 'settimanale';
+    document.getElementById('sezFascia').style.display = showFascia ? '' : 'none';
+    if (!showFascia) { fasciaCorrente = null; renderFasciaBtns(); }
+}
+
+function setFascia(fascia, ora) {
+    if (fasciaCorrente === fascia) { fasciaCorrente = null; }
+    else {
+        fasciaCorrente = fascia;
+        const oraEl = document.getElementById('fOra');
+        if (!oraEl.value) oraEl.value = ora;
+    }
+    renderFasciaBtns();
+}
+
+function renderFasciaBtns() {
+    ['fasciaM','fasciaP','fasciaS'].forEach((id, i) => {
+        const vals = ['mattina','pomeriggio','sera'];
+        const el = document.getElementById(id);
+        if (el) el.classList.toggle('active', fasciaCorrente === vals[i]);
+    });
 }
 
 function toggleDow(d) {
@@ -461,10 +541,10 @@ function apriModale() {
     document.getElementById('fNote').value = '';
     document.getElementById('fData').value = '';
     document.getElementById('fOra').value = '';
-    document.getElementById('fCat').value = '';
     document.getElementById('btnElimina').style.display = 'none';
+    catSelezionata = 'Generale';
     promemoriaPush = false; promemoriaMail = false;
-    giorniSettimana = []; setPrio('media'); updateNotifyBtns(); setPeriod(null); aggiornaSezData(); renderDowBtns();
+    giorniSettimana = []; fasciaCorrente = null; setPrio('media'); updateNotifyBtns(); setPeriod(null); aggiornaSezData(); renderDowBtns(); renderFasciaBtns(); renderCatChips();
     document.getElementById('modale').classList.add('open');
 }
 
@@ -477,13 +557,14 @@ function apriModifica(id) {
     document.getElementById('fNote').value = t.note || '';
     document.getElementById('fData').value = t.scadenza || '';
     document.getElementById('fOra').value = t.ora ? t.ora.substring(0, 5) : '';
-    document.getElementById('fCat').value = t.categoria || '';
     document.getElementById('btnElimina').style.display = '';
+    catSelezionata = t.categoria || 'Generale';
     promemoriaPush = !!t.promemoria_push;
     promemoriaMail = !!t.promemoria_email;
     periodicita = t.periodicita || null;
     giorniSettimana = t.giorni_settimana ? t.giorni_settimana.split(',').map(Number) : [];
-    setPrio(t.priorita || 'media'); updateNotifyBtns(); setPeriod(periodicita); aggiornaSezData(); renderDowBtns();
+    fasciaCorrente = localStorage.getItem('todo_fascia_' + id) || null;
+    setPrio(t.priorita || 'media'); updateNotifyBtns(); setPeriod(periodicita); aggiornaSezData(); renderDowBtns(); renderFasciaBtns(); renderCatChips();
     document.getElementById('modale').classList.add('open');
 }
 
@@ -497,23 +578,29 @@ async function salva() {
         titolo,
         note: document.getElementById('fNote').value.trim() || null,
         scadenza, ora,
-        categoria: document.getElementById('fCat').value.trim() || 'Generale',
+        categoria: catSelezionata || 'Generale',
         priorita: prioCorrente,
         promemoria_push:  scadenza ? promemoriaPush : false,
         promemoria_email: scadenza ? promemoriaMail : false,
-        periodicita: scadenza ? periodicita : null,
-        giorni_settimana: (scadenza && periodicita === 'settimanale' && giorniSettimana.length) ? [...giorniSettimana].sort((a,b)=>a-b).join(',') : null,
+        periodicita: periodicita,
+        giorni_settimana: (periodicita === 'settimanale' && giorniSettimana.length) ? [...giorniSettimana].sort((a,b)=>a-b).join(',') : null,
         notificato: false,
     };
-    let err;
+    let err, savedId = editId;
     if (editId) {
         ({ error: err } = await sb.from('todo').update(row).eq('id', editId));
         if (err) { toast('Errore: ' + err.message); return; }
         toast('✓ Aggiornato');
     } else {
-        ({ error: err } = await sb.from('todo').insert({ ...row, completato: false }));
+        let data;
+        ({ data, error: err } = await sb.from('todo').insert({ ...row, completato: false }).select('id').single());
         if (err) { toast('Errore: ' + err.message); return; }
+        savedId = data?.id;
         toast('✓ Aggiunto');
+    }
+    if (savedId) {
+        if (periodicita && fasciaCorrente) localStorage.setItem('todo_fascia_' + savedId, fasciaCorrente);
+        else localStorage.removeItem('todo_fascia_' + savedId);
     }
     document.getElementById('modale').classList.remove('open');
     await carica();

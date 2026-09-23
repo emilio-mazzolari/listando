@@ -330,10 +330,13 @@
         .piano-badge { display: inline-block; font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 6px; background: #eef2ff; color: #5856d6; margin-top: 5px; }
         .piano-badge.confermato { background: #e8f5e9; color: var(--green); }
         .piano-section-hdr { font-size: 11px; font-weight: 900; color: #aaa; text-transform: uppercase; letter-spacing: 1px; margin: 14px 0 6px; }
-        .piano-date-hdr { display: flex; align-items: center; gap: 10px; margin: 18px 0 8px; }
+        .piano-date-hdr { display: flex; align-items: center; gap: 10px; margin: 18px 0 8px; cursor: pointer; user-select: none; }
         .piano-date-hdr-line { flex: 1; height: 1.5px; background: var(--grey-light); }
-        .piano-date-hdr-label { font-size: 12px; font-weight: 900; color: #888; white-space: nowrap; }
-        .piano-nodate-hdr { font-size: 11px; font-weight: 900; color: #ccc; text-transform: uppercase; letter-spacing: 0.8px; margin: 18px 0 8px; }
+        .piano-date-hdr-label { font-size: 12px; font-weight: 900; color: #888; white-space: nowrap; display: flex; align-items: center; gap: 5px; }
+        .piano-nodate-hdr { font-size: 11px; font-weight: 900; color: #ccc; text-transform: uppercase; letter-spacing: 0.8px; margin: 18px 0 8px; cursor: pointer; user-select: none; display: flex; align-items: center; gap: 5px; }
+        .piano-day-chevron { font-size: 9px; color: #bbb; transition: transform 0.2s; display: inline-block; }
+        .piano-day-chevron.collapsed { transform: rotate(-90deg); }
+        .piano-day-body.collapsed { display: none; }
         .piano-check-btn { width: 30px; height: 30px; flex-shrink: 0; border-radius: 50%; border: 2.5px solid var(--grey); background: white; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; transition: all 0.15s; margin-top: 2px; }
         .piano-check-btn.done { background: var(--green); border-color: var(--green); color: white; }
         .modo-btn { flex: 1; padding: 11px 8px; border-radius: 14px; border: 2.5px solid var(--grey); font-weight: 800; font-size: 14px; cursor: pointer; background: white; color: #999; transition: all 0.15s; font-family: inherit; }
@@ -404,11 +407,11 @@
     </div>
     <div class="body-content">
         <div class="inner-tabs">
-            <button class="inner-tab active" id="tabBtnSpese" onclick="mostraTab('spese')">Spese</button>
-            <button class="inner-tab" id="tabBtnSaldi" onclick="mostraTab('saldi')">Saldi</button>
-            <button class="inner-tab" id="tabBtnStatistiche" onclick="mostraTab('statistiche')">Riepilogo</button>
-            <button class="inner-tab" id="tabBtnPiano" onclick="mostraTab('piano')">Piano</button>
+            <button class="inner-tab active" id="tabBtnPiano" onclick="mostraTab('piano')">Piano</button>
             <button class="inner-tab" id="tabBtnBudget" onclick="mostraTab('budget')">Budget</button>
+            <button class="inner-tab" id="tabBtnSpese" onclick="mostraTab('spese')">Spese</button>
+            <button class="inner-tab" id="tabBtnStatistiche" onclick="mostraTab('statistiche')">Riepilogo</button>
+            <button class="inner-tab" id="tabBtnSaldi" onclick="mostraTab('saldi')">Saldi</button>
             <button class="inner-tab" id="tabBtnPersone" onclick="mostraTab('persone')">Persone</button>
         </div>
 
@@ -744,7 +747,9 @@
             <input class="form-input" id="pTitolo" placeholder="es. Orto Botanico, Ristorante Al Porto…" type="text" oninput="cercaLuogoTappa(this.value)" autocomplete="off">
             <div id="luogoSuggerimenti"></div>
             <label class="form-label">Luogo / Indirizzo</label>
-            <input class="form-input" id="pLuogo" placeholder="es. Via Roma 5, Pontremoli…" type="text">
+            <input class="form-input" id="pLuogo" placeholder="es. Via Roma 5, Pontremoli…" type="text" oninput="cercaLuogoTappa(this.value, true)" autocomplete="off">
+            <div id="luogoSuggerimentiAddr"></div>
+            <button type="button" onclick="apriGoogleMapsTappa()" style="font-size:11px;color:#4285f4;background:none;border:none;cursor:pointer;font-family:inherit;font-weight:800;padding:2px 0 10px;text-align:left">🗺 Cerca su Google Maps</button>
             <div style="display:flex;gap:6px;margin-bottom:8px;align-items:flex-end">
                 <div style="flex:1.5"><label class="form-label">Data</label>
                     <input class="form-input" id="pDataInizioT" type="date" style="margin:0;padding:10px 8px">
@@ -873,8 +878,8 @@
         Home
     </a>
     <a href="spese_viaggio.html" class="tab-item tab-active">
-        <svg class="icon-tab" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-        Spese
+        <svg class="icon-tab" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
+        Viaggi
     </a>
     <a href="#" class="tab-item esci" onclick="logout()">
         <svg class="icon-tab" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
@@ -1011,6 +1016,7 @@ let ratesCache = null;
 let filtroTesto = '', filtroPagatore = '';
 let convCurA = 'EUR', convCurB = 'USD', convSearchSide = 'A';
 let pianificazioneAttuale = [], budgetAttuale = [];
+let _collapsedDays = {};
 let pianoItemEditId = null, budgetItemEditId = null;
 let _invitePartId = null;
 let pianoTipoScelto = 'auto', budgetCatScelta = 'altro', budgetStatoScelto = 'prevista';
@@ -1360,9 +1366,9 @@ async function apriViaggio(id) {
     document.getElementById('titoloViaggio').textContent = `${v.emoji || '✈️'} ${v.nome}`;
     filtroTesto = ''; filtroPagatore = '';
     sessionStorage.setItem('sv_vid', id);
-    sessionStorage.setItem('sv_tab', 'spese');
+    sessionStorage.setItem('sv_tab', 'piano');
     showView('viewViaggio');
-    mostraTab('spese');
+    mostraTab('piano');
     await Promise.all([caricaPartecipanti(), caricaSpese(), caricaPianificazione(), caricaBudget()]);
     renderSpese();
 }
@@ -2584,15 +2590,15 @@ async function salvaModificheViaggio() {
 
 // ── Piano ─────────────────────────────────────────────────────────
 const SPOSTAMENTO_TIPI = ['auto','moto','volo','treno','bus','nave','traghetto','trasferimento','bici','piedi'];
-const TAPPA_TIPI = ['ristorante','bar','caffe','alloggio','museo','chiesa','centro_storico','parco','spiaggia','escursione','shopping','evento','mercato','benessere','yoga','fitness','ospedale','altro'];
+const TAPPA_TIPI = ['ristorante','bar','caffe','pasticceria','alloggio','museo','chiesa','centro_storico','parco','giardino_botanico','spiaggia','montagna','escursione','shopping','evento','mercato','benessere','yoga','fitness','ospedale','altro'];
 
 const PIANO_TIPO_ICONS = {
     // Spostamenti
     auto:'🚗', moto:'🏍️', volo:'✈️', treno:'🚆', bus:'🚌',
     nave:'🛳️', traghetto:'⛴️', trasferimento:'🚕', bici:'🚲', piedi:'🚶',
     // Tappe
-    ristorante:'🍽️', bar:'🍺', caffe:'☕', alloggio:'🏨',
-    museo:'🏛️', chiesa:'⛪', centro_storico:'🏰', parco:'🌳', spiaggia:'🏖️',
+    ristorante:'🍽️', bar:'🍺', caffe:'☕', pasticceria:'🥐', alloggio:'🏨',
+    museo:'🏛️', chiesa:'⛪', centro_storico:'🏰', parco:'🌳', giardino_botanico:'🌿', spiaggia:'🏖️', montagna:'⛰️',
     escursione:'🥾', shopping:'🛍️', evento:'🎭', mercato:'🏪',
     benessere:'💆🏻', yoga:'🧘🏻', fitness:'🏋🏻', ospedale:'🏥', altro:'📌',
     // Legacy (pre-redesign)
@@ -2601,8 +2607,8 @@ const PIANO_TIPO_ICONS = {
 const PIANO_TIPO_LABEL = {
     auto:'Auto', moto:'Moto', volo:'Volo', treno:'Treno', bus:'Bus',
     nave:'Nave', traghetto:'Traghetto', trasferimento:'Taxi/Transfer', bici:'Bici', piedi:'A piedi',
-    ristorante:'Ristorante', bar:'Bar', caffe:'Caffè', alloggio:'Alloggio',
-    museo:'Museo', chiesa:'Chiesa', centro_storico:'Centro storico', parco:'Parco', spiaggia:'Spiaggia',
+    ristorante:'Ristorante', bar:'Bar', caffe:'Caffè', pasticceria:'Pasticceria', alloggio:'Alloggio',
+    museo:'Museo', chiesa:'Chiesa', centro_storico:'Centro storico', parco:'Parco', giardino_botanico:'Giardino botanico', spiaggia:'Spiaggia', montagna:'Montagna',
     escursione:'Escursione', shopping:'Shopping', evento:'Evento', mercato:'Mercato',
     benessere:'Benessere', yoga:'Yoga', fitness:'Fitness', ospedale:'Medico', altro:'Altro',
     pernottamento:'Pernottamento', attivita:'Attività',
@@ -2626,7 +2632,55 @@ const CONSUMI = {
         grande:  { benzina:{l100:15,prezzol:1.75}, diesel:{l100:13,prezzol:1.65}, ibrida:{l100:12,prezzol:1.75}, gpl:{l100:0,prezzol:0}, elettrica:{l100:0,prezzol:0} },
     },
 };
-let _vMezzo = 'auto', _vGrandezza = 'media', _vCarburante = 'benzina', _stimaKm = null;
+let _vMezzo = 'auto', _vGrandezza = 'media', _vCarburante = 'benzina', _stimaKm = null, _stimaPedaggi = null;
+
+// Tariffe reali €/km per categoria A (autovettura), dati concessioni 2024-2025
+const PEDAGGI_RATE_KM = {
+    // ASPI – Autostrade per l'Italia
+    A1:0.0823, A7:0.0849, A8:0.0756, A9:0.0756, A10:0.0823,
+    A11:0.0823, A12:0.0823, A13:0.0823, A14:0.0823, A16:0.0823,
+    A23:0.0823, A26:0.0756, A30:0.0823, A56:0.0823,
+    // SALT – Liguria-Toscana (A15 Autocisa, A12 Genova-Sestri)
+    A15:0.0858,
+    // SATAP – Piemonte
+    A4:0.0756, A21:0.0799,
+    // CAV – Veneto
+    A27:0.0683, A28:0.0683,
+    // Autostrada del Brennero SpA
+    A22:0.0950,
+    // SITAF – Frejus tunnel
+    A32:0.0897,
+    // RAV – Valle d'Aosta
+    A5:0.1123,
+    // Autovie Venete
+    A34:0.0821, A57:0.0756,
+    // Tangenziale di Napoli
+    A56:0.0823,
+    // Default per autostrade estere o non censite
+    DEFAULT: 0.082,
+};
+
+function _calcolaPedaggi(maneuvers) {
+    const kmPerRef = {};
+    (maneuvers || []).forEach(m => {
+        const lunghezza = m.length || 0;
+        if (lunghezza <= 0) return;
+        let ref = null;
+        for (const nome of (m.street_names || [])) {
+            const match = nome.match(/\bA(\d+)\b/i);
+            if (match) { ref = 'A' + match[1]; break; }
+        }
+        // Fallback: tratto toll senza ref autostrada riconoscibile
+        if (!ref && m.toll) ref = '_default';
+        if (ref) kmPerRef[ref] = (kmPerRef[ref] || 0) + lunghezza;
+    });
+    let totale = 0;
+    Object.entries(kmPerRef).forEach(([ref, km]) => {
+        const tariffa = ref === '_default' ? PEDAGGI_RATE_KM.DEFAULT : (PEDAGGI_RATE_KM[ref] || PEDAGGI_RATE_KM.DEFAULT);
+        totale += km * tariffa;
+    });
+    return Math.round(totale * 100) / 100;
+}
 
 function _veicoloConsumi() {
     return CONSUMI[_vMezzo]?.[_vGrandezza]?.[_vCarburante] || { l100: 0, prezzol: 0 };
@@ -2725,28 +2779,44 @@ function renderPiano() {
         el.innerHTML = '<div class="empty-msg">Nessun elemento nel piano.<br>Aggiungi uno spostamento o una tappa.</div>';
         return;
     }
-    // Sort chronologically: items with date first (by date), then items without date by id
     const withDate    = pianificazioneAttuale.filter(p => p.data_inizio).sort((a, b) => a.data_inizio.localeCompare(b.data_inizio));
     const withoutDate = pianificazioneAttuale.filter(p => !p.data_inizio).sort((a, b) => a.id - b.id);
     const sorted = [...withDate, ...withoutDate];
 
-    let html = '';
-    let lastDate = null;
+    // Group by day
+    const groups = [];
     sorted.forEach(p => {
-        const dateKey = p.data_inizio ? p.data_inizio.substring(0, 10) : null;
-        if (dateKey !== lastDate) {
-            if (dateKey) {
-                const d = new Date(dateKey + 'T12:00:00');
-                const label = d.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' });
-                html += `<div class="piano-date-hdr"><div class="piano-date-hdr-line"></div><div class="piano-date-hdr-label">📅 ${label.charAt(0).toUpperCase() + label.slice(1)}</div><div class="piano-date-hdr-line"></div></div>`;
-            } else {
-                html += `<div class="piano-nodate-hdr">📋 Senza data</div>`;
-            }
-            lastDate = dateKey;
+        const key = p.data_inizio ? p.data_inizio.substring(0, 10) : '__nodate__';
+        if (!groups.length || groups[groups.length - 1].key !== key) {
+            groups.push({ key, items: [] });
         }
-        html += _renderPianoCard(p);
+        groups[groups.length - 1].items.push(p);
+    });
+
+    let html = '';
+    groups.forEach(g => {
+        const collapsed = !!_collapsedDays[g.key];
+        const chevClass = collapsed ? ' collapsed' : '';
+        const bodyClass = collapsed ? ' collapsed' : '';
+        const safeKey = g.key.replace(/[^a-z0-9_-]/gi, '_');
+        if (g.key === '__nodate__') {
+            html += `<div class="piano-nodate-hdr" onclick="togglePianoDay('${g.key}')"><span class="piano-day-chevron${chevClass}" id="pdayChev_${safeKey}">▼</span> 📋 Senza data</div>`;
+        } else {
+            const d = new Date(g.key + 'T12:00:00');
+            const label = d.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' });
+            const labelCap = label.charAt(0).toUpperCase() + label.slice(1);
+            html += `<div class="piano-date-hdr" onclick="togglePianoDay('${g.key}')"><div class="piano-date-hdr-line"></div><div class="piano-date-hdr-label"><span class="piano-day-chevron${chevClass}" id="pdayChev_${safeKey}">▼</span>📅 ${labelCap}</div><div class="piano-date-hdr-line"></div></div>`;
+        }
+        html += `<div id="pdayBody_${safeKey}" class="piano-day-body${bodyClass}">`;
+        g.items.forEach(p => { html += _renderPianoCard(p); });
+        html += `</div>`;
     });
     el.innerHTML = html;
+}
+
+function togglePianoDay(key) {
+    _collapsedDays[key] = !_collapsedDays[key];
+    renderPiano();
 }
 
 function _renderPianoCard(p) {
@@ -2827,6 +2897,8 @@ function setPianoTipo(tipo) {
     renderPianoTipoRow();
 }
 
+let _geocodedC1 = null, _geocodedC2 = null;
+
 // Stima percorso con Valhalla + Nominatim
 async function stimaPercorso() {
     const da = document.getElementById('pDa').value.trim();
@@ -2835,14 +2907,15 @@ async function stimaPercorso() {
     const bar = document.getElementById('stimaBar');
     const info = document.getElementById('stimaInfo');
     bar.className = 'stima-bar visible';
-    info.textContent = '🔍 Calcolo percorso…';
+    info.innerHTML = '🔍 Calcolo percorso…';
     try {
         const [c1, c2] = await Promise.all([_geocode(da), _geocode(a)]);
         if (!c1 || !c2) { info.textContent = '⚠️ Luogo non trovato. Inserisci manualmente.'; return; }
+        _geocodedC1 = c1; _geocodedC2 = c2;
         const body = {
             locations: [{ lon: parseFloat(c1.lon), lat: parseFloat(c1.lat) }, { lon: parseFloat(c2.lon), lat: parseFloat(c2.lat) }],
             costing: 'auto',
-            directions_options: { language: 'it' }
+            directions_options: { language: 'it', units: 'kilometers' },
         };
         const r = await fetch('https://valhalla1.openstreetmap.de/route', {
             method: 'POST',
@@ -2856,14 +2929,27 @@ async function stimaPercorso() {
         const ore = Math.floor(min / 60), minR = min % 60;
         const durStr = ore > 0 ? `${ore}h ${minR}min` : `${minR}min`;
         _stimaKm = km;
+
+        // Pedaggi reali da tariffe concessionarie su tratti Valhalla
+        const maneuvers = data.trip?.legs?.[0]?.maneuvers || [];
+        const pedaggi = _calcolaPedaggi(maneuvers);
+        _stimaPedaggi = pedaggi;
+
         const motorizzato = ['auto','moto','furgone'].includes(_vMezzo);
         const cv = _veicoloConsumi();
         const carburante = (motorizzato && _vCarburante !== 'elettrica') ? Math.round(km * cv.l100 / 100 * cv.prezzol * 100) / 100 : 0;
-        const pedaggi = Math.round(km * 0.6 * 0.08 * 100) / 100;
         const isElettrica = _vCarburante === 'elettrica' && motorizzato;
-        info.innerHTML = `📍 <strong>~${Math.round(km)} km · ${durStr}</strong>${motorizzato && !isElettrica ? ` · ⛽ stima €${carburante.toFixed(2)} · 🛣️ stima €${pedaggi.toFixed(2)}` : isElettrica ? ' · ⚡ elettrica' : ''}`;
+        const carbHtml = motorizzato && !isElettrica ? ` · ⛽ ~€${carburante.toFixed(2)}` : isElettrica ? ' · ⚡' : '';
+        const pedHtml = pedaggi > 0 ? ` · 🛣️ ~€${pedaggi.toFixed(2)}` : '';
+        const vmUrl = `https://www.viamichelin.com/web/Routes?departure=${encodeURIComponent(da)}&destination=${encodeURIComponent(a)}&type=1`;
+        const gmUrl = `https://www.google.com/maps/dir/${encodeURIComponent(da)}/${encodeURIComponent(a)}`;
+        info.innerHTML = `<div style="font-weight:800">📍 ~${Math.round(km)} km · ${durStr}${carbHtml}${pedHtml}</div>
+            <div style="display:flex;gap:8px;margin-top:8px">
+                <a href="${vmUrl}" target="_blank" rel="noopener" style="flex:1;text-align:center;padding:8px;border-radius:10px;border:2px solid #e5211d;color:#e5211d;font-weight:800;font-size:12px;text-decoration:none;background:rgba(229,33,29,0.06)">🔴 ViaMichelin<br><span style="font-size:10px;font-weight:600">verifica pedaggi</span></a>
+                <a href="${gmUrl}" target="_blank" rel="noopener" style="flex:1;text-align:center;padding:8px;border-radius:10px;border:2px solid #4285f4;color:#4285f4;font-weight:800;font-size:12px;text-decoration:none;background:rgba(66,133,244,0.06)">🔵 Google Maps<br><span style="font-size:10px;font-weight:600">tempi reali</span></a>
+            </div>`;
         if (carburante > 0) document.getElementById('pCostoCarburante').value = carburante.toFixed(2);
-        document.getElementById('pCostoPedaggi').value = pedaggi.toFixed(2);
+        if (pedaggi > 0) document.getElementById('pCostoPedaggi').value = pedaggi.toFixed(2);
     } catch(e) { info.textContent = '⚠️ Errore di rete. Inserisci manualmente.'; }
 }
 
@@ -2888,29 +2974,43 @@ async function _geocode(q) {
 }
 
 // ── Autocomplete luogo tappa ──────────────────────────────────────────
-let _luogoTimer = null, _luogoResults = [];
+let _luogoTimer = null, _luogoTimerAddr = null, _luogoResults = [], _luogoResultsAddr = [];
 
-function cercaLuogoTappa(q) {
-    // Update "Cerca prezzo" link in real time
-    const linkPrezzo = document.getElementById('btnCercaPrezzo');
-    if (linkPrezzo) {
-        if (q.trim().length > 2) {
-            linkPrezzo.href = `https://www.google.com/search?q=${encodeURIComponent(q + ' biglietto prezzo ingresso')}`;
-            linkPrezzo.style.display = '';
-        } else {
-            linkPrezzo.style.display = 'none';
+function cercaLuogoTappa(q, isAddr = false) {
+    if (!isAddr) {
+        // Update "Cerca prezzo" link in real time
+        const linkPrezzo = document.getElementById('btnCercaPrezzo');
+        if (linkPrezzo) {
+            if (q.trim().length > 2) {
+                linkPrezzo.href = `https://www.google.com/search?q=${encodeURIComponent(q + ' biglietto prezzo ingresso')}`;
+                linkPrezzo.style.display = '';
+            } else {
+                linkPrezzo.style.display = 'none';
+            }
         }
+        clearTimeout(_luogoTimer);
+        const box = document.getElementById('luogoSuggerimenti');
+        if (!box) return;
+        if (q.trim().length < 3) { box.innerHTML = ''; return; }
+        box.innerHTML = `<div class="luogo-sug-searching">🔍 Ricerca…</div>`;
+        _luogoTimer = setTimeout(() => _eseguiCercaLuogo(q, false), 600);
+    } else {
+        clearTimeout(_luogoTimerAddr);
+        const box = document.getElementById('luogoSuggerimentiAddr');
+        if (!box) return;
+        if (q.trim().length < 3) { box.innerHTML = ''; return; }
+        box.innerHTML = `<div class="luogo-sug-searching">🔍 Ricerca…</div>`;
+        _luogoTimerAddr = setTimeout(() => _eseguiCercaLuogo(q, true), 600);
     }
-    clearTimeout(_luogoTimer);
-    const box = document.getElementById('luogoSuggerimenti');
-    if (!box) return;
-    if (q.trim().length < 3) { box.innerHTML = ''; return; }
-    box.innerHTML = `<div class="luogo-sug-searching">🔍 Ricerca…</div>`;
-    _luogoTimer = setTimeout(() => _eseguiCercaLuogo(q), 600);
 }
 
-async function _eseguiCercaLuogo(q) {
-    const box = document.getElementById('luogoSuggerimenti');
+function apriGoogleMapsTappa() {
+    const q = [document.getElementById('pTitolo').value, document.getElementById('pLuogo').value].filter(Boolean).join(' ');
+    window.open('https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(q || 'cerca luogo'), '_blank');
+}
+
+async function _eseguiCercaLuogo(q, isAddr = false) {
+    const box = document.getElementById(isAddr ? 'luogoSuggerimentiAddr' : 'luogoSuggerimenti');
     if (!box) return;
     try {
         const res = await fetch(
@@ -2918,13 +3018,13 @@ async function _eseguiCercaLuogo(q) {
             { headers: { 'User-Agent': 'Listando/1.0' } }
         );
         const data = await res.json();
-        _luogoResults = data;
+        if (isAddr) _luogoResultsAddr = data; else _luogoResults = data;
         if (!data.length) { box.innerHTML = '<div class="luogo-sug-searching">Nessun risultato</div>'; return; }
         box.innerHTML = data.map((r, i) => {
             const parts = r.display_name.split(',');
             const nome  = parts[0].trim();
             const addr  = parts.slice(1, 4).map(s => s.trim()).filter(Boolean).join(', ');
-            return `<div class="luogo-sug-item" onclick="selezionaLuogoTappa(${i})">
+            return `<div class="luogo-sug-item" onclick="selezionaLuogoTappa(${i},${isAddr})">
                 <div class="luogo-sug-nome">${nome}</div>
                 ${addr ? `<div class="luogo-sug-addr">${addr}</div>` : ''}
             </div>`;
@@ -2934,17 +3034,18 @@ async function _eseguiCercaLuogo(q) {
     }
 }
 
-function selezionaLuogoTappa(idx) {
-    const r = _luogoResults[idx];
+function selezionaLuogoTappa(idx, isAddr = false) {
+    const r = isAddr ? _luogoResultsAddr[idx] : _luogoResults[idx];
     if (!r) return;
     const parts = r.display_name.split(',');
-    // Fill nome only if the field is not already typed by hand
-    const titolo = document.getElementById('pTitolo');
-    if (!titolo.value.trim()) titolo.value = parts[0].trim();
-    // Build address: first 4 meaningful parts
+    if (!isAddr) {
+        const titolo = document.getElementById('pTitolo');
+        if (!titolo.value.trim()) titolo.value = parts[0].trim();
+    }
     const addr = parts.slice(0, 5).map(s => s.trim()).filter(Boolean).join(', ');
     document.getElementById('pLuogo').value = addr;
     document.getElementById('luogoSuggerimenti').innerHTML = '';
+    document.getElementById('luogoSuggerimentiAddr').innerHTML = '';
     // Update Google price link with confirmed name
     const linkPrezzo = document.getElementById('btnCercaPrezzo');
     if (linkPrezzo) {
@@ -3023,6 +3124,9 @@ function apriModalEditPianoItem(id) {
         document.getElementById('pOraInizioT').value = p.data_inizio && p.data_inizio.length > 10 ? p.data_inizio.substring(11, 16) : '';
         document.getElementById('pOraFineT').value = p.data_fine && p.data_fine.length > 10 ? p.data_fine.substring(11, 16) : '';
         document.getElementById('pCostoTappa').value = p.costo_tappa || '';
+        const _cpp = JSON.parse(localStorage.getItem('sv_tappa_cpp_' + id) || '{}');
+        document.getElementById('pCostoAPersona').value = _cpp.cpp || '';
+        document.getElementById('pNPersone').value = _cpp.np || '';
     }
     document.getElementById('pNote').value = p.note || '';
     document.getElementById('pConfermato').checked = !!p.confermato;
@@ -3073,12 +3177,23 @@ async function salvaPianoItem() {
         : await apiPost('/sv_piano', body);
     if (!res.ok) { toast('Errore nel salvataggio'); return; }
     if (pianoModo === 'spostamento') _salvaVeicoloViaggio();
+    if (pianoModo !== 'spostamento' && pianoItemEditId) {
+        const _cpp = parseFloat(document.getElementById('pCostoAPersona').value);
+        const _np  = parseInt(document.getElementById('pNPersone').value);
+        if (_cpp || _np) localStorage.setItem('sv_tappa_cpp_' + pianoItemEditId, JSON.stringify({ cpp: _cpp || null, np: _np || null }));
+        else localStorage.removeItem('sv_tappa_cpp_' + pianoItemEditId);
+    }
     document.getElementById('modalPianoItem').classList.remove('open');
     toast('✓ Salvato');
     await caricaPianificazione();
     renderPiano();
     // Sincronizza budget
     const savedId = pianoItemEditId || (await apiGetArr(`/sv_piano?viaggio_id=eq.${viaggioCorrenteId}&titolo=eq.${encodeURIComponent(titolo)}&order=id.desc&limit=1`))[0]?.id;
+    if (savedId && pianoModo !== 'spostamento' && !pianoItemEditId) {
+        const _cpp = parseFloat(document.getElementById('pCostoAPersona').value);
+        const _np  = parseInt(document.getElementById('pNPersone').value);
+        if (_cpp || _np) localStorage.setItem('sv_tappa_cpp_' + savedId, JSON.stringify({ cpp: _cpp || null, np: _np || null }));
+    }
     if (savedId) { await sincronizzaBudgetPiano(savedId); await caricaBudget(); }
 }
 
