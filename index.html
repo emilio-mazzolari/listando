@@ -120,6 +120,18 @@
 
         button:focus-visible, a:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
 
+        .app-title-row { display: flex; align-items: center; justify-content: center; position: relative; flex-shrink: 0; padding: 4px 0 10px; }
+        .app-title-row .app-title { padding: 0; }
+        .btn-edit-grid { position: absolute; right: 0; width: 32px; height: 32px; border-radius: 10px; border: 2px solid var(--grey); background: white; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s; }
+        .btn-edit-grid.active { background: var(--green); border-color: var(--green); }
+        .btn-edit-grid svg { width: 15px; height: 15px; stroke: var(--dark); fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+        .btn-edit-grid.active svg { stroke: white; }
+        #menuGrid.editing .btn-big { border-style: dashed; cursor: grab; }
+        .edit-bar { display: none; position: fixed; bottom: 75px; left: 0; right: 0; z-index: 98; background: white; border-top: 2px solid var(--grey); padding: 10px 16px; padding-bottom: max(10px, calc(env(safe-area-inset-bottom, 0px) + 4px)); }
+        .edit-bar.open { display: flex; align-items: center; justify-content: center; }
+        .btn-done-edit { width: 100%; max-width: 320px; background: var(--green); color: white; border: none; border-radius: 14px; padding: 13px; font-weight: 900; font-size: 14px; font-family: inherit; cursor: pointer; }
+        @media (min-width: 1024px) { .app-title-row { display: none; } .edit-bar { bottom: 0; left: 240px; } .btn-edit-grid-desktop { display: flex !important; } }
+
         /* ── Desktop (≥1024px): sidebar navigation ── */
         @media (min-width: 1024px) {
             html, body { overflow: auto; height: auto; }
@@ -205,7 +217,12 @@
 <body>
 
     <div class="app">
-        <div class="app-title">LISTANDO</div>
+        <div class="app-title-row">
+            <div class="app-title">LISTANDO</div>
+            <button class="btn-edit-grid" id="btnEditGrid" onclick="toggleEditMode()" title="Riordina sezioni">
+                <svg viewBox="0 0 24 24"><path d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+            </button>
+        </div>
 
         <div class="menu-container" id="menuGrid">
             <a href="spesa.html" class="btn-big" style="border-color:#3384d4" data-id="spesa">
@@ -290,6 +307,10 @@
         </div>
     </div>
 
+    <div class="edit-bar" id="editBar">
+        <button class="btn-done-edit" onclick="toggleEditMode()">✓ Fatto — ordine salvato</button>
+    </div>
+
     <div class="tab-bar">
         <a href="index.html" class="tab-item tab-active">
             <svg class="icon-tab" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
@@ -305,6 +326,12 @@
             </svg>
             PROFILO
         </a>
+        <button class="tab-item" id="btnEditGridDesktop" onclick="toggleEditMode()" style="background:none;border:none;cursor:pointer;display:none;">
+            <svg class="icon-tab" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+            </svg>
+            RIORDINA
+        </button>
         <button class="tab-item" onclick="logout()" style="background:none;border:none;cursor:pointer;color:#ff3b30;">
             <svg class="icon-tab" style="stroke:#ff3b30" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
@@ -403,8 +430,10 @@
 
         window.addEventListener('load', () => setTimeout(initSW, 800));
 
-        // ── Drag to reorder ───────────────────────────────────────────────
-        const ORDER_KEY = 'listando_home_order';
+        // ── Drag to reorder (per-user) ────────────────────────────────────
+        const _email = localStorage.getItem('userEmail') || 'default';
+        const ORDER_KEY = 'listando_home_order_' + _email;
+        let editMode = false;
 
         function applyOrder() {
             const saved = JSON.parse(localStorage.getItem(ORDER_KEY) || '[]');
@@ -421,15 +450,35 @@
             localStorage.setItem(ORDER_KEY, JSON.stringify(ids));
         }
 
+        function toggleEditMode() {
+            editMode = !editMode;
+            document.getElementById('menuGrid').classList.toggle('editing', editMode);
+            document.getElementById('editBar').classList.toggle('open', editMode);
+            const btnM = document.getElementById('btnEditGrid');
+            const btnD = document.getElementById('btnEditGridDesktop');
+            if (btnM) btnM.classList.toggle('active', editMode);
+            if (btnD) btnD.style.color = editMode ? 'var(--green)' : '';
+            sortable.option('disabled', !editMode);
+            if (!editMode) saveOrder();
+        }
+
+        // Block navigation clicks while in edit mode
+        document.getElementById('menuGrid').addEventListener('click', e => {
+            if (editMode) e.preventDefault();
+        }, true);
+
         applyOrder();
 
-        Sortable.create(document.getElementById('menuGrid'), {
+        // Show desktop riordina button on ≥1024px
+        if (window.matchMedia('(min-width:1024px)').matches) {
+            const btnD = document.getElementById('btnEditGridDesktop');
+            if (btnD) btnD.style.display = '';
+        }
+
+        const sortable = Sortable.create(document.getElementById('menuGrid'), {
             animation: 200,
-            delay: 350,
-            delayOnTouchOnly: true,
-            touchStartThreshold: 8,
             ghostClass: 'sortable-ghost',
             chosenClass: 'sortable-chosen',
-            onEnd: saveOrder,
+            disabled: true,
         });
     </script>
