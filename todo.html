@@ -38,6 +38,12 @@
         .cats-scroll::-webkit-scrollbar { display: none; }
         .chip-cat { display: inline-block; padding: 7px 14px; border-radius: 20px; border: 2.5px solid var(--grey); background: var(--white); font-weight: 800; font-size: 13px; cursor: pointer; margin-right: 6px; transition: all 0.15s; }
         .chip-cat.active { border-color: var(--teal); background: var(--teal); color: white; }
+        .chip-quick { display: inline-block; padding: 6px 12px; border-radius: 16px; border: 2px solid var(--grey); background: var(--white); font-weight: 700; font-size: 12px; cursor: pointer; margin-right: 5px; transition: all 0.15s; color: #666; white-space: nowrap; }
+        .chip-quick.active { border-color: var(--dark); background: var(--dark); color: white; }
+        .chip-quick.q-scadute.active { border-color: var(--red); background: var(--red); }
+        .chip-quick.q-alta.active { border-color: var(--alta); background: #fff0f0; color: var(--alta); }
+        .chip-quick.q-ricorrenti.active { border-color: var(--teal); background: rgba(48,176,199,0.1); color: var(--teal); }
+        .chip-count { font-size: 10px; font-weight: 900; opacity: 0.7; margin-left: 3px; }
 
         .progress-wrap { padding: 10px 16px 0; }
         .progress-bar-bg { background: var(--grey-light); border-radius: 8px; height: 6px; }
@@ -135,6 +141,7 @@
         <button class="btn-add-hdr" onclick="apriModale()">+</button>
     </div>
     <div class="cats-scroll" id="catsScroll"></div>
+    <div class="cats-scroll" id="quickScroll" style="margin-top:6px"></div>
 </div>
 
 <div class="progress-wrap" id="progressWrap" style="display:none">
@@ -284,6 +291,7 @@ let customCats = JSON.parse(localStorage.getItem('todo_categorie_custom') || '[]
 
 let tasks = [];
 let catFiltro = 'Tutte';
+let quickFiltro = 'tutte';
 let catSelezionata = 'Generale';
 let prioCorrente = 'media';
 let editId = null;
@@ -313,6 +321,7 @@ async function carica() {
     if (error) { toast('Errore: ' + error.message); return; }
     tasks = data || [];
     renderCats();
+    renderQuickFilters();
     render();
 }
 
@@ -327,12 +336,36 @@ function getCats() {
     return used.length ? ['Tutte', ...used] : ['Tutte'];
 }
 
+function countForCat(c) {
+    if (c === 'Tutte') return tasks.filter(t => !t.completato).length;
+    return tasks.filter(t => !t.completato && toTitleCase(t.categoria || '') === c).length;
+}
+
 function renderCats() {
     const cats = getCats();
-    document.getElementById('catsScroll').innerHTML = cats.map(c =>
-        `<button class="chip-cat${catFiltro === c ? ' active' : ''}" onclick="setCat(${JSON.stringify(c)})">${c}</button>`
+    document.getElementById('catsScroll').innerHTML = cats.map(c => {
+        const n = countForCat(c);
+        const badge = n > 0 ? `<span class="chip-count">${n}</span>` : '';
+        return `<button class="chip-cat${catFiltro === c ? ' active' : ''}" onclick="setCat(${JSON.stringify(c)})">${c}${badge}</button>`;
+    }).join('');
+}
+
+const QUICK_OPTS = [
+    { key: 'tutte',      label: 'Tutte',          cls: '' },
+    { key: 'oggi',       label: '⏰ Oggi',          cls: '' },
+    { key: 'settimana',  label: '📅 Settimana',     cls: '' },
+    { key: 'scadute',    label: '⚠️ Scadute',       cls: 'q-scadute' },
+    { key: 'alta',       label: '🔴 Alta priorità', cls: 'q-alta' },
+    { key: 'ricorrenti', label: '🔄 Ricorrenti',    cls: 'q-ricorrenti' },
+];
+
+function renderQuickFilters() {
+    document.getElementById('quickScroll').innerHTML = QUICK_OPTS.map(o =>
+        `<button class="chip-quick ${o.cls}${quickFiltro === o.key ? ' active' : ''}" onclick="setQuickFiltro('${o.key}')">${o.label}</button>`
     ).join('');
 }
+
+function setQuickFiltro(v) { quickFiltro = v; renderQuickFilters(); render(); }
 
 function renderCatSelect() {
     const el = document.getElementById('fCatSelect');
@@ -379,12 +412,33 @@ function confermaAggiuntaCat() {
     renderCatSelect();
 }
 
-function setCat(c) { catFiltro = c; renderCats(); render(); }
+function setCat(c) { catFiltro = c; quickFiltro = 'tutte'; renderCats(); renderQuickFilters(); render(); }
+
+function applyQuickFilter(list) {
+    const oggi = new Date(); oggi.setHours(0,0,0,0);
+    const dom7  = new Date(oggi); dom7.setDate(dom7.getDate() + 7);
+    switch (quickFiltro) {
+        case 'oggi':
+            return list.filter(t => t.scadenza && new Date(t.scadenza + 'T00:00:00').getTime() === oggi.getTime());
+        case 'settimana':
+            return list.filter(t => { if (!t.scadenza) return false; const d = new Date(t.scadenza + 'T00:00:00'); return d >= oggi && d < dom7; });
+        case 'scadute':
+            return list.filter(t => !t.completato && t.scadenza && new Date(t.scadenza + 'T00:00:00') < oggi);
+        case 'alta':
+            return list.filter(t => t.priorita === 'alta');
+        case 'ricorrenti':
+            return list.filter(t => !!t.periodicita);
+        default:
+            return list;
+    }
+}
 
 function render() {
-    const filtered = tasks.filter(t => catFiltro === 'Tutte' || t.categoria === catFiltro);
+    const byCat = tasks.filter(t => catFiltro === 'Tutte' || toTitleCase(t.categoria || '') === catFiltro);
+    const filtered = applyQuickFilter(byCat);
+    const hideDone = quickFiltro === 'scadute';
     const pending = filtered.filter(t => !t.completato);
-    const done    = filtered.filter(t => t.completato);
+    const done    = hideDone ? [] : filtered.filter(t => t.completato);
 
     const pw = document.getElementById('progressWrap');
     if (filtered.length > 0) {
