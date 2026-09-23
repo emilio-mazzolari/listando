@@ -3066,8 +3066,7 @@ async function sincronizzaBudgetPiano(pianoId) {
         if (p.costo_parcheggio > 0) voci.push({ categoria: 'parcheggio', importo: +p.costo_parcheggio, desc: p.titolo || '' });
         if (p.costo_trasporto > 0)  voci.push({ categoria: 'trasporto',  importo: +p.costo_trasporto,  desc: p.titolo || '' });
     } else {
-        const catMap = { ristorante:'ristorante', bar:'ristorante', caffe:'ristorante', alloggio:'alloggio', museo:'ingressi', chiesa:'ingressi', escursione:'attivita', evento:'attivita', spiaggia:'attivita', mercato:'shopping', shopping:'shopping' };
-        if (p.costo_tappa > 0) voci.push({ categoria: catMap[p.tipo] || 'altro', importo: +p.costo_tappa, desc: p.titolo || '' });
+        if (p.costo_tappa > 0) voci.push({ categoria: BUDGET_CAT_ICONS[p.tipo] ? p.tipo : 'altro', importo: +p.costo_tappa, desc: p.titolo || '' });
     }
     await Promise.all(voci.map(v => apiPost('/sv_budget', {
         viaggio_id: viaggioCorrenteId, email_utente: userEmail,
@@ -3214,15 +3213,21 @@ async function eliminaPianoItemModal() {
 
 // ── Budget ────────────────────────────────────────────────────────
 const BUDGET_CAT_ICONS = {
-    alloggio:'🏨', trasporto:'🚗', carburante:'⛽', pedaggi:'🛣️',
-    parcheggio:'🅿️', ristorante:'🍽️', alimentari:'🛒', attivita:'🎭',
-    ingressi:'🏛️', shopping:'🛍️', assicurazione:'🛡️', commissioni:'💳', altro:'💡'
+    alloggio:'🏨', trasporto:'🚗', carburante:'⛽', pedaggi:'🛣️', parcheggio:'🅿️',
+    ristorante:'🍽️', bar:'🍺', caffe:'☕', pasticceria:'🥐', alimentari:'🛒',
+    museo:'🏛️', chiesa:'⛪', centro_storico:'🏰', parco:'🌳', giardino_botanico:'🌿',
+    spiaggia:'🏖️', montagna:'⛰️', escursione:'🥾', evento:'🎭', mercato:'🏪',
+    shopping:'🛍️', benessere:'💆', yoga:'🧘', fitness:'💪',
+    assicurazione:'🛡️', commissioni:'💳', altro:'💡'
 };
 const BUDGET_CAT_LABEL = {
     alloggio:'Alloggio', trasporto:'Trasporto', carburante:'Carburante',
-    pedaggi:'Pedaggi', parcheggio:'Parcheggio', ristorante:'Ristorante',
-    alimentari:'Alimentari', attivita:'Attività', ingressi:'Ingressi',
-    shopping:'Shopping', assicurazione:'Assicurazione', commissioni:'Commissioni', altro:'Altro'
+    pedaggi:'Pedaggi', parcheggio:'Parcheggio',
+    ristorante:'Ristorante', bar:'Bar', caffe:'Caffè', pasticceria:'Pasticceria', alimentari:'Alimentari',
+    museo:'Museo', chiesa:'Chiesa', centro_storico:'Centro storico', parco:'Parco', giardino_botanico:'Giardino botanico',
+    spiaggia:'Spiaggia', montagna:'Montagna', escursione:'Escursione', evento:'Evento', mercato:'Mercato',
+    shopping:'Shopping', benessere:'Benessere', yoga:'Yoga', fitness:'Fitness',
+    assicurazione:'Assicurazione', commissioni:'Commissioni', altro:'Altro'
 };
 
 async function caricaBudget() {
@@ -3364,11 +3369,11 @@ async function eliminaBudgetItemModal() {
 const BP_CAT_MAP = {
     auto:'trasporto', moto:'trasporto', volo:'trasporto', treno:'trasporto', bus:'trasporto',
     nave:'trasporto', traghetto:'trasporto', trasferimento:'trasporto', bici:'trasporto', piedi:'trasporto',
-    ristorante:'ristorante', bar:'ristorante', caffe:'ristorante',
+    ristorante:'ristorante', bar:'ristorante', caffe:'ristorante', pasticceria:'ristorante',
     alloggio:'alloggio',
-    museo:'ingressi', chiesa:'ingressi', centro_storico:'ingressi', parco:'ingressi',
-    spiaggia:'attivita', escursione:'attivita', benessere:'attivita', yoga:'attivita', fitness:'attivita', evento:'attivita',
-    shopping:'shopping', mercato:'shopping',
+    museo:'museo', chiesa:'chiesa', centro_storico:'centro_storico', parco:'parco', giardino_botanico:'giardino_botanico',
+    spiaggia:'spiaggia', escursione:'escursione', montagna:'montagna', benessere:'benessere', yoga:'yoga', fitness:'fitness', evento:'evento',
+    shopping:'shopping', mercato:'mercato',
     ospedale:'altro', altro:'altro',
 };
 let _bpTab = 'singole', _bpSelSingole = new Set(), _bpSelCategoria = new Set();
