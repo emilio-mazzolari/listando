@@ -3359,6 +3359,7 @@ async function salvaBudgetItem() {
     if (isNaN(importo) || importo < 0) { toast('Inserisci un importo valido'); return; }
     const body = {
         viaggio_id: viaggioCorrenteId,
+        email_utente: userEmail,
         titolo,
         descrizione: titolo,
         categoria: budgetCatScelta,
@@ -3368,9 +3369,15 @@ async function salvaBudgetItem() {
         note: document.getElementById('bNote').value.trim() || null,
     };
     const res = budgetItemEditId
-        ? await apiPatch(`/sv_budget?id=eq.${budgetItemEditId}`, body)
+        ? await apiPatch(`/sv_budget?id=eq.${budgetItemEditId}&email_utente=eq.${encodeURIComponent(userEmail)}`, body)
         : await apiPost('/sv_budget', body);
-    if (!res.ok) { toast('Errore nel salvataggio'); return; }
+    if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        const msg = errData.message || errData.details || errData.hint || `HTTP ${res.status}`;
+        console.error('Budget save error', res.status, errData);
+        toast('Errore: ' + msg);
+        return;
+    }
     document.getElementById('modalBudgetItem').classList.remove('open');
     toast('✓ Salvato');
     await caricaBudget();

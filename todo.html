@@ -121,8 +121,7 @@
         .icon-tab { width: 24px; height: 24px; stroke-width: 2.5px; stroke: var(--dark); fill: none; }
         .toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--dark); color: white; padding: 12px 20px; border-radius: 14px; font-weight: 700; font-size: 14px; opacity: 0; transition: all 0.25s; white-space: nowrap; z-index: 999; pointer-events: none; }
         .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-        .cat-modal-wrap { display: flex; flex-wrap: wrap; gap: 5px; }
-        .cat-modal-wrap .chip-cat { margin-right: 0; font-size: 12px; padding: 6px 12px; }
+        select.form-input { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 36px; }
     </style>
 </head>
 <body>
@@ -173,7 +172,7 @@
 
         <div class="form-group">
             <label class="form-label">Categoria</label>
-            <div class="cat-modal-wrap" id="catChips"></div>
+            <select class="form-input" id="fCatSelect" onchange="setCatFromSelect()" style="font-size:14px;font-weight:700"></select>
             <div id="nuovaCatWrap" style="display:none; margin-top:8px">
                 <input class="form-input" id="fNuovaCat" placeholder="Nome categoria…" type="text" style="font-size:14px" onkeydown="if(event.key==='Enter')confermaAggiuntaCat()">
                 <button type="button" onclick="confermaAggiuntaCat()" style="margin-top:6px;width:100%;padding:10px;border-radius:12px;border:none;background:var(--teal);color:white;font-weight:800;font-size:14px;cursor:pointer;font-family:inherit">Aggiungi</button>
@@ -263,7 +262,8 @@ const userEmail = localStorage.getItem('userEmail');
 if (!userEmail) location.href = 'login.html';
 
 const DEFAULT_CATS = ['Casa','Lavoro','Spesa','Salute','Finanze','Famiglia','Sport','Viaggi','Scuola','Hobby'];
-let customCats = JSON.parse(localStorage.getItem('todo_categorie_custom') || '[]');
+function toTitleCase(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : s; }
+let customCats = JSON.parse(localStorage.getItem('todo_categorie_custom') || '[]').map(toTitleCase);
 
 let tasks = [];
 let catFiltro = 'Tutte';
@@ -294,14 +294,13 @@ async function carica() {
 }
 
 function getAllCats() {
-    const fromTasks = tasks.filter(t => t.categoria && t.categoria !== 'Generale').map(t => t.categoria);
-    return [...new Set([...DEFAULT_CATS, ...customCats, ...fromTasks])];
+    const fromTasks = tasks.filter(t => t.categoria && t.categoria !== 'Generale').map(t => toTitleCase(t.categoria));
+    return [...new Set([...DEFAULT_CATS, ...customCats.map(toTitleCase), ...fromTasks])].sort((a, b) => a.localeCompare(b, 'it'));
 }
 
 function getCats() {
-    // solo categorie effettivamente usate nei task o create dall'utente
-    const fromTasks = tasks.filter(t => t.categoria && t.categoria !== 'Generale').map(t => t.categoria);
-    const used = [...new Set([...customCats, ...fromTasks])];
+    const fromTasks = tasks.filter(t => t.categoria && t.categoria !== 'Generale').map(t => toTitleCase(t.categoria));
+    const used = [...new Set([...customCats.map(toTitleCase), ...fromTasks])];
     return used.length ? ['Tutte', ...used] : ['Tutte'];
 }
 
@@ -312,19 +311,25 @@ function renderCats() {
     ).join('');
 }
 
-function renderCatChips() {
-    const el = document.getElementById('catChips');
+function renderCatSelect() {
+    const el = document.getElementById('fCatSelect');
     if (!el) return;
     const cats = ['Generale', ...getAllCats()];
     el.innerHTML = cats.map(c =>
-        `<button type="button" class="chip-cat${catSelezionata === c ? ' active' : ''}" onclick="setCatModal(${JSON.stringify(c)})">${c}</button>`
-    ).join('') + `<button type="button" class="chip-cat" onclick="mostraNuovaCat()">+ Nuova</button>`;
+        `<option value="${c}">${c}</option>`
+    ).join('') + `<option value="__nuova__">➕ Nuova categoria…</option>`;
+    el.value = cats.includes(catSelezionata) ? catSelezionata : 'Generale';
 }
 
-function setCatModal(c) {
-    catSelezionata = c;
-    document.getElementById('nuovaCatWrap').style.display = 'none';
-    renderCatChips();
+function setCatFromSelect() {
+    const val = document.getElementById('fCatSelect').value;
+    if (val === '__nuova__') {
+        document.getElementById('fCatSelect').value = catSelezionata;
+        mostraNuovaCat();
+    } else {
+        catSelezionata = val;
+        document.getElementById('nuovaCatWrap').style.display = 'none';
+    }
 }
 
 function mostraNuovaCat() {
@@ -337,14 +342,15 @@ function mostraNuovaCat() {
 function confermaAggiuntaCat() {
     const val = document.getElementById('fNuovaCat').value.trim();
     if (!val) return;
-    const nome = val.charAt(0).toUpperCase() + val.slice(1);
-    if (!customCats.includes(nome) && !DEFAULT_CATS.includes(nome)) {
+    const nome = toTitleCase(val);
+    const existing = customCats.map(toTitleCase);
+    if (!existing.includes(nome) && !DEFAULT_CATS.includes(nome)) {
         customCats.push(nome);
         localStorage.setItem('todo_categorie_custom', JSON.stringify(customCats));
     }
     catSelezionata = nome;
     document.getElementById('nuovaCatWrap').style.display = 'none';
-    renderCatChips();
+    renderCatSelect();
 }
 
 function setCat(c) { catFiltro = c; renderCats(); render(); }
@@ -570,7 +576,7 @@ function apriModale() {
     catSelezionata = 'Generale';
     ultimoGiornoMese = false;
     promemoriaPush = false; promemoriaMail = false;
-    giorniSettimana = []; fasciaCorrente = null; setPrio('media'); updateNotifyBtns(); setPeriod(null); aggiornaSezData(); renderDowBtns(); renderFasciaBtns(); renderUltimoGiornoBtns(); renderCatChips();
+    giorniSettimana = []; fasciaCorrente = null; setPrio('media'); updateNotifyBtns(); setPeriod(null); aggiornaSezData(); renderDowBtns(); renderFasciaBtns(); renderUltimoGiornoBtns(); renderCatSelect();
     document.getElementById('modale').classList.add('open');
 }
 
@@ -591,7 +597,7 @@ function apriModifica(id) {
     giorniSettimana = t.giorni_settimana ? t.giorni_settimana.split(',').map(Number) : [];
     fasciaCorrente = localStorage.getItem('todo_fascia_' + id) || null;
     ultimoGiornoMese = localStorage.getItem('todo_ultimo_mese_' + id) === '1';
-    setPrio(t.priorita || 'media'); updateNotifyBtns(); setPeriod(periodicita); aggiornaSezData(); renderDowBtns(); renderFasciaBtns(); renderUltimoGiornoBtns(); renderCatChips();
+    setPrio(t.priorita || 'media'); updateNotifyBtns(); setPeriod(periodicita); aggiornaSezData(); renderDowBtns(); renderFasciaBtns(); renderUltimoGiornoBtns(); renderCatSelect();
     document.getElementById('modale').classList.add('open');
 }
 
