@@ -223,6 +223,11 @@
                     <button type="button" class="dow-btn" id="fasciaS" onclick="setFascia('sera','20:00')">🌙 Sera</button>
                 </div>
             </div>
+            <div id="sezUltimoGiorno" style="display:none; margin-top:10px">
+                <div class="dow-row">
+                    <button type="button" class="dow-btn" id="btnUltimoGiorno" onclick="toggleUltimoGiorno()">📅 Ultimo giorno del mese</button>
+                </div>
+            </div>
         </div>
 
         <!-- Promemoria — visibile solo se c'è una data -->
@@ -270,6 +275,7 @@ let promemoriaMail = false;
 let periodicita = null;
 let giorniSettimana = [];
 let fasciaCorrente = null;
+let ultimoGiornoMese = false;
 
 const PERIOD_OPTIONS = [null, 'giornaliera', 'settimanale', 'mensile', 'annuale'];
 const PERIOD_IDS    = ['periodNo', 'periodG', 'periodS', 'periodM', 'periodA'];
@@ -378,34 +384,24 @@ function render() {
             }
             scadHtml = `<span class="badge-scad${cls}">${base}${oraStr}</span>`;
         }
-        const catHtml    = t.categoria && t.categoria !== 'Generale' ? `<span class="badge-cat">${t.categoria}</span>` : '';
-        const DOW_LABELS = ['Do','Lu','Ma','Me','Gi','Ve','Sa'];
-        const dowStr = t.giorni_settimana ? t.giorni_settimana.split(',').map(d => DOW_LABELS[parseInt(d)]).join(' ') : '';
-        const FASCIA_ICON = { mattina:'🌅', pomeriggio:'☀️', sera:'🌙' };
-        const _fascia = localStorage.getItem('todo_fascia_' + t.id);
-        const fasciaStr = _fascia ? ' ' + (FASCIA_ICON[_fascia] || '') : '';
-        const periodHtml = t.periodicita ? `<span class="badge-period">${dowStr ? '🔄 ' + dowStr + fasciaStr : (PERIOD_LABEL[t.periodicita] || '🔄') + fasciaStr}</span>` : '';
-        const remHtml    = (t.promemoria_push || t.promemoria_email)
-            ? `<span class="badge-reminder">${t.promemoria_push ? '📱' : ''}${t.promemoria_email ? '📧' : ''}</span>` : '';
-
         return `<div class="task-card ${t.priorita}${t.completato ? ' done' : ''}" onclick="apriModifica(${t.id})">
             <div class="task-check${t.completato ? ' done' : ''}" onclick="event.stopPropagation(); toggleDone(${t.id})">${t.completato ? '✓' : ''}</div>
             <div class="task-body">
                 <div class="task-title${t.completato ? ' done' : ''}">${t.titolo}</div>
-                ${t.note ? `<div class="task-note">${t.note}</div>` : ''}
-                <div class="task-meta">${catHtml}${scadHtml}${periodHtml}${remHtml}</div>
+                ${scadHtml ? `<div class="task-meta">${scadHtml}</div>` : ''}
             </div>
         </div>`;
     };
 
-    let html = '';
-    const alta  = pending.filter(t => t.priorita === 'alta');
-    const media = pending.filter(t => t.priorita === 'media');
-    const bassa = pending.filter(t => t.priorita === 'bassa');
-    if (alta.length)  html += `<div class="section-title">🔴 Alta priorità</div>`  + alta.map(renderTask).join('');
-    if (media.length) html += `<div class="section-title">🟠 Media priorità</div>` + media.map(renderTask).join('');
-    if (bassa.length) html += `<div class="section-title">🟢 Bassa priorità</div>` + bassa.map(renderTask).join('');
-    if (done.length)  html += `<div class="section-title">✅ Completate <button class="btn-clear-done" onclick="event.stopPropagation(); clearDone()">Svuota</button></div>` + done.map(renderTask).join('');
+    const withDate = pending.filter(t => t.scadenza).sort((a, b) => {
+        const da = a.scadenza + 'T' + (a.ora || '00:00');
+        const db = b.scadenza + 'T' + (b.ora || '00:00');
+        return da.localeCompare(db);
+    });
+    const noDate = pending.filter(t => !t.scadenza)
+        .sort((a, b) => (a.created_at || '').localeCompare(b.created_at || ''));
+    let html = [...withDate, ...noDate].map(renderTask).join('');
+    if (done.length) html += `<div class="section-title">✅ Completate <button class="btn-clear-done" onclick="event.stopPropagation(); clearDone()">Svuota</button></div>` + done.map(renderTask).join('');
 
     body.innerHTML = html;
 }
@@ -420,8 +416,8 @@ async function toggleDone(id) {
     render();
 
     if (nuovoStato && t.periodicita && t.scadenza) {
-        const nextDate = calcolaProssima(t.scadenza, t.periodicita, t.giorni_settimana);
-        const { error: err2 } = await sb.from('todo').insert({
+        const nextDate = calcolaProssima(t.scadenza, t.periodicita, t.giorni_settimana, t.id);
+        const { data: newTask, error: err2 } = await sb.from('todo').insert({
             email_utente: userEmail,
             titolo: t.titolo, note: t.note,
             scadenza: nextDate, ora: t.ora,
@@ -430,14 +426,21 @@ async function toggleDone(id) {
             periodicita: t.periodicita,
             giorni_settimana: t.giorni_settimana || null,
             completato: false, notificato: false
-        });
-        if (!err2) { toast(`✓ Fatto! Prossima: ${formatDate(nextDate)}`); await carica(); }
+        }).select('id').single();
+        if (!err2) {
+            if (newTask && localStorage.getItem('todo_ultimo_mese_' + t.id) === '1')
+                localStorage.setItem('todo_ultimo_mese_' + newTask.id, '1');
+            if (newTask && localStorage.getItem('todo_fascia_' + t.id))
+                localStorage.setItem('todo_fascia_' + newTask.id, localStorage.getItem('todo_fascia_' + t.id));
+            toast(`✓ Fatto! Prossima: ${formatDate(nextDate)}`);
+            await carica();
+        }
     } else {
         if (nuovoStato) toast('✓ Completato!');
     }
 }
 
-function calcolaProssima(dataStr, periodo, giorniStr) {
+function calcolaProssima(dataStr, periodo, giorniStr, taskId) {
     const d = new Date(dataStr + 'T12:00:00');
     if (periodo === 'giornaliera') {
         d.setDate(d.getDate() + 1);
@@ -450,7 +453,13 @@ function calcolaProssima(dataStr, periodo, giorniStr) {
             d.setDate(d.getDate() + 7);
         }
     } else if (periodo === 'mensile') {
-        d.setMonth(d.getMonth() + 1);
+        if (taskId && localStorage.getItem('todo_ultimo_mese_' + taskId) === '1') {
+            // ultimo giorno del mese successivo
+            const last = new Date(d.getFullYear(), d.getMonth() + 2, 0);
+            d.setFullYear(last.getFullYear()); d.setMonth(last.getMonth()); d.setDate(last.getDate());
+        } else {
+            d.setMonth(d.getMonth() + 1);
+        }
     } else if (periodo === 'annuale') {
         d.setFullYear(d.getFullYear() + 1);
     }
@@ -497,6 +506,19 @@ function setPeriod(p) {
     const showFascia = p === 'giornaliera' || p === 'settimanale';
     document.getElementById('sezFascia').style.display = showFascia ? '' : 'none';
     if (!showFascia) { fasciaCorrente = null; renderFasciaBtns(); }
+    const showUltimo = p === 'mensile';
+    document.getElementById('sezUltimoGiorno').style.display = showUltimo ? '' : 'none';
+    if (!showUltimo) { ultimoGiornoMese = false; renderUltimoGiornoBtns(); }
+}
+
+function toggleUltimoGiorno() {
+    ultimoGiornoMese = !ultimoGiornoMese;
+    renderUltimoGiornoBtns();
+}
+
+function renderUltimoGiornoBtns() {
+    const btn = document.getElementById('btnUltimoGiorno');
+    if (btn) btn.classList.toggle('active', ultimoGiornoMese);
 }
 
 function setFascia(fascia, ora) {
@@ -546,8 +568,9 @@ function apriModale() {
     document.getElementById('fOra').value = '';
     document.getElementById('btnElimina').style.display = 'none';
     catSelezionata = 'Generale';
+    ultimoGiornoMese = false;
     promemoriaPush = false; promemoriaMail = false;
-    giorniSettimana = []; fasciaCorrente = null; setPrio('media'); updateNotifyBtns(); setPeriod(null); aggiornaSezData(); renderDowBtns(); renderFasciaBtns(); renderCatChips();
+    giorniSettimana = []; fasciaCorrente = null; setPrio('media'); updateNotifyBtns(); setPeriod(null); aggiornaSezData(); renderDowBtns(); renderFasciaBtns(); renderUltimoGiornoBtns(); renderCatChips();
     document.getElementById('modale').classList.add('open');
 }
 
@@ -567,7 +590,8 @@ function apriModifica(id) {
     periodicita = t.periodicita || null;
     giorniSettimana = t.giorni_settimana ? t.giorni_settimana.split(',').map(Number) : [];
     fasciaCorrente = localStorage.getItem('todo_fascia_' + id) || null;
-    setPrio(t.priorita || 'media'); updateNotifyBtns(); setPeriod(periodicita); aggiornaSezData(); renderDowBtns(); renderFasciaBtns(); renderCatChips();
+    ultimoGiornoMese = localStorage.getItem('todo_ultimo_mese_' + id) === '1';
+    setPrio(t.priorita || 'media'); updateNotifyBtns(); setPeriod(periodicita); aggiornaSezData(); renderDowBtns(); renderFasciaBtns(); renderUltimoGiornoBtns(); renderCatChips();
     document.getElementById('modale').classList.add('open');
 }
 
@@ -604,6 +628,8 @@ async function salva() {
     if (savedId) {
         if (periodicita && fasciaCorrente) localStorage.setItem('todo_fascia_' + savedId, fasciaCorrente);
         else localStorage.removeItem('todo_fascia_' + savedId);
+        if (periodicita === 'mensile' && ultimoGiornoMese) localStorage.setItem('todo_ultimo_mese_' + savedId, '1');
+        else localStorage.removeItem('todo_ultimo_mese_' + savedId);
     }
     document.getElementById('modale').classList.remove('open');
     await carica();
