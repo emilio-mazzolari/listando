@@ -330,13 +330,20 @@
         .piano-badge { display: inline-block; font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 6px; background: #eef2ff; color: #5856d6; margin-top: 5px; }
         .piano-badge.confermato { background: #e8f5e9; color: var(--green); }
         .piano-section-hdr { font-size: 11px; font-weight: 900; color: #aaa; text-transform: uppercase; letter-spacing: 1px; margin: 14px 0 6px; }
-        .piano-date-hdr { display: flex; align-items: center; gap: 10px; margin: 18px 0 8px; cursor: pointer; user-select: none; }
-        .piano-date-hdr-line { flex: 1; height: 1.5px; background: var(--grey-light); }
-        .piano-date-hdr-label { font-size: 14px; font-weight: 900; color: var(--dark); white-space: nowrap; display: flex; align-items: center; gap: 6px; text-transform: uppercase; letter-spacing: 0.4px; }
-        .piano-nodate-hdr { font-size: 11px; font-weight: 900; color: #ccc; text-transform: uppercase; letter-spacing: 0.8px; margin: 18px 0 8px; cursor: pointer; user-select: none; display: flex; align-items: center; gap: 5px; }
-        .piano-day-chevron { font-size: 9px; color: #bbb; transition: transform 0.2s; display: inline-block; }
+        .piano-day-card { background: white; border-radius: 20px; margin: 10px 0 6px; box-shadow: 0 3px 14px rgba(0,0,0,0.08); border: 2px solid var(--grey-light); overflow: hidden; }
+        .piano-day-card-hdr { display: flex; align-items: center; padding: 14px 16px; cursor: pointer; user-select: none; gap: 14px; background: linear-gradient(135deg, rgba(88,86,214,0.06) 0%, white 60%); }
+        .piano-day-num { font-size: 36px; font-weight: 900; color: #5856d6; line-height: 1; width: 50px; text-align: center; flex-shrink: 0; }
+        .piano-day-info { flex: 1; min-width: 0; }
+        .piano-day-weekday { font-size: 13px; font-weight: 900; color: var(--dark); text-transform: uppercase; letter-spacing: 0.6px; }
+        .piano-day-monthyear { font-size: 12px; font-weight: 700; color: #888; margin-top: 2px; }
+        .piano-day-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+        .piano-day-count { font-size: 11px; font-weight: 800; color: #5856d6; background: rgba(88,86,214,0.1); padding: 4px 10px; border-radius: 10px; }
+        .piano-day-chevron { font-size: 11px; color: #ccc; transition: transform 0.25s; display: inline-block; }
         .piano-day-chevron.collapsed { transform: rotate(-90deg); }
+        .piano-day-body { padding: 6px 8px 10px; }
+        .piano-day-body:not(.collapsed) { border-top: 1.5px solid var(--grey-light); }
         .piano-day-body.collapsed { display: none; }
+        .piano-nodate-hdr { font-size: 11px; font-weight: 900; color: #ccc; text-transform: uppercase; letter-spacing: 0.8px; margin: 18px 0 8px; cursor: pointer; user-select: none; display: flex; align-items: center; gap: 5px; }
         .piano-check-btn { width: 30px; height: 30px; flex-shrink: 0; border-radius: 50%; border: 2.5px solid var(--grey); background: white; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; transition: all 0.15s; margin-top: 2px; }
         .piano-check-btn.done { background: var(--green); border-color: var(--green); color: white; }
         .modo-btn { flex: 1; padding: 11px 8px; border-radius: 14px; border: 2.5px solid var(--grey); font-weight: 800; font-size: 14px; cursor: pointer; background: white; color: #999; transition: all 0.15s; font-family: inherit; }
@@ -2804,14 +2811,31 @@ function renderPiano() {
         const safeKey = g.key.replace(/[^a-z0-9_-]/gi, '_');
         if (g.key === '__nodate__') {
             html += `<div class="piano-nodate-hdr" onclick="togglePianoDay('${g.key}')"><span class="piano-day-chevron${chevClass}" id="pdayChev_${safeKey}">▼</span> 📋 Senza data</div>`;
+            html += `<div id="pdayBody_${safeKey}" class="piano-day-body${bodyClass}">`;
+            g.items.forEach(p => { html += _renderPianoCard(p); });
+            html += `</div>`;
         } else {
             const d = new Date(g.key + 'T12:00:00');
-            const label = d.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-            html += `<div class="piano-date-hdr" onclick="togglePianoDay('${g.key}')"><div class="piano-date-hdr-line"></div><div class="piano-date-hdr-label"><span class="piano-day-chevron${chevClass}" id="pdayChev_${safeKey}">▼</span>${label}</div><div class="piano-date-hdr-line"></div></div>`;
+            const dayNum = d.getDate();
+            const weekday = d.toLocaleDateString('it-IT', { weekday: 'long' });
+            const monthYear = d.toLocaleDateString('it-IT', { month: 'long', year: 'numeric' });
+            const n = g.items.length;
+            html += `<div class="piano-day-card">
+                <div class="piano-day-card-hdr" onclick="togglePianoDay('${g.key}')">
+                    <div class="piano-day-num">${dayNum}</div>
+                    <div class="piano-day-info">
+                        <div class="piano-day-weekday">${weekday}</div>
+                        <div class="piano-day-monthyear">${monthYear}</div>
+                    </div>
+                    <div class="piano-day-right">
+                        <span class="piano-day-count">${n} ${n === 1 ? 'tappa' : 'tappe'}</span>
+                        <span class="piano-day-chevron${chevClass}" id="pdayChev_${safeKey}">▼</span>
+                    </div>
+                </div>
+                <div id="pdayBody_${safeKey}" class="piano-day-body${bodyClass}">`;
+            g.items.forEach(p => { html += _renderPianoCard(p); });
+            html += `    </div></div>`;
         }
-        html += `<div id="pdayBody_${safeKey}" class="piano-day-body${bodyClass}">`;
-        g.items.forEach(p => { html += _renderPianoCard(p); });
-        html += `</div>`;
     });
     el.innerHTML = html;
 }
@@ -3262,7 +3286,7 @@ function renderBudget() {
         return `<div class="budget-card" onclick="apriModalEditBudgetItem(${b.id})" style="opacity:${b.stato === 'annullata' ? 0.45 : 1}">
             <div class="budget-cat-icon">${icon}</div>
             <div class="budget-body">
-                <div class="budget-titolo">${b.titolo}</div>
+                <div class="budget-titolo">${b.titolo || b.descrizione || '—'}</div>
                 <div class="budget-sub">${catLabel}</div>
                 <span class="budget-stato ${b.stato}">${b.stato}</span>
             </div>
@@ -3317,7 +3341,7 @@ function apriModalEditBudgetItem(id) {
     budgetItemEditId = id;
     budgetCatScelta = b.categoria || 'altro';
     document.getElementById('titoloModalBudget').textContent = 'Modifica voce';
-    document.getElementById('bTitolo').value = b.titolo || '';
+    document.getElementById('bTitolo').value = b.titolo || b.descrizione || '';
     document.getElementById('bImporto').value = b.importo_previsto || '';
     document.getElementById('bNote').value = b.note || '';
     document.getElementById('btnEliminaBudget').style.display = '';
@@ -3336,6 +3360,7 @@ async function salvaBudgetItem() {
     const body = {
         viaggio_id: viaggioCorrenteId,
         titolo,
+        descrizione: titolo,
         categoria: budgetCatScelta,
         importo_previsto: importo,
         valuta: document.getElementById('bValuta').value || viaggioCorrenteValuta,
