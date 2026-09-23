@@ -173,9 +173,17 @@
         <div class="form-group">
             <label class="form-label">Categoria</label>
             <select class="form-input" id="fCatSelect" onchange="setCatFromSelect()" style="font-size:14px;font-weight:700"></select>
+            <div id="catActions" style="display:none; margin-top:8px; gap:8px">
+                <button type="button" onclick="apriRinomnaCat()" style="flex:1;padding:9px;border-radius:12px;border:2px solid var(--grey);background:white;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit;color:var(--dark)">✏️ Rinomina</button>
+                <button type="button" onclick="eliminaCat()" style="flex:1;padding:9px;border-radius:12px;border:2px solid #ff3b30;background:white;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit;color:#ff3b30">🗑️ Elimina</button>
+            </div>
             <div id="nuovaCatWrap" style="display:none; margin-top:8px">
                 <input class="form-input" id="fNuovaCat" placeholder="Nome categoria…" type="text" style="font-size:14px" onkeydown="if(event.key==='Enter')confermaAggiuntaCat()">
                 <button type="button" onclick="confermaAggiuntaCat()" style="margin-top:6px;width:100%;padding:10px;border-radius:12px;border:none;background:var(--teal);color:white;font-weight:800;font-size:14px;cursor:pointer;font-family:inherit">Aggiungi</button>
+            </div>
+            <div id="rinomnaCatWrap" style="display:none; margin-top:8px">
+                <input class="form-input" id="fRinomnaCat" type="text" style="font-size:14px" placeholder="Nuovo nome…" onkeydown="if(event.key==='Enter')confermaRinomnaCat()">
+                <button type="button" onclick="confermaRinomnaCat()" style="margin-top:6px;width:100%;padding:10px;border-radius:12px;border:none;background:var(--teal);color:white;font-weight:800;font-size:14px;cursor:pointer;font-family:inherit">Rinomina</button>
             </div>
         </div>
 
@@ -237,6 +245,15 @@
                     <button class="notify-btn" id="btnPush" onclick="togglePush()">📱 Notifica</button>
                     <button class="notify-btn" id="btnMail" onclick="toggleMail()">📧 Email</button>
                 </div>
+                <div id="sezReminder" style="display:none; margin-top:12px">
+                    <div style="font-size:11px;font-weight:800;color:#999;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px">Quando</div>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px" id="remAnticipoRow"></div>
+                    <div style="display:flex;align-items:center;gap:10px;margin-top:10px">
+                        <span style="font-size:13px;color:#555;font-weight:700">Alle</span>
+                        <input type="time" id="remOraInput" class="form-input" style="width:130px;padding:8px 12px;font-size:14px;font-weight:800" onchange="onRemOraChange()">
+                    </div>
+                    <div id="remPreview" style="font-size:12px;color:var(--teal);margin-top:8px;font-weight:800;min-height:16px"></div>
+                </div>
             </div>
         </div>
 
@@ -281,6 +298,12 @@ const PERIOD_OPTIONS = [null, 'giornaliera', 'settimanale', 'mensile', 'annuale'
 const PERIOD_IDS    = ['periodNo', 'periodG', 'periodS', 'periodM', 'periodA'];
 const PERIOD_LABEL  = { giornaliera: '🔄 Ogni giorno', settimanale: '🔄 Ogni sett.', mensile: '🔄 Ogni mese', annuale: '🔄 Ogni anno' };
 
+const REM_OPTIONS = [0, 1, 2, 7];
+const REM_LABELS  = { 0: 'Stesso giorno', 1: '1 giorno prima', 2: '2 giorni prima', 7: '1 settimana prima' };
+const DOW_FULL = ['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
+let remAnticipo = 1;
+let remOra = '09:00';
+
 async function carica() {
     const { data, error } = await sb.from('todo').select('*')
         .eq('email_utente', userEmail)
@@ -319,6 +342,7 @@ function renderCatSelect() {
         `<option value="${c}">${c}</option>`
     ).join('') + `<option value="__nuova__">➕ Nuova categoria…</option>`;
     el.value = cats.includes(catSelezionata) ? catSelezionata : 'Generale';
+    aggiornaAzioniCat();
 }
 
 function setCatFromSelect() {
@@ -329,6 +353,8 @@ function setCatFromSelect() {
     } else {
         catSelezionata = val;
         document.getElementById('nuovaCatWrap').style.display = 'none';
+        document.getElementById('rinomnaCatWrap').style.display = 'none';
+        aggiornaAzioniCat();
     }
 }
 
@@ -438,6 +464,10 @@ async function toggleDone(id) {
                 localStorage.setItem('todo_ultimo_mese_' + newTask.id, '1');
             if (newTask && localStorage.getItem('todo_fascia_' + t.id))
                 localStorage.setItem('todo_fascia_' + newTask.id, localStorage.getItem('todo_fascia_' + t.id));
+            if (newTask && localStorage.getItem('todo_rem_anticipo_' + t.id) != null) {
+                localStorage.setItem('todo_rem_anticipo_' + newTask.id, localStorage.getItem('todo_rem_anticipo_' + t.id));
+                localStorage.setItem('todo_rem_ora_' + newTask.id, localStorage.getItem('todo_rem_ora_' + t.id) || '09:00');
+            }
             toast(`✓ Fatto! Prossima: ${formatDate(nextDate)}`);
             await carica();
         }
@@ -498,6 +528,102 @@ function toggleMail() { promemoriaMail = !promemoriaMail; updateNotifyBtns(); }
 function updateNotifyBtns() {
     document.getElementById('btnPush').className = 'notify-btn' + (promemoriaPush ? ' active' : '');
     document.getElementById('btnMail').className = 'notify-btn' + (promemoriaMail ? ' active' : '');
+    renderReminder();
+}
+
+function renderReminder() {
+    const show = promemoriaPush || promemoriaMail;
+    const el = document.getElementById('sezReminder');
+    if (!el) return;
+    el.style.display = show ? '' : 'none';
+    if (!show) return;
+    document.getElementById('remAnticipoRow').innerHTML = REM_OPTIONS.map(o =>
+        `<button type="button" class="period-pill${remAnticipo === o ? ' active' : ''}" onclick="setRemAnticipo(${o})">${REM_LABELS[o]}</button>`
+    ).join('');
+    document.getElementById('remOraInput').value = remOra;
+    aggiornaPrevReminder();
+}
+
+function setRemAnticipo(val) {
+    remAnticipo = val;
+    document.getElementById('remAnticipoRow').innerHTML = REM_OPTIONS.map(o =>
+        `<button type="button" class="period-pill${remAnticipo === o ? ' active' : ''}" onclick="setRemAnticipo(${o})">${REM_LABELS[o]}</button>`
+    ).join('');
+    aggiornaPrevReminder();
+}
+
+function onRemOraChange() {
+    remOra = document.getElementById('remOraInput').value || '09:00';
+    aggiornaPrevReminder();
+}
+
+function aggiornaPrevReminder() {
+    const prevEl = document.getElementById('remPreview');
+    if (!prevEl) return;
+    const ora = remOra || '09:00';
+    if (periodicita === 'settimanale' && giorniSettimana.length > 0 && remAnticipo > 0) {
+        const nomi = [...new Set(giorniSettimana.map(d => DOW_FULL[((d - remAnticipo) % 7 + 7) % 7]))];
+        prevEl.textContent = `🔔 Notifica ${nomi.join('/')} alle ${ora}`;
+    } else if (remAnticipo === 0) {
+        prevEl.textContent = `🔔 Notifica il giorno stesso alle ${ora}`;
+    } else if (remAnticipo === 7) {
+        prevEl.textContent = `🔔 Notifica 1 settimana prima alle ${ora}`;
+    } else {
+        prevEl.textContent = `🔔 Notifica ${remAnticipo} giorn${remAnticipo > 1 ? 'i' : 'o'} prima alle ${ora}`;
+    }
+}
+
+// ── Gestione categorie ────────────────────────────────────────────
+function aggiornaAzioniCat() {
+    const isCustom = customCats.map(toTitleCase).includes(catSelezionata);
+    const el = document.getElementById('catActions');
+    if (el) el.style.display = isCustom ? 'flex' : 'none';
+    const rw = document.getElementById('rinomnaCatWrap');
+    if (rw) rw.style.display = 'none';
+}
+
+function apriRinomnaCat() {
+    const wrap = document.getElementById('rinomnaCatWrap');
+    wrap.style.display = '';
+    const inp = document.getElementById('fRinomnaCat');
+    inp.value = catSelezionata;
+    inp.focus();
+    inp.select();
+}
+
+async function confermaRinomnaCat() {
+    const nuovoNome = toTitleCase((document.getElementById('fRinomnaCat').value || '').trim());
+    if (!nuovoNome || nuovoNome === catSelezionata) {
+        document.getElementById('rinomnaCatWrap').style.display = 'none';
+        return;
+    }
+    const vecchioNome = catSelezionata;
+    const idx = customCats.map(toTitleCase).indexOf(vecchioNome);
+    if (idx >= 0) { customCats[idx] = nuovoNome; localStorage.setItem('todo_categorie_custom', JSON.stringify(customCats)); }
+    const toUpdate = tasks.filter(t => toTitleCase(t.categoria) === vecchioNome);
+    await Promise.all(toUpdate.map(t => sb.from('todo').update({ categoria: nuovoNome }).eq('id', t.id)));
+    catSelezionata = nuovoNome;
+    if (catFiltro === vecchioNome) catFiltro = nuovoNome;
+    document.getElementById('rinomnaCatWrap').style.display = 'none';
+    await carica();
+    renderCatSelect();
+    aggiornaAzioniCat();
+    toast(`✓ Rinominata in "${nuovoNome}"`);
+}
+
+async function eliminaCat() {
+    if (!confirm(`Eliminare la categoria "${catSelezionata}"?\nLe attività con questa categoria saranno spostate in Generale.`)) return;
+    const vecchioNome = catSelezionata;
+    customCats = customCats.filter(c => toTitleCase(c) !== vecchioNome);
+    localStorage.setItem('todo_categorie_custom', JSON.stringify(customCats));
+    const toUpdate = tasks.filter(t => toTitleCase(t.categoria) === vecchioNome);
+    await Promise.all(toUpdate.map(t => sb.from('todo').update({ categoria: 'Generale' }).eq('id', t.id)));
+    catSelezionata = 'Generale';
+    if (catFiltro === vecchioNome) catFiltro = 'Tutte';
+    await carica();
+    renderCatSelect();
+    aggiornaAzioniCat();
+    toast(`✓ Categoria "${vecchioNome}" eliminata`);
 }
 
 function setPeriod(p) {
@@ -576,6 +702,7 @@ function apriModale() {
     catSelezionata = 'Generale';
     ultimoGiornoMese = false;
     promemoriaPush = false; promemoriaMail = false;
+    remAnticipo = 1; remOra = '09:00';
     giorniSettimana = []; fasciaCorrente = null; setPrio('media'); updateNotifyBtns(); setPeriod(null); aggiornaSezData(); renderDowBtns(); renderFasciaBtns(); renderUltimoGiornoBtns(); renderCatSelect();
     document.getElementById('modale').classList.add('open');
 }
@@ -593,6 +720,8 @@ function apriModifica(id) {
     catSelezionata = t.categoria || 'Generale';
     promemoriaPush = !!t.promemoria_push;
     promemoriaMail = !!t.promemoria_email;
+    remAnticipo = parseInt(localStorage.getItem('todo_rem_anticipo_' + id) ?? '1');
+    remOra = localStorage.getItem('todo_rem_ora_' + id) || '09:00';
     periodicita = t.periodicita || null;
     giorniSettimana = t.giorni_settimana ? t.giorni_settimana.split(',').map(Number) : [];
     fasciaCorrente = localStorage.getItem('todo_fascia_' + id) || null;
@@ -636,6 +765,13 @@ async function salva() {
         else localStorage.removeItem('todo_fascia_' + savedId);
         if (periodicita === 'mensile' && ultimoGiornoMese) localStorage.setItem('todo_ultimo_mese_' + savedId, '1');
         else localStorage.removeItem('todo_ultimo_mese_' + savedId);
+        if (promemoriaPush || promemoriaMail) {
+            localStorage.setItem('todo_rem_anticipo_' + savedId, String(remAnticipo));
+            localStorage.setItem('todo_rem_ora_' + savedId, remOra || '09:00');
+        } else {
+            localStorage.removeItem('todo_rem_anticipo_' + savedId);
+            localStorage.removeItem('todo_rem_ora_' + savedId);
+        }
     }
     document.getElementById('modale').classList.remove('open');
     await carica();
