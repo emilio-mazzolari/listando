@@ -332,7 +332,7 @@
         .piano-section-hdr { font-size: 11px; font-weight: 900; color: #aaa; text-transform: uppercase; letter-spacing: 1px; margin: 14px 0 6px; }
         .piano-date-hdr { display: flex; align-items: center; gap: 10px; margin: 18px 0 8px; cursor: pointer; user-select: none; }
         .piano-date-hdr-line { flex: 1; height: 1.5px; background: var(--grey-light); }
-        .piano-date-hdr-label { font-size: 12px; font-weight: 900; color: #888; white-space: nowrap; display: flex; align-items: center; gap: 5px; }
+        .piano-date-hdr-label { font-size: 14px; font-weight: 900; color: var(--dark); white-space: nowrap; display: flex; align-items: center; gap: 6px; text-transform: uppercase; letter-spacing: 0.4px; }
         .piano-nodate-hdr { font-size: 11px; font-weight: 900; color: #ccc; text-transform: uppercase; letter-spacing: 0.8px; margin: 18px 0 8px; cursor: pointer; user-select: none; display: flex; align-items: center; gap: 5px; }
         .piano-day-chevron { font-size: 9px; color: #bbb; transition: transform 0.2s; display: inline-block; }
         .piano-day-chevron.collapsed { transform: rotate(-90deg); }
@@ -2803,9 +2803,8 @@ function renderPiano() {
             html += `<div class="piano-nodate-hdr" onclick="togglePianoDay('${g.key}')"><span class="piano-day-chevron${chevClass}" id="pdayChev_${safeKey}">▼</span> 📋 Senza data</div>`;
         } else {
             const d = new Date(g.key + 'T12:00:00');
-            const label = d.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' });
-            const labelCap = label.charAt(0).toUpperCase() + label.slice(1);
-            html += `<div class="piano-date-hdr" onclick="togglePianoDay('${g.key}')"><div class="piano-date-hdr-line"></div><div class="piano-date-hdr-label"><span class="piano-day-chevron${chevClass}" id="pdayChev_${safeKey}">▼</span>📅 ${labelCap}</div><div class="piano-date-hdr-line"></div></div>`;
+            const label = d.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+            html += `<div class="piano-date-hdr" onclick="togglePianoDay('${g.key}')"><div class="piano-date-hdr-line"></div><div class="piano-date-hdr-label"><span class="piano-day-chevron${chevClass}" id="pdayChev_${safeKey}">▼</span>${label}</div><div class="piano-date-hdr-line"></div></div>`;
         }
         html += `<div id="pdayBody_${safeKey}" class="piano-day-body${bodyClass}">`;
         g.items.forEach(p => { html += _renderPianoCard(p); });

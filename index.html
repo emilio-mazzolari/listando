@@ -120,17 +120,15 @@
 
         button:focus-visible, a:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
 
-        .app-title-row { display: flex; align-items: center; justify-content: center; position: relative; flex-shrink: 0; padding: 4px 0 10px; }
-        .app-title-row .app-title { padding: 0; }
-        .btn-edit-grid { position: absolute; right: 0; width: 32px; height: 32px; border-radius: 10px; border: 2px solid var(--grey); background: white; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s; }
-        .btn-edit-grid.active { background: var(--green); border-color: var(--green); }
-        .btn-edit-grid svg { width: 15px; height: 15px; stroke: var(--dark); fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
-        .btn-edit-grid.active svg { stroke: white; }
         #menuGrid.editing .btn-big { border-style: dashed; cursor: grab; }
         .edit-bar { display: none; position: fixed; bottom: 75px; left: 0; right: 0; z-index: 98; background: white; border-top: 2px solid var(--grey); padding: 10px 16px; padding-bottom: max(10px, calc(env(safe-area-inset-bottom, 0px) + 4px)); }
         .edit-bar.open { display: flex; align-items: center; justify-content: center; }
         .btn-done-edit { width: 100%; max-width: 320px; background: var(--green); color: white; border: none; border-radius: 14px; padding: 13px; font-weight: 900; font-size: 14px; font-family: inherit; cursor: pointer; }
-        @media (min-width: 1024px) { .app-title-row { display: none; } .edit-bar { bottom: 0; left: 240px; } .btn-edit-grid-desktop { display: flex !important; } }
+        @media (max-width: 1023px) {
+            .view-list .menu-container { grid-template-columns: 1fr; }
+            .view-list .btn-big { aspect-ratio: unset; flex-direction: row; justify-content: flex-start; padding: 14px 20px; gap: 14px; font-size: 14px; }
+        }
+        @media (min-width: 1024px) { .edit-bar { bottom: 0; left: 240px; } #btnViewToggle { display: none !important; } }
 
         /* ── Desktop (≥1024px): sidebar navigation ── */
         @media (min-width: 1024px) {
@@ -217,12 +215,7 @@
 <body>
 
     <div class="app">
-        <div class="app-title-row">
-            <div class="app-title">LISTANDO</div>
-            <button class="btn-edit-grid" id="btnEditGrid" onclick="toggleEditMode()" title="Riordina sezioni">
-                <svg viewBox="0 0 24 24"><path d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
-            </button>
-        </div>
+        <div class="app-title">LISTANDO</div>
 
         <div class="menu-container" id="menuGrid">
             <a href="spesa.html" class="btn-big" style="border-color:#3384d4" data-id="spesa">
@@ -319,6 +312,19 @@
             </svg>
             HOME
         </a>
+        <button class="tab-item" id="btnViewToggle" onclick="toggleView()" style="background:none;border:none;cursor:pointer;">
+            <svg class="icon-tab" id="viewIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+                <circle cx="3" cy="6" r="1" fill="currentColor" stroke="none"/><circle cx="3" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="3" cy="18" r="1" fill="currentColor" stroke="none"/>
+            </svg>
+            <span id="viewLabel">LISTA</span>
+        </button>
+        <button class="tab-item" id="btnEditMode" onclick="toggleEditMode()" style="background:none;border:none;cursor:pointer;">
+            <svg class="icon-tab" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+            </svg>
+            RIORDINA
+        </button>
         <a href="profilo.html" class="tab-item">
             <svg class="icon-tab" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
@@ -326,12 +332,6 @@
             </svg>
             PROFILO
         </a>
-        <button class="tab-item" id="btnEditGridDesktop" onclick="toggleEditMode()" style="background:none;border:none;cursor:pointer;display:none;">
-            <svg class="icon-tab" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
-            </svg>
-            RIORDINA
-        </button>
         <button class="tab-item" onclick="logout()" style="background:none;border:none;cursor:pointer;color:#ff3b30;">
             <svg class="icon-tab" style="stroke:#ff3b30" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
@@ -454,10 +454,8 @@
             editMode = !editMode;
             document.getElementById('menuGrid').classList.toggle('editing', editMode);
             document.getElementById('editBar').classList.toggle('open', editMode);
-            const btnM = document.getElementById('btnEditGrid');
-            const btnD = document.getElementById('btnEditGridDesktop');
-            if (btnM) btnM.classList.toggle('active', editMode);
-            if (btnD) btnD.style.color = editMode ? 'var(--green)' : '';
+            const btn = document.getElementById('btnEditMode');
+            if (btn) btn.style.color = editMode ? 'var(--green)' : '';
             sortable.option('disabled', !editMode);
             if (!editMode) saveOrder();
         }
@@ -467,13 +465,30 @@
             if (editMode) e.preventDefault();
         }, true);
 
-        applyOrder();
+        // ── Vista griglia / lista ─────────────────────────────────────────
+        const VIEW_KEY = 'listando_home_view_' + _email;
+        let viewMode = localStorage.getItem(VIEW_KEY) || 'grid';
 
-        // Show desktop riordina button on ≥1024px
-        if (window.matchMedia('(min-width:1024px)').matches) {
-            const btnD = document.getElementById('btnEditGridDesktop');
-            if (btnD) btnD.style.display = '';
+        function applyView() {
+            document.body.classList.toggle('view-list', viewMode === 'list');
+            const lbl = document.getElementById('viewLabel');
+            const ico = document.getElementById('viewIcon');
+            if (lbl) lbl.textContent = viewMode === 'list' ? 'GRIGLIA' : 'LISTA';
+            if (ico) {
+                ico.innerHTML = viewMode === 'list'
+                    ? '<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>'
+                    : '<line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3" cy="6" r="1" fill="currentColor" stroke="none"/><circle cx="3" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="3" cy="18" r="1" fill="currentColor" stroke="none"/>';
+            }
         }
+
+        function toggleView() {
+            viewMode = viewMode === 'grid' ? 'list' : 'grid';
+            localStorage.setItem(VIEW_KEY, viewMode);
+            applyView();
+        }
+
+        applyOrder();
+        applyView();
 
         const sortable = Sortable.create(document.getElementById('menuGrid'), {
             animation: 200,
