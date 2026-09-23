@@ -34,16 +34,20 @@
         .header-title { font-weight: 900; font-size: 18px; flex: 1; }
         .btn-add-hdr { width: 40px; height: 40px; border-radius: 12px; border: none; background: var(--teal); color: white; font-size: 22px; font-weight: 300; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 
-        .cats-scroll { overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
-        .cats-scroll::-webkit-scrollbar { display: none; }
-        .chip-cat { display: inline-block; padding: 7px 14px; border-radius: 20px; border: 2.5px solid var(--grey); background: var(--white); font-weight: 800; font-size: 13px; cursor: pointer; margin-right: 6px; transition: all 0.15s; }
-        .chip-cat.active { border-color: var(--teal); background: var(--teal); color: white; }
-        .chip-quick { display: inline-block; padding: 6px 12px; border-radius: 16px; border: 2px solid var(--grey); background: var(--white); font-weight: 700; font-size: 12px; cursor: pointer; margin-right: 5px; transition: all 0.15s; color: #666; white-space: nowrap; }
-        .chip-quick.active { border-color: var(--dark); background: var(--dark); color: white; }
-        .chip-quick.q-scadute.active { border-color: var(--red); background: var(--red); }
-        .chip-quick.q-alta.active { border-color: var(--alta); background: #fff0f0; color: var(--alta); }
-        .chip-quick.q-ricorrenti.active { border-color: var(--teal); background: rgba(48,176,199,0.1); color: var(--teal); }
-        .chip-count { font-size: 10px; font-weight: 900; opacity: 0.7; margin-left: 3px; }
+        .btn-filter { width: 40px; height: 40px; border-radius: 12px; border: 2.5px solid var(--grey); background: var(--white); display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative; flex-shrink: 0; }
+        .btn-filter svg { width: 18px; height: 18px; stroke: var(--dark); fill: none; stroke-width: 2.5; stroke-linecap: round; }
+        .btn-filter.active { border-color: var(--teal); background: rgba(48,176,199,0.07); }
+        .btn-filter.active svg { stroke: var(--teal); }
+        .filter-badge { position: absolute; top: -5px; right: -5px; min-width: 16px; height: 16px; background: var(--teal); border-radius: 10px; font-size: 9px; font-weight: 900; color: white; display: flex; align-items: center; justify-content: center; padding: 0 3px; border: 2px solid white; }
+        .filtri-summary { font-size: 12px; font-weight: 700; color: var(--teal); margin-top: 8px; display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+        .filtri-tag { background: rgba(48,176,199,0.1); border-radius: 10px; padding: 3px 8px; display: flex; align-items: center; gap: 4px; }
+        .filtri-tag-x { cursor: pointer; font-size: 11px; opacity: 0.7; }
+
+        .filter-section { margin-bottom: 20px; }
+        .filter-label { font-size: 11px; font-weight: 800; color: #999; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+        .filter-chips-wrap { display: flex; flex-wrap: wrap; gap: 7px; }
+        .filter-chip { padding: 9px 16px; border-radius: 20px; border: 2px solid var(--grey); background: white; font-weight: 700; font-size: 13px; cursor: pointer; color: #666; transition: all 0.15s; font-family: inherit; }
+        .filter-chip.active { border-color: var(--teal); background: var(--teal); color: white; }
 
         .progress-wrap { padding: 10px 16px 0; }
         .progress-bar-bg { background: var(--grey-light); border-radius: 8px; height: 6px; }
@@ -138,10 +142,13 @@
             <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
         </button>
         <div class="header-title">COSE DA FARE</div>
+        <button class="btn-filter" id="btnFiltri" onclick="apriFiltrModal()">
+            <svg viewBox="0 0 24 24"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+            <span class="filter-badge" id="filtriBadge" style="display:none"></span>
+        </button>
         <button class="btn-add-hdr" onclick="apriModale()">+</button>
     </div>
-    <div class="cats-scroll" id="catsScroll"></div>
-    <div class="cats-scroll" id="quickScroll" style="margin-top:6px"></div>
+    <div class="filtri-summary" id="filtriSummary" style="display:none"></div>
 </div>
 
 <div class="progress-wrap" id="progressWrap" style="display:none">
@@ -269,6 +276,54 @@
     </div>
 </div>
 
+<!-- Modal Filtri -->
+<div class="modal-overlay" id="filtriModal" onclick="if(event.target===this)this.classList.remove('open')">
+    <div class="modal-box">
+        <div class="modal-handle"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+            <div class="modal-title" style="margin:0">Filtri</div>
+            <button onclick="resetFiltri()" style="font-size:13px;font-weight:800;color:var(--red);border:none;background:none;cursor:pointer;padding:8px 12px;border-radius:10px;font-family:inherit">Reset tutti</button>
+        </div>
+
+        <div class="filter-section">
+            <div class="filter-label">Categoria</div>
+            <div class="filter-chips-wrap" id="filtroCatChips"></div>
+        </div>
+
+        <div class="filter-section">
+            <div class="filter-label">Scadenza</div>
+            <div class="filter-chips-wrap">
+                <button class="filter-chip" id="fsc-tutte"      onclick="setFiltroScad('tutte')">Tutte</button>
+                <button class="filter-chip" id="fsc-oggi"       onclick="setFiltroScad('oggi')">⏰ Oggi</button>
+                <button class="filter-chip" id="fsc-settimana"  onclick="setFiltroScad('settimana')">📅 Settimana</button>
+                <button class="filter-chip" id="fsc-scadute"    onclick="setFiltroScad('scadute')">⚠️ Scadute</button>
+                <button class="filter-chip" id="fsc-senza_data" onclick="setFiltroScad('senza_data')">📋 Senza data</button>
+            </div>
+        </div>
+
+        <div class="filter-section">
+            <div class="filter-label">Priorità</div>
+            <div class="filter-chips-wrap">
+                <button class="filter-chip" id="fpr-tutte" onclick="setFiltroPriorita('tutte')">Tutte</button>
+                <button class="filter-chip" id="fpr-alta"  onclick="setFiltroPriorita('alta')">🔴 Alta</button>
+                <button class="filter-chip" id="fpr-media" onclick="setFiltroPriorita('media')">🟠 Media</button>
+                <button class="filter-chip" id="fpr-bassa" onclick="setFiltroPriorita('bassa')">🟢 Bassa</button>
+            </div>
+        </div>
+
+        <div class="filter-section">
+            <div class="filter-label">Tipo</div>
+            <div class="filter-chips-wrap">
+                <button class="filter-chip" id="ftp-tutte"      onclick="setFiltroTipo('tutte')">Tutte</button>
+                <button class="filter-chip" id="ftp-ricorrenti" onclick="setFiltroTipo('ricorrenti')">🔄 Ricorrenti</button>
+                <button class="filter-chip" id="ftp-una_tantum" onclick="setFiltroTipo('una_tantum')">Singole</button>
+            </div>
+        </div>
+
+        <button class="btn-save-modal" onclick="document.getElementById('filtriModal').classList.remove('open')" style="background:var(--dark)">Chiudi</button>
+    </div>
+</div>
+
 <div class="tab-bar">
     <a href="index.html" class="tab-item">
         <svg class="icon-tab" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 15 22"/></svg>
@@ -290,8 +345,10 @@ function toTitleCase(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1).toLo
 let customCats = JSON.parse(localStorage.getItem('todo_categorie_custom') || '[]').map(toTitleCase);
 
 let tasks = [];
-let catFiltro = 'Tutte';
-let quickFiltro = 'tutte';
+let filtroCategoria = 'Tutte';
+let filtroPriorita  = 'tutte';
+let filtroScadenza  = 'tutte';
+let filtroTipo      = 'tutte';
 let catSelezionata = 'Generale';
 let prioCorrente = 'media';
 let editId = null;
@@ -320,8 +377,7 @@ async function carica() {
         .order('created_at', { ascending: false });
     if (error) { toast('Errore: ' + error.message); return; }
     tasks = data || [];
-    renderCats();
-    renderQuickFilters();
+    aggiornaFiltroBtn();
     render();
 }
 
@@ -336,36 +392,65 @@ function getCats() {
     return used.length ? ['Tutte', ...used] : ['Tutte'];
 }
 
-function countForCat(c) {
-    if (c === 'Tutte') return tasks.filter(t => !t.completato).length;
-    return tasks.filter(t => !t.completato && toTitleCase(t.categoria || '') === c).length;
+function contaFiltriAttivi() {
+    return (filtroCategoria !== 'Tutte' ? 1 : 0) + (filtroPriorita !== 'tutte' ? 1 : 0)
+         + (filtroScadenza  !== 'tutte' ? 1 : 0) + (filtroTipo      !== 'tutte' ? 1 : 0);
 }
 
-function renderCats() {
-    const cats = getCats();
-    document.getElementById('catsScroll').innerHTML = cats.map(c => {
-        const n = countForCat(c);
-        const badge = n > 0 ? `<span class="chip-count">${n}</span>` : '';
-        return `<button class="chip-cat${catFiltro === c ? ' active' : ''}" onclick="setCat(${JSON.stringify(c)})">${c}${badge}</button>`;
-    }).join('');
+function aggiornaFiltroBtn() {
+    const n = contaFiltriAttivi();
+    const btn = document.getElementById('btnFiltri');
+    if (btn) btn.className = 'btn-filter' + (n > 0 ? ' active' : '');
+    const badge = document.getElementById('filtriBadge');
+    if (badge) { badge.style.display = n > 0 ? '' : 'none'; badge.textContent = n || ''; }
+
+    const SCAD_LABEL = { tutte:'', oggi:'Oggi', settimana:'Settimana', scadute:'Scadute', senza_data:'Senza data' };
+    const PRIO_LABEL = { tutte:'', alta:'Alta', media:'Media', bassa:'Bassa' };
+    const TIPO_LABEL = { tutte:'', ricorrenti:'Ricorrenti', una_tantum:'Singole' };
+    const tags = [];
+    if (filtroCategoria !== 'Tutte')  tags.push({ label: filtroCategoria, reset: () => { filtroCategoria = 'Tutte'; aggiornaTuttiF(); } });
+    if (filtroScadenza  !== 'tutte')  tags.push({ label: SCAD_LABEL[filtroScadenza],  reset: () => { filtroScadenza  = 'tutte';  aggiornaTuttiF(); } });
+    if (filtroPriorita  !== 'tutte')  tags.push({ label: PRIO_LABEL[filtroPriorita],  reset: () => { filtroPriorita  = 'tutte';  aggiornaTuttiF(); } });
+    if (filtroTipo      !== 'tutte')  tags.push({ label: TIPO_LABEL[filtroTipo],       reset: () => { filtroTipo      = 'tutte';  aggiornaTuttiF(); } });
+
+    const sumEl = document.getElementById('filtriSummary');
+    if (sumEl) {
+        sumEl.style.display = tags.length ? 'flex' : 'none';
+        sumEl.innerHTML = tags.map((t, i) =>
+            `<span class="filtri-tag">${t.label}<span class="filtri-tag-x" onclick="_rmFiltro(${i})">✕</span></span>`
+        ).join('');
+        window._filtroResetFns = tags.map(t => t.reset);
+    }
 }
+function _rmFiltro(i) { window._filtroResetFns?.[i]?.(); }
+function aggiornaTuttiF() { aggiornaFiltroBtn(); renderFiltriModal(); render(); }
 
-const QUICK_OPTS = [
-    { key: 'tutte',      label: 'Tutte',          cls: '' },
-    { key: 'oggi',       label: '⏰ Oggi',          cls: '' },
-    { key: 'settimana',  label: '📅 Settimana',     cls: '' },
-    { key: 'scadute',    label: '⚠️ Scadute',       cls: 'q-scadute' },
-    { key: 'alta',       label: '🔴 Alta priorità', cls: 'q-alta' },
-    { key: 'ricorrenti', label: '🔄 Ricorrenti',    cls: 'q-ricorrenti' },
-];
+function apriFiltrModal() { renderFiltriModal(); document.getElementById('filtriModal').classList.add('open'); }
 
-function renderQuickFilters() {
-    document.getElementById('quickScroll').innerHTML = QUICK_OPTS.map(o =>
-        `<button class="chip-quick ${o.cls}${quickFiltro === o.key ? ' active' : ''}" onclick="setQuickFiltro('${o.key}')">${o.label}</button>`
+function renderFiltriModal() {
+    const cats = getCats().filter(c => c !== 'Tutte');
+    document.getElementById('filtroCatChips').innerHTML = ['Tutte', ...cats].map(c =>
+        `<button class="filter-chip${filtroCategoria === c ? ' active' : ''}" onclick="setFiltroCategoria(${JSON.stringify(c)})">${c}</button>`
     ).join('');
+    ['tutte','oggi','settimana','scadute','senza_data'].forEach(s => {
+        const el = document.getElementById('fsc-' + s);
+        if (el) el.className = 'filter-chip' + (filtroScadenza === s ? ' active' : '');
+    });
+    ['tutte','alta','media','bassa'].forEach(p => {
+        const el = document.getElementById('fpr-' + p);
+        if (el) el.className = 'filter-chip' + (filtroPriorita === p ? ' active' : '');
+    });
+    ['tutte','ricorrenti','una_tantum'].forEach(t => {
+        const el = document.getElementById('ftp-' + t);
+        if (el) el.className = 'filter-chip' + (filtroTipo === t ? ' active' : '');
+    });
 }
 
-function setQuickFiltro(v) { quickFiltro = v; renderQuickFilters(); render(); }
+function setFiltroCategoria(c) { filtroCategoria = c; aggiornaTuttiF(); }
+function setFiltroPriorita(p)  { filtroPriorita  = p; aggiornaTuttiF(); }
+function setFiltroScad(s)       { filtroScadenza  = s; aggiornaTuttiF(); }
+function setFiltroTipo(t)       { filtroTipo      = t; aggiornaTuttiF(); }
+function resetFiltri() { filtroCategoria='Tutte'; filtroPriorita='tutte'; filtroScadenza='tutte'; filtroTipo='tutte'; aggiornaTuttiF(); }
 
 function renderCatSelect() {
     const el = document.getElementById('fCatSelect');
@@ -412,31 +497,34 @@ function confermaAggiuntaCat() {
     renderCatSelect();
 }
 
-function setCat(c) { catFiltro = c; quickFiltro = 'tutte'; renderCats(); renderQuickFilters(); render(); }
-
-function applyQuickFilter(list) {
+function render() {
     const oggi = new Date(); oggi.setHours(0,0,0,0);
     const dom7  = new Date(oggi); dom7.setDate(dom7.getDate() + 7);
-    switch (quickFiltro) {
-        case 'oggi':
-            return list.filter(t => t.scadenza && new Date(t.scadenza + 'T00:00:00').getTime() === oggi.getTime());
-        case 'settimana':
-            return list.filter(t => { if (!t.scadenza) return false; const d = new Date(t.scadenza + 'T00:00:00'); return d >= oggi && d < dom7; });
-        case 'scadute':
-            return list.filter(t => !t.completato && t.scadenza && new Date(t.scadenza + 'T00:00:00') < oggi);
-        case 'alta':
-            return list.filter(t => t.priorita === 'alta');
-        case 'ricorrenti':
-            return list.filter(t => !!t.periodicita);
-        default:
-            return list;
-    }
-}
 
-function render() {
-    const byCat = tasks.filter(t => catFiltro === 'Tutte' || toTitleCase(t.categoria || '') === catFiltro);
-    const filtered = applyQuickFilter(byCat);
-    const hideDone = quickFiltro === 'scadute';
+    let filtered = tasks.slice();
+    if (filtroCategoria !== 'Tutte')
+        filtered = filtered.filter(t => toTitleCase(t.categoria || '') === filtroCategoria);
+    if (filtroPriorita !== 'tutte')
+        filtered = filtered.filter(t => t.priorita === filtroPriorita);
+    if (filtroTipo !== 'tutte') {
+        if (filtroTipo === 'ricorrenti') filtered = filtered.filter(t => !!t.periodicita);
+        else filtered = filtered.filter(t => !t.periodicita);
+    }
+    let hideDone = false;
+    if (filtroScadenza !== 'tutte') {
+        if (filtroScadenza === 'oggi')
+            filtered = filtered.filter(t => t.scadenza && new Date(t.scadenza+'T00:00:00').getTime() === oggi.getTime());
+        else if (filtroScadenza === 'settimana')
+            filtered = filtered.filter(t => { if (!t.scadenza) return false; const d = new Date(t.scadenza+'T00:00:00'); return d >= oggi && d < dom7; });
+        else if (filtroScadenza === 'scadute') {
+            filtered = filtered.filter(t => !t.completato && t.scadenza && new Date(t.scadenza+'T00:00:00') < oggi);
+            hideDone = true;
+        } else if (filtroScadenza === 'senza_data') {
+            filtered = filtered.filter(t => !t.scadenza && !t.completato);
+            hideDone = true;
+        }
+    }
+
     const pending = filtered.filter(t => !t.completato);
     const done    = hideDone ? [] : filtered.filter(t => t.completato);
 
@@ -618,6 +706,8 @@ function aggiornaPrevReminder() {
     if (periodicita === 'settimanale' && giorniSettimana.length > 0 && remAnticipo > 0) {
         const nomi = [...new Set(giorniSettimana.map(d => DOW_FULL[((d - remAnticipo) % 7 + 7) % 7]))];
         prevEl.textContent = `🔔 Notifica ${nomi.join('/')} alle ${ora}`;
+    } else if (periodicita === 'giornaliera' && remAnticipo === 0) {
+        prevEl.textContent = `🔔 Notifica ogni giorno alle ${ora}`;
     } else if (remAnticipo === 0) {
         prevEl.textContent = `🔔 Notifica il giorno stesso alle ${ora}`;
     } else if (remAnticipo === 7) {
@@ -657,7 +747,7 @@ async function confermaRinomnaCat() {
     const toUpdate = tasks.filter(t => toTitleCase(t.categoria) === vecchioNome);
     await Promise.all(toUpdate.map(t => sb.from('todo').update({ categoria: nuovoNome }).eq('id', t.id)));
     catSelezionata = nuovoNome;
-    if (catFiltro === vecchioNome) catFiltro = nuovoNome;
+    if (filtroCategoria === vecchioNome) filtroCategoria = nuovoNome;
     document.getElementById('rinomnaCatWrap').style.display = 'none';
     await carica();
     renderCatSelect();
@@ -673,7 +763,7 @@ async function eliminaCat() {
     const toUpdate = tasks.filter(t => toTitleCase(t.categoria) === vecchioNome);
     await Promise.all(toUpdate.map(t => sb.from('todo').update({ categoria: 'Generale' }).eq('id', t.id)));
     catSelezionata = 'Generale';
-    if (catFiltro === vecchioNome) catFiltro = 'Tutte';
+    if (filtroCategoria === vecchioNome) filtroCategoria = 'Tutte';
     await carica();
     renderCatSelect();
     aggiornaAzioniCat();
@@ -695,6 +785,7 @@ function setPeriod(p) {
     const showUltimo = p === 'mensile';
     document.getElementById('sezUltimoGiorno').style.display = showUltimo ? '' : 'none';
     if (!showUltimo) { ultimoGiornoMese = false; renderUltimoGiornoBtns(); }
+    aggiornaSezData();
 }
 
 function toggleUltimoGiorno() {
@@ -738,8 +829,9 @@ function renderDowBtns() {
 
 function aggiornaSezData() {
     const hasDate = !!document.getElementById('fData').value;
-    document.getElementById('sezData').style.display = hasDate ? '' : 'none';
-    if (!hasDate) {
+    const show = hasDate || !!periodicita;
+    document.getElementById('sezData').style.display = show ? '' : 'none';
+    if (!show) {
         promemoriaPush = false; promemoriaMail = false;
         updateNotifyBtns();
     }
