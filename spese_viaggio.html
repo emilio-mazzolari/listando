@@ -3223,7 +3223,10 @@ function apriModalEditPianoItem(id) {
     document.getElementById('pConfermato').checked = !!p.confermato;
     document.getElementById('btnEliminaPiano').style.display = '';
     document.getElementById('stimaBar').className = 'stima-bar';
-    _loadPianoNotif(p);
+    // Fetch notif settings fresh from DB to avoid stale in-memory data
+    apiGetArr(`/sv_piano?id=eq.${id}&select=notif_dest,notif_anticipo`).then(rows => {
+        _loadPianoNotif(rows[0] || {});
+    });
     renderPianoTipoRow();
     document.getElementById('modalPianoItem').classList.add('open');
 }
