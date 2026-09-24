@@ -293,7 +293,7 @@ document.getElementById('btnGoogle').addEventListener('click', async () => {
         provider: 'google',
         options: {
             redirectTo: 'https://listando.it/login.html',
-            queryParams: { access_type: 'offline', prompt: 'consent' }
+            queryParams: { access_type: 'online' }
         }
     });
     if (error) statusDiv.innerHTML = `<span class="error">${error.message}</span>`;
