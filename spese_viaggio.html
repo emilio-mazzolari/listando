@@ -2793,7 +2793,7 @@ let pianoModo = 'spostamento';
 let pianoNotifEnabled = false, pianoNotifDest = 'me', pianoNotifAnticipo = '1d';
 
 async function caricaPianificazione() {
-    pianificazioneAttuale = await apiGetArr(`/sv_piano?viaggio_id=eq.${viaggioCorrenteId}&order=data_inizio.asc,id.asc`);
+    pianificazioneAttuale = await apiGetArr(`/sv_piano?viaggio_id=eq.${viaggioCorrenteId}&select=*&order=data_inizio.asc,id.asc`);
 }
 
 function _isSpostamento(tipo) { return SPOSTAMENTO_TIPI.includes(tipo); }
