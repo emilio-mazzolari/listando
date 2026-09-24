@@ -2974,12 +2974,11 @@ function _resetPianoNotif() {
     setPianoNotifAnticipo('1d');
 }
 
-function _loadPianoNotif(id) {
-    const saved = JSON.parse(localStorage.getItem('piano_notif_' + id) || 'null');
-    if (saved) {
+function _loadPianoNotif(p) {
+    if (p.notif_dest && p.notif_anticipo) {
         pianoNotifEnabled = true;
-        pianoNotifDest = saved.dest || 'me';
-        pianoNotifAnticipo = saved.anticipo || '1d';
+        pianoNotifDest = p.notif_dest;
+        pianoNotifAnticipo = p.notif_anticipo;
         document.getElementById('pNotifEnabled').checked = true;
         document.getElementById('sezPianoNotif').style.display = '';
     } else {
@@ -3224,7 +3223,7 @@ function apriModalEditPianoItem(id) {
     document.getElementById('pConfermato').checked = !!p.confermato;
     document.getElementById('btnEliminaPiano').style.display = '';
     document.getElementById('stimaBar').className = 'stima-bar';
-    _loadPianoNotif(id);
+    _loadPianoNotif(p);
     renderPianoTipoRow();
     document.getElementById('modalPianoItem').classList.add('open');
 }
@@ -3250,6 +3249,8 @@ async function salvaPianoItem() {
             costo_trasporto:  parseFloat(document.getElementById('pCostoTrasporto').value)  || null,
             note: document.getElementById('pNote').value.trim() || null,
             confermato: document.getElementById('pConfermato').checked,
+            notif_dest: pianoNotifEnabled ? pianoNotifDest : null,
+            notif_anticipo: pianoNotifEnabled ? pianoNotifAnticipo : null,
         };
     } else {
         titolo = document.getElementById('pTitolo').value.trim();
@@ -3263,6 +3264,8 @@ async function salvaPianoItem() {
             costo_tappa: parseFloat(document.getElementById('pCostoTappa').value) || null,
             note: document.getElementById('pNote').value.trim() || null,
             confermato: document.getElementById('pConfermato').checked,
+            notif_dest: pianoNotifEnabled ? pianoNotifDest : null,
+            notif_anticipo: pianoNotifEnabled ? pianoNotifAnticipo : null,
         };
     }
     const res = pianoItemEditId
@@ -3288,11 +3291,6 @@ async function salvaPianoItem() {
         if (_cpp || _np) localStorage.setItem('sv_tappa_cpp_' + savedId, JSON.stringify({ cpp: _cpp || null, np: _np || null }));
     }
     if (savedId) {
-        if (pianoNotifEnabled) {
-            localStorage.setItem('piano_notif_' + savedId, JSON.stringify({ dest: pianoNotifDest, anticipo: pianoNotifAnticipo }));
-        } else {
-            localStorage.removeItem('piano_notif_' + savedId);
-        }
         await sincronizzaBudgetPiano(savedId);
         await caricaBudget();
     }
