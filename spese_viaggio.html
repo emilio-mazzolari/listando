@@ -419,7 +419,7 @@
             <button class="inner-tab" id="tabBtnSpese" onclick="mostraTab('spese')">Spese</button>
             <button class="inner-tab" id="tabBtnStatistiche" onclick="mostraTab('statistiche')">Riepilogo</button>
             <button class="inner-tab" id="tabBtnSaldi" onclick="mostraTab('saldi')">Saldi</button>
-            <button class="inner-tab" id="tabBtnPersone" onclick="mostraTab('persone')">Persone</button>
+            <button class="inner-tab" id="tabBtnPersone" onclick="mostraTab('persone')">Partecipanti</button>
         </div>
 
         <!-- TAB SPESE -->
@@ -779,7 +779,7 @@
                 </div>
                 <div style="font-size:18px;font-weight:900;color:#aaa;padding-bottom:10px;flex-shrink:0">×</div>
                 <div style="flex:1">
-                    <div style="font-size:11px;color:#aaa;font-weight:800;margin-bottom:3px">N. persone</div>
+                    <div style="font-size:11px;color:#aaa;font-weight:800;margin-bottom:3px">N. partecipanti</div>
                     <input class="form-input" id="pNPersone" type="number" min="1" step="1" placeholder="1" style="margin:0;padding:10px 10px" oninput="calcolaCostoTappa()">
                 </div>
                 <div style="font-size:18px;font-weight:900;color:#aaa;padding-bottom:10px;flex-shrink:0">=</div>
@@ -792,6 +792,27 @@
 
         <label class="form-label">Note</label>
         <textarea class="form-input" id="pNote" rows="2" style="resize:none" placeholder="Dettagli, prenotazione, orari…"></textarea>
+
+        <!-- Notifica push -->
+        <div style="display:flex;align-items:center;gap:10px;margin:14px 0 0">
+            <input type="checkbox" id="pNotifEnabled" style="width:20px;height:20px;cursor:pointer;flex-shrink:0" onchange="togglePianoNotif()">
+            <label for="pNotifEnabled" style="font-weight:800;font-size:14px;cursor:pointer">🔔 Notifica push</label>
+        </div>
+        <div id="sezPianoNotif" style="display:none;margin-top:10px;padding:12px;background:#f5f5f7;border-radius:14px">
+            <div style="font-size:11px;font-weight:800;color:#aaa;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px">Per chi</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px" id="pianoNotifDestRow">
+                <button class="vei-chip active" id="pNotifDestMe" onclick="setPianoNotifDest('me')">👤 Solo me</button>
+                <button class="vei-chip" id="pNotifDestAll" onclick="setPianoNotifDest('all')">👥 Tutti i partecipanti</button>
+            </div>
+            <div style="font-size:11px;font-weight:800;color:#aaa;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px">Quando</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap" id="pianoNotifAnticRow">
+                <button class="vei-chip" id="pNotifA1h"   onclick="setPianoNotifAnticipo('1h')">1 ora prima</button>
+                <button class="vei-chip" id="pNotifA3h"   onclick="setPianoNotifAnticipo('3h')">3 ore prima</button>
+                <button class="vei-chip active" id="pNotifA1d" onclick="setPianoNotifAnticipo('1d')">1 giorno prima</button>
+                <button class="vei-chip" id="pNotifA3d"   onclick="setPianoNotifAnticipo('3d')">3 giorni prima</button>
+                <button class="vei-chip" id="pNotifA1w"   onclick="setPianoNotifAnticipo('1w')">1 settimana prima</button>
+            </div>
+        </div>
 
         <div style="display:flex;align-items:center;gap:10px;margin:12px 0 4px">
             <input type="checkbox" id="pConfermato" style="width:20px;height:20px;cursor:pointer;flex-shrink:0">
@@ -2769,6 +2790,7 @@ function _salvaVeicoloViaggio() {
     }
 }
 let pianoModo = 'spostamento';
+let pianoNotifEnabled = false, pianoNotifDest = 'me', pianoNotifAnticipo = '1d';
 
 async function caricaPianificazione() {
     pianificazioneAttuale = await apiGetArr(`/sv_piano?viaggio_id=eq.${viaggioCorrenteId}&order=data_inizio.asc,id.asc`);
@@ -2921,6 +2943,50 @@ function setPianoModo(modo) {
 function setPianoTipo(tipo) {
     pianoTipoScelto = tipo;
     renderPianoTipoRow();
+}
+
+function togglePianoNotif() {
+    pianoNotifEnabled = document.getElementById('pNotifEnabled').checked;
+    document.getElementById('sezPianoNotif').style.display = pianoNotifEnabled ? '' : 'none';
+}
+
+function setPianoNotifDest(v) {
+    pianoNotifDest = v;
+    document.getElementById('pNotifDestMe').className = 'vei-chip' + (v === 'me' ? ' active' : '');
+    document.getElementById('pNotifDestAll').className = 'vei-chip' + (v === 'all' ? ' active' : '');
+}
+
+function setPianoNotifAnticipo(v) {
+    pianoNotifAnticipo = v;
+    ['1h','3h','1d','3d','1w'].forEach(k => {
+        const el = document.getElementById('pNotifA' + k);
+        if (el) el.className = 'vei-chip' + (k === v ? ' active' : '');
+    });
+}
+
+function _resetPianoNotif() {
+    pianoNotifEnabled = false;
+    pianoNotifDest = 'me';
+    pianoNotifAnticipo = '1d';
+    document.getElementById('pNotifEnabled').checked = false;
+    document.getElementById('sezPianoNotif').style.display = 'none';
+    setPianoNotifDest('me');
+    setPianoNotifAnticipo('1d');
+}
+
+function _loadPianoNotif(id) {
+    const saved = JSON.parse(localStorage.getItem('piano_notif_' + id) || 'null');
+    if (saved) {
+        pianoNotifEnabled = true;
+        pianoNotifDest = saved.dest || 'me';
+        pianoNotifAnticipo = saved.anticipo || '1d';
+        document.getElementById('pNotifEnabled').checked = true;
+        document.getElementById('sezPianoNotif').style.display = '';
+    } else {
+        _resetPianoNotif();
+    }
+    setPianoNotifDest(pianoNotifDest);
+    setPianoNotifAnticipo(pianoNotifAnticipo);
 }
 
 let _geocodedC1 = null, _geocodedC2 = null;
@@ -3114,6 +3180,7 @@ function apriModalNuovoPianoItem(modo) {
     const boxSug = document.getElementById('luogoSuggerimenti'); if (boxSug) boxSug.innerHTML = '';
     const linkP = document.getElementById('btnCercaPrezzo'); if (linkP) linkP.style.display = 'none';
     if (modo === 'spostamento') _caricaVeicoloViaggio();
+    _resetPianoNotif();
     renderPianoTipoRow();
     document.getElementById('modalPianoItem').classList.add('open');
 }
@@ -3157,6 +3224,7 @@ function apriModalEditPianoItem(id) {
     document.getElementById('pConfermato').checked = !!p.confermato;
     document.getElementById('btnEliminaPiano').style.display = '';
     document.getElementById('stimaBar').className = 'stima-bar';
+    _loadPianoNotif(id);
     renderPianoTipoRow();
     document.getElementById('modalPianoItem').classList.add('open');
 }
@@ -3219,7 +3287,15 @@ async function salvaPianoItem() {
         const _np  = parseInt(document.getElementById('pNPersone').value);
         if (_cpp || _np) localStorage.setItem('sv_tappa_cpp_' + savedId, JSON.stringify({ cpp: _cpp || null, np: _np || null }));
     }
-    if (savedId) { await sincronizzaBudgetPiano(savedId); await caricaBudget(); }
+    if (savedId) {
+        if (pianoNotifEnabled) {
+            localStorage.setItem('piano_notif_' + savedId, JSON.stringify({ dest: pianoNotifDest, anticipo: pianoNotifAnticipo }));
+        } else {
+            localStorage.removeItem('piano_notif_' + savedId);
+        }
+        await sincronizzaBudgetPiano(savedId);
+        await caricaBudget();
+    }
 }
 
 async function eliminaPianoItemById(id) {
