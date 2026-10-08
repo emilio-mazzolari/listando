@@ -152,7 +152,7 @@
         <p class="subtitle">Accedi alle tue liste</p>
         <input type="email" id="emailInput" placeholder="La tua email"
                onkeydown="if(event.key==='Enter') loginManuale()">
-        <button class="btn-email" onclick="loginManuale()">ENTRA CON EMAIL</button>
+        <button class="btn-email" id="btnEmail" onclick="loginManuale()">INVIA LINK DI ACCESSO</button>
         <div class="divider">OPPURE</div>
         <button class="btn-google" id="btnGoogle">
             <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" width="20" alt="G">
@@ -185,7 +185,15 @@ async function bioSupportato() {
 }
 
 // ── Inizializzazione ────────────────────────────────────────────────
-window.addEventListener('load', () => {
+window.addEventListener('load', async () => {
+    // Se c'è già una sessione Supabase valida, vai direttamente all'app
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (session) {
+        localStorage.setItem('userEmail', session.user.email);
+        window.location.assign(getRedirectUrl());
+        return;
+    }
+
     const credId = localStorage.getItem(BIO_KEY);
     const email  = localStorage.getItem(BIO_EMAIL);
 
@@ -226,8 +234,18 @@ async function accediConBiometria() {
             }
         });
         if (assertion) {
-            localStorage.setItem('userEmail', localStorage.getItem(BIO_EMAIL));
-            window.location.assign(getRedirectUrl());
+            // Verifica che la sessione Supabase sia ancora valida
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (session) {
+                localStorage.setItem('userEmail', session.user.email);
+                window.location.assign(getRedirectUrl());
+            } else {
+                // Sessione scaduta: serve un nuovo link di accesso
+                mostraSchermaEmail();
+                const saved = localStorage.getItem(BIO_EMAIL);
+                if (saved) document.getElementById('emailInput').value = saved;
+                statusDiv.innerHTML = '<span class="error">Sessione scaduta. Invia un nuovo link via email.</span>';
+            }
         }
     } catch (e) {
         if (e.name === 'NotAllowedError') {
@@ -275,20 +293,28 @@ async function registraBiometria(email) {
     return false;
 }
 
-// ── Login manuale ───────────────────────────────────────────────────
+// ── Login via magic link (OTP email) ───────────────────────────────
 async function loginManuale() {
     const email = document.getElementById('emailInput').value.trim();
     if (!email.includes('@')) {
         statusDiv.innerHTML = '<span class="error">Inserisci un\'email valida.</span>';
         return;
     }
-    localStorage.setItem('userEmail', email);
-    statusDiv.innerHTML = '<span class="success">Accesso in corso…</span>';
+    const btn = document.getElementById('btnEmail');
+    btn.disabled = true;
+    statusDiv.innerHTML = 'Invio link in corso…';
 
-    const ok = await registraBiometria(email);
-    if (ok) statusDiv.innerHTML = '<span class="success">✓ Face ID / Touch ID configurato!</span>';
+    const { error } = await supabaseClient.auth.signInWithOtp({
+        email,
+        options: { shouldCreateUser: true }
+    });
 
-    setTimeout(() => window.location.assign(getRedirectUrl()), ok ? 700 : 300);
+    if (error) {
+        statusDiv.innerHTML = `<span class="error">${error.message}</span>`;
+        btn.disabled = false;
+    } else {
+        statusDiv.innerHTML = '<span class="success">✉️ Controlla la tua email: hai ricevuto un link di accesso. Torna qui dopo averlo cliccato.</span>';
+    }
 }
 
 // ── Google OAuth ────────────────────────────────────────────────────

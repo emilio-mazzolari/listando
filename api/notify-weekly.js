@@ -2,8 +2,8 @@ const webpush = require('web-push');
 const { createClient } = require('@supabase/supabase-js');
 
 const SUPABASE_URL = 'https://eejdpophfxsrqdvsucye.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlamRwb3BoZnhzcnFkdnN1Y3llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2NTMzMDQsImV4cCI6MjA5MzIyOTMwNH0.mpxbwlJyIdZgqKIdutHbLd85JR1P11yiglbYeApi17k';
-const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
 webpush.setVapidDetails(
     'mailto:emilio.mazzolari@gmail.com',
