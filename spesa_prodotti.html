@@ -886,7 +886,10 @@
         return str.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
     }
 
-    function logout() { localStorage.clear(); window.location.href = 'login.html'; }
+    function logout() {
+        ['userEmail', 'bioCredId', 'bioEmail', 'pushDismissed'].forEach(k => localStorage.removeItem(k));
+        window.location.href = 'login.html';
+    }
 
     window.onload = caricaProdotti;
 

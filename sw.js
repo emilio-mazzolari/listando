@@ -1,8 +1,13 @@
-const CACHE_NAME = "lista-spesa-cache-v99";
+const CACHE_NAME = "lista-spesa-cache-v100";
 
 const FILES = [
   "/manifest.json",
   "/logolistando.png",
+  "/index.html",
+  "/login.html",
+  "/spese_viaggio.html",
+  "/spesa.html",
+  "/todo.html",
 ];
 
 /* INSTALL */

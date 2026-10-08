@@ -9,11 +9,11 @@ const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 webpush.setVapidDetails(
     'mailto:emilio.mazzolari@gmail.com',
-    process.env.VAPID_PUBLIC_KEY || 'BATe8jx7GOX6w2NUFoMQoGI6l8BRyJEVcsDlwf3IdIa5AEENkxpSCNuhkl4PgDxR_8f-AJerrYxENnH0mb-MTys',
+    process.env.VAPID_PUBLIC_KEY || 'BIyJ8XdT5OaVM9uGh9rgjqMzBNd9q2haLd4k_Ugq7ZvUgZrzmOFmRb8-E0-_vUGHZ1_cGxIz84hakLZJPWgxFQM',
     process.env.VAPID_PRIVATE_KEY
 );
 
-// Returns current date (YYYY-MM-DD) and time in minutes, in Europe/Rome timezone
+// Returns current date/time info in Europe/Rome timezone
 function getRomeTime() {
     const now = new Date();
     const fmt = new Intl.DateTimeFormat('it-IT', {
@@ -25,10 +25,28 @@ function getRomeTime() {
     const get = type => parts.find(p => p.type === type)?.value || '00';
     const hh = parseInt(get('hour'));
     const mm = parseInt(get('minute'));
+    // Get day of week (0=Sun,1=Mon,...,6=Sat) in Rome timezone
+    const romeDate = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Rome' }));
     return {
         date: `${get('year')}-${get('month')}-${get('day')}`,
-        totalMins: hh * 60 + mm
+        totalMins: hh * 60 + mm,
+        dow: romeDate.getDay()
     };
+}
+
+async function sendPush(sub, payload) {
+    try {
+        await webpush.sendNotification(
+            { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+            payload
+        );
+        return true;
+    } catch (e) {
+        if (e.statusCode === 410 || e.statusCode === 404) {
+            await sb.from('push_subscriptions').delete().eq('endpoint', sub.endpoint);
+        }
+        return false;
+    }
 }
 
 module.exports = async function handler(req, res) {
@@ -37,29 +55,20 @@ module.exports = async function handler(req, res) {
         return res.status(401).end();
     }
 
-    const { date, totalMins } = getRomeTime();
-    const windowEnd = totalMins + 65; // matches hourly cron with buffer
+    const { date, totalMins, dow } = getRomeTime();
+    const windowEnd = totalMins + 65;
 
-    // Tasks due today that haven't been notified yet
-    const { data: tasks, error } = await sb.from('todo')
-        .select('*')
-        .eq('completato', false)
-        .eq('notificato', false)
-        .eq('scadenza', date)
-        .not('ora', 'is', null);
+    // ── Reset notificato at midnight for recurring tasks (scadenza=null) ──
+    // Runs on the 00:xx cron pass to allow re-notification the next occurrence
+    if (totalMins < 65) {
+        await sb.from('todo')
+            .update({ notificato: false })
+            .eq('notificato', true)
+            .not('periodicita', 'is', null)
+            .is('scadenza', null);
+    }
 
-    if (error) return res.status(500).json({ error: error.message });
-
-    // Filter to tasks whose reminder time falls in [now, now+65min)
-    const due = (tasks || []).filter(t => {
-        const [hh, mm] = t.ora.split(':').map(Number);
-        const mins = hh * 60 + mm;
-        return mins >= totalMins && mins < windowEnd;
-    });
-
-    if (!due.length) return res.json({ sent: 0, checked: tasks?.length || 0 });
-
-    // Load all push subscriptions once
+    // ── Load push subscriptions once ─────────────────────────────────────
     const { data: subs } = await sb.from('push_subscriptions').select('*');
     const subsByEmail = {};
     for (const s of (subs || [])) {
@@ -67,38 +76,99 @@ module.exports = async function handler(req, res) {
         subsByEmail[s.email_utente].push(s);
     }
 
-    let sent = 0;
-    for (const task of due) {
-        const timeStr = task.ora.substring(0, 5);
+    // ── 1. One-off tasks with scadenza — supports multiple rem_anticipi ──────
+    // Query tasks whose scadenza falls within the next 7 days (max anticipo)
+    const checkDates = [];
+    for (let i = 0; i <= 7; i++) {
+        const d = new Date(romeDate);
+        d.setDate(d.getDate() + i);
+        checkDates.push(d.toISOString().split('T')[0]);
+    }
+    const { data: dateTasks, error } = await sb.from('todo')
+        .select('*')
+        .eq('completato', false)
+        .eq('promemoria_push', true)
+        .in('scadenza', checkDates)
+        .is('periodicita', null);
 
+    if (error) return res.status(500).json({ error: error.message });
+
+    // For each task, find which anticipo(i) fire today
+    const dateDue = [];
+    for (const t of (dateTasks || [])) {
+        const anticipi = (t.rem_anticipi || '1').split(',').map(Number);
+        const inviati  = (t.rem_inviati  || '').split(',').map(Number).filter(n => Number.isFinite(n) && n >= 0);
+        for (const anticipo of anticipi) {
+            if (inviati.includes(anticipo)) continue;
+            const [y, mo, dd] = t.scadenza.split('-').map(Number);
+            const remMs = Date.UTC(y, mo - 1, dd) - anticipo * 86400000;
+            const remDate = new Date(remMs).toISOString().slice(0, 10);
+            if (remDate !== date) continue;
+            const timeStr = (t.rem_ora || '09:00').substring(0, 5);
+            const [hh, mm] = timeStr.split(':').map(Number);
+            const mins = hh * 60 + mm;
+            if (mins < totalMins || mins >= windowEnd) continue;
+            dateDue.push({ task: t, anticipo, timeStr });
+        }
+    }
+
+    // ── 2. Weekly recurring tasks ─────────────────────────────────────────
+    const { data: weeklyTasks } = await sb.from('todo')
+        .select('*')
+        .eq('completato', false)
+        .eq('notificato', false)
+        .eq('promemoria_push', true)
+        .eq('periodicita', 'settimanale')
+        .is('scadenza', null);
+
+    const weeklyDue = (weeklyTasks || []).filter(t => {
+        if (!t.giorni_settimana) return false;
+        const days = t.giorni_settimana.split(',').map(Number);
+        if (!days.includes(dow)) return false;
+        const timeStr = (t.rem_ora || t.ora || '').substring(0, 5);
+        if (!timeStr) return false;
+        const [hh, mm] = timeStr.split(':').map(Number);
+        const mins = hh * 60 + mm;
+        return mins >= totalMins && mins < windowEnd;
+    });
+
+    // ── 3. Daily recurring tasks ──────────────────────────────────────────
+    const { data: dailyTasks } = await sb.from('todo')
+        .select('*')
+        .eq('completato', false)
+        .eq('notificato', false)
+        .eq('promemoria_push', true)
+        .eq('periodicita', 'giornaliera')
+        .is('scadenza', null);
+
+    const dailyDue = (dailyTasks || []).filter(t => {
+        const timeStr = (t.rem_ora || t.ora || '').substring(0, 5);
+        if (!timeStr) return false;
+        const [hh, mm] = timeStr.split(':').map(Number);
+        const mins = hh * 60 + mm;
+        return mins >= totalMins && mins < windowEnd;
+    });
+
+    const totalDue = dateDue.length + weeklyDue.length + dailyDue.length;
+    if (!totalDue) return res.json({ sent: 0 });
+
+    async function notifica(task, timeStr) {
+        let sent = 0;
+        const payload = JSON.stringify({
+            title: '⏰ ' + task.titolo,
+            body: task.note || `Promemoria alle ${timeStr}`,
+            url: '/todo.html'
+        });
         if (task.promemoria_push) {
             for (const sub of (subsByEmail[task.email_utente] || [])) {
-                try {
-                    await webpush.sendNotification(
-                        { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-                        JSON.stringify({
-                            title: '⏰ ' + task.titolo,
-                            body: task.note || `Promemoria alle ${timeStr}`,
-                            url: '/todo.html'
-                        })
-                    );
-                    sent++;
-                } catch (e) {
-                    if (e.statusCode === 410 || e.statusCode === 404) {
-                        await sb.from('push_subscriptions').delete().eq('endpoint', sub.endpoint);
-                    }
-                }
+                if (await sendPush(sub, payload)) sent++;
             }
         }
-
         if (task.promemoria_email && RESEND_KEY) {
             try {
                 await fetch('https://api.resend.com/emails', {
                     method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${RESEND_KEY}`,
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Authorization': `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         from: 'Listando <noreply@listando.it>',
                         to: task.email_utente,
@@ -107,19 +177,37 @@ module.exports = async function handler(req, res) {
                             <p style="color:#666;margin:0 0 8px">Promemoria per le <strong>${timeStr}</strong></p>
                             <h2 style="margin:0 0 12px;color:#111">${task.titolo}</h2>
                             ${task.note ? `<p style="color:#555;margin:0 0 20px">${task.note}</p>` : ''}
-                            <a href="https://listando.it/todo.html"
-                               style="background:#30b0c7;color:white;padding:12px 24px;border-radius:10px;text-decoration:none;font-weight:700;display:inline-block">
-                               Apri Listando
-                            </a>
+                            <a href="https://listando.it/todo.html" style="background:#30b0c7;color:white;padding:12px 24px;border-radius:10px;text-decoration:none;font-weight:700;display:inline-block">Apri Listando</a>
                         </div>`
                     })
                 });
                 sent++;
             } catch (e) {}
         }
+        return sent;
+    }
 
+    let sent = 0;
+
+    // One-off tasks — track per-anticipo with rem_inviati
+    for (const { task, anticipo, timeStr } of dateDue) {
+        sent += await notifica(task, timeStr);
+        const inviati = (task.rem_inviati || '').split(',').map(Number).filter(n => Number.isFinite(n) && n >= 0);
+        inviati.push(anticipo);
+        const anticipi = (task.rem_anticipi || '1').split(',').map(Number);
+        const allSent = anticipi.every(a => inviati.includes(a));
+        await sb.from('todo').update({
+            rem_inviati: inviati.join(','),
+            notificato: allSent
+        }).eq('id', task.id);
+    }
+
+    // Recurring tasks — keep notificato flag
+    for (const task of [...weeklyDue, ...dailyDue]) {
+        const timeStr = (task.rem_ora || task.ora || '09:00').substring(0, 5);
+        sent += await notifica(task, timeStr);
         await sb.from('todo').update({ notificato: true }).eq('id', task.id);
     }
 
-    return res.json({ sent, due: due.length });
+    return res.json({ sent, due: totalDue, dow, totalMins });
 };

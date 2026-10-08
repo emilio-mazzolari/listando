@@ -12,7 +12,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
-            color-scheme: light;
+            color-scheme: light dark;
             --green: #0fba8d;
             --blue: #3384d4;
             --yellow: #feb310;
@@ -215,12 +215,32 @@
         @media (min-width: 1024px) {
             #pushBanner { left: auto; right: 24px; width: 340px; bottom: 24px; }
         }
+
+        @media (prefers-color-scheme: dark) {
+            :root { --dark: #e8e8ec; --bg: #1c1c1e; --grey: #48484a; }
+            body { background: var(--bg); }
+            .btn-big { background: #2c2c2e; color: var(--dark); }
+            .btn-big:active { background: #3a3a3c; }
+            .tab-bar { background: #2c2c2e !important; border-color: var(--grey); }
+            .edit-bar { background: #2c2c2e; border-color: var(--grey); }
+            .tab-item { color: var(--dark); }
+            .tab-active { color: var(--green); }
+            #searchTrigger { background: #2c2c2e; border-color: var(--grey); color: #888; }
+            #searchPanel { background: #2c2c2e; }
+            #searchInput { background: #1c1c1e; border-color: var(--grey); color: var(--dark); }
+            .search-result-item { background: #3a3a3c; color: var(--dark); }
+        }
     </style>
 </head>
 <body>
 
     <div class="app">
         <div class="app-title">LISTANDO</div>
+
+        <button id="searchTrigger" onclick="apriRicerca()" style="width:100%;margin-bottom:10px;padding:11px 16px;border-radius:16px;border:2px solid var(--grey);background:white;display:flex;align-items:center;gap:10px;cursor:pointer;font-family:inherit;color:#999;font-size:14px;font-weight:700;text-align:left">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            Cerca in Listando…
+        </button>
 
         <div class="menu-container" id="menuGrid">
             <a href="spesa.html" class="btn-big" style="border-color:#3384d4" data-id="spesa">
@@ -302,6 +322,11 @@
                 <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="#0ea5e9" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
                 <span>UTENZE</span>
             </a>
+
+            <a href="risparmi.html" class="btn-big" style="border-color:#c9a227" data-id="risparmi">
+                <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="#c9a227" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                <span>RISPARMI</span>
+            </a>
         </div>
     </div>
 
@@ -373,6 +398,20 @@
         </button>
     </div>
 
+    <!-- Global search overlay -->
+    <div id="searchOverlay" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.45)" onclick="if(event.target===this)chiudiRicerca()">
+        <div id="searchPanel" style="position:absolute;top:0;left:0;right:0;max-height:80vh;overflow-y:auto;background:white;border-radius:0 0 24px 24px;padding:max(14px,env(safe-area-inset-top,14px)) 16px 20px">
+            <div style="display:flex;gap:10px;margin-bottom:14px;align-items:center">
+                <input type="search" id="searchInput" placeholder="Cerca in Listando…"
+                       style="flex:1;padding:12px 16px;border-radius:14px;border:2.5px solid var(--grey);background:#f5f6f8;font-size:16px;font-family:inherit;outline:none;color:var(--dark)"
+                       oninput="cercaGlobale(this.value)"
+                       onkeydown="if(event.key==='Escape')chiudiRicerca()">
+                <button onclick="chiudiRicerca()" style="border:none;background:none;font-size:20px;cursor:pointer;padding:4px 6px;color:#888;flex-shrink:0;line-height:1">✕</button>
+            </div>
+            <div id="searchResults"></div>
+        </div>
+    </div>
+
     <!-- Push notification banner -->
     <div id="pushBanner" style="
         display:none; position:fixed; bottom:calc(76px + env(safe-area-inset-bottom, 0px)); left:16px; right:16px; z-index:99;
@@ -412,7 +451,7 @@
         }
 
         // ── Service Worker + Push ─────────────────────────────────────────
-        const VAPID_PUBLIC_KEY = 'BATe8jx7GOX6w2NUFoMQoGI6l8BRyJEVcsDlwf3IdIa5AEENkxpSCNuhkl4PgDxR_8f-AJerrYxENnH0mb-MTys';
+        const VAPID_PUBLIC_KEY = 'BIyJ8XdT5OaVM9uGh9rgjqMzBNd9q2haLd4k_Ugq7ZvUgZrzmOFmRb8-E0-_vUGHZ1_cGxIz84hakLZJPWgxFQM';
 
         function urlBase64ToUint8Array(b64) {
             const pad = '='.repeat((4 - b64.length % 4) % 4);
@@ -554,4 +593,58 @@
             chosenClass: 'sortable-chosen',
             disabled: true,
         });
+
+        // ── Ricerca globale ───────────────────────────────────────────────
+        let _searchTimer = null;
+
+        function apriRicerca() {
+            document.getElementById('searchOverlay').style.display = 'block';
+            setTimeout(() => document.getElementById('searchInput').focus(), 60);
+        }
+
+        function chiudiRicerca() {
+            document.getElementById('searchOverlay').style.display = 'none';
+            document.getElementById('searchInput').value = '';
+            document.getElementById('searchResults').innerHTML = '';
+        }
+
+        async function cercaGlobale(q) {
+            clearTimeout(_searchTimer);
+            q = q.trim();
+            const el = document.getElementById('searchResults');
+            if (q.length < 2) { el.innerHTML = ''; return; }
+            el.innerHTML = '<div style="color:#999;font-size:13px;text-align:center;padding:20px">Ricerca…</div>';
+            _searchTimer = setTimeout(async () => {
+                const email = localStorage.getItem('userEmail');
+                if (!email) return;
+                const [r1, r2, r3, r4] = await Promise.all([
+                    supabaseClient.from('sv_viaggi').select('id,nome').eq('email_utente', email).ilike('nome', `%${q}%`).limit(6),
+                    supabaseClient.from('spesa_lista').select('id,nome').eq('email_utente', email).ilike('nome', `%${q}%`).limit(6),
+                    supabaseClient.from('todo').select('id,titolo').eq('email_utente', email).ilike('titolo', `%${q}%`).limit(6),
+                    supabaseClient.from('luoghi').select('id,nome').eq('email_utente', email).ilike('nome', `%${q}%`).limit(6),
+                ]);
+                const groups = [
+                    { emoji: '✈️', label: 'Viaggi',  items: r1.data || [], url: 'spese_viaggio.html', key: 'nome' },
+                    { emoji: '🛒', label: 'Spesa',   items: r2.data || [], url: 'spesa.html',         key: 'nome' },
+                    { emoji: '✓',  label: 'Da fare', items: r3.data || [], url: 'todo.html',          key: 'titolo' },
+                    { emoji: '📍', label: 'Luoghi',  items: r4.data || [], url: 'luoghi.html',        key: 'nome' },
+                ].filter(g => g.items.length > 0);
+
+                if (!groups.length) {
+                    el.innerHTML = `<div style="color:#999;font-size:13px;text-align:center;padding:28px 0">Nessun risultato per "<strong>${q}</strong>"</div>`;
+                    return;
+                }
+                el.innerHTML = groups.map(g => `
+                    <div style="margin-bottom:14px">
+                        <div style="font-size:11px;font-weight:900;color:#aaa;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">${g.emoji} ${g.label}</div>
+                        ${g.items.map(item => `
+                            <a href="${g.url}" class="search-result-item" style="display:flex;align-items:center;padding:11px 14px;border-radius:12px;background:#f5f6f8;margin-bottom:5px;text-decoration:none;gap:10px">
+                                <span style="flex:1;font-weight:700;font-size:14px;color:var(--dark)">${item[g.key]}</span>
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                            </a>
+                        `).join('')}
+                    </div>
+                `).join('');
+            }, 280);
+        }
     </script>

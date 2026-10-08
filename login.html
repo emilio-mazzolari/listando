@@ -12,9 +12,14 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
-            color-scheme: light;
+            color-scheme: light dark;
             --green: #0fba8d; --blue: #3384d4; --grey: #d8dddc;
             --dark: #1c1c1e; --bg: #fdfdfd;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root { --dark: #e8e8ec; --bg: #1c1c1e; --grey: #48484a; }
+            .card { background: #2c2c2e; border-color: var(--grey); }
+            input { background: #1c1c1e; color: var(--dark); border-color: var(--grey); }
         }
         html, body { overflow-x: hidden; max-width: 100%; margin: 0; }
         body {

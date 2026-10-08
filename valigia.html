@@ -416,7 +416,10 @@ async function patch(path, body) {
 async function del(path) {
     return fetch(`${URL}${path}`, { method: 'DELETE', headers: H });
 }
-function logout() { localStorage.clear(); location.href = 'login.html'; }
+function logout() {
+    ['userEmail', 'bioCredId', 'bioEmail', 'pushDismissed'].forEach(k => localStorage.removeItem(k));
+    location.href = 'login.html';
+}
 
 // ── View 1: Lista valigie ─────────────────────────────────────
 async function caricaValigie() {

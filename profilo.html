@@ -164,6 +164,27 @@
         /* Toast */
         .toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--dark); color: white; padding: 12px 20px; border-radius: 14px; font-weight: 700; font-size: 14px; opacity: 0; transition: all 0.25s; white-space: nowrap; z-index: 999; pointer-events: none; }
         .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        /* Feedback / bottom sheets */
+        .sheet-overlay { display:none; position:fixed; inset:0; z-index:200; background:rgba(0,0,0,0.5); align-items:flex-end; justify-content:center; }
+        .sheet-overlay.open { display:flex; }
+        .sheet-box { background:var(--white); border-radius:28px 28px 0 0; padding:20px 20px; padding-bottom:max(24px,env(safe-area-inset-bottom,24px)); width:100%; max-width:500px; max-height:85vh; overflow-y:auto; }
+        .sheet-handle { width:40px; height:4px; background:var(--grey); border-radius:4px; margin:0 auto 20px; }
+        .sheet-title { font-weight:900; font-size:17px; margin-bottom:16px; }
+        .ftipo-row { display:flex; gap:8px; margin-bottom:14px; }
+        .ftipo-btn { flex:1; padding:10px; border-radius:12px; border:2px solid var(--grey); background:var(--white); font-weight:800; font-size:13px; cursor:pointer; font-family:inherit; color:#888; transition:all 0.15s; }
+        .ftipo-btn.active { border-color:var(--accent); background:rgba(88,86,214,0.08); color:var(--accent); }
+        .feedback-ta { width:100%; border:2px solid var(--grey); border-radius:14px; padding:12px 14px; font-size:14px; font-family:inherit; resize:none; outline:none; transition:border 0.15s; line-height:1.5; color:var(--dark); background:var(--white); }
+        .feedback-ta:focus { border-color:var(--accent); }
+        .fb-item { padding:14px 0; border-bottom:1px solid var(--grey-light); }
+        .fb-item:last-child { border-bottom:none; }
+        .fb-item-meta { display:flex; align-items:center; gap:8px; margin-bottom:5px; flex-wrap:wrap; }
+        .fb-chip { font-size:10px; font-weight:900; padding:3px 8px; border-radius:6px; }
+        .fb-chip.suggerimento { background:#f0f9ff; color:#0ea5e9; }
+        .fb-chip.errore { background:#fff0f0; color:var(--red); }
+        .fb-from { font-size:11px; color:#888; font-weight:700; }
+        .fb-data { font-size:11px; color:#bbb; font-weight:600; margin-left:auto; }
+        .fb-text { font-size:13px; font-weight:600; color:#444; line-height:1.5; white-space:pre-wrap; }
     </style>
 </head>
 <body>
@@ -259,6 +280,33 @@
         </div>
     </div>
 
+    <!-- Supporto -->
+    <div class="settings-group">
+        <div class="group-label">Supporto</div>
+        <div class="group-card">
+            <div class="row" style="cursor:pointer" onclick="apriFeedback()">
+                <div class="row-icon" style="background:#f0f9ff">💬</div>
+                <div class="row-body">
+                    <div class="row-label">Invia feedback</div>
+                    <div class="row-sub">Suggerimenti o segnalazioni di errori</div>
+                </div>
+                <div class="row-right">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                </div>
+            </div>
+            <div id="rowAdminFeedback" class="row" style="display:none;cursor:pointer" onclick="apriAdminFeedback()">
+                <div class="row-icon" style="background:#fff8f0">📬</div>
+                <div class="row-body">
+                    <div class="row-label">Feedback ricevuti</div>
+                    <div class="row-sub" id="subFeedbackCount">—</div>
+                </div>
+                <div class="row-right">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Account -->
     <div class="settings-group">
         <div class="group-label">Account</div>
@@ -283,6 +331,29 @@
         <svg class="icon-tab" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         PROFILO
     </a>
+</div>
+
+<!-- Modal: Invia feedback -->
+<div class="sheet-overlay" id="sheetFeedback" onclick="if(event.target===this)chiudiFeedback()">
+    <div class="sheet-box">
+        <div class="sheet-handle"></div>
+        <div class="sheet-title">Invia feedback</div>
+        <div class="ftipo-row">
+            <button class="ftipo-btn active" id="btnTipoSugg" onclick="setTipoFeedback('suggerimento')">💡 Suggerimento</button>
+            <button class="ftipo-btn" id="btnTipoErr" onclick="setTipoFeedback('errore')">🐛 Segnalazione</button>
+        </div>
+        <textarea class="feedback-ta" id="feedbackTesto" rows="6" placeholder="Scrivi qui il tuo messaggio…"></textarea>
+        <button class="btn-salva" id="btnInviaFeedback" onclick="inviaFeedback()" style="margin-top:12px">INVIA</button>
+    </div>
+</div>
+
+<!-- Modal: Lista feedback (solo admin) -->
+<div class="sheet-overlay" id="sheetAdminFeedback" onclick="if(event.target===this)chiudiAdminFeedback()">
+    <div class="sheet-box">
+        <div class="sheet-handle"></div>
+        <div class="sheet-title">📬 Feedback ricevuti</div>
+        <div id="adminFeedbackList"><div style="text-align:center;color:#aaa;padding:20px">Caricamento…</div></div>
+    </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -574,6 +645,98 @@ function toast(msg) {
 }
 
 init();
+
+// ── Feedback ──────────────────────────────────────────────────────────
+const ADMIN_EMAIL = 'emilio.mazzolari.shop@gmail.com';
+let tipoFeedback = 'suggerimento';
+
+function setTipoFeedback(tipo) {
+    tipoFeedback = tipo;
+    document.getElementById('btnTipoSugg').classList.toggle('active', tipo === 'suggerimento');
+    document.getElementById('btnTipoErr').classList.toggle('active', tipo === 'errore');
+}
+
+function apriFeedback() {
+    tipoFeedback = 'suggerimento';
+    document.getElementById('btnTipoSugg').classList.add('active');
+    document.getElementById('btnTipoErr').classList.remove('active');
+    document.getElementById('feedbackTesto').value = '';
+    const btn = document.getElementById('btnInviaFeedback');
+    btn.disabled = false; btn.textContent = 'INVIA';
+    document.getElementById('sheetFeedback').classList.add('open');
+    setTimeout(() => document.getElementById('feedbackTesto').focus(), 300);
+}
+
+function chiudiFeedback() {
+    document.getElementById('sheetFeedback').classList.remove('open');
+}
+
+async function inviaFeedback() {
+    const testo = document.getElementById('feedbackTesto').value.trim();
+    if (!testo) { toast('Scrivi prima il tuo messaggio'); return; }
+    const btn = document.getElementById('btnInviaFeedback');
+    btn.disabled = true; btn.textContent = 'INVIO…';
+    try {
+        const res = await fetch('/api/feedback', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: userEmail, tipo: tipoFeedback, testo })
+        });
+        if (res.ok) {
+            chiudiFeedback();
+            toast('✓ Feedback inviato, grazie!');
+            if (userEmail === ADMIN_EMAIL) caricaContattoFeedback();
+        } else {
+            throw new Error();
+        }
+    } catch {
+        btn.disabled = false; btn.textContent = 'INVIA';
+        toast('Errore nell\'invio. Riprova.');
+    }
+}
+
+// ── Admin: lista feedback ─────────────────────────────────────────────
+async function caricaContattoFeedback() {
+    const res = await fetch(`${URL_S}/app_feedback?select=id`, { headers: _HR });
+    if (res.ok) {
+        const items = await res.json();
+        const n = Array.isArray(items) ? items.length : 0;
+        document.getElementById('subFeedbackCount').textContent = `${n} messaggio${n === 1 ? '' : 'i'} ricevuto${n === 1 ? '' : 'i'}`;
+    }
+}
+
+async function apriAdminFeedback() {
+    document.getElementById('sheetAdminFeedback').classList.add('open');
+    document.getElementById('adminFeedbackList').innerHTML = '<div style="text-align:center;color:#aaa;padding:20px">Caricamento…</div>';
+    const res = await fetch(`${URL_S}/app_feedback?order=created_at.desc`, { headers: _HR });
+    const items = res.ok ? await res.json() : [];
+    if (!items.length) {
+        document.getElementById('adminFeedbackList').innerHTML = '<div style="text-align:center;color:#aaa;padding:20px;font-weight:700">Nessun feedback ricevuto</div>';
+        return;
+    }
+    document.getElementById('adminFeedbackList').innerHTML = items.map(f => {
+        const d = new Date(f.created_at);
+        const data = d.toLocaleDateString('it-IT', { day:'2-digit', month:'2-digit', year:'2-digit' }) +
+                     ' ' + d.toLocaleTimeString('it-IT', { hour:'2-digit', minute:'2-digit' });
+        return `<div class="fb-item">
+            <div class="fb-item-meta">
+                <span class="fb-chip ${f.tipo}">${f.tipo === 'errore' ? '🐛 Errore' : '💡 Suggerimento'}</span>
+                <span class="fb-from">${f.email_utente}</span>
+                <span class="fb-data">${data}</span>
+            </div>
+            <div class="fb-text">${f.testo.replace(/</g,'&lt;')}</div>
+        </div>`;
+    }).join('');
+}
+
+function chiudiAdminFeedback() {
+    document.getElementById('sheetAdminFeedback').classList.remove('open');
+}
+
+if (userEmail === ADMIN_EMAIL) {
+    document.getElementById('rowAdminFeedback').style.display = '';
+    caricaContattoFeedback();
+}
 </script>
 </body>
 </html>

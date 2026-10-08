@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>Listando — Risparmi</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/logolistando.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+    color-scheme: light dark;
+    --green: #0fba8d; --blue: #3384d4; --purple: #5856d6; --teal: #30b0c7;
+    --orange: #ff9500; --red: #ff3b30; --yellow: #feb310;
+    --grey: #d8dddc; --grey-light: #f2f2f7;
+    --dark: #111; --bg: #f5f6f8; --white: #fff;
+    --shadow: 0 2px 10px rgba(0,0,0,0.06);
+}
+@media (prefers-color-scheme: dark) {
+    :root { --dark:#e8e8ec; --bg:#1c1c1e; --white:#2c2c2e; --grey:#48484a; --grey-light:#3a3a3c; --shadow:0 2px 10px rgba(0,0,0,0.3); }
+    .tab-bar-inner, .page-header { background:#2c2c2e !important; }
+    input,select,textarea { color-scheme:dark; background:var(--bg); color:var(--dark); border-color:var(--grey); }
+    .modal-box { background:var(--white); }
+}
+*{ box-sizing:border-box; }
+html,body{ overflow-x:hidden; max-width:100%; margin:0; }
+body{ font-family:'Segoe UI',system-ui,sans-serif; background:var(--bg); color:var(--dark); }
+
+.page-header{ position:sticky; top:0; z-index:100; background:var(--white); border-bottom:2px solid var(--grey-light); padding:14px 16px; padding-top:max(14px,env(safe-area-inset-top,14px)); display:flex; align-items:center; gap:10px; }
+.btn-back{ width:40px; height:40px; border-radius:12px; border:2.5px solid var(--grey); background:var(--white); display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; }
+.btn-back svg{ width:18px; height:18px; stroke:var(--dark); fill:none; stroke-width:2.5; }
+.header-title{ font-weight:900; font-size:18px; flex:1; }
+.btn-add-hdr{ width:40px; height:40px; border-radius:12px; border:none; background:var(--green); color:white; font-size:22px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+
+.tabs-wrap{ position:sticky; top:68px; z-index:90; background:var(--white); border-bottom:2px solid var(--grey-light); display:flex; overflow-x:auto; gap:0; scrollbar-width:none; }
+.tabs-wrap::-webkit-scrollbar{ display:none; }
+.tab-btn{ flex:1; min-width:80px; padding:12px 4px; border:none; background:transparent; font-weight:800; font-size:12px; cursor:pointer; color:#999; font-family:inherit; border-bottom:3px solid transparent; transition:all 0.2s; white-space:nowrap; }
+.tab-btn.active{ color:var(--green); border-bottom-color:var(--green); }
+
+.body-content{ padding:14px 16px 100px; max-width:700px; margin:0 auto; }
+
+/* ── Panoramica Hero ── */
+.pano-hero{ background:var(--white); border-radius:28px; padding:22px 20px 20px; margin-bottom:10px; box-shadow:var(--shadow); }
+.pano-lbl{ font-size:11px; font-weight:900; color:#aaa; text-transform:uppercase; letter-spacing:0.9px; margin-bottom:6px; }
+.pano-amount{ font-size:40px; font-weight:900; letter-spacing:-1.5px; line-height:1.05; }
+.pano-delta-row{ display:flex; align-items:center; gap:7px; margin-top:8px; flex-wrap:wrap; }
+.pano-badge{ font-size:12px; font-weight:900; padding:3px 10px; border-radius:20px; }
+.pano-badge.pos{ background:rgba(15,186,141,0.13); color:var(--green); }
+.pano-badge.neg{ background:rgba(255,59,48,0.1); color:var(--red); }
+.pano-badge.neutral{ background:var(--grey-light); color:#999; }
+.pano-badge-lbl{ font-size:12px; color:#aaa; font-weight:700; }
+.pano-int{ display:inline-flex; align-items:center; gap:5px; margin-top:10px; background:rgba(15,186,141,0.1); border-radius:20px; padding:5px 13px; }
+.pano-int span{ font-size:12px; font-weight:900; color:var(--green); }
+.pano-sep{ height:1px; background:var(--grey-light); margin:16px 0 14px; }
+.stack-bar{ height:10px; display:flex; border-radius:6px; overflow:hidden; gap:2px; margin-bottom:11px; }
+.stack-seg{ border-radius:4px; min-width:4px; transition:flex 0.4s; }
+.stack-legend{ display:flex; gap:14px; flex-wrap:wrap; }
+.stack-leg-item{ display:flex; align-items:center; gap:5px; }
+.stack-dot{ width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.stack-leg-label{ font-size:11px; font-weight:800; }
+.stack-leg-pct{ font-size:10px; color:#aaa; font-weight:700; margin-left:1px; }
+
+/* ── Panoramica Filter card ── */
+.pano-filter{ background:var(--white); border-radius:24px; padding:16px 20px 20px; margin-bottom:10px; box-shadow:var(--shadow); }
+
+/* Liquidità rows */
+.liq-item{ display:flex; align-items:center; gap:11px; padding:10px 0; border-bottom:1px solid var(--grey-light); }
+.liq-item:last-child{ border-bottom:none; padding-bottom:0; }
+.liq-dot{ width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+.liq-label{ font-size:13px; font-weight:800; flex:1; }
+.liq-right{ text-align:right; }
+.liq-amount{ font-size:15px; font-weight:900; display:block; }
+.liq-pct{ font-size:10px; color:#aaa; font-weight:700; }
+.liq-int{ font-size:10px; color:var(--green); font-weight:800; margin-top:2px; display:block; }
+
+/* Split grid (Inv/Conti) */
+.split-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.split-card{ background:var(--grey-light); border-radius:18px; padding:16px 14px; }
+.split-icon{ font-size:24px; margin-bottom:6px; }
+.split-lbl{ font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:0.6px; color:#999; margin-bottom:4px; }
+.split-val{ font-size:20px; font-weight:900; letter-spacing:-0.5px; }
+.split-sub{ font-size:11px; color:#aaa; font-weight:700; margin-top:5px; }
+.split-int{ font-size:11px; color:var(--green); font-weight:800; margin-top:3px; }
+
+/* Per prodotto / Per banca */
+.prow{ display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--grey-light); }
+.prow:last-child{ border-bottom:none; padding-bottom:0; }
+.prow-icon{ font-size:17px; width:24px; text-align:center; flex-shrink:0; }
+.prow-label{ font-size:13px; font-weight:800; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.prow-bar-wrap{ width:56px; flex-shrink:0; }
+.prow-track{ height:4px; background:var(--grey-light); border-radius:2px; overflow:hidden; }
+.prow-fill{ height:100%; border-radius:2px; }
+.prow-right{ text-align:right; flex-shrink:0; }
+.prow-val{ font-size:13px; font-weight:900; display:block; }
+.prow-pct{ font-size:10px; color:#aaa; font-weight:700; }
+
+.alert-strip{ background:#fff3e0; border:1.5px solid var(--orange); border-radius:14px; padding:10px 14px; margin-bottom:10px; display:flex; align-items:flex-start; gap:10px; }
+.alert-strip.red{ background:#fff0f0; border-color:var(--red); }
+.alert-strip-icon{ font-size:18px; flex-shrink:0; margin-top:1px; }
+.alert-strip-body{ flex:1; }
+.alert-strip-title{ font-weight:900; font-size:13px; }
+.alert-strip-sub{ font-size:12px; color:#888; margin-top:2px; font-weight:600; }
+
+/* ── Bank section ── */
+.bank-section{ margin-bottom:14px; }
+.bank-header{ display:flex; align-items:center; gap:10px; padding:10px 0 8px; cursor:pointer; }
+.bank-name{ font-weight:900; font-size:15px; flex:1; }
+.bank-total{ font-size:14px; font-weight:800; color:var(--dark); }
+.bank-chevron{ width:18px; height:18px; stroke:var(--grey); fill:none; stroke-width:2.5; transition:transform 0.2s; }
+.bank-chevron.open{ transform:rotate(90deg); }
+
+.instrument-card{ background:var(--white); border-radius:18px; padding:14px 16px; margin-bottom:8px; box-shadow:var(--shadow); display:flex; align-items:flex-start; gap:12px; cursor:pointer; transition:transform 0.15s; }
+.instrument-card:active{ transform:scale(0.98); }
+.instr-icon{ width:40px; height:40px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; }
+.instr-body{ flex:1; min-width:0; }
+.instr-tipo{ font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:0.6px; margin-bottom:3px; }
+.instr-capitale{ font-size:18px; font-weight:900; }
+.instr-meta{ display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+.meta-chip{ font-size:11px; font-weight:800; padding:3px 8px; border-radius:20px; }
+.meta-chip.tasso{ background:#e8f5e9; color:#2e7d32; }
+.meta-chip.scadenza{ background:#eef2ff; color:var(--purple); }
+.meta-chip.warning{ background:#fff3e0; color:var(--orange); }
+.meta-chip.expired{ background:#fff0f0; color:var(--red); }
+.meta-chip.interest{ background:#e8f8f3; color:var(--green); }
+.instr-actions{ display:flex; flex-direction:column; gap:6px; align-items:flex-end; }
+.btn-instr-del{ width:28px; height:28px; border-radius:8px; border:1.5px solid var(--grey); background:var(--white); cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--red); font-size:14px; }
+.btn-instr-edit{ width:28px; height:28px; border-radius:8px; border:1.5px solid var(--grey); background:var(--white); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:13px; }
+
+/* ── Chart ── */
+.chart-wrap{ background:var(--white); border-radius:20px; padding:18px 16px; margin-bottom:14px; box-shadow:var(--shadow); }
+.chart-title{ font-weight:900; font-size:14px; margin-bottom:14px; }
+.chart-svg{ width:100%; overflow:visible; }
+
+/* ── Snapshot list ── */
+.snapshot-row{ background:var(--white); border-radius:14px; padding:14px 16px; margin-bottom:8px; display:flex; align-items:center; gap:12px; box-shadow:var(--shadow); }
+.snap-date{ font-weight:900; font-size:13px; min-width:80px; }
+.snap-body{ flex:1; }
+.snap-total{ font-size:17px; font-weight:900; }
+.snap-sub{ font-size:11px; color:#999; font-weight:700; margin-top:2px; }
+.snap-delta{ font-size:12px; font-weight:800; }
+.snap-del{ width:28px; height:28px; border-radius:8px; border:1.5px solid var(--grey); background:var(--white); cursor:pointer; color:var(--red); font-size:14px; display:flex; align-items:center; justify-content:center; }
+
+/* ── Documenti ── */
+.doc-card{ background:var(--white); border-radius:14px; padding:14px 16px; margin-bottom:8px; display:flex; align-items:center; gap:12px; box-shadow:var(--shadow); }
+.doc-icon{ font-size:24px; flex-shrink:0; }
+.doc-body{ flex:1; min-width:0; }
+.doc-nome{ font-weight:900; font-size:14px; }
+.doc-meta{ font-size:11px; color:#999; font-weight:700; margin-top:2px; }
+.doc-del{ width:28px; height:28px; border-radius:8px; border:1.5px solid var(--grey); background:var(--white); cursor:pointer; color:var(--red); font-size:14px; display:flex; align-items:center; justify-content:center; }
+
+/* ── Modal ── */
+.modal-overlay{ display:none; position:fixed; inset:0; z-index:1100; background:rgba(0,0,0,0.5); align-items:flex-end; justify-content:center; }
+.modal-overlay.open{ display:flex; }
+.modal-box{ background:var(--white); border-radius:28px 28px 0 0; padding:24px 20px; padding-bottom:max(24px,env(safe-area-inset-bottom,24px)); width:100%; max-width:520px; max-height:92vh; overflow-y:auto; }
+.modal-title{ font-weight:900; font-size:18px; margin-bottom:18px; }
+.form-label{ font-size:12px; font-weight:900; color:#999; text-transform:uppercase; letter-spacing:0.6px; margin-bottom:6px; display:block; }
+.form-input{ width:100%; padding:13px 14px; border-radius:14px; border:2.5px solid var(--grey); font-size:15px; font-family:inherit; outline:none; margin-bottom:12px; background:var(--white); color:var(--dark); }
+.form-input:focus{ border-color:var(--green); }
+.form-row{ display:flex; gap:10px; }
+.form-row .form-input{ margin-bottom:0; }
+.btn-modal-primary{ width:100%; padding:16px; border-radius:18px; border:none; background:var(--green); color:white; font-weight:900; font-size:16px; cursor:pointer; font-family:inherit; margin-top:6px; }
+.btn-modal-secondary{ width:100%; padding:14px; border-radius:18px; border:2px solid var(--grey); background:transparent; color:var(--dark); font-weight:800; font-size:15px; cursor:pointer; font-family:inherit; margin-top:8px; }
+.section-sep{ height:1px; background:var(--grey-light); margin:14px 0; }
+.tipo-grid{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px; }
+.tipo-btn{ padding:10px 8px; border-radius:12px; border:2px solid var(--grey); background:var(--white); font-size:12px; font-weight:800; cursor:pointer; font-family:inherit; color:var(--dark); text-align:center; transition:all 0.15s; }
+.tipo-btn.active{ border-color:var(--green); background:rgba(15,186,141,0.08); color:var(--green); }
+
+/* ── Panoramica filtri ── */
+.filtro-row{ display:flex; gap:6px; flex-wrap:nowrap; overflow-x:auto; margin:14px -4px 2px; padding:0 4px 2px; scrollbar-width:none; }
+.filtro-row::-webkit-scrollbar{ display:none; }
+.filtro-chip{ flex-shrink:0; padding:6px 13px; border-radius:20px; border:2px solid var(--grey); background:var(--white); font-size:12px; font-weight:800; cursor:pointer; font-family:inherit; color:#999; transition:all 0.15s; white-space:nowrap; }
+.filtro-chip.active{ border-color:var(--green); background:rgba(15,186,141,0.09); color:var(--green); }
+
+
+.empty-state{ text-align:center; padding:40px 20px; }
+.empty-state-icon{ font-size:48px; margin-bottom:12px; }
+.empty-state-title{ font-weight:900; font-size:18px; margin-bottom:6px; }
+.empty-state-sub{ font-size:13px; color:#999; font-weight:600; }
+
+.toast{ position:fixed; bottom:100px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--dark); color:white; padding:11px 20px; border-radius:14px; font-weight:700; font-size:13px; opacity:0; transition:all 0.25s; white-space:nowrap; z-index:9999; pointer-events:none; }
+.toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+@media (min-width:600px){ .modal-box{ border-radius:28px; margin:20px; max-width:500px; } .modal-overlay{ align-items:center; } }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+    <button class="btn-back" onclick="history.back()">
+        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div class="header-title">Risparmi</div>
+    <button class="btn-add-hdr" onclick="apriModalPosizione()" title="Aggiungi posizione">+</button>
+</div>
+
+<div class="tabs-wrap">
+    <button class="tab-btn active" id="tab0" onclick="switchTab(0)">Panoramica</button>
+    <button class="tab-btn" id="tab1" onclick="switchTab(1)">Conti</button>
+    <button class="tab-btn" id="tab2" onclick="switchTab(2)">Investimenti</button>
+    <button class="tab-btn" id="tab3" onclick="switchTab(3)">Storico</button>
+    <button class="tab-btn" id="tab4" onclick="switchTab(4)">Documenti</button>
+</div>
+
+<div class="body-content">
+    <div id="tabContent0"></div>
+    <div id="tabContent1" style="display:none"></div>
+    <div id="tabContent2" style="display:none"></div>
+    <div id="tabContent3" style="display:none"></div>
+    <div id="tabContent4" style="display:none"></div>
+</div>
+
+<!-- Modal: Aggiungi/Modifica posizione -->
+<div class="modal-overlay" id="modalPosizione">
+<div class="modal-box">
+    <div class="modal-title" id="modalPosizioneTitle">Nuova posizione</div>
+    <input type="hidden" id="pId">
+    <div id="investiDaCCBanner" style="display:none"></div>
+
+    <label class="form-label">Banca / Istituto</label>
+    <input class="form-input" id="pBanca" placeholder="Scrivi nome ente (es. ING, FINECO…)" list="bancaList" autocomplete="off">
+    <div style="font-size:11px;color:#aaa;margin-top:4px;margin-bottom:8px">Scegli dalla lista o scrivi un nuovo ente</div>
+    <datalist id="bancaList"></datalist>
+
+    <label class="form-label">Tipologia</label>
+    <div class="tipo-grid" id="tipoGrid"></div>
+
+    <div id="sectionVincolo" style="display:none">
+        <label class="form-label">Vincolo</label>
+        <div style="display:flex;gap:8px;margin-bottom:12px">
+            <button type="button" id="btnVincolatoSi" class="tipo-btn" onclick="setVincolo(true)" style="flex:1">Vincolato</button>
+            <button type="button" id="btnVincolatoNo" class="tipo-btn active" onclick="setVincolo(false)" style="flex:1">Svincolabile</button>
+        </div>
+    </div>
+
+    <label class="form-label">Capitale (€)</label>
+    <input class="form-input" id="pCapitale" type="number" min="0" step="0.01" placeholder="0.00">
+
+    <label class="form-label">Tasso lordo (%)</label>
+    <input class="form-input" id="pTasso" type="number" min="0" step="0.001" placeholder="es. 2.75">
+
+    <label class="form-label" id="labelPeriodo">Periodo</label>
+    <div class="form-row" style="margin-bottom:12px">
+        <input class="form-input" id="pDataInizio" type="date" style="flex:1">
+        <span id="pDataFineWrap" style="display:flex;align-items:center;gap:0;flex:1">
+            <span style="align-self:center;color:#999;font-weight:800;padding:0 4px">→</span>
+            <input class="form-input" id="pDataFine" type="date" style="flex:1;margin-bottom:0">
+        </span>
+    </div>
+
+    <label class="form-label">Note</label>
+    <input class="form-input" id="pNote" placeholder="Note aggiuntive…">
+
+    <button class="btn-modal-primary" onclick="salvaPosizione()">Salva</button>
+    <button class="btn-modal-secondary" onclick="chiudiModalPosizione()">Annulla</button>
+</div>
+</div>
+
+<!-- Modal: Nuovo snapshot -->
+<div class="modal-overlay" id="modalSnapshot">
+<div class="modal-box">
+    <div class="modal-title">Salva snapshot</div>
+    <label class="form-label">Data</label>
+    <input class="form-input" id="sData" type="date">
+    <label class="form-label">Totale (€)</label>
+    <input class="form-input" id="sTotale" type="number" step="0.01" placeholder="Calcolato automaticamente">
+    <label class="form-label">Breakdown</label>
+    <div class="form-row" style="margin-bottom:12px">
+        <div style="flex:1"><label class="form-label">Vincolato</label><input class="form-input" id="sVincolato" type="number" step="0.01" placeholder="€"></div>
+        <div style="flex:1"><label class="form-label">Svincolabile</label><input class="form-input" id="sSvincolabile" type="number" step="0.01" placeholder="€"></div>
+        <div style="flex:1"><label class="form-label">Corrente</label><input class="form-input" id="sCorrente" type="number" step="0.01" placeholder="€"></div>
+    </div>
+    <label class="form-label">Note</label>
+    <input class="form-input" id="sNote" placeholder="Es. dopo rinnovo Meglio Banca…">
+    <button class="btn-modal-primary" onclick="salvaSnapshot()">Salva snapshot</button>
+    <button class="btn-modal-secondary" onclick="chiudiModal('modalSnapshot')">Annulla</button>
+</div>
+</div>
+
+<!-- Modal: Documento -->
+<div class="modal-overlay" id="modalDoc">
+<div class="modal-box">
+    <div class="modal-title">Aggiungi documento</div>
+    <label class="form-label">Nome documento</label>
+    <input class="form-input" id="dNome" placeholder="es. Contratto deposito Meglio Banca…">
+    <label class="form-label">Tipo</label>
+    <select class="form-input" id="dTipo">
+        <option value="contratto">Contratto</option>
+        <option value="estratto">Estratto conto</option>
+        <option value="ricevuta">Ricevuta / Conferma</option>
+        <option value="certificato">Certificato interessi</option>
+        <option value="altro">Altro</option>
+    </select>
+    <label class="form-label">Conto / Deposito associato</label>
+    <select class="form-input" id="dPosizione"></select>
+    <label class="form-label">Data documento</label>
+    <input class="form-input" id="dData" type="date">
+    <label class="form-label">Link o riferimento (opzionale)</label>
+    <input class="form-input" id="dUrl" type="url" placeholder="https://… o percorso file">
+    <label class="form-label">Note</label>
+    <input class="form-input" id="dNote" placeholder="Note…">
+    <button class="btn-modal-primary" onclick="salvaDoc()">Salva</button>
+    <button class="btn-modal-secondary" onclick="chiudiModal('modalDoc')">Annulla</button>
+</div>
+</div>
+
+<!-- Modal: Trasferisci al C/C -->
+<div class="modal-overlay" id="modalTrasferisci">
+<div class="modal-box">
+    <div class="modal-title">Investimento scaduto</div>
+    <div id="trasferisciBody"></div>
+    <button class="btn-modal-primary" onclick="confermaTrasferimenToCC()">Trasferisci al C/C</button>
+    <button class="btn-modal-secondary" onclick="chiudiModal('modalTrasferisci')">Ignora per ora</button>
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SB_URL = 'https://eejdpophfxsrqdvsucye.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlamRwb3BoZnhzcnFkdnN1Y3llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2NTMzMDQsImV4cCI6MjA5MzIyOTMwNH0.mpxbwlJyIdZgqKIdutHbLd85JR1P11yiglbYeApi17k';
+const sb = supabase.createClient(SB_URL, SB_KEY);
+
+const userEmail = localStorage.getItem('userEmail');
+if (!userEmail) location.href = 'login.html';
+
+// ── Tipo definitions ────────────────────────────────────────────────
+const TIPI = [
+    { id:'Deposito vincolato',     icon:'', color:'#5856d6', bg:'rgba(88,86,214,0.1)',  cat:'vincolato',    label:'Vincolato'                  },
+    { id:'Deposito svincolabile',  icon:'', color:'#30b0c7', bg:'rgba(48,176,199,0.1)', cat:'svincolabile', label:'Svincolabile'                },
+    { id:'Salvadanaio remunerato', icon:'', color:'#0fba8d', bg:'rgba(15,186,141,0.1)', cat:'svincolabile', label:'Salvadanaio', vincoloToggle:true },
+    { id:'Conto corrente',         icon:'', color:'#8e8e93', bg:'rgba(142,142,147,0.1)',cat:'corrente',     label:'C/C'                        },
+    { id:'Libretto risparmio',     icon:'', color:'#3384d4', bg:'rgba(51,132,212,0.1)', cat:'svincolabile', label:'Libretto',   vincoloToggle:true },
+    { id:'Progetti',               icon:'', color:'#ff9500', bg:'rgba(255,149,0,0.1)',  cat:'svincolabile', label:'Progetti',   vincoloToggle:true },
+];
+function getCat(p) {
+    const t = TIPO_MAP[p.tipologia];
+    if (!t) return 'corrente';
+    if (t.vincoloToggle) return p.vincolato ? 'vincolato' : 'svincolabile';
+    return t.cat;
+}
+const TIPO_MAP = {};
+TIPI.forEach(t => TIPO_MAP[t.id] = t);
+
+const CONTI_TIPI = ['Conto corrente'];
+
+// ── State ───────────────────────────────────────────────────────────
+let posizioni = [], snapshots = [], documenti = [];
+let tipoCorrente = 'Deposito vincolato';
+let vincoloCorrente = false;
+let tabCorrente = 0;
+let panoramicaFiltro = 'categoria';
+
+// ── Init ─────────────────────────────────────────────────────────────
+async function init() {
+    await Promise.all([loadPosizioni(), loadSnapshots(), loadDocumenti()]);
+    renderTab(0);
+}
+
+async function loadPosizioni() {
+    const { data } = await sb.from('sv_risparmi').select('*').eq('email_utente', userEmail).eq('attivo', true).order('ordine');
+    posizioni = data || [];
+}
+async function loadSnapshots() {
+    const { data } = await sb.from('sv_risparmi_snapshot').select('*').eq('email_utente', userEmail).order('data_snapshot', { ascending: true });
+    snapshots = data || [];
+}
+async function loadDocumenti() {
+    const { data } = await sb.from('sv_risparmi_doc').select('*').eq('email_utente', userEmail).order('created_at', { ascending: false });
+    documenti = data || [];
+}
+
+// ── Tab switching ───────────────────────────────────────────────────
+function switchTab(i) {
+    for (let j = 0; j < 5; j++) {
+        document.getElementById('tab' + j).classList.toggle('active', j === i);
+        document.getElementById('tabContent' + j).style.display = j === i ? '' : 'none';
+    }
+    tabCorrente = i;
+    renderTab(i);
+}
+
+function renderTab(i) {
+    if (i === 0) renderPanoramica();
+    else if (i === 1) renderConti();
+    else if (i === 2) renderInvestimenti();
+    else if (i === 3) renderStorico();
+    else if (i === 4) renderDocumenti();
+}
+
+// ── Helpers ─────────────────────────────────────────────────────────
+function fmtNum(v, dec) {
+    const n = Math.abs(Number(v)).toFixed(dec);
+    const [int, fraction] = n.split('.');
+    const intFmt = int.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    return (Number(v) < 0 ? '-' : '') + intFmt + ',' + (fraction || '00');
+}
+function eur(v) {
+    if (v == null || isNaN(v)) return '—';
+    return '€ ' + fmtNum(v, 2);
+}
+function eurK(v) {
+    if (!v) return '—';
+    if (Math.abs(v) >= 1000) return '€ ' + fmtNum(v / 1000, 1) + 'K';
+    return eur(v);
+}
+function fmtDate(d) {
+    if (!d) return null;
+    const [y, m, dd] = d.split('-');
+    return dd + '/' + m + '/' + y.slice(2);
+}
+function daysUntil(d) {
+    if (!d) return null;
+    const today = new Date(); today.setHours(0,0,0,0);
+    const end = new Date(d); end.setHours(0,0,0,0);
+    return Math.round((end - today) / 86400000);
+}
+function calcInterestNet(p) {
+    if (!p.tasso_lordo || p.tasso_lordo <= 0) return 0;
+    let giorni;
+    if (p.data_inizio && p.data_fine) {
+        giorni = Math.round((new Date(p.data_fine) - new Date(p.data_inizio)) / 86400000);
+    } else {
+        giorni = 365;
+    }
+    return p.capitale * p.tasso_lordo * (giorni / 365) * 0.74;
+}
+function getTotalByCategory(cat) {
+    return posizioni.filter(p => getCat(p) === cat).reduce((s, p) => s + (p.capitale || 0), 0);
+}
+function getTotal() { return posizioni.reduce((s, p) => s + (p.capitale || 0), 0); }
+function getTotalInterests() { return posizioni.reduce((s, p) => s + calcInterestNet(p), 0); }
+
+function expiryChip(p) {
+    const days = daysUntil(p.data_fine);
+    if (days === null) return '';
+    if (days < 0) return `<span class="meta-chip expired">Scaduto ${fmtDate(p.data_fine)}</span>`;
+    if (days <= 14) return `<span class="meta-chip expired">Scade fra ${days}gg</span>`;
+    if (days <= 45) return `<span class="meta-chip warning">Scade ${fmtDate(p.data_fine)} (${days}gg)</span>`;
+    return `<span class="meta-chip scadenza">${fmtDate(p.data_inizio)} → ${fmtDate(p.data_fine)}</span>`;
+}
+
+// ── Panoramica ───────────────────────────────────────────────────────
+function cambiaPanoramicaFiltro(f) { panoramicaFiltro = f; renderPanoramica(); }
+
+function renderBreakdownFiltro(totale) {
+    const p100 = v => totale > 0 ? ((v / totale) * 100).toFixed(1) : 0;
+    const pI = v => totale > 0 ? Math.round((v / totale) * 100) : 0;
+
+    const prow = (icon, label, color, val, sub) => `
+        <div class="prow">
+            <span class="prow-label">${label}</span>
+            <div class="prow-bar-wrap"><div class="prow-track"><div class="prow-fill" style="width:${pI(val)}%;background:${color}"></div></div></div>
+            <div class="prow-right">
+                <span class="prow-val">${eurK(val)}</span>
+                <span class="prow-pct">${p100(val)}%${sub ? ' · ' + sub : ''}</span>
+            </div>
+        </div>`;
+
+    if (panoramicaFiltro === 'categoria') {
+        const vincolato = getTotalByCategory('vincolato');
+        const svincolabile = getTotalByCategory('svincolabile');
+        const corrente = getTotalByCategory('corrente');
+        const intV = posizioni.filter(p => (TIPO_MAP[p.tipologia]?.cat||'corrente')==='vincolato').reduce((s,p)=>s+calcInterestNet(p),0);
+        const intS = posizioni.filter(p => (TIPO_MAP[p.tipologia]?.cat||'corrente')==='svincolabile').reduce((s,p)=>s+calcInterestNet(p),0);
+        const liqItem = (dot, label, color, val, intVal) => `
+            <div class="liq-item">
+                <div class="liq-dot" style="background:${color}"></div>
+                <span class="liq-label">${label}</span>
+                <div class="liq-right">
+                    <span class="liq-amount" style="color:${color}">${eurK(val)}</span>
+                    <span class="liq-pct">${p100(val)}%</span>
+                    ${intVal > 0 ? `<span class="liq-int">${eurK(intVal)}/anno</span>` : ''}
+                </div>
+            </div>`;
+        return liqItem('', 'Vincolato', '#5856d6', vincolato, intV)
+             + liqItem('', 'Svincolabile', '#30b0c7', svincolabile, intS)
+             + liqItem('', 'Conto corrente', '#8e8e93', corrente, 0);
+    }
+
+    if (panoramicaFiltro === 'tipo') {
+        const inv = posizioni.filter(p => !CONTI_TIPI.includes(p.tipologia));
+        const con = posizioni.filter(p => CONTI_TIPI.includes(p.tipologia));
+        const totInv = inv.reduce((s,p)=>s+(p.capitale||0),0);
+        const totCon = con.reduce((s,p)=>s+(p.capitale||0),0);
+        const intInv = inv.reduce((s,p)=>s+calcInterestNet(p),0);
+        const card = (lbl, color, val, n, intVal) => `
+            <div class="split-card">
+                <div class="split-lbl">${lbl}</div>
+                <div class="split-val" style="color:${color}">${eurK(val)}</div>
+                <div class="split-sub">${p100(val)}% del tot. · ${n} posizioni</div>
+                ${intVal > 0 ? `<div class="split-int">${eurK(intVal)}/anno netti</div>` : ''}
+            </div>`;
+        return `<div class="split-grid">
+            ${card('Investimenti','var(--green)',totInv,inv.length,intInv)}
+            ${card('Conti','#3384d4',totCon,con.length,0)}
+        </div>`;
+    }
+
+    if (panoramicaFiltro === 'prodotto') {
+        const byTipo = {};
+        posizioni.forEach(p => { byTipo[p.tipologia] = (byTipo[p.tipologia]||0) + (p.capitale||0); });
+        return Object.entries(byTipo).sort((a,b)=>b[1]-a[1]).map(([tipo, val]) => {
+            const t = TIPO_MAP[tipo] || { icon:'', color:'#999', id: tipo };
+            return prow(t.icon, tipo, t.color, val, '');
+        }).join('');
+    }
+
+    if (panoramicaFiltro === 'banca') {
+        const byBanca = {};
+        const countBanca = {};
+        posizioni.forEach(p => {
+            byBanca[p.banca] = (byBanca[p.banca]||0) + (p.capitale||0);
+            countBanca[p.banca] = (countBanca[p.banca]||0) + 1;
+        });
+        return Object.entries(byBanca).sort((a,b)=>b[1]-a[1]).map(([banca, val]) =>
+            prow('', banca, '#ff9500', val, countBanca[banca] + ' pos.')
+        ).join('');
+    }
+    return '';
+}
+
+function renderPanoramica() {
+    const el = document.getElementById('tabContent0');
+    const totale = getTotal();
+    const vincolato = getTotalByCategory('vincolato');
+    const svincolabile = getTotalByCategory('svincolabile');
+    const corrente = getTotalByCategory('corrente');
+    const interessi = getTotalInterests();
+    const pct = v => totale > 0 ? ((v / totale) * 100).toFixed(1) : 0;
+
+    // Delta badge
+    let deltaBadge = '', deltaLbl = '';
+    if (snapshots.length >= 1) {
+        const ref = snapshots[snapshots.length - 1];
+        const delta = totale - ref.totale;
+        const refPct = ref.totale ? ((delta / ref.totale) * 100).toFixed(1) : 0;
+        const sign = delta >= 0 ? '+' : '';
+        const cls = delta >= 0 ? 'pos' : 'neg';
+        deltaBadge = `<span class="pano-badge ${cls}">${sign}${eur(delta)}</span>`;
+        deltaLbl = `<span class="pano-badge-lbl">${sign}${refPct}% dall'ultimo snapshot</span>`;
+    }
+
+    // Growth since inception
+    let growthBadge = '', growthLbl = '';
+    if (snapshots.length > 0) {
+        const first = snapshots[0];
+        const g = totale - first.totale;
+        const gPct = first.totale ? ((g / first.totale) * 100).toFixed(1) : 0;
+        const sign = g >= 0 ? '+' : '';
+        growthBadge = `<span class="pano-badge ${g>=0?'pos':'neg'}">${sign}${gPct}%</span>`;
+        growthLbl = `<span class="pano-badge-lbl">da ${fmtDate(first.data_snapshot)}</span>`;
+    }
+
+    // Stacked bar
+    const stackBar = totale > 0 ? `
+        <div class="stack-bar" style="margin-top:18px">
+            <div class="stack-seg" style="flex:${vincolato||0.001};background:#5856d6"></div>
+            <div class="stack-seg" style="flex:${svincolabile||0.001};background:#30b0c7"></div>
+            <div class="stack-seg" style="flex:${corrente||0.001};background:#8e8e93"></div>
+        </div>
+        <div class="stack-legend">
+            <div class="stack-leg-item">
+                <div class="stack-dot" style="background:#5856d6"></div>
+                <span class="stack-leg-label" style="color:#5856d6">Vincolato</span>
+                <span class="stack-leg-pct">${pct(vincolato)}%</span>
+            </div>
+            <div class="stack-leg-item">
+                <div class="stack-dot" style="background:#30b0c7"></div>
+                <span class="stack-leg-label" style="color:#30b0c7">Svincolabile</span>
+                <span class="stack-leg-pct">${pct(svincolabile)}%</span>
+            </div>
+            <div class="stack-leg-item">
+                <div class="stack-dot" style="background:#8e8e93"></div>
+                <span class="stack-leg-label" style="color:#8e8e93">Corrente</span>
+                <span class="stack-leg-pct">${pct(corrente)}%</span>
+            </div>
+        </div>` : '';
+
+    // Sparkline
+    const sparkHtml = snapshots.length >= 2
+        ? `<div style="margin-top:18px">${renderSparkline(snapshots.slice(-8))}</div>` : '';
+
+    // Alerts (scaduti + prossimi 45gg)
+    const expiring = posizioni
+        .filter(p => { const d = daysUntil(p.data_fine); return d !== null && d <= 45; })
+        .sort((a, b) => daysUntil(a.data_fine) - daysUntil(b.data_fine));
+    const alertsHtml = expiring.length ? `
+        <div style="margin-bottom:10px">
+            <div class="pano-lbl" style="margin-bottom:8px">Scadenze</div>
+            ${expiring.map(p => {
+                const days = daysUntil(p.data_fine);
+                const isExpired = days < 0;
+                const trasBtn = isExpired && p.tipologia !== 'Conto corrente'
+                    ? `<button onclick="apriTrasferisciCC('${p.id}')" style="margin-top:7px;padding:6px 13px;border-radius:9px;border:none;background:#3384d4;color:white;font-weight:800;font-size:12px;cursor:pointer;font-family:inherit">Trasferisci al C/C</button>` : '';
+                return `<div class="alert-strip${days <= 14 ? ' red' : ''}">
+                    <div class="alert-strip-body">
+                        <div class="alert-strip-title">${p.banca} — ${p.tipologia}</div>
+                        <div class="alert-strip-sub">${eur(p.capitale)} · ${isExpired ? `Scaduto il ${fmtDate(p.data_fine)}` : `Scade ${fmtDate(p.data_fine)} (fra ${days} giorni)`}</div>
+                        ${trasBtn}
+                    </div>
+                </div>`;
+            }).join('')}
+        </div>` : '';
+
+    const FILTRI = [
+        { id:'categoria',  label:'Liquidità' },
+        { id:'tipo',       label:'Inv. / Conti' },
+        { id:'prodotto',   label:'Per prodotto' },
+        { id:'banca',      label:'Per banca' },
+    ];
+
+    el.innerHTML = `
+        <div class="pano-hero">
+            <div class="pano-lbl">Patrimonio totale</div>
+            <div class="pano-amount">${eur(totale)}</div>
+            ${deltaBadge || growthBadge ? `
+            <div class="pano-delta-row" style="margin-top:8px">
+                ${deltaBadge}${deltaLbl}
+            </div>
+            <div class="pano-delta-row" style="margin-top:4px">
+                ${growthBadge}${growthLbl}
+            </div>` : ''}
+            ${interessi > 0 ? `<div style="margin-top:10px"><div class="pano-int"><span>${eurK(interessi)} netti/anno stimati</span></div></div>` : ''}
+            ${stackBar}
+            ${sparkHtml}
+        </div>
+
+        ${alertsHtml}
+
+        <div class="pano-filter">
+            <div class="filtro-row" style="margin-top:0;margin-bottom:14px">
+                ${FILTRI.map(f => `<button class="filtro-chip${panoramicaFiltro===f.id?' active':''}" onclick="cambiaPanoramicaFiltro('${f.id}')">${f.label}</button>`).join('')}
+            </div>
+            ${renderBreakdownFiltro(totale)}
+        </div>
+
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+            <button onclick="apriModalSnapshot()" style="flex:1;padding:13px;border-radius:14px;border:2px solid var(--grey);background:var(--white);font-weight:800;font-size:13px;cursor:pointer;font-family:inherit;color:var(--dark)">Snapshot</button>
+            <button onclick="switchTab(1)" style="flex:1;padding:13px;border-radius:14px;border:none;background:#3384d4;color:white;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit">Conti</button>
+            <button onclick="switchTab(2)" style="flex:1;padding:13px;border-radius:14px;border:none;background:var(--green);color:white;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit">Investimenti</button>
+        </div>
+    `;
+}
+
+function renderPosizioniExpiring() {
+    const exp = posizioni.filter(p => { const d = daysUntil(p.data_fine); return d !== null && d <= 60 && d >= 0; })
+        .sort((a, b) => daysUntil(a.data_fine) - daysUntil(b.data_fine));
+    if (!exp.length) return '';
+    return `<div style="margin-top:4px">
+        <div style="font-size:11px;font-weight:900;color:#aaa;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px">In scadenza nei prossimi 60 giorni</div>
+        ${exp.map(p => renderInstrumentCard(p)).join('')}
+    </div>`;
+}
+
+function renderSparkline(snaps) {
+    if (snaps.length < 2) return '';
+    const vals = snaps.map(s => s.totale || 0);
+    const minV = Math.min(...vals) * 0.99;
+    const maxV = Math.max(...vals) * 1.001;
+    const W = 320, H = 80;
+    const px = (i) => (i / (snaps.length - 1)) * W;
+    const py = (v) => H - ((v - minV) / (maxV - minV)) * H;
+    const pts = snaps.map((s, i) => `${px(i)},${py(s.totale)}`).join(' ');
+    const area = `M ${px(0)},${py(snaps[0].totale)} ` + snaps.slice(1).map((s, i) => `L ${px(i+1)},${py(s.totale)}`).join(' ') + ` L ${W},${H} L 0,${H} Z`;
+    const first = snaps[0], last = snaps[snaps.length - 1];
+    const delta = last.totale - first.totale;
+    const sign = delta >= 0 ? '+' : '';
+
+    const labels = snaps.map((s, i) => {
+        const x = px(i);
+        const y = py(s.totale);
+        if (i === 0 || i === snaps.length - 1) {
+            return `<text x="${x}" y="${H + 16}" text-anchor="${i===0?'start':'end'}" fill="#999" font-size="9" font-weight="700">${fmtDate(s.data_snapshot)}</text>
+                    <circle cx="${x}" cy="${y}" r="3" fill="var(--green)"/>`;
+        }
+        return `<circle cx="${x}" cy="${y}" r="2" fill="var(--green)" opacity="0.5"/>`;
+    }).join('');
+
+    return `<svg class="chart-svg" viewBox="-4 -4 ${W+8} ${H+28}" preserveAspectRatio="xMidYMid meet" style="height:${H+28}px">
+        <defs>
+            <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="var(--green)" stop-opacity="0.18"/>
+                <stop offset="100%" stop-color="var(--green)" stop-opacity="0"/>
+            </linearGradient>
+        </defs>
+        <path d="${area}" fill="url(#areaGrad)"/>
+        <polyline points="${pts}" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        ${labels}
+    </svg>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">
+        <span style="font-size:11px;color:#999;font-weight:700">${eurK(first.totale)}</span>
+        <span style="font-size:12px;font-weight:900;color:${delta>=0?'var(--green)':'var(--red)'}">${sign}${eur(delta)} (${sign}${first.totale?((delta/first.totale)*100).toFixed(1):0}%)</span>
+        <span style="font-size:11px;color:#999;font-weight:700">${eurK(last.totale)}</span>
+    </div>`;
+}
+
+// ── Conti ─────────────────────────────────────────────────────────────
+function renderBankSections(contenitore, filtro, label) {
+    const el = document.getElementById(contenitore);
+    const filtered = posizioni.filter(filtro);
+    if (!filtered.length) {
+        el.innerHTML = `<div class="empty-state"><div class="empty-state-title">Nessuna posizione</div><div class="empty-state-sub">Aggiungi una posizione con il + in alto a destra</div></div>`;
+        return;
+    }
+    const totaleTab = filtered.reduce((s, p) => s + (p.capitale || 0), 0);
+    const intTab = filtered.reduce((s, p) => s + calcInterestNet(p), 0);
+    const intHtml = intTab > 0 ? `<span style="font-size:12px;font-weight:800;color:var(--green);margin-top:4px;display:block">${eur(intTab)} netti/anno stimati</span>` : '';
+
+    const banks = {};
+    filtered.forEach(p => {
+        if (!banks[p.banca]) banks[p.banca] = [];
+        banks[p.banca].push(p);
+    });
+    const bankOrder = ['POSTE ITALIANE','MEGLIO BANCA','CONTO TE','SATISPAY','BCC','CHERRY BANK','ILLIMITY BANK','PAYPAL'];
+    const sortedBanks = Object.keys(banks).sort((a, b) => {
+        const ia = bankOrder.indexOf(a), ib = bankOrder.indexOf(b);
+        if (ia === -1 && ib === -1) return a.localeCompare(b);
+        if (ia === -1) return 1; if (ib === -1) return -1;
+        return ia - ib;
+    });
+    const sectionsHtml = sortedBanks.map(banca => {
+        const items = banks[banca];
+        const bancaTotal = items.reduce((s, p) => s + (p.capitale || 0), 0);
+        const key = 'b_' + contenitore + '_' + banca.replace(/\s/g,'_');
+        return `<div class="bank-section">
+            <div class="bank-header" onclick="toggleBank('${key}', this)">
+                <div class="bank-name">${banca}</div>
+                <div class="bank-total">${eur(bancaTotal)}</div>
+                <svg class="bank-chevron" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </div>
+            <div id="${key}" style="display:none">${items.map(p => renderInstrumentCard(p)).join('')}</div>
+        </div>`;
+    }).join('');
+
+    el.innerHTML = `
+        <div class="pano-hero" style="margin-bottom:14px">
+            <div class="pano-lbl">${label}</div>
+            <div class="pano-amount">${eur(totaleTab)}</div>
+            ${intHtml}
+        </div>
+        ${sectionsHtml}`;
+}
+
+function renderConti() {
+    renderBankSections('tabContent1', p => CONTI_TIPI.includes(p.tipologia), 'Totale conti correnti');
+}
+
+function renderInvestimenti() {
+    renderBankSections('tabContent2', p => !CONTI_TIPI.includes(p.tipologia), 'Totale investimenti');
+}
+
+function toggleBank(id, header) {
+    const el = document.getElementById(id);
+    const chev = header.querySelector('.bank-chevron');
+    if (el.style.display === 'none') {
+        el.style.display = '';
+        chev.classList.add('open');
+    } else {
+        el.style.display = 'none';
+        chev.classList.remove('open');
+    }
+}
+
+function renderInstrumentCard(p) {
+    const t = TIPO_MAP[p.tipologia] || { icon:'', color:'#999', bg:'rgba(0,0,0,0.05)', cat:'corrente', label: p.tipologia };
+    const interest = calcInterestNet(p);
+    const interestHtml = interest > 0 ? `<span class="meta-chip interest">${eur(interest)} netti</span>` : '';
+    const tassoHtml = p.tasso_lordo > 0 ? `<span class="meta-chip tasso">${(p.tasso_lordo * 100).toFixed(2)}% lordo</span>` : '';
+    const expiryHtml = expiryChip(p);
+    const noteHtml = p.note ? `<div style="font-size:12px;color:#888;font-weight:600;margin-top:4px">${p.note}</div>` : '';
+    const aggiornamentoHtml = p.tipologia === 'Conto corrente' && p.data_inizio
+        ? `<div style="font-size:11px;color:#aaa;font-weight:700;margin-top:3px">aggiornato al ${fmtDate(p.data_inizio)}</div>` : '';
+    const isExpiredInv = p.tipologia !== 'Conto corrente' && daysUntil(p.data_fine) !== null && daysUntil(p.data_fine) < 0;
+    const trasferisciBtnCard = isExpiredInv
+        ? `<button onclick="apriTrasferisciCC('${p.id}')" style="margin-top:8px;padding:6px 12px;border-radius:9px;border:none;background:#3384d4;color:white;font-weight:800;font-size:11px;cursor:pointer;font-family:inherit">Trasferisci al C/C</button>`
+        : '';
+    const investiBtnCard = p.tipologia === 'Conto corrente' && p.capitale > 0
+        ? `<button onclick="apriInvestiDaCC('${p.id}')" style="margin-top:8px;padding:6px 12px;border-radius:9px;border:none;background:var(--green);color:white;font-weight:800;font-size:11px;cursor:pointer;font-family:inherit">Crea investimento</button>`
+        : '';
+
+    return `<div class="instrument-card">
+        <div class="instr-body">
+            <div class="instr-tipo" style="color:${t.color}">${t.label}</div>
+            <div class="instr-capitale">${eur(p.capitale)}</div>
+            ${aggiornamentoHtml}
+            <div class="instr-meta">
+                ${tassoHtml}${interestHtml}${expiryHtml}
+            </div>
+            ${noteHtml}
+            ${trasferisciBtnCard}
+            ${investiBtnCard}
+        </div>
+        <div class="instr-actions">
+            <button class="btn-instr-edit" onclick="apriModalEditPosizione('${p.id}')" title="Modifica">Mod</button>
+            <button class="btn-instr-del" onclick="eliminaPosizione('${p.id}')" title="Elimina">×</button>
+        </div>
+    </div>`;
+}
+
+// ── Storico ───────────────────────────────────────────────────────────
+function renderStorico() {
+    const el = document.getElementById('tabContent3');
+    const allSnaps = [...snapshots].sort((a, b) => a.data_snapshot.localeCompare(b.data_snapshot));
+
+    let chartHtml = '';
+    if (allSnaps.length >= 2) {
+        chartHtml = `<div class="chart-wrap">
+            <div class="chart-title">Patrimonio nel tempo</div>
+            ${renderFullChart(allSnaps)}
+        </div>`;
+    }
+
+    const listHtml = allSnaps.length ? [...allSnaps].reverse().map((s, idx) => {
+        const prev = idx < allSnaps.length - 1 ? allSnaps[allSnaps.length - 2 - idx] : null;
+        const delta = prev ? s.totale - prev.totale : 0;
+        const deltaHtml = prev ? `<span class="snap-delta" style="color:${delta>=0?'var(--green)':'var(--red)'}">${delta>=0?'+':''}${eur(delta)}</span>` : '';
+        return `<div class="snapshot-row">
+            <div class="snap-date">${fmtDate(s.data_snapshot)}</div>
+            <div class="snap-body">
+                <div class="snap-total">${eur(s.totale)}</div>
+                <div class="snap-sub">
+                    ${s.totale_vincolato ? `Vin. ${eurK(s.totale_vincolato)}` : ''}
+                    ${s.totale_svincolabile ? ` · Svin. ${eurK(s.totale_svincolabile)}` : ''}
+                    ${s.totale_corrente ? ` · C/C ${eurK(s.totale_corrente)}` : ''}
+                </div>
+                ${s.note ? `<div style="font-size:11px;color:#aaa;font-weight:600;margin-top:2px">${s.note}</div>` : ''}
+            </div>
+            ${deltaHtml}
+            <button class="snap-del" onclick="eliminaSnapshot('${s.id}')" title="Elimina">×</button>
+        </div>`;
+    }).join('') : `<div class="empty-state"><div class="empty-state-title">Nessuno snapshot</div><div class="empty-state-sub">Salva il tuo primo snapshot per tracciare i progressi</div></div>`;
+
+    el.innerHTML = `
+        ${chartHtml}
+        <button onclick="apriModalSnapshot()" style="width:100%;padding:13px;border-radius:14px;border:none;background:var(--green);color:white;font-weight:900;font-size:14px;cursor:pointer;font-family:inherit;margin-bottom:12px">Salva snapshot oggi</button>
+        ${listHtml}
+    `;
+}
+
+function renderFullChart(snaps) {
+    if (snaps.length < 2) return '';
+    const vals = snaps.map(s => s.totale || 0);
+    const minV = Math.min(...vals) * 0.98;
+    const maxV = Math.max(...vals) * 1.01;
+    const W = 320, H = 120, pad = 8;
+
+    const px = (i) => pad + (i / (snaps.length - 1)) * (W - pad * 2);
+    const py = (v) => H - ((v - minV) / (maxV - minV)) * H;
+
+    const pts = snaps.map((s, i) => `${px(i)},${py(s.totale)}`).join(' ');
+    const area = `M ${px(0)},${py(snaps[0].totale)} ` + snaps.slice(1).map((s, i) => `L ${px(i+1)},${py(s.totale)}`).join(' ') + ` L ${px(snaps.length-1)},${H} L ${px(0)},${H} Z`;
+
+    // Y-axis labels
+    const yLabels = [minV, (minV + maxV) / 2, maxV].map((v, i) => {
+        const y = py(v);
+        return `<text x="-4" y="${y + 4}" text-anchor="end" fill="#aaa" font-size="8" font-weight="700">${eurK(v)}</text>
+                <line x1="0" y1="${y}" x2="${W}" y2="${y}" stroke="#f0f0f0" stroke-width="1"/>`;
+    }).join('');
+
+    // Data points & x labels (every other)
+    const points = snaps.map((s, i) => {
+        const x = px(i), y = py(s.totale);
+        const showLabel = i === 0 || i === snaps.length - 1 || (snaps.length <= 6);
+        const anchor = i === 0 ? 'start' : (i === snaps.length - 1 ? 'end' : 'middle');
+        return `<circle cx="${x}" cy="${y}" r="3.5" fill="var(--green)" stroke="var(--white)" stroke-width="1.5"/>
+                ${showLabel ? `<text x="${x}" y="${H + 16}" text-anchor="${anchor}" fill="#999" font-size="8" font-weight="700">${fmtDate(s.data_snapshot)}</text>` : ''}`;
+    }).join('');
+
+    return `<svg class="chart-svg" viewBox="-32 -8 ${W+40} ${H+32}" preserveAspectRatio="xMidYMid meet" style="height:${H+32}px">
+        <defs>
+            <linearGradient id="areaGrad2" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="var(--green)" stop-opacity="0.2"/>
+                <stop offset="100%" stop-color="var(--green)" stop-opacity="0.02"/>
+            </linearGradient>
+        </defs>
+        ${yLabels}
+        <path d="${area}" fill="url(#areaGrad2)"/>
+        <polyline points="${pts}" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        ${points}
+    </svg>`;
+}
+
+// ── Documenti ─────────────────────────────────────────────────────────
+function renderDocumenti() {
+    const el = document.getElementById('tabContent4');
+
+    const byPos = {};
+    documenti.forEach(d => {
+        const key = d.risparmi_id || '_general';
+        if (!byPos[key]) byPos[key] = [];
+        byPos[key].push(d);
+    });
+
+    const DOC_ICONS = { contratto:'', estratto:'', ricevuta:'', certificato:'', altro:'' };
+
+    const html = documenti.length ? Object.entries(byPos).map(([posId, docs]) => {
+        const pos = posId !== '_general' ? posizioni.find(p => p.id == posId) : null;
+        const posLabel = pos ? `${pos.banca} — ${pos.tipologia}` : 'Documenti generali';
+        return `<div style="margin-bottom:16px">
+            <div style="font-size:11px;font-weight:900;color:#aaa;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px">${posLabel}</div>
+            ${docs.map(d => {
+                const icon = DOC_ICONS[d.tipo] || '';
+                const linkHtml = d.url ? `<a href="${d.url}" target="_blank" style="font-size:11px;color:var(--blue);font-weight:700;text-decoration:none">Apri link</a>` : '';
+                return `<div class="doc-card">
+                    <div class="doc-icon">${icon}</div>
+                    <div class="doc-body">
+                        <div class="doc-nome">${d.nome}</div>
+                        <div class="doc-meta">${d.data_doc ? fmtDate(d.data_doc) + ' · ' : ''}${d.tipo || ''} ${d.note ? '· ' + d.note : ''}</div>
+                        ${linkHtml}
+                    </div>
+                    <button class="doc-del" onclick="eliminaDoc('${d.id}')">×</button>
+                </div>`;
+            }).join('')}
+        </div>`;
+    }).join('') : `<div class="empty-state"><div class="empty-state-title">Nessun documento</div><div class="empty-state-sub">Aggiungi contratti, estratti conto e ricevute</div></div>`;
+
+    el.innerHTML = `
+        <button onclick="apriModalDoc()" style="width:100%;padding:13px;border-radius:14px;border:none;background:var(--blue);color:white;font-weight:900;font-size:14px;cursor:pointer;font-family:inherit;margin-bottom:12px">+ Aggiungi documento</button>
+        ${html}
+    `;
+}
+
+// ── CRUD: Posizioni ───────────────────────────────────────────────────
+let editPosizioneId = null;
+
+function apriModalPosizione() {
+    editPosizioneId = null;
+    document.getElementById('modalPosizioneTitle').textContent = 'Nuova posizione';
+    document.getElementById('pId').value = '';
+    document.getElementById('pBanca').value = '';
+    document.getElementById('pCapitale').value = '';
+    document.getElementById('pTasso').value = '';
+    document.getElementById('pDataInizio').value = '';
+    document.getElementById('pDataFine').value = '';
+    document.getElementById('pNote').value = '';
+    tipoCorrente = 'Deposito vincolato';
+    vincoloCorrente = false;
+    renderTipoGrid();
+    aggiornaBancaList();
+    refreshModalPerTipo();
+    document.getElementById('investiDaCCBanner').style.display = 'none';
+    document.getElementById('modalPosizione').classList.add('open');
+    setTimeout(() => document.getElementById('pBanca').focus(), 300);
+}
+
+function apriModalEditPosizione(id) {
+    const p = posizioni.find(x => String(x.id) === String(id));
+    if (!p) return;
+    editPosizioneId = id;
+    document.getElementById('modalPosizioneTitle').textContent = 'Modifica posizione';
+    document.getElementById('pBanca').value = p.banca;
+    document.getElementById('pCapitale').value = p.capitale;
+    document.getElementById('pTasso').value = p.tasso_lordo ? (p.tasso_lordo * 100).toFixed(3) : '';
+    document.getElementById('pDataInizio').value = p.data_inizio || '';
+    document.getElementById('pDataFine').value = p.data_fine || '';
+    document.getElementById('pNote').value = p.note || '';
+    tipoCorrente = p.tipologia;
+    vincoloCorrente = !!p.vincolato;
+    renderTipoGrid();
+    aggiornaBancaList();
+    refreshModalPerTipo();
+    document.getElementById('investiDaCCBanner').style.display = 'none';
+    document.getElementById('modalPosizione').classList.add('open');
+}
+
+function renderTipoGrid() {
+    document.getElementById('tipoGrid').innerHTML = TIPI.map(t =>
+        `<button type="button" class="tipo-btn${tipoCorrente === t.id ? ' active' : ''}" onclick="selezionaTipo('${t.id}')">${t.icon} ${t.label}</button>`
+    ).join('');
+}
+
+function selezionaTipo(id) {
+    tipoCorrente = id;
+    if (TIPO_MAP[id]?.vincoloToggle) vincoloCorrente = false;
+    renderTipoGrid();
+    refreshModalPerTipo();
+}
+
+function setVincolo(isVincolato) {
+    vincoloCorrente = isVincolato;
+    document.getElementById('btnVincolatoSi').classList.toggle('active', isVincolato);
+    document.getElementById('btnVincolatoNo').classList.toggle('active', !isVincolato);
+    document.getElementById('pDataFineWrap').style.display = isVincolato ? '' : 'none';
+    if (!isVincolato) document.getElementById('pDataFine').value = '';
+}
+
+function refreshModalPerTipo() {
+    const isCC = tipoCorrente === 'Conto corrente';
+    const hasToggle = !!TIPO_MAP[tipoCorrente]?.vincoloToggle;
+    document.getElementById('labelPeriodo').textContent = isCC ? 'Saldo aggiornato al' : 'Periodo';
+    document.getElementById('sectionVincolo').style.display = hasToggle ? '' : 'none';
+    if (isCC) {
+        if (!document.getElementById('pDataInizio').value)
+            document.getElementById('pDataInizio').value = new Date().toISOString().slice(0, 10);
+        document.getElementById('pDataFine').value = '';
+        document.getElementById('pDataFineWrap').style.display = 'none';
+    } else if (hasToggle) {
+        setVincolo(vincoloCorrente);
+    } else {
+        document.getElementById('pDataFineWrap').style.display = '';
+    }
+}
+
+function aggiornaBancaList() {
+    const banche = [...new Set(posizioni.map(p => p.banca))];
+    document.getElementById('bancaList').innerHTML = banche.map(b => `<option value="${b}">`).join('');
+}
+
+async function salvaPosizione() {
+    const banca = document.getElementById('pBanca').value.trim();
+    const capitale = parseFloat(document.getElementById('pCapitale').value);
+    if (!banca || isNaN(capitale)) { toast('Compila banca e capitale'); return; }
+    const tassoRaw = parseFloat(document.getElementById('pTasso').value);
+    const hasToggle = !!TIPO_MAP[tipoCorrente]?.vincoloToggle;
+    const row = {
+        email_utente: userEmail,
+        banca: banca.toUpperCase(),
+        tipologia: tipoCorrente,
+        capitale,
+        tasso_lordo: isNaN(tassoRaw) || tassoRaw === 0 ? null : tassoRaw / 100,
+        data_inizio: document.getElementById('pDataInizio').value || null,
+        data_fine: document.getElementById('pDataFine').value || null,
+        note: document.getElementById('pNote').value.trim() || null,
+        vincolato: hasToggle ? vincoloCorrente : undefined,
+        ordine: editPosizioneId ? undefined : (posizioni.length + 1),
+    };
+    const isEdit = !!editPosizioneId;
+    chiudiModal('modalPosizione');
+    let err;
+    if (isEdit) {
+        const { error } = await sb.from('sv_risparmi').update(row).eq('id', editPosizioneId);
+        err = error;
+    } else {
+        const { error } = await sb.from('sv_risparmi').insert({ ...row, attivo: true });
+        err = error;
+    }
+    if (err) { toast('Errore salvataggio: ' + err.message); return; }
+    if (!isEdit && _investiDaCC) {
+        const ccRef = _investiDaCC;
+        _investiDaCC = null;
+        const nuovoSaldo = Math.max(0, ccRef.capitale - capitale);
+        await sb.from('sv_risparmi').update({
+            capitale: nuovoSaldo,
+            data_inizio: new Date().toISOString().slice(0, 10)
+        }).eq('id', ccRef.id);
+    }
+    await loadPosizioni();
+    renderTab(tabCorrente);
+    toast(isEdit ? 'Posizione aggiornata ✓' : 'Posizione aggiunta ✓');
+}
+
+async function eliminaPosizione(id) {
+    if (!confirm('Eliminare questa posizione?')) return;
+    await sb.from('sv_risparmi').update({ attivo: false }).eq('id', id);
+    await loadPosizioni();
+    renderTab(tabCorrente);
+    toast('Eliminata');
+}
+
+// ── Trasferimento investimento → C/C ────────────────────────────────
+let _trasferisciPosId = null;
+let _investiDaCC = null;
+
+function chiudiModalPosizione() {
+    _investiDaCC = null;
+    document.getElementById('investiDaCCBanner').style.display = 'none';
+    chiudiModal('modalPosizione');
+}
+
+function apriInvestiDaCC(ccId) {
+    const cc = posizioni.find(x => String(x.id) === String(ccId));
+    if (!cc) return;
+    _investiDaCC = cc;
+    editPosizioneId = null;
+    document.getElementById('modalPosizioneTitle').textContent = 'Nuovo investimento';
+    document.getElementById('pId').value = '';
+    document.getElementById('pBanca').value = cc.banca;
+    document.getElementById('pCapitale').value = '';
+    document.getElementById('pTasso').value = '';
+    document.getElementById('pDataInizio').value = new Date().toISOString().slice(0, 10);
+    document.getElementById('pDataFine').value = '';
+    document.getElementById('pNote').value = '';
+    tipoCorrente = 'Deposito vincolato';
+    renderTipoGrid();
+    aggiornaBancaList();
+    refreshModalPerTipo();
+    const banner = document.getElementById('investiDaCCBanner');
+    banner.style.display = '';
+    banner.innerHTML = `<div style="background:rgba(15,186,141,0.1);border-radius:12px;padding:12px 14px;margin-bottom:14px">
+        <div style="font-size:11px;font-weight:900;color:var(--green);text-transform:uppercase;letter-spacing:0.6px">Da C/C — ${cc.banca}</div>
+        <div style="font-size:17px;font-weight:900;margin-top:3px">${eur(cc.capitale)} disponibili</div>
+        <div style="font-size:11px;color:#888;margin-top:2px;font-weight:700">Il saldo verrà ridotto dell'importo investito</div>
+    </div>`;
+    document.getElementById('modalPosizione').classList.add('open');
+}
+
+function apriTrasferisciCC(id) {
+    const p = posizioni.find(x => String(x.id) === String(id));
+    if (!p) return;
+    _trasferisciPosId = id;
+    const cc = posizioni.find(x => x.banca === p.banca && x.tipologia === 'Conto corrente');
+    const nuovoSaldo = cc ? cc.capitale + p.capitale : p.capitale;
+    document.getElementById('trasferisciBody').innerHTML = `
+        <div style="background:var(--grey-light);border-radius:16px;padding:16px;margin-bottom:12px">
+            <div style="font-size:11px;color:#999;font-weight:800;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:4px">${p.tipologia}</div>
+            <div style="font-size:22px;font-weight:900">${eur(p.capitale)}</div>
+            <div style="font-size:12px;color:#888;font-weight:700;margin-top:3px">${p.banca} · scaduto il ${fmtDate(p.data_fine)}</div>
+        </div>
+        <div style="text-align:center;font-size:20px;color:#999;margin:4px 0">↓</div>
+        <div style="background:rgba(51,132,212,0.1);border-radius:16px;padding:16px;margin-bottom:16px">
+            <div style="font-size:11px;color:#3384d4;font-weight:800;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:4px">Conto Corrente — ${p.banca}</div>
+            ${cc
+                ? `<div style="font-size:16px;font-weight:900">${eur(cc.capitale)} <span style="color:#999;font-size:13px">→</span> <span style="color:var(--green)">${eur(nuovoSaldo)}</span></div>`
+                : `<div style="font-size:14px;font-weight:800;color:#3384d4">Verrà creato automaticamente</div><div style="font-size:22px;font-weight:900;margin-top:4px">${eur(p.capitale)}</div>`
+            }
+        </div>`;
+    document.getElementById('modalTrasferisci').classList.add('open');
+}
+
+async function confermaTrasferimenToCC() {
+    const p = posizioni.find(x => String(x.id) === String(_trasferisciPosId));
+    if (!p) return;
+    chiudiModal('modalTrasferisci');
+    const today = new Date().toISOString().slice(0, 10);
+    await sb.from('sv_risparmi').update({ attivo: false }).eq('id', p.id);
+    const cc = posizioni.find(x => x.banca === p.banca && x.tipologia === 'Conto corrente');
+    if (cc) {
+        await sb.from('sv_risparmi').update({ capitale: cc.capitale + p.capitale, data_inizio: today }).eq('id', cc.id);
+    } else {
+        await sb.from('sv_risparmi').insert({
+            email_utente: userEmail, banca: p.banca, tipologia: 'Conto corrente',
+            capitale: p.capitale, data_inizio: today, attivo: true, ordine: posizioni.length + 1
+        });
+    }
+    await loadPosizioni();
+    renderTab(tabCorrente);
+    toast('Trasferimento completato ✓');
+}
+
+// ── CRUD: Snapshot ───────────────────────────────────────────────────
+function apriModalSnapshot() {
+    const today = new Date().toISOString().slice(0, 10);
+    document.getElementById('sData').value = today;
+    const totale = getTotal();
+    document.getElementById('sTotale').value = totale.toFixed(2);
+    document.getElementById('sVincolato').value = getTotalByCategory('vincolato').toFixed(2);
+    document.getElementById('sSvincolabile').value = getTotalByCategory('svincolabile').toFixed(2);
+    document.getElementById('sCorrente').value = getTotalByCategory('corrente').toFixed(2);
+    document.getElementById('sNote').value = '';
+    document.getElementById('modalSnapshot').classList.add('open');
+}
+
+async function salvaSnapshot() {
+    const data = document.getElementById('sData').value;
+    const totale = parseFloat(document.getElementById('sTotale').value);
+    if (!data || isNaN(totale)) { toast('Compila data e totale'); return; }
+    chiudiModal('modalSnapshot');
+    await sb.from('sv_risparmi_snapshot').insert({
+        email_utente: userEmail,
+        data_snapshot: data,
+        totale,
+        totale_vincolato: parseFloat(document.getElementById('sVincolato').value) || null,
+        totale_svincolabile: parseFloat(document.getElementById('sSvincolabile').value) || null,
+        totale_corrente: parseFloat(document.getElementById('sCorrente').value) || null,
+        note: document.getElementById('sNote').value.trim() || null,
+    });
+    await loadSnapshots();
+    renderTab(tabCorrente);
+    toast('Snapshot salvato ✓');
+}
+
+async function eliminaSnapshot(id) {
+    if (!confirm('Eliminare questo snapshot?')) return;
+    await sb.from('sv_risparmi_snapshot').delete().eq('id', id);
+    await loadSnapshots();
+    renderTab(tabCorrente);
+    toast('Snapshot eliminato');
+}
+
+// ── CRUD: Documenti ───────────────────────────────────────────────────
+function apriModalDoc() {
+    const sel = document.getElementById('dPosizione');
+    sel.innerHTML = `<option value="">— Nessuna posizione specifica —</option>` +
+        posizioni.map(p => `<option value="${p.id}">${p.banca} — ${p.tipologia} (${eur(p.capitale)})</option>`).join('');
+    document.getElementById('dNome').value = '';
+    document.getElementById('dData').value = '';
+    document.getElementById('dUrl').value = '';
+    document.getElementById('dNote').value = '';
+    document.getElementById('modalDoc').classList.add('open');
+}
+
+async function salvaDoc() {
+    const nome = document.getElementById('dNome').value.trim();
+    if (!nome) { toast('Inserisci il nome del documento'); return; }
+    chiudiModal('modalDoc');
+    await sb.from('sv_risparmi_doc').insert({
+        email_utente: userEmail,
+        risparmi_id: document.getElementById('dPosizione').value || null,
+        nome,
+        tipo: document.getElementById('dTipo').value,
+        url: document.getElementById('dUrl').value.trim() || null,
+        data_doc: document.getElementById('dData').value || null,
+        note: document.getElementById('dNote').value.trim() || null,
+    });
+    await loadDocumenti();
+    renderTab(tabCorrente);
+    toast('Documento salvato ✓');
+}
+
+async function eliminaDoc(id) {
+    if (!confirm('Eliminare il documento?')) return;
+    await sb.from('sv_risparmi_doc').delete().eq('id', id);
+    await loadDocumenti();
+    renderTab(tabCorrente);
+    toast('Eliminato');
+}
+
+// ── Utility ─────────────────────────────────────────────────────────
+function chiudiModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(m => {
+    m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+});
+
+let _toastTimer;
+function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(_toastTimer);
+    _toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ── Boot ─────────────────────────────────────────────────────────────
+renderTipoGrid();
+init();
+</script>
+</body>
+</html>

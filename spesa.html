@@ -1104,7 +1104,10 @@
         _sToastTimer = setTimeout(() => t.classList.remove('show'), 2500);
     }
 
-    function logout() { localStorage.clear(); window.location.href = 'login.html'; }
+    function logout() {
+        ['userEmail', 'bioCredId', 'bioEmail', 'pushDismissed'].forEach(k => localStorage.removeItem(k));
+        window.location.href = 'login.html';
+    }
 
     // ── Init ─────────────────────────────────────────────────────────
     const _sharedEmail = localStorage.getItem('spesaSharedEmail');

@@ -11,7 +11,7 @@
     <meta name="apple-mobile-web-app-title" content="Listando">
     <style>
         :root {
-            color-scheme: light;
+            color-scheme: light dark;
             --accent: #f43f5e; --accent-bg: rgba(244,63,94,0.09);
             --green: #0fba8d; --red: #ff3b30; --teal: #30b0c7;
             --grey: #d8dddc; --grey-light: #f2f2f7;
@@ -209,6 +209,7 @@
         .currency-row select:focus { border-color: var(--accent); }
         .currency-row input { flex: 1; margin-bottom: 0; }
         .preview-conv { font-size: 12px; color: #5856d6; font-weight: 700; margin-bottom: 10px; padding: 6px 10px; background: #f0efff; border-radius: 8px; }
+        .calc-preview { font-size: 13px; font-weight: 900; color: #16a34a; margin-top: -4px; margin-bottom: 8px; padding: 5px 10px; background: #f0fdf4; border-radius: 8px; letter-spacing: 0.2px; }
 
         /* photo */
         .foto-area { margin-bottom: 14px; }
@@ -274,7 +275,11 @@
         .emoji-selected-preview { font-size: 48px; text-align: center; margin: 8px 0 16px; }
 
         /* macro-category chips (in expense modal) */
-        .macro-cat-chips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; -webkit-overflow-scrolling: touch; scrollbar-width: none; margin-bottom: 8px; }
+        .macro-cat-chips-wrap { position: relative; margin-bottom: 8px; display: flex; align-items: center; gap: 4px; }
+        .macro-cat-chips-wrap::after { content: ''; position: absolute; right: 28px; top: 0; bottom: 0; width: 32px; background: linear-gradient(to right, transparent, #fff); pointer-events: none; }
+        .macro-cat-scroll-btn { flex-shrink: 0; width: 28px; height: 28px; border: none; background: var(--grey-light); border-radius: 8px; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #555; padding: 0; }
+        .macro-cat-scroll-btn:hover { background: var(--grey); }
+        .macro-cat-chips { flex: 1; display: flex; gap: 6px; overflow-x: auto; padding-bottom: 0; -webkit-overflow-scrolling: touch; scrollbar-width: none; flex-wrap: nowrap; }
         .macro-cat-chips::-webkit-scrollbar { display: none; }
         .macro-cat-chip { flex-shrink: 0; padding: 5px 10px; border-radius: 10px; border: 2px solid var(--grey); background: var(--white); font-size: 12px; font-weight: 800; cursor: pointer; white-space: nowrap; font-family: inherit; display: flex; align-items: center; gap: 4px; color: #555; transition: all 0.15s; }
         .macro-cat-chip.active { border-color: var(--accent); background: var(--accent-bg); color: #9f1239; }
@@ -329,6 +334,7 @@
         .piano-date { font-size: 11px; color: #5856d6; font-weight: 800; margin-top: 4px; }
         .piano-badge { display: inline-block; font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 6px; background: #eef2ff; color: #5856d6; margin-top: 5px; }
         .piano-badge.confermato { background: #e8f5e9; color: var(--green); }
+        .piano-badge.notif { background: #fff3cd; color: #c07800; }
         .piano-section-hdr { font-size: 11px; font-weight: 900; color: #aaa; text-transform: uppercase; letter-spacing: 1px; margin: 14px 0 6px; }
         .piano-day-card { background: white; border-radius: 20px; margin: 10px 0 6px; box-shadow: 0 3px 14px rgba(0,0,0,0.08); border: 2px solid var(--grey-light); overflow: hidden; }
         .piano-day-card-hdr { display: flex; align-items: center; padding: 14px 16px; cursor: pointer; user-select: none; gap: 14px; background: linear-gradient(135deg, rgba(88,86,214,0.06) 0%, white 60%); }
@@ -380,8 +386,44 @@
         .budget-stato.confermata { background: #e8f5e9; color: var(--green); }
         .budget-stato.annullata { background: #fff0f0; color: var(--red); }
         .budget-importo { font-weight: 900; font-size: 16px; flex-shrink: 0; white-space: nowrap; }
+        .budget-compare { display:flex; align-items:center; gap:5px; margin-top:6px; flex-wrap:wrap; }
+        .bc-prev { font-size:11px; color:#aaa; font-weight:700; }
+        .bc-eff  { font-size:11px; font-weight:800; }
+        .bc-diff { font-size:11px; font-weight:900; padding:2px 7px; border-radius:6px; }
+        .bc-diff.pos { background:#e8f5e9; color:var(--green); }
+        .bc-diff.neg { background:#fff0f0; color:var(--red); }
+        .budget-link-banner { background:#e8f5e9; border:1.5px solid var(--green); border-radius:12px; padding:9px 12px; margin-bottom:10px; display:flex; align-items:center; gap:8px; }
+        .budget-link-text { font-size:13px; font-weight:700; color:var(--green); flex:1; }
+        .scelta-btn { width:100%; padding:16px; border-radius:16px; border:2px solid var(--grey); background:var(--white); font-weight:800; font-size:15px; cursor:pointer; font-family:inherit; display:flex; align-items:center; gap:12px; margin-bottom:10px; text-align:left; transition:background 0.15s; }
+        .scelta-btn.primary { background:var(--accent); color:white; border-color:var(--accent); }
+        .scelta-btn:active { opacity:0.85; }
+        .budget-sel-item { display:flex; align-items:center; gap:10px; padding:13px 14px; border-radius:14px; background:var(--grey-light); margin-bottom:8px; cursor:pointer; transition:background 0.15s; }
+        .budget-sel-item:active { filter:brightness(0.95); }
+        .budget-sel-name { font-weight:800; font-size:14px; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .budget-sel-amount { font-weight:900; font-size:15px; flex-shrink:0; }
         .period-pill { flex-shrink: 0; padding: 8px 14px; border-radius: 20px; border: 2px solid var(--grey); font-weight: 800; font-size: 12px; cursor: pointer; background: var(--white); color: #999; transition: all 0.15s; font-family: inherit; }
         .period-pill.active { border-color: #5856d6; background: rgba(88,86,214,0.08); color: #5856d6; }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --dark: #e8e8ec;
+                --bg: #1c1c1e;
+                --white: #2c2c2e;
+                --grey: #48484a;
+                --grey-light: #3a3a3c;
+                --shadow: 0 2px 10px rgba(0,0,0,0.35);
+            }
+            .tab-bar { background: #2c2c2e; }
+            .vei-chip { color: var(--dark); }
+            .inner-tab { color: #aaa; }
+            .viaggio-sub, .piano-sub, .piano-date, .storico-item-sub, .budget-sub { color: #aaa; }
+            .piano-badge.notif { background: #3a2e00; color: #ffb800; }
+            .piano-badge.confermato { background: #0d2b1e; color: var(--green); }
+            .piano-badge { background: #1e1e3a; color: #9d9bf0; }
+            input[type="date"], select, textarea { color-scheme: dark; }
+            .modal-overlay { background: rgba(0,0,0,0.75); }
+            .section-label, .form-label { color: #aaa; }
+        }
     </style>
 </head>
 <body>
@@ -424,7 +466,7 @@
 
         <!-- TAB SPESE -->
         <div id="tabSpese">
-            <button class="btn-save-modal" onclick="apriModalNuovaSpesa(null)" style="background:var(--accent);margin-bottom:12px">+ Aggiungi spesa</button>
+            <button class="btn-save-modal" onclick="apriSceltaTipoSpesa()" style="background:var(--accent);margin-bottom:12px">+ Aggiungi spesa</button>
             <div class="filter-bar">
                 <input type="search" id="filterSearch" placeholder="🔍 Cerca…" oninput="aggiorniFiltri()">
                 <select id="filterPayer" onchange="aggiorniFiltri()">
@@ -513,9 +555,18 @@
         <div class="modal-handle"></div>
         <div class="modal-title" id="titoloModalSpesa">Nuova spesa</div>
         <div class="form-label">Categoria</div>
-        <div class="macro-cat-chips" id="macroCatChips"></div>
+        <div class="macro-cat-chips-wrap">
+            <button class="macro-cat-scroll-btn" onclick="scrollMacroChips(-1)">&#8249;</button>
+            <div class="macro-cat-chips" id="macroCatChips"></div>
+            <button class="macro-cat-scroll-btn" onclick="scrollMacroChips(1)">&#8250;</button>
+        </div>
         <div class="emoji-cat-tabs" id="catEmojiTabs" style="margin-bottom:8px"></div>
         <div class="emoji-full-grid" id="catRow" style="max-height:140px"></div>
+        <div id="budgetLinkBanner" class="budget-link-banner" style="display:none">
+            <span style="font-size:18px">📋</span>
+            <span class="budget-link-text">Da budget: <span id="budgetLinkNome"></span></span>
+            <button onclick="scollegaBudgetItem()" style="background:none;border:none;font-size:18px;cursor:pointer;color:#888;padding:0;line-height:1">×</button>
+        </div>
         <input class="form-input" id="descSpesa" placeholder="Descrizione…" type="text" oninput="onDescSpesaInput()">
         <div id="catSuggerita" class="cat-suggerita-banner" style="display:none">
             <span id="catSuggeritaLabel"></span>
@@ -527,8 +578,9 @@
         <div class="form-label">Importo</div>
         <div class="currency-row">
             <select id="valutaSpesa" onchange="aggiornaPreviewValuta()"></select>
-            <input class="form-input" id="importoSpesa" placeholder="0.00" type="number" min="0.01" step="0.01" inputmode="decimal" oninput="aggiornaPreviewValuta()">
+            <input class="form-input" id="importoSpesa" placeholder="0.00 oppure 14+7.5*2" type="text" inputmode="decimal" autocomplete="off" oninput="aggiornaPreviewValuta()" onblur="valutaCalcoloImporto()">
         </div>
+        <div id="calcPreviewImporto" class="calc-preview" style="display:none"></div>
         <div id="previewConversione" class="preview-conv" style="display:none"></div>
         <div class="form-label">Chi ha pagato?</div>
         <div class="payer-row" id="payerRow"></div>
@@ -554,6 +606,29 @@
             <input type="file" id="fotoInput" accept="image/*" style="display:none" onchange="onFotoSelected(event)">
         </div>
         <button class="btn-save-modal" id="btnSalvaSpesa" onclick="salvaSpesa()">AGGIUNGI</button>
+    </div>
+</div>
+
+<!-- Modal: scelta tipo spesa (budget vs nuova) -->
+<div class="modal-overlay" id="modalSceltaSpesa">
+    <div class="modal-box">
+        <div class="modal-handle"></div>
+        <div class="modal-title">Aggiungi spesa</div>
+        <div id="sceltaStep1">
+            <button class="scelta-btn primary" onclick="sceltaNuovaSpesa()">
+                <span style="font-size:22px">➕</span>
+                <div><div>Nuova spesa</div><div style="font-size:12px;font-weight:600;opacity:0.8;margin-top:2px">Non collegata al budget</div></div>
+            </button>
+            <button class="scelta-btn" id="btnSceltaDaBudget" onclick="sceltaDaBudget()">
+                <span style="font-size:22px">📋</span>
+                <div><div>Da budget</div><div id="sceltaBudgetSub" style="font-size:12px;font-weight:600;color:#888;margin-top:2px"></div></div>
+            </button>
+        </div>
+        <div id="sceltaStep2" style="display:none">
+            <button onclick="tornaSuScelta()" style="background:none;border:none;cursor:pointer;font-size:13px;font-weight:700;color:#888;padding:0;margin-bottom:14px;font-family:inherit">← Indietro</button>
+            <div style="font-weight:800;font-size:13px;color:#888;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px">Scegli voce di budget</div>
+            <div id="budgetSelList" style="max-height:55vh;overflow-y:auto"></div>
+        </div>
     </div>
 </div>
 
@@ -1048,8 +1123,12 @@ let _collapsedDays = {};
 let pianoItemEditId = null, budgetItemEditId = null;
 let _invitePartId = null;
 let pianoTipoScelto = 'auto', budgetCatScelta = 'altro', budgetStatoScelto = 'prevista';
+let _budgetItemDaCollegare = null;
 
-function logout() { localStorage.clear(); location.href = 'login.html'; }
+function logout() {
+    ['userEmail', 'bioCredId', 'bioEmail', 'pushDismissed'].forEach(k => localStorage.removeItem(k));
+    location.href = 'login.html';
+}
 function showView(id) {
     ['viewLista','viewViaggio'].forEach(v => document.getElementById(v).style.display = v === id ? '' : 'none');
 }
@@ -1582,15 +1661,17 @@ function renderSaldi() {
     const bilanci = {}, pagati = {}, quote = {};
     partecipantiAttuali.forEach(p => { bilanci[p.id] = 0; pagati[p.id] = 0; quote[p.id] = 0; });
 
+    const SALDI_CONTABILI = new Set(['🤝', '💸']);
     speseAttuali.forEach(s => {
         const divisione = JSON.parse(s.divisione || '[]');
         if (!divisione.length) return;
         const quotePer = calcolaQuotePer(s);
+        const isContabile = SALDI_CONTABILI.has(_catEmoji(s));
         bilanci[s.pagato_da] = (bilanci[s.pagato_da] || 0) + parseFloat(s.importo);
-        pagati[s.pagato_da] = (pagati[s.pagato_da] || 0) + parseFloat(s.importo);
+        if (!isContabile) pagati[s.pagato_da] = (pagati[s.pagato_da] || 0) + parseFloat(s.importo);
         divisione.forEach(pid => {
             bilanci[pid] = (bilanci[pid] || 0) - (quotePer[pid] || 0);
-            quote[pid] = (quote[pid] || 0) + (quotePer[pid] || 0);
+            if (!isContabile) quote[pid] = (quote[pid] || 0) + (quotePer[pid] || 0);
         });
     });
 
@@ -1761,12 +1842,6 @@ function renderStatistiche() {
     const count = speseReali.length;
     const media = totale / count;
 
-    // Per persona (pagato)
-    const perPersona = {};
-    partecipantiAttuali.forEach(p => perPersona[p.id] = 0);
-    speseReali.forEach(s => perPersona[s.pagato_da] = (perPersona[s.pagato_da] || 0) + parseFloat(s.importo || 0));
-    const maxPers = Math.max(...Object.values(perPersona));
-
     // Per macro-categoria — ogni spesa finisce in esattamente un bucket
     const perMacro = {};
     MACRO_CATS.forEach(mc => { perMacro[mc.id] = { ...mc, total: 0, count: 0 }; });
@@ -1783,19 +1858,7 @@ function renderStatistiche() {
     <div class="stat-box">
         <div class="stat-label">Totale speso</div>
         <div class="stat-value">${cur}${totale.toFixed(2)}</div>
-        <div class="stat-sub">${count} spese · media ${cur}${media.toFixed(2)}</div>
-    </div>
-    <div class="stat-box">
-        <div class="stat-label">Per persona (pagato)</div>
-        ${partecipantiAttuali.map(p => {
-            const val = perPersona[p.id] || 0;
-            const pct = maxPers > 0 ? (val / maxPers * 100) : 0;
-            return `<div class="stat-row">
-                <div class="stat-row-label">${p.nome}</div>
-                <div class="stat-bar-wrap"><div class="stat-bar" style="width:${pct}%"></div></div>
-                <div class="stat-row-val">${cur}${val.toFixed(0)}</div>
-            </div>`;
-        }).join('')}
+        <div class="stat-sub">${count} spese</div>
     </div>
     ${macroSorted.length ? `<div class="stat-box">
         <div class="stat-label">Per categoria</div>
@@ -2147,9 +2210,41 @@ function getQuoteDivisione() {
     return { divisione: ids, tipo: splitType, quote: ids.length ? JSON.stringify(q) : null };
 }
 
+function calcExpr(raw) {
+    if (!raw) return NaN;
+    const sanitized = String(raw).replace(/,/g, '.').replace(/[^0-9+\-*/().\s]/g, '').trim();
+    if (!sanitized) return NaN;
+    try {
+        const result = Function('"use strict"; return (' + sanitized + ')')();
+        return typeof result === 'number' && isFinite(result) ? result : NaN;
+    } catch { return NaN; }
+}
+
+function valutaCalcoloImporto() {
+    const el = document.getElementById('importoSpesa');
+    const raw = el.value;
+    const result = calcExpr(raw);
+    document.getElementById('calcPreviewImporto').style.display = 'none';
+    if (!isNaN(result) && result > 0) {
+        el.value = result.toFixed(2);
+        aggiornaPreviewValuta();
+    }
+}
+
 async function aggiornaPreviewValuta() {
     const valuta = document.getElementById('valutaSpesa').value;
-    const importo = parseFloat(document.getElementById('importoSpesa').value);
+    const raw = document.getElementById('importoSpesa').value;
+    const importo = calcExpr(raw);
+
+    const calcPreview = document.getElementById('calcPreviewImporto');
+    const hasOp = /[+\-*/]/.test(raw) && raw.trim().length > 1;
+    if (hasOp && !isNaN(importo) && importo > 0) {
+        calcPreview.textContent = '= ' + importo.toFixed(2);
+        calcPreview.style.display = '';
+    } else {
+        calcPreview.style.display = 'none';
+    }
+
     const preview = document.getElementById('previewConversione');
     if (valuta !== viaggioCorrenteValuta && !isNaN(importo) && importo > 0) {
         const rates = await fetchRates();
@@ -2161,6 +2256,55 @@ async function aggiornaPreviewValuta() {
     } else {
         preview.style.display = 'none';
     }
+}
+
+// ── Scelta tipo spesa (budget vs nuova) ──────────────────────────
+function apriSceltaTipoSpesa() {
+    if (!partecipantiAttuali.length) { toast('Aggiungi prima dei partecipanti'); mostraTab('persone'); return; }
+    const disponibili = budgetAttuale.filter(b => b.stato === 'prevista');
+    if (!disponibili.length) { _budgetItemDaCollegare = null; apriModalNuovaSpesa(null); return; }
+    const n = disponibili.length;
+    document.getElementById('sceltaBudgetSub').textContent = `${n} voc${n === 1 ? 'e' : 'i'} disponibil${n === 1 ? 'e' : 'i'}`;
+    document.getElementById('sceltaStep1').style.display = '';
+    document.getElementById('sceltaStep2').style.display = 'none';
+    document.getElementById('modalSceltaSpesa').classList.add('open');
+}
+
+function sceltaNuovaSpesa() {
+    document.getElementById('modalSceltaSpesa').classList.remove('open');
+    _budgetItemDaCollegare = null;
+    apriModalNuovaSpesa(null);
+}
+
+function sceltaDaBudget() {
+    const disponibili = budgetAttuale.filter(b => b.stato === 'prevista');
+    const cur = symb(viaggioCorrenteValuta);
+    document.getElementById('budgetSelList').innerHTML = disponibili.map(b => {
+        const icon = BUDGET_CAT_ICONS[b.categoria] || '💡';
+        return `<div class="budget-sel-item" onclick="selezionaBudgetItem(${b.id})">
+            <span style="font-size:22px">${icon}</span>
+            <span class="budget-sel-name">${b.titolo || b.descrizione || '—'}</span>
+            <span class="budget-sel-amount">${cur}${parseFloat(b.importo_previsto).toFixed(2)}</span>
+        </div>`;
+    }).join('');
+    document.getElementById('sceltaStep1').style.display = 'none';
+    document.getElementById('sceltaStep2').style.display = '';
+}
+
+function tornaSuScelta() {
+    document.getElementById('sceltaStep1').style.display = '';
+    document.getElementById('sceltaStep2').style.display = 'none';
+}
+
+function selezionaBudgetItem(id) {
+    _budgetItemDaCollegare = budgetAttuale.find(b => b.id === id);
+    document.getElementById('modalSceltaSpesa').classList.remove('open');
+    apriModalNuovaSpesa(null);
+}
+
+function scollegaBudgetItem() {
+    _budgetItemDaCollegare = null;
+    document.getElementById('budgetLinkBanner').style.display = 'none';
 }
 
 function apriModalNuovaSpesa(spesaId) {
@@ -2185,6 +2329,14 @@ function apriModalNuovaSpesa(spesaId) {
     document.getElementById('btnTutti').style.display = '';
     document.getElementById('btnTutti').classList.add('active');
     renderSplitContainer();
+    if (_budgetItemDaCollegare) {
+        document.getElementById('descSpesa').value = _budgetItemDaCollegare.titolo || _budgetItemDaCollegare.descrizione || '';
+        document.getElementById('importoSpesa').value = parseFloat(_budgetItemDaCollegare.importo_previsto).toFixed(2);
+        document.getElementById('budgetLinkNome').textContent = _budgetItemDaCollegare.titolo || _budgetItemDaCollegare.descrizione || '—';
+        document.getElementById('budgetLinkBanner').style.display = 'flex';
+    } else {
+        document.getElementById('budgetLinkBanner').style.display = 'none';
+    }
     document.getElementById('modalNuovaSpesa').classList.add('open');
     setTimeout(() => document.getElementById('descSpesa').focus(), 300);
 }
@@ -2254,6 +2406,11 @@ function renderMacroCatChips() {
     ).join('');
 }
 
+function scrollMacroChips(dir) {
+    const el = document.getElementById('macroCatChips');
+    if (el) el.scrollBy({ left: dir * 120, behavior: 'smooth' });
+}
+
 function setCatFromMacro(macroId) {
     // Seleziona la macro-categoria senza toccare l'emoji scelta
     macroScelta = (macroScelta === macroId) ? null : macroId; // tap again to deselect
@@ -2300,7 +2457,7 @@ function toggleTutti() {
 
 async function salvaSpesa() {
     const desc = document.getElementById('descSpesa').value.trim();
-    const importoOrig = parseFloat(document.getElementById('importoSpesa').value);
+    const importoOrig = calcExpr(document.getElementById('importoSpesa').value);
     const data = document.getElementById('dataSpesa').value;
     const valutaScelta = document.getElementById('valutaSpesa').value;
     if (!desc) { toast('Inserisci una descrizione'); return; }
@@ -2351,6 +2508,19 @@ async function salvaSpesa() {
 
     document.getElementById('modalNuovaSpesa').classList.remove('open');
     await caricaSpese(); renderSpese();
+
+    if (!spesaInEditId && _budgetItemDaCollegare) {
+        const nuova = await apiGetArr(`/sv_spese?viaggio_id=eq.${viaggioCorrenteId}&order=created_at.desc&limit=1`);
+        if (nuova.length) {
+            await apiPatch(`/sv_budget?id=eq.${_budgetItemDaCollegare.id}`, {
+                spesa_effettiva_id: nuova[0].id,
+                stato: 'confermata'
+            });
+            await caricaBudget(); renderBudget();
+        }
+        _budgetItemDaCollegare = null;
+    }
+
     toast(spesaInEditId ? '✓ Spesa aggiornata' : '✓ Spesa aggiunta');
     spesaInEditId = null; fotoSpesaBase64 = null;
 }
@@ -2393,10 +2563,10 @@ const EMOJI_DB = {
   '👋': ['👋','🤚','🖐️','✋','🖖','👌','🤌','🤏','✌️','🤞','🤟','🤘','🤙','👈','👉','👆','👇','☝️','👍','👎','✊','👊','🤛','🤜','👏','🙌','👐','🤲','🤝','🙏','✍️','💅','💪','🦾','👀','👅','👄','🫶','🫂','💋','👣','❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','💕','💞','💓','💗','💖','💘','💝','💯','🔥','✨','⭐','🌟','💫','🎉','🎊','🎈'],
   '🐶': ['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🙈','🙉','🙊','🐔','🐧','🐦','🐤','🦆','🦅','🦉','🦇','🐺','🐗','🐴','🦄','🐝','🐛','🦋','🐌','🐞','🐜','🦟','🦗','🕷️','🦂','🐢','🐍','🦎','🐊','🐙','🦑','🦐','🦞','🦀','🐡','🐠','🐟','🐬','🐳','🐋','🦈','🦭','🐊','🦖','🦕','🐆','🐅','🦓','🦍','🦧','🦣','🐘','🦛','🦏','🐪','🐫','🦒','🦘','🦬','🐃','🐂','🐄','🐎','🐖','🐏','🐑','🦙','🐐','🦌','🐕','🐩','🦮','🐕‍🦺','🐈','🐈‍⬛','🐇','🦝','🦨','🦡','🦫','🦦','🦥','🐁','🐀','🐿️','🦔'],
   '🌺': ['🌺','🌸','🌼','🌻','🌹','🥀','🌷','🌱','🌿','☘️','🍀','🎋','🎍','🍃','🍂','🍁','🍄','🌾','💐','🌵','🌲','🌳','🌴','🪸','🌊','💧','💦','❄️','☀️','🌤️','⛅','☁️','🌧️','⛈️','🌩️','🌨️','🌬️','💨','🌀','🌪️','🌫️','🌈','🌙','🌚','🌛','🌜','🌝','🌞','🪐','💥','🌑','🌒','🌓','🌔','🌕','⭐','🌟','✨','⚡','🔥','🌍','🌎','🌏','🗻','🏔️','⛰️','🌋','🏕️','🏖️','🏜️','🏝️','🏞️'],
-  '🍕': ['🍕','🍔','🌮','🌯','🥙','🧆','🍳','🥞','🧇','🥓','🍗','🍖','🌭','🥪','🥗','🍿','🥫','🍝','🍜','🍲','🍛','🍣','🍱','🥟','🍤','🍙','🍚','🍘','🍥','🥮','🍢','🧁','🎂','🍰','🍦','🍧','🍨','🍡','🍭','🍬','🍫','🍩','🍪','🌰','🥜','🍯','☕','🍵','🧋','🍺','🍻','🥂','🍷','🥃','🍸','🍹','🧃','🥤','🧊','🫖','🥐','🥖','🫓','🧀','🥚','🥑','🫑','🌽','🥕','🧅','🥔','🍠','🥜','🫘','🌰'],
-  '✈️': ['✈️','🛫','🛬','🚀','🛸','🚁','🛶','⛵','🚢','🛳️','⛴️','🚂','🚄','🚅','🚇','🚌','🏎️','🚗','🛻','🚜','🛵','🚲','🛴','🛹','🗺️','🧭','🏔️','🌋','🏕️','🏖️','🏟️','🏛️','🏗️','🏠','🏡','🏢','🏨','🏩','🏪','🏫','🏬','🏰','🗼','🗽','⛪','🕌','⛩️','🕍','🌁','🌃','🌆','🌇','🌉','🎠','🎡','🎢','🎪','⛽','⚓','🚧','🛞','🗿','🏯','💒','🌅','🌄','🌠','🎆','🎇','🌌'],
+  '🍕': ['🍕','🍔','🍽️','🌮','🌯','🥙','🧆','🍳','🥞','🧇','🥓','🍗','🍖','🌭','🥪','🥗','🍿','🥫','🍝','🍜','🍲','🍛','🍣','🍱','🥟','🍤','🍙','🍚','🍘','🍥','🥮','🍢','🧁','🎂','🍰','🍦','🍧','🍨','🍡','🍭','🍬','🍫','🍩','🍪','🌰','🥜','🍯','☕','🍵','🧋','🍺','🍻','🥂','🍷','🥃','🍸','🍹','🧃','🥤','🧊','🫖','🥐','🥖','🫓','🧀','🥚','🥑','🫑','🌽','🥕','🧅','🥔','🍠','🥜','🫘','🌰'],
+  '✈️': ['✈️','🛫','🛬','🚀','🛸','🚁','🛶','⛵','🚢','🛳️','⛴️','🚂','🚄','🚅','🚇','🚌','🏎️','🚗','🛻','🚜','🛵','🚲','🛴','🛹','🗺️','🧭','🏔️','🌋','🏕️','🏖️','🏟️','🏛️','🏗️','🏠','🏡','🏢','🏨','🏩','🏪','🏫','🏬','🏰','🗼','🗽','⛪','🕌','⛩️','🕍','🌁','🌃','🌆','🌇','🌉','🎠','🎡','🎢','🎪','⛽','🅿️','🛣️','⚓','🚧','🛞','🗿','🏯','💒','🌅','🌄','🌠','🎆','🎇','🌌'],
   '⚽': ['⚽','🏀','🏈','⚾','🥎','🎾','🏐','🏉','🥏','🎱','🏓','🏸','🥊','🥋','🎯','🏹','🎣','🤿','🎿','🛷','🥌','🛹','🛼','⛷️','🏂','🪂','🏋️','🤸','⛹️','🤺','🏇','🧘','🏊','🤽','🚣','🧗','🚴','🏆','🥇','🥈','🥉','🏅','🎖️','🎪','🎭','🎨','🖼️','🎰','🎲','🎮','🕹️','🎳','🎻','🎷','🎺','🥁','🎸','🎹','🎵','🎶','🎼','🎤','🎧','🎬','🎥','📸','🎠','🎡','🎢'],
-  '💡': ['💡','🔦','🕯️','📱','💻','🖥️','⌨️','🖱️','💾','📷','📸','📹','🎥','📺','📻','🎙️','⌚','⏰','⏱️','🔋','🔌','💳','💰','💵','💶','💷','💴','💸','🏧','📊','📈','📉','📋','📌','📍','📎','✂️','📁','📂','🗑️','🔒','🔓','🔑','🗝️','🔨','🛠️','🔧','🔩','🔭','🔬','🧲','⚗️','🧪','🧬','💊','🩺','🩹','🩻','🎁','🎀','🎊','🎉','🎈','🪄','🔮','🧿','🪬','🧸','🪆','🪅'],
+  '💡': ['💡','🔦','🕯️','📱','💻','🖥️','⌨️','🖱️','💾','📷','📸','📹','🎥','📺','📻','🎙️','⌚','⏰','⏱️','🔋','🔌','💳','🛒','💰','💵','💶','💷','💴','💸','🏧','📊','📈','📉','📋','📌','📍','📎','✂️','📁','📂','🗑️','🔒','🛡️','🔓','🔑','🗝️','🔨','🛠️','🔧','🔩','🔭','🔬','🧲','⚗️','🧪','🧬','💊','🩺','🩹','🩻','🎁','🛍️','🎀','🎊','🎉','🎈','🪄','🔮','🧿','🪬','🧸','🪆','🪅'],
 };
 const EMOJI_CAT_LABELS = { '😀':'Faccine','👋':'Persone','🐶':'Animali','🌺':'Natura','🍕':'Cibo','✈️':'Viaggi','⚽':'Sport','💡':'Oggetti' };
 
@@ -2423,7 +2593,9 @@ const MACRO_CATS = [
   { id:'carburante',    label:'Carburante',    icon:'⛽', color:'#eab308',
     emojis:['⛽'] },
   { id:'pedaggi',       label:'Pedaggi',       icon:'🛣️', color:'#64748b',
-    emojis:['🚧'] },
+    emojis:['🛣️','🚧'] },
+  { id:'parcheggio',    label:'Parcheggio',    icon:'🅿️', color:'#2563eb',
+    emojis:['🅿️'] },
   { id:'trasporto',     label:'Trasporto',     icon:'🚗', color:'#0ea5e9',
     emojis:['✈️','🛫','🛬','🚀','🚂','🚄','🚅','🚆','🚇','🚈','🚉','🚊','🚝','🚞','🛳️','⛴️','🚢','⛵','🚁','🛸','🛶','🚗','🚌','🚕','🛻','🚙','🏎️','🚐','🚎','🛵','🚲','🛴','🛹','🚡','🚠','🚟','🛺','🚜','🚃','⚓'] },
   { id:'attivita',      label:'Attività',      icon:'🎭', color:'#a855f7',
@@ -2435,7 +2607,7 @@ const MACRO_CATS = [
   { id:'spesa',         label:'Spesa',         icon:'🛒', color:'#22c55e',
     emojis:['🛒'] },
   { id:'assicurazione', label:'Assicurazione', icon:'🛡️', color:'#475569',
-    emojis:['🔒','🔑','🗝️','📋','📄'] },
+    emojis:['🛡️','🔒','🔑','🗝️','📋','📄'] },
   { id:'sanita',        label:'Sanità',        icon:'💊', color:'#ef4444',
     emojis:['💊','🧴','🩺','🩹','🩻','🩼','⚗️','🧪','🧬'] },
   { id:'shopping',      label:'Shopping',      icon:'🛍️', color:'#ec4899',
@@ -2453,6 +2625,8 @@ const KEYWORD_MAP = {
     // pasti
     'cena':'pasti','cenato':'pasti','cenava':'pasti','ceno':'pasti',
     'pranzo':'pasti','pranzato':'pasti','pranzava':'pasti','brunch':'pasti',
+    'colazione':'pasti','colazioni':'pasti',
+    'merenda':'pasti','merende':'pasti','snack':'pasti',
     'ristorante':'pasti','trattoria':'pasti','osteria':'pasti',
     'pizzeria':'pasti','pizza':'pasti','hamburger':'pasti','sushi':'pasti','kebab':'pasti',
     'mcdonald':'pasti','burger':'pasti','bistrot':'pasti','bistrò':'pasti',
@@ -2468,7 +2642,7 @@ const KEYWORD_MAP = {
     'aereo':'trasporto','volo':'trasporto','traghetto':'trasporto','nave':'trasporto',
     'tram':'trasporto','uber':'trasporto','transfer':'trasporto','navetta':'trasporto',
     'shuttle':'trasporto','autobus':'trasporto','barca':'trasporto',
-    'parcheggio':'trasporto','parking':'trasporto',
+    'parcheggio':'parcheggio','parking':'parcheggio',
     'biglietto':'trasporto','biglietti':'trasporto',
     'aeroporto':'trasporto','vaporetto':'trasporto','gondola':'trasporto',
     'funivia':'trasporto','motorino':'trasporto','scooter':'trasporto','bici':'trasporto',
@@ -2891,11 +3065,12 @@ function _renderPianoCard(p) {
         if (p.costo_tappa > 0) costiHtml = `<div class="piano-costi">💶 ${cur}${(+p.costo_tappa).toFixed(2)}</div>`;
     }
     const badgeHtml = p.confermato ? `<span class="piano-badge confermato">✓ Confermato</span>` : '';
+    const notifBadge = p.notif_dest ? `<span class="piano-badge notif">🔔 ${p.notif_dest === 'all' ? 'Tutti' : 'Solo me'}</span>` : '';
     return `<div class="piano-card ${isSpost ? 'spostamento' : 'tappa'}${p.completato ? ' completato-card' : ''}" onclick="apriModalEditPianoItem(${p.id})">
         <button class="piano-check-btn${p.completato ? ' done' : ''}" onclick="event.stopPropagation(); togglePianoCompletato(${p.id})">${p.completato ? '✓' : ''}</button>
         <div class="piano-tipo-icon">${icon}</div>
         <div class="piano-body">
-            ${headerHtml}${timingHtml}${costiHtml}${badgeHtml}
+            ${headerHtml}${timingHtml}${costiHtml}${badgeHtml}${notifBadge}
         </div>
         <button class="btn-card-sm del" onclick="event.stopPropagation(); eliminaPianoItemById(${p.id})" style="margin-top:2px">
             <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -3340,14 +3515,33 @@ function renderBudget() {
     const attive = budgetAttuale.filter(b => b.stato !== 'annullata');
     const totPrevisto = attive.reduce((s, b) => s + parseFloat(b.importo_previsto || 0), 0);
 
+    // Compute effettivo from linked confirmed expenses
+    const confermate = attive.filter(b => b.stato === 'confermata' && b.spesa_effettiva_id);
+    const totEffettivo = confermate.reduce((s, b) => {
+        const sp = speseAttuali.find(x => x.id === b.spesa_effettiva_id);
+        return s + (sp ? parseFloat(sp.importo) : 0);
+    }, 0);
+    const diffTot = totEffettivo - totPrevisto;
+    const haConfronto = confermate.length > 0;
+
     document.getElementById('riepilogoBudget').innerHTML = budgetAttuale.length ? `
         <div class="budget-summary">
             <div class="budget-summary-row">
-                <span class="budget-summary-label">Budget totale previsto</span>
+                <span class="budget-summary-label">Budget previsto</span>
                 <span class="budget-summary-val">${cur}${totPrevisto.toFixed(2)}</span>
             </div>
-            <div class="budget-summary-meta">
-                <span>Voci attive: ${attive.length}</span>
+            ${haConfronto ? `
+            <div class="budget-summary-row" style="margin-top:10px">
+                <span class="budget-summary-label">Speso effettivo</span>
+                <span class="budget-summary-val" style="color:${diffTot > 0 ? 'var(--red)' : 'var(--green)'}">${cur}${totEffettivo.toFixed(2)}</span>
+            </div>
+            <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--grey-light);display:flex;justify-content:space-between;align-items:center">
+                <span style="font-size:12px;font-weight:700;color:#aaa">Differenza</span>
+                <span style="font-size:14px;font-weight:900;padding:3px 10px;border-radius:8px;${diffTot > 0 ? 'background:#fff0f0;color:var(--red)' : 'background:#e8f5e9;color:var(--green)'}">${diffTot > 0 ? '+' : ''}${cur}${diffTot.toFixed(2)} ${diffTot > 0 ? '⚠️' : '✓'}</span>
+            </div>` : ''}
+            <div class="budget-summary-meta" style="margin-top:${haConfronto ? 8 : 8}px;padding-top:8px;border-top:1px solid var(--grey-light)">
+                <span>Previste: ${attive.filter(b => b.stato === 'prevista').length}</span>
+                <span>Confermate: ${confermate.length}</span>
                 <span>Annullate: ${budgetAttuale.length - attive.length}</span>
             </div>
         </div>` : '';
@@ -3360,12 +3554,31 @@ function renderBudget() {
     el.innerHTML = budgetAttuale.map(b => {
         const icon = BUDGET_CAT_ICONS[b.categoria] || '💡';
         const catLabel = BUDGET_CAT_LABEL[b.categoria] || b.categoria;
+
+        let compareHtml = '';
+        if (b.stato === 'confermata' && b.spesa_effettiva_id) {
+            const sp = speseAttuali.find(x => x.id === b.spesa_effettiva_id);
+            if (sp) {
+                const prev = parseFloat(b.importo_previsto);
+                const eff  = parseFloat(sp.importo);
+                const diff = eff - prev;
+                const cls  = diff <= 0 ? 'pos' : 'neg';
+                compareHtml = `<div class="budget-compare">
+                    <span class="bc-prev">Prev. ${cur}${prev.toFixed(2)}</span>
+                    <span style="color:#ccc;font-size:10px">→</span>
+                    <span class="bc-eff">Eff. ${cur}${eff.toFixed(2)}</span>
+                    <span class="bc-diff ${cls}">${diff > 0 ? '+' : ''}${cur}${diff.toFixed(2)}</span>
+                </div>`;
+            }
+        }
+
         return `<div class="budget-card" onclick="apriModalEditBudgetItem(${b.id})" style="opacity:${b.stato === 'annullata' ? 0.45 : 1}">
             <div class="budget-cat-icon">${icon}</div>
             <div class="budget-body">
                 <div class="budget-titolo">${b.titolo || b.descrizione || '—'}</div>
                 <div class="budget-sub">${catLabel}</div>
                 <span class="budget-stato ${b.stato}">${b.stato}</span>
+                ${compareHtml}
             </div>
             <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0">
                 <div class="budget-importo">${cur}${parseFloat(b.importo_previsto).toFixed(2)}</div>

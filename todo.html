@@ -366,7 +366,7 @@ const PERIOD_LABEL  = { giornaliera: '🔄 Ogni giorno', settimanale: '🔄 Ogni
 const REM_OPTIONS = [0, 1, 2, 7];
 const REM_LABELS  = { 0: 'Stesso giorno', 1: '1 giorno prima', 2: '2 giorni prima', 7: '1 settimana prima' };
 const DOW_FULL = ['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
-let remAnticipo = 1;
+let remAnticipi = [1];
 let remOra = '09:00';
 
 async function carica() {
@@ -596,6 +596,8 @@ async function toggleDone(id) {
             scadenza: nextDate, ora: t.ora,
             categoria: t.categoria, priorita: t.priorita,
             promemoria_push: t.promemoria_push, promemoria_email: t.promemoria_email,
+            rem_anticipi: t.rem_anticipi || null, rem_ora: t.rem_ora || null,
+            rem_inviati: null,
             periodicita: t.periodicita,
             giorni_settimana: t.giorni_settimana || null,
             completato: false, notificato: false
@@ -605,10 +607,6 @@ async function toggleDone(id) {
                 localStorage.setItem('todo_ultimo_mese_' + newTask.id, '1');
             if (newTask && localStorage.getItem('todo_fascia_' + t.id))
                 localStorage.setItem('todo_fascia_' + newTask.id, localStorage.getItem('todo_fascia_' + t.id));
-            if (newTask && localStorage.getItem('todo_rem_anticipo_' + t.id) != null) {
-                localStorage.setItem('todo_rem_anticipo_' + newTask.id, localStorage.getItem('todo_rem_anticipo_' + t.id));
-                localStorage.setItem('todo_rem_ora_' + newTask.id, localStorage.getItem('todo_rem_ora_' + t.id) || '09:00');
-            }
             toast(`✓ Fatto! Prossima: ${formatDate(nextDate)}`);
             await carica();
         }
@@ -664,7 +662,47 @@ function setPrio(p) {
     });
 }
 
-function togglePush() { promemoriaPush = !promemoriaPush; updateNotifyBtns(); }
+const VAPID_PUBLIC_KEY = 'BIyJ8XdT5OaVM9uGh9rgjqMzBNd9q2haLd4k_Ugq7ZvUgZrzmOFmRb8-E0-_vUGHZ1_cGxIz84hakLZJPWgxFQM';
+function _b64ToUint8(b64) {
+    const pad = '='.repeat((4 - b64.length % 4) % 4);
+    const raw = atob((b64 + pad).replace(/-/g, '+').replace(/_/g, '/'));
+    return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+}
+async function assicuraPushSub() {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        toast('Push non supportato su questo browser'); return false;
+    }
+    if (Notification.permission === 'denied') {
+        toast('Notifiche bloccate — abilitale nelle impostazioni browser'); return false;
+    }
+    await navigator.serviceWorker.register('/sw.js');
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+        const perm = await Notification.requestPermission();
+        if (perm !== 'granted') { toast('Permesso notifiche negato'); return false; }
+        sub = await reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: _b64ToUint8(VAPID_PUBLIC_KEY)
+        });
+        await fetch('/api/subscribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: userEmail, subscription: sub.toJSON() })
+        }).catch(() => {});
+    }
+    return true;
+}
+async function togglePush() {
+    if (!promemoriaPush) {
+        const ok = await assicuraPushSub();
+        if (!ok) return;
+        promemoriaPush = true;
+    } else {
+        promemoriaPush = false;
+    }
+    updateNotifyBtns();
+}
 function toggleMail() { promemoriaMail = !promemoriaMail; updateNotifyBtns(); }
 function updateNotifyBtns() {
     document.getElementById('btnPush').className = 'notify-btn' + (promemoriaPush ? ' active' : '');
@@ -679,16 +717,21 @@ function renderReminder() {
     el.style.display = show ? '' : 'none';
     if (!show) return;
     document.getElementById('remAnticipoRow').innerHTML = REM_OPTIONS.map(o =>
-        `<button type="button" class="period-pill${remAnticipo === o ? ' active' : ''}" onclick="setRemAnticipo(${o})">${REM_LABELS[o]}</button>`
+        `<button type="button" class="period-pill${remAnticipi.includes(o) ? ' active' : ''}" onclick="toggleRemAnticipo(${o})">${REM_LABELS[o]}</button>`
     ).join('');
     document.getElementById('remOraInput').value = remOra;
     aggiornaPrevReminder();
 }
 
-function setRemAnticipo(val) {
-    remAnticipo = val;
+function toggleRemAnticipo(val) {
+    const idx = remAnticipi.indexOf(val);
+    if (idx >= 0) {
+        if (remAnticipi.length > 1) remAnticipi.splice(idx, 1);
+    } else {
+        remAnticipi.push(val);
+    }
     document.getElementById('remAnticipoRow').innerHTML = REM_OPTIONS.map(o =>
-        `<button type="button" class="period-pill${remAnticipo === o ? ' active' : ''}" onclick="setRemAnticipo(${o})">${REM_LABELS[o]}</button>`
+        `<button type="button" class="period-pill${remAnticipi.includes(o) ? ' active' : ''}" onclick="toggleRemAnticipo(${o})">${REM_LABELS[o]}</button>`
     ).join('');
     aggiornaPrevReminder();
 }
@@ -702,18 +745,17 @@ function aggiornaPrevReminder() {
     const prevEl = document.getElementById('remPreview');
     if (!prevEl) return;
     const ora = remOra || '09:00';
-    if (periodicita === 'settimanale' && giorniSettimana.length > 0 && remAnticipo > 0) {
-        const nomi = [...new Set(giorniSettimana.map(d => DOW_FULL[((d - remAnticipo) % 7 + 7) % 7]))];
-        prevEl.textContent = `🔔 Notifica ${nomi.join('/')} alle ${ora}`;
-    } else if (periodicita === 'giornaliera' && remAnticipo === 0) {
-        prevEl.textContent = `🔔 Notifica ogni giorno alle ${ora}`;
-    } else if (remAnticipo === 0) {
-        prevEl.textContent = `🔔 Notifica il giorno stesso alle ${ora}`;
-    } else if (remAnticipo === 7) {
-        prevEl.textContent = `🔔 Notifica 1 settimana prima alle ${ora}`;
-    } else {
-        prevEl.textContent = `🔔 Notifica ${remAnticipo} giorn${remAnticipo > 1 ? 'i' : 'o'} prima alle ${ora}`;
-    }
+    const sorted = [...remAnticipi].sort((a, b) => b - a);
+    const labels = sorted.map(a => {
+        if (periodicita === 'settimanale' && giorniSettimana.length > 0 && a > 0) {
+            const nomi = [...new Set(giorniSettimana.map(d => DOW_FULL[((d - a) % 7 + 7) % 7]))];
+            return nomi.join('/');
+        }
+        if (a === 0) return periodicita === 'giornaliera' ? 'ogni giorno' : 'il giorno stesso';
+        if (a === 7) return '1 settimana prima';
+        return `${a} giorn${a > 1 ? 'i' : 'o'} prima`;
+    });
+    prevEl.textContent = `🔔 Notifica ${labels.join(' e ')} alle ${ora}`;
 }
 
 // ── Gestione categorie ────────────────────────────────────────────
@@ -847,7 +889,7 @@ function apriModale() {
     catSelezionata = 'Generale';
     ultimoGiornoMese = false;
     promemoriaPush = false; promemoriaMail = false;
-    remAnticipo = 1; remOra = '09:00';
+    remAnticipi = [1]; remOra = '09:00';
     giorniSettimana = []; fasciaCorrente = null; setPrio('media'); updateNotifyBtns(); setPeriod(null); aggiornaSezData(); renderDowBtns(); renderFasciaBtns(); renderUltimoGiornoBtns(); renderCatSelect();
     document.getElementById('modale').classList.add('open');
 }
@@ -865,8 +907,8 @@ function apriModifica(id) {
     catSelezionata = t.categoria || 'Generale';
     promemoriaPush = !!t.promemoria_push;
     promemoriaMail = !!t.promemoria_email;
-    remAnticipo = parseInt(localStorage.getItem('todo_rem_anticipo_' + id) ?? '1');
-    remOra = localStorage.getItem('todo_rem_ora_' + id) || '09:00';
+    remAnticipi = t.rem_anticipi ? t.rem_anticipi.split(',').map(Number) : [1];
+    remOra = t.rem_ora || '09:00';
     periodicita = t.periodicita || null;
     giorniSettimana = t.giorni_settimana ? t.giorni_settimana.split(',').map(Number) : [];
     fasciaCorrente = localStorage.getItem('todo_fascia_' + id) || null;
@@ -887,8 +929,11 @@ async function salva() {
         scadenza, ora,
         categoria: catSelezionata || 'Generale',
         priorita: prioCorrente,
-        promemoria_push:  scadenza ? promemoriaPush : false,
-        promemoria_email: scadenza ? promemoriaMail : false,
+        promemoria_push:  (scadenza || periodicita) ? promemoriaPush : false,
+        promemoria_email: (scadenza || periodicita) ? promemoriaMail : false,
+        rem_anticipi: (scadenza || periodicita) && (promemoriaPush || promemoriaMail) ? remAnticipi.join(',') : null,
+        rem_ora:      (scadenza || periodicita) && (promemoriaPush || promemoriaMail) ? (remOra || '09:00') : null,
+        rem_inviati:  null,
         periodicita: periodicita,
         giorni_settimana: (periodicita === 'settimanale' && giorniSettimana.length) ? [...giorniSettimana].sort((a,b)=>a-b).join(',') : null,
         notificato: false,
@@ -910,13 +955,6 @@ async function salva() {
         else localStorage.removeItem('todo_fascia_' + savedId);
         if (periodicita === 'mensile' && ultimoGiornoMese) localStorage.setItem('todo_ultimo_mese_' + savedId, '1');
         else localStorage.removeItem('todo_ultimo_mese_' + savedId);
-        if (promemoriaPush || promemoriaMail) {
-            localStorage.setItem('todo_rem_anticipo_' + savedId, String(remAnticipo));
-            localStorage.setItem('todo_rem_ora_' + savedId, remOra || '09:00');
-        } else {
-            localStorage.removeItem('todo_rem_anticipo_' + savedId);
-            localStorage.removeItem('todo_rem_ora_' + savedId);
-        }
     }
     document.getElementById('modale').classList.remove('open');
     await carica();
