@@ -829,13 +829,16 @@ function aggiornaWaCharCount() {
     const el = document.getElementById('waCharCount');
     if (el) el.textContent = ta.value.length ? ta.value.length + ' car.' : '';
 }
-function apriWa(id) {
+async function apriWa(id) {
     const t = tasks.find(x => x.id === id);
     if (!t || !t.wa_messaggio) return;
+    // Copia il messaggio negli appunti — wa.me ignora ?text= su molti dispositivi
+    try { await navigator.clipboard.writeText(t.wa_messaggio); } catch (e) {}
     const msg = encodeURIComponent(t.wa_messaggio);
-    const num = t.wa_numero ? t.wa_numero.replace(/[\s\-().+]/g, '').replace(/^00/, '') : '';
+    const num = t.wa_numero ? t.wa_numero.replace(/[\s\-\s().+]/g, '').replace(/^00/, '') : '';
     const url = num ? `https://wa.me/${num}?text=${msg}` : `https://wa.me/?text=${msg}`;
-    window.open(url, '_blank');
+    toast('📋 Messaggio copiato — incollalo su WhatsApp');
+    setTimeout(() => window.open(url, '_blank'), 400);
 }
 function updateNotifyBtns() {
     document.getElementById('btnPush').className = 'notify-btn' + (promemoriaPush ? ' active' : '');
