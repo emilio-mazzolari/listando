@@ -164,6 +164,9 @@
         .btn-wa-send { display: inline-flex; align-items: center; gap: 8px; padding: 11px 20px; border-radius: 12px; border: none; background: #25D366; color: white; font-weight: 800; font-size: 15px; cursor: pointer; text-decoration: none; font-family: inherit; margin-top: 10px; width: 100%; justify-content: center; box-sizing: border-box; }
         .btn-wa-send svg { width: 18px; height: 18px; fill: white; flex-shrink: 0; }
         .wa-badge { display: inline-flex; align-items: center; gap: 3px; padding: 3px 8px; border-radius: 8px; background: rgba(37,211,102,0.12); color: #128C7E; font-size: 11px; font-weight: 700; }
+        .wa-dest-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+        .wa-dest-chip { display: inline-flex; align-items: center; gap: 5px; padding: 6px 10px 6px 12px; border-radius: 20px; background: rgba(37,211,102,0.1); border: 1.5px solid rgba(37,211,102,0.35); color: #128C7E; font-size: 13px; font-weight: 700; }
+        .wa-dest-chip button { background: none; border: none; font-size: 16px; cursor: pointer; padding: 0; color: #128C7E; line-height: 1; opacity: 0.55; margin-left: 2px; }
     </style>
 </head>
 <body>
@@ -213,29 +216,21 @@
         <!-- WA composer -->
         <div id="sezWa" style="display:none">
             <div class="form-group">
-                <label class="form-label">Destinatario (opzionale)</label>
-                <!-- tipo dest toggle -->
-                <div style="display:flex;gap:6px;margin-bottom:10px">
-                    <button type="button" id="waDestPersona" onclick="setWaDest('persona')"
-                        style="flex:1;padding:9px 6px;border-radius:12px;border:2.5px solid #25D366;background:rgba(37,211,102,0.09);color:#128C7E;font-weight:800;font-size:12px;cursor:pointer;font-family:inherit">
-                        👤 Persona
-                    </button>
-                    <button type="button" id="waDestGruppo" onclick="setWaDest('gruppo')"
-                        style="flex:1;padding:9px 6px;border-radius:12px;border:2.5px solid var(--grey);background:white;color:#999;font-weight:800;font-size:12px;cursor:pointer;font-family:inherit">
-                        👥 Gruppo
-                    </button>
-                </div>
-                <!-- persona: tel + rubrica -->
-                <div id="waDestPersonaWrap" style="display:flex;gap:8px;align-items:center">
-                    <input class="form-input" id="waNumeroInput" type="tel" placeholder="+39 333 1234567" inputmode="tel" style="flex:1;margin:0">
-                    <button type="button" id="btnRubrica" onclick="apriRubrica()" title="Scegli dalla rubrica"
-                        style="flex-shrink:0;padding:13px 16px;border-radius:14px;border:2.5px solid var(--grey);background:white;font-size:20px;cursor:pointer;line-height:1;display:none">
+                <label class="form-label">Destinatari (opzionale)</label>
+                <div id="waDestinatariChips" class="wa-dest-chips"></div>
+                <div style="display:flex;gap:8px;align-items:center">
+                    <input class="form-input" id="waDestInput" type="text"
+                        placeholder="Nome, gruppo o +39 333…"
+                        style="flex:1;margin:0"
+                        onkeydown="if(event.key==='Enter'){event.preventDefault();aggiungiWaDest();}">
+                    <button type="button" id="btnRubrica" onclick="apriRubrica()" title="Rubrica"
+                        style="flex-shrink:0;padding:13px 14px;border-radius:14px;border:2.5px solid var(--grey);background:white;font-size:20px;cursor:pointer;line-height:1;display:none">
                         📒
                     </button>
-                </div>
-                <!-- gruppo: nome -->
-                <div id="waDestGruppoWrap" style="display:none">
-                    <input class="form-input" id="waGruppoInput" type="text" placeholder="Nome del gruppo WA" style="margin:0">
+                    <button type="button" onclick="aggiungiWaDest()"
+                        style="flex-shrink:0;padding:13px 16px;border-radius:14px;border:2.5px solid #25D366;background:#25D366;color:white;font-weight:900;font-size:18px;cursor:pointer;line-height:1">
+                        +
+                    </button>
                 </div>
             </div>
             <div class="form-group">
@@ -661,8 +656,8 @@ function render() {
         const isWa = t.tipo === 'wa';
         const waMsgPreview = isWa && t.wa_messaggio ? `<div class="task-note">${t.wa_messaggio.substring(0, 60)}${t.wa_messaggio.length > 60 ? '…' : ''}</div>` : '';
         const waBtn = isWa && !t.completato ? `<button class="btn-wa-send" onclick="event.stopPropagation(); apriWa(${t.id})"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>Invia</button>` : '';
-        const isWaGruppo = isWa && t.wa_numero && t.wa_numero.startsWith('G:');
-        const waBadge = isWa ? `<span class="wa-badge">${isWaGruppo ? '👥 ' + t.wa_numero.slice(2) : '💬 WA'}</span>` : '';
+        const waDest = isWa && t.wa_numero ? t.wa_numero.split(',').map(s => s.trim()).filter(Boolean) : [];
+        const waBadge = isWa ? `<span class="wa-badge">💬 WA${waDest.length ? ' · ' + waDest.length + ' dest.' : ''}</span>` : '';
         return `<div class="task-card ${t.priorita}${t.completato ? ' done' : ''}" onclick="apriModifica(${t.id})">
             <div class="task-check${t.completato ? ' done' : ''}" onclick="event.stopPropagation(); toggleDone(${t.id})">${t.completato ? '✓' : ''}</div>
             <div class="task-body">
@@ -827,7 +822,7 @@ function setTipo(tipo) {
 
 // ── WA emoji picker ────────────────────────────────────────────────
 let waEmojiPickerOpen = false;
-let waDestTipo = 'persona';
+let waDestinatari = [];  // array di stringhe: numeri tel o "G:NomeGruppo"
 let waCatAttiva = Object.keys(WA_EMOJIS)[0];
 const WA_CAT_ICONS = {'Visi felici':'😀','Visi tristi':'😢','Visi speciali':'🎭','Mani':'👋','Persone':'🧑','Cuori':'❤️','Celebrazioni':'🎉','Animali':'🐶','Piante':'🌸','Cielo & Meteo':'☀️','Cibo':'🍕','Bevande':'☕','Viaggi':'✈️','Attività':'⚽','Oggetti':'📱','Simboli':'✅'};
 
@@ -881,32 +876,42 @@ if ('contacts' in navigator && 'ContactsManager' in window) {
     if (btn) btn.style.display = '';
 }
 
-function setWaDest(tipo) {
-    waDestTipo = tipo;
-    const isGruppo = tipo === 'gruppo';
-    document.getElementById('waDestPersonaWrap').style.display = isGruppo ? 'none' : '';
-    document.getElementById('waDestGruppoWrap').style.display  = isGruppo ? '' : 'none';
-    function styleBtn(btn, active) {
-        btn.style.borderColor  = active ? '#25D366' : '';
-        btn.style.background   = active ? 'rgba(37,211,102,0.09)' : '';
-        btn.style.color        = active ? '#128C7E' : '';
-    }
-    styleBtn(document.getElementById('waDestPersona'), !isGruppo);
-    styleBtn(document.getElementById('waDestGruppo'),   isGruppo);
+function renderWaChips() {
+    const wrap = document.getElementById('waDestinatariChips');
+    if (!wrap) return;
+    wrap.innerHTML = waDestinatari.map((d, i) => {
+        const isGruppo = d.startsWith('G:');
+        const label = isGruppo ? '👥 ' + d.slice(2) : '👤 ' + d;
+        return `<span class="wa-dest-chip">${label}<button type="button" onclick="rimuoviWaDest(${i})">×</button></span>`;
+    }).join('');
+}
+
+function aggiungiWaDest() {
+    const input = document.getElementById('waDestInput');
+    const val = input.value.trim();
+    if (!val) return;
+    const isNumero = /^[+\d]/.test(val);
+    waDestinatari.push(isNumero ? val : 'G:' + val);
+    input.value = '';
+    renderWaChips();
+}
+
+function rimuoviWaDest(i) {
+    waDestinatari.splice(i, 1);
+    renderWaChips();
 }
 
 async function apriRubrica() {
     if (!('contacts' in navigator)) { toast('Rubrica non supportata su questo browser'); return; }
     try {
-        const results = await navigator.contacts.select(['name', 'tel'], { multiple: false });
+        const results = await navigator.contacts.select(['name', 'tel'], { multiple: true });
         if (!results || !results.length) return;
-        const c = results[0];
-        const tel = (c.tel || []).find(t => t) || '';
-        if (tel) {
-            document.getElementById('waNumeroInput').value = tel.trim();
-        } else {
-            toast('Nessun numero trovato per questo contatto');
+        for (const c of results) {
+            const tel = (c.tel || []).find(t => t);
+            if (tel) waDestinatari.push(tel.trim());
+            else if (c.name?.[0]) waDestinatari.push('G:' + c.name[0]);
         }
+        renderWaChips();
     } catch (e) {
         if (e.name !== 'AbortError') toast('Impossibile accedere alla rubrica');
     }
@@ -925,17 +930,21 @@ async function apriWa(id) {
     const t = tasks.find(x => x.id === id);
     if (!t || !t.wa_messaggio) return;
     try { await navigator.clipboard.writeText(t.wa_messaggio); } catch (e) {}
-    const isGruppo = t.wa_numero && t.wa_numero.startsWith('G:');
-    if (isGruppo) {
-        const nomeGruppo = t.wa_numero.slice(2);
-        toast(`📋 Messaggio copiato — apri il gruppo "${nomeGruppo}" e incolla`);
+    const destinatari = (t.wa_numero || '').split(',').map(s => s.trim()).filter(Boolean);
+    const numeri = destinatari.filter(d => !d.startsWith('G:'));
+    const gruppi = destinatari.filter(d => d.startsWith('G:')).map(d => d.slice(2));
+    if (destinatari.length === 0) {
+        toast('📋 Messaggio copiato — incollalo su WhatsApp');
         setTimeout(() => window.open('https://wa.me', '_blank'), 400);
-    } else {
-        const msg = encodeURIComponent(t.wa_messaggio);
-        const num = t.wa_numero ? t.wa_numero.replace(/[\s\-()+.]/g, '').replace(/^00/, '') : '';
-        const url = num ? `https://wa.me/${num}?text=${msg}` : `https://wa.me/?text=${msg}`;
+    } else if (numeri.length === 1 && gruppi.length === 0) {
+        const num = numeri[0].replace(/[\s\-()+.]/g, '').replace(/^00/, '');
+        const url = `https://wa.me/${num}?text=${encodeURIComponent(t.wa_messaggio)}`;
         toast('📋 Messaggio copiato — incollalo su WhatsApp');
         setTimeout(() => window.open(url, '_blank'), 400);
+    } else {
+        const lista = [...numeri, ...gruppi.map(g => '👥 ' + g)].join(', ');
+        toast(`📋 Copiato — invia a: ${lista}`);
+        setTimeout(() => window.open('https://wa.me', '_blank'), 400);
     }
 }
 function updateNotifyBtns() {
@@ -1125,9 +1134,8 @@ function apriModale() {
     promemoriaPush = false; promemoriaMail = false;
     remAnticipi = [1]; remOra = '09:00';
     taskTipo = 'task'; setTipo('task');
-    document.getElementById('waNumeroInput').value = '';
-    document.getElementById('waGruppoInput').value = '';
-    setWaDest('persona');
+    waDestinatari = []; renderWaChips();
+    document.getElementById('waDestInput').value = '';
     document.getElementById('waMsgInput').value = '';
     waEmojiPickerOpen = false;
     document.getElementById('waEmojiPicker').style.display = 'none';
@@ -1152,10 +1160,9 @@ function apriModifica(id) {
     remAnticipi = t.rem_anticipi ? t.rem_anticipi.split(',').map(Number) : [1];
     remOra = t.rem_ora || '09:00';
     taskTipo = t.tipo || 'task'; setTipo(taskTipo);
-    const isGruppoSaved = t.wa_numero && t.wa_numero.startsWith('G:');
-    setWaDest(isGruppoSaved ? 'gruppo' : 'persona');
-    document.getElementById('waNumeroInput').value = isGruppoSaved ? '' : (t.wa_numero || '');
-    document.getElementById('waGruppoInput').value = isGruppoSaved ? t.wa_numero.slice(2) : '';
+    waDestinatari = t.wa_numero ? t.wa_numero.split(',').map(s => s.trim()).filter(Boolean) : [];
+    renderWaChips();
+    document.getElementById('waDestInput').value = '';
     document.getElementById('waMsgInput').value = t.wa_messaggio || '';
     waEmojiPickerOpen = false;
     document.getElementById('waEmojiPicker').style.display = 'none';
@@ -1181,10 +1188,7 @@ async function salva() {
         categoria: catSelezionata || 'Generale',
         priorita: prioCorrente,
         tipo: taskTipo,
-        wa_numero:    taskTipo === 'wa' ? (waDestTipo === 'gruppo'
-            ? (document.getElementById('waGruppoInput').value.trim() ? 'G:' + document.getElementById('waGruppoInput').value.trim() : null)
-            : (document.getElementById('waNumeroInput').value.trim() || null)
-        ) : null,
+        wa_numero:    taskTipo === 'wa' ? (waDestinatari.join(',') || null) : null,
         wa_messaggio: taskTipo === 'wa' ? (document.getElementById('waMsgInput').value.trim() || null) : null,
         promemoria_push:  (scadenza || periodicita) ? promemoriaPush : false,
         promemoria_email: (scadenza || periodicita) ? promemoriaMail : false,
