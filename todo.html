@@ -139,10 +139,11 @@
         .tipo-btn.wa.active { border-color: #25D366; background: rgba(37,211,102,0.09); color: #128C7E; }
         .tipo-btn.task.active { border-color: var(--teal); background: rgba(48,176,199,0.08); color: var(--teal); }
         .wa-compose-wrap { position: relative; }
-        .wa-msg-textarea { width: 100%; padding: 12px 14px 44px; border-radius: 14px; border: 2.5px solid var(--grey); font-size: 15px; font-family: inherit; outline: none; transition: border-color 0.2s; resize: none; min-height: 110px; line-height: 1.6; }
+        .wa-msg-textarea { width: 100%; padding: 12px 14px 28px; border-radius: 14px; border: 2.5px solid var(--grey); font-size: 15px; font-family: inherit; outline: none; transition: border-color 0.2s; resize: none; min-height: 110px; line-height: 1.6; }
         .wa-msg-textarea:focus { border-color: #25D366; }
-        .wa-emoji-trigger { position: absolute; bottom: 8px; left: 10px; background: none; border: none; font-size: 22px; cursor: pointer; padding: 4px 6px; border-radius: 8px; line-height: 1; }
+        .wa-emoji-trigger { background: none; border: none; font-size: 22px; cursor: pointer; padding: 2px 4px; border-radius: 8px; line-height: 1; }
         .wa-emoji-trigger:active { background: var(--grey-light); }
+        .wa-label-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
         .wa-char-count { position: absolute; bottom: 12px; right: 12px; font-size: 11px; font-weight: 700; color: #bbb; }
         .wa-emoji-picker { background: white; border: 2px solid var(--grey); border-radius: 16px; padding: 10px 8px; margin-top: 6px; box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
         .wa-emoji-tabs { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; padding-bottom: 8px; border-bottom: 1.5px solid var(--grey-light); margin-bottom: 8px; }
@@ -210,10 +211,12 @@
                 <input class="form-input" id="waNumeroInput" type="tel" placeholder="+39 333 1234567" inputmode="tel">
             </div>
             <div class="form-group">
-                <label class="form-label">Messaggio</label>
+                <div class="wa-label-row">
+                    <label class="form-label" style="margin:0">Messaggio</label>
+                    <button type="button" class="wa-emoji-trigger" onclick="toggleWaEmojiPicker()" title="Emoticon">😊</button>
+                </div>
                 <div class="wa-compose-wrap">
                     <textarea id="waMsgInput" class="wa-msg-textarea" placeholder="Scrivi il messaggio qui…" spellcheck="true" lang="it" rows="4" oninput="aggiornaWaCharCount()"></textarea>
-                    <button type="button" class="wa-emoji-trigger" onclick="toggleWaEmojiPicker()">😊</button>
                     <span class="wa-char-count" id="waCharCount"></span>
                 </div>
                 <div id="waEmojiPicker" class="wa-emoji-picker" style="display:none"></div>
