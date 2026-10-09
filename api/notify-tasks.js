@@ -2,10 +2,18 @@ const webpush = require('web-push');
 const { createClient } = require('@supabase/supabase-js');
 
 const SUPABASE_URL = 'https://eejdpophfxsrqdvsucye.supabase.co';
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 const RESEND_KEY = process.env.RESEND_API_KEY;
 
-const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+// Lazy init: createClient lancia se la key è undefined (romperebbe il modulo)
+let _sb;
+function getSb() {
+    if (!_sb) {
+        const key = process.env.SUPABASE_SERVICE_KEY;
+        if (!key) throw new Error('SUPABASE_SERVICE_KEY non configurata');
+        _sb = createClient(SUPABASE_URL, key, { auth: { persistSession: false } });
+    }
+    return _sb;
+}
 
 webpush.setVapidDetails(
     'mailto:emilio.mazzolari@gmail.com',
@@ -30,11 +38,12 @@ function getRomeTime() {
     return {
         date: `${get('year')}-${get('month')}-${get('day')}`,
         totalMins: hh * 60 + mm,
-        dow: romeDate.getDay()
+        dow: romeDate.getDay(),
+        romeDate   // restituito per usarlo nel loop checkDates
     };
 }
 
-async function sendPush(sub, payload) {
+async function sendPush(sb, sub, payload) {
     try {
         await webpush.sendNotification(
             { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
@@ -55,7 +64,10 @@ module.exports = async function handler(req, res) {
         return res.status(401).end();
     }
 
-    const { date, totalMins, dow } = getRomeTime();
+    let sb;
+    try { sb = getSb(); } catch (e) { return res.status(500).json({ error: e.message }); }
+
+    const { date, totalMins, dow, romeDate } = getRomeTime();
     const windowEnd = totalMins + 65;
 
     // ── Reset notificato at midnight for recurring tasks (scadenza=null) ──
@@ -161,7 +173,7 @@ module.exports = async function handler(req, res) {
         });
         if (task.promemoria_push) {
             for (const sub of (subsByEmail[task.email_utente] || [])) {
-                if (await sendPush(sub, payload)) sent++;
+                if (await sendPush(sb, sub, payload)) sent++;
             }
         }
         if (task.promemoria_email && RESEND_KEY) {
