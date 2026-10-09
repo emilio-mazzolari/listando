@@ -306,7 +306,10 @@ async function loginManuale() {
 
     const { error } = await supabaseClient.auth.signInWithOtp({
         email,
-        options: { shouldCreateUser: true }
+        options: {
+            shouldCreateUser: true,
+            emailRedirectTo: 'https://listando.it/login.html'
+        }
     });
 
     if (error) {
