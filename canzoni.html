@@ -187,10 +187,11 @@
     </div>
     <div style="padding: 0 16px 12px; display:flex; align-items:center; gap:14px">
         <div class="playlist-cover" style="width:80px;height:80px;border-radius:12px;font-size:28px;flex-shrink:0" id="plDetailCover">🎵</div>
-        <div>
+        <div style="flex:1;min-width:0">
             <div id="plDetailName" style="font-weight:900;font-size:20px"></div>
             <div id="plDetailCount" style="font-size:13px;color:#888;font-weight:600;margin-top:4px"></div>
         </div>
+        <button onclick="modificaPlaylistCorrente()" style="flex-shrink:0;padding:8px 14px;border-radius:12px;border:2px solid var(--grey);background:none;font-size:13px;font-weight:800;cursor:pointer;color:var(--dark);font-family:inherit">✏️ Modifica</button>
     </div>
     <div id="playlistSongsList"></div>
 </div>
@@ -514,6 +515,16 @@ function apriNuovaPlaylist() {
     document.getElementById('modalePlaylist').classList.add('open');
 }
 
+function modificaPlaylistCorrente() {
+    const pl = playlists.find(p => p.id === currentPlaylistId);
+    if (!pl) return;
+    editPlaylistId = pl.id;
+    document.getElementById('plModalTitle').textContent = 'Modifica raccolta';
+    document.getElementById('plNome').value = pl.nome;
+    document.getElementById('btnElPlaylist').style.display = '';
+    document.getElementById('modalePlaylist').classList.add('open');
+}
+
 async function salvaPlaylist() {
     const nome = document.getElementById('plNome').value.trim();
     if (!nome) { toast('Inserisci il nome'); return; }
@@ -533,6 +544,7 @@ async function eliminaPlaylist() {
     if (!editPlaylistId || !confirm('Eliminare la raccolta? Le canzoni rimarranno.')) return;
     await sb.from('canzoni_playlist').delete().eq('id', editPlaylistId);
     document.getElementById('modalePlaylist').classList.remove('open');
+    tornaAlMain();
     toast('Raccolta eliminata');
     await carica();
 }
