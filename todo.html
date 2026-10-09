@@ -69,6 +69,8 @@
         .task-card.media { border-left-color: var(--media); }
         .task-card.bassa { border-left-color: var(--bassa); }
         .task-card.done { opacity: 0.45; }
+        .btn-copia-task { flex-shrink: 0; background: none; border: none; font-size: 16px; cursor: pointer; padding: 4px 2px; opacity: 0.35; transition: opacity 0.15s; line-height: 1; }
+        .btn-copia-task:active { opacity: 1; }
 
         .task-check {
             width: 24px; height: 24px; border-radius: 8px; border: 2.5px solid var(--grey);
@@ -659,6 +661,7 @@ function render() {
         const waBtn = isWa && !t.completato ? `<button class="btn-wa-send" onclick="event.stopPropagation(); apriWa(${t.id})">📤 Invia WA</button>` : '';
         const isWaGruppo = isWa && t.wa_numero && t.wa_numero.startsWith('G:');
         const waBadge = isWa ? `<span class="wa-badge">${isWaGruppo ? '👥 ' + t.wa_numero.slice(2) : '💬 WA'}</span>` : '';
+        const testoCopiabile = [t.titolo, t.note].filter(Boolean).join('\n');
         return `<div class="task-card ${t.priorita}${t.completato ? ' done' : ''}" onclick="apriModifica(${t.id})">
             <div class="task-check${t.completato ? ' done' : ''}" onclick="event.stopPropagation(); toggleDone(${t.id})">${t.completato ? '✓' : ''}</div>
             <div class="task-body">
@@ -667,6 +670,7 @@ function render() {
                 <div class="task-meta">${waBadge}${scadHtml}</div>
             </div>
             ${waBtn}
+            <button class="btn-copia-task" onclick="event.stopPropagation(); copiaTask(${JSON.stringify(testoCopiabile).replace(/'/g, '\\x27')})" title="Copia">⎘</button>
         </div>`;
     };
 
@@ -905,6 +909,15 @@ async function apriRubrica() {
         }
     } catch (e) {
         if (e.name !== 'AbortError') toast('Impossibile accedere alla rubrica');
+    }
+}
+
+async function copiaTask(testo) {
+    try {
+        await navigator.clipboard.writeText(testo);
+        toast('📋 Copiato');
+    } catch (e) {
+        toast('Copia non supportata');
     }
 }
 
