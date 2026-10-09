@@ -210,7 +210,13 @@
         <div id="sezWa" style="display:none">
             <div class="form-group">
                 <label class="form-label">Numero destinatario (opzionale)</label>
-                <input class="form-input" id="waNumeroInput" type="tel" placeholder="+39 333 1234567" inputmode="tel">
+                <div style="display:flex;gap:8px;align-items:center">
+                    <input class="form-input" id="waNumeroInput" type="tel" placeholder="+39 333 1234567" inputmode="tel" style="flex:1;margin:0">
+                    <button type="button" id="btnRubrica" onclick="apriRubrica()" title="Scegli dalla rubrica"
+                        style="flex-shrink:0;padding:13px 16px;border-radius:14px;border:2.5px solid var(--grey);background:white;font-size:20px;cursor:pointer;line-height:1;display:none">
+                        📒
+                    </button>
+                </div>
             </div>
             <div class="form-group">
                 <div class="wa-label-row">
@@ -847,6 +853,29 @@ function aggiornaWaCharCount() {
         .replace(/\*([^*\n]+)\*/g, '<strong>$1</strong>')
         .replace(/\n/g, '<br>');
 }
+// Mostra il pulsante rubrica solo se l'API è supportata
+if ('contacts' in navigator && 'ContactsManager' in window) {
+    const btn = document.getElementById('btnRubrica');
+    if (btn) btn.style.display = '';
+}
+
+async function apriRubrica() {
+    if (!('contacts' in navigator)) { toast('Rubrica non supportata su questo browser'); return; }
+    try {
+        const results = await navigator.contacts.select(['name', 'tel'], { multiple: false });
+        if (!results || !results.length) return;
+        const c = results[0];
+        const tel = (c.tel || []).find(t => t) || '';
+        if (tel) {
+            document.getElementById('waNumeroInput').value = tel.trim();
+        } else {
+            toast('Nessun numero trovato per questo contatto');
+        }
+    } catch (e) {
+        if (e.name !== 'AbortError') toast('Impossibile accedere alla rubrica');
+    }
+}
+
 async function apriWa(id) {
     const t = tasks.find(x => x.id === id);
     if (!t || !t.wa_messaggio) return;
