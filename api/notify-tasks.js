@@ -162,7 +162,8 @@ module.exports = async function handler(req, res) {
     });
 
     const totalDue = dateDue.length + weeklyDue.length + dailyDue.length;
-    if (!totalDue) return res.json({ sent: 0 });
+    const debug = { totalMins, windowEnd, date, dow, subs: Object.keys(subsByEmail), vapidOk: !!process.env.VAPID_PRIVATE_KEY };
+    if (!totalDue) return res.json({ sent: 0, ...debug });
 
     async function notifica(task, timeStr) {
         let sent = 0;
