@@ -69,7 +69,8 @@
         .task-card.media { border-left-color: var(--media); }
         .task-card.bassa { border-left-color: var(--bassa); }
         .task-card.done { opacity: 0.45; }
-        .btn-copia-task { flex-shrink: 0; background: none; border: none; font-size: 16px; cursor: pointer; padding: 4px 2px; opacity: 0.35; transition: opacity 0.15s; line-height: 1; }
+        .task-title-row { display: flex; align-items: flex-start; gap: 6px; }
+        .btn-copia-task { background: none; border: none; font-size: 20px; cursor: pointer; padding: 0 2px; opacity: 0.3; transition: opacity 0.15s; line-height: 1; flex-shrink: 0; margin-top: 1px; }
         .btn-copia-task:active { opacity: 1; }
 
         .task-check {
@@ -160,8 +161,8 @@
         .wa-emoji-row { display: flex; flex-wrap: wrap; gap: 2px; }
         .wa-emoji-item { background: none; border: none; font-size: 22px; cursor: pointer; padding: 4px 5px; border-radius: 8px; transition: background 0.1s; line-height: 1; }
         .wa-emoji-item:active { background: var(--grey-light); }
-        .btn-wa-send { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 10px; border: none; background: #25D366; color: white; font-weight: 800; font-size: 12px; cursor: pointer; text-decoration: none; font-family: inherit; flex-shrink: 0; }
-        .btn-wa-send svg { width: 15px; height: 15px; fill: white; flex-shrink: 0; }
+        .btn-wa-send { display: inline-flex; align-items: center; gap: 8px; padding: 11px 20px; border-radius: 12px; border: none; background: #25D366; color: white; font-weight: 800; font-size: 15px; cursor: pointer; text-decoration: none; font-family: inherit; margin-top: 10px; width: 100%; justify-content: center; box-sizing: border-box; }
+        .btn-wa-send svg { width: 18px; height: 18px; fill: white; flex-shrink: 0; }
         .wa-badge { display: inline-flex; align-items: center; gap: 3px; padding: 3px 8px; border-radius: 8px; background: rgba(37,211,102,0.12); color: #128C7E; font-size: 11px; font-weight: 700; }
     </style>
 </head>
@@ -663,15 +664,18 @@ function render() {
         const isWaGruppo = isWa && t.wa_numero && t.wa_numero.startsWith('G:');
         const waBadge = isWa ? `<span class="wa-badge">${isWaGruppo ? '👥 ' + t.wa_numero.slice(2) : '💬 WA'}</span>` : '';
         const testoCopiabile = [t.titolo, t.note].filter(Boolean).join('\n');
+        const copyBtn = `<button class="btn-copia-task" onclick="event.stopPropagation(); copiaTask(${JSON.stringify(testoCopiabile).replace(/'/g, '\\x27')})" title="Copia">📋</button>`;
         return `<div class="task-card ${t.priorita}${t.completato ? ' done' : ''}" onclick="apriModifica(${t.id})">
             <div class="task-check${t.completato ? ' done' : ''}" onclick="event.stopPropagation(); toggleDone(${t.id})">${t.completato ? '✓' : ''}</div>
             <div class="task-body">
-                <div class="task-title${t.completato ? ' done' : ''}">${t.titolo}</div>
+                <div class="task-title-row">
+                    <div class="task-title${t.completato ? ' done' : ''}" style="flex:1">${t.titolo}</div>
+                    ${copyBtn}
+                </div>
                 ${waMsgPreview}
                 <div class="task-meta">${waBadge}${scadHtml}</div>
+                ${waBtn}
             </div>
-            ${waBtn}
-            <button class="btn-copia-task" onclick="event.stopPropagation(); copiaTask(${JSON.stringify(testoCopiabile).replace(/'/g, '\\x27')})" title="Copia">⎘</button>
         </div>`;
     };
 
