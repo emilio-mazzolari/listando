@@ -105,7 +105,10 @@
         .player-controls { display: flex; gap: 4px; align-items: center; }
         .btn-ctrl { width: 40px; height: 40px; border-radius: 50%; border: none; background: none; color: white; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         .btn-ctrl.play-pause { width: 48px; height: 48px; background: var(--music); border-radius: 50%; font-size: 22px; }
-        .btn-speed { height: 32px; padding: 0 10px; border-radius: 10px; border: 1.5px solid rgba(255,255,255,0.35); background: rgba(255,255,255,0.12); color: white; font-weight: 800; font-size: 12px; cursor: pointer; letter-spacing: 0.3px; }
+        .speed-control { display: flex; align-items: center; gap: 0; background: rgba(255,255,255,0.12); border-radius: 10px; overflow: hidden; border: 1.5px solid rgba(255,255,255,0.3); }
+        .btn-speed-step { width: 32px; height: 32px; border: none; background: none; color: white; font-size: 20px; font-weight: 900; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; flex-shrink: 0; }
+        .btn-speed-step:active { background: rgba(255,255,255,0.2); }
+        .speed-val { color: white; font-weight: 900; font-size: 13px; min-width: 36px; text-align: center; letter-spacing: 0.3px; }
         .player-times { display: flex; justify-content: space-between; font-size: 10px; color: rgba(255,255,255,0.5); margin-top: 4px; }
 
         .upload-bar { display: none; position: fixed; top: 0; left: 0; right: 0; background: var(--music); color: white; text-align: center; font-size: 13px; font-weight: 800; padding: 10px; z-index: 9999; }
@@ -252,7 +255,11 @@
             <div class="player-artist" id="playerArtist"></div>
         </div>
         <div class="player-controls">
-            <button class="btn-speed" id="btnSpeed" onclick="cycleSpeed()">1×</button>
+            <div class="speed-control">
+                <button class="btn-speed-step" onclick="changeSpeed(-1)" title="Rallenta">‹</button>
+                <span class="speed-val" id="speedVal">1×</span>
+                <button class="btn-speed-step" onclick="changeSpeed(1)" title="Accelera">›</button>
+            </div>
             <button class="btn-ctrl" onclick="prevSong()">⏮</button>
             <button class="btn-ctrl play-pause" id="btnPlayPause" onclick="togglePlay()">▶</button>
             <button class="btn-ctrl" onclick="nextSong()">⏭</button>
@@ -395,13 +402,12 @@ function togglePlay() {
     if (audio.paused) { audio.play(); document.getElementById('btnPlayPause').textContent = '⏸'; }
     else { audio.pause(); document.getElementById('btnPlayPause').textContent = '▶'; }
 }
-const SPEEDS = [0.75, 1, 1.25, 1.5, 2];
-let speedIdx = 1;
-function cycleSpeed() {
-    speedIdx = (speedIdx + 1) % SPEEDS.length;
-    const s = SPEEDS[speedIdx];
-    audio.playbackRate = s;
-    document.getElementById('btnSpeed').textContent = s + '×';
+let currentSpeed = 1.0;
+function changeSpeed(dir) {
+    currentSpeed = Math.round((currentSpeed + dir * 0.1) * 10) / 10;
+    currentSpeed = Math.max(0.5, Math.min(2.0, currentSpeed));
+    audio.playbackRate = currentSpeed;
+    document.getElementById('speedVal').textContent = currentSpeed.toFixed(1) + '×';
 }
 function nextSong() { queueIdx = (queueIdx + 1) % queue.length; loadAndPlay(); }
 function prevSong() { if (audio.currentTime > 3) { audio.currentTime = 0; return; } queueIdx = (queueIdx - 1 + queue.length) % queue.length; loadAndPlay(); }
