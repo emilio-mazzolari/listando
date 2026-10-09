@@ -139,7 +139,9 @@
         .tipo-btn.wa.active { border-color: #25D366; background: rgba(37,211,102,0.09); color: #128C7E; }
         .tipo-btn.task.active { border-color: var(--teal); background: rgba(48,176,199,0.08); color: var(--teal); }
         .wa-compose-wrap { position: relative; }
-        .wa-msg-textarea { width: 100%; padding: 12px 14px 28px; border-radius: 14px; border: 2.5px solid var(--grey); font-size: 15px; font-family: inherit; outline: none; transition: border-color 0.2s; resize: none; min-height: 110px; line-height: 1.6; }
+        .wa-msg-textarea { width: 100%; padding: 12px 14px 28px; border-radius: 14px; border: 2.5px solid var(--grey); font-size: 15px; font-family: inherit; outline: none; transition: border-color 0.2s; resize: none; min-height: 110px; line-height: 1.6; overflow: hidden; box-sizing: border-box; }
+        .wa-preview { background: #f0fdf4; border: 1.5px solid #d1fae5; border-radius: 12px; padding: 10px 14px; font-size: 15px; line-height: 1.6; color: #111; white-space: pre-wrap; word-break: break-word; margin-top: 8px; }
+        @media (prefers-color-scheme: dark) { .wa-preview { background: #0d2b1a; border-color: #1a4a2e; color: #e8e8ec; } }
         .wa-msg-textarea:focus { border-color: #25D366; }
         .wa-emoji-trigger { background: none; border: none; font-size: 22px; cursor: pointer; padding: 2px 4px; border-radius: 8px; line-height: 1; }
         .wa-emoji-trigger:active { background: var(--grey-light); }
@@ -219,6 +221,7 @@
                     <textarea id="waMsgInput" class="wa-msg-textarea" placeholder="Scrivi il messaggio qui…" spellcheck="true" lang="it" rows="4" oninput="aggiornaWaCharCount()"></textarea>
                     <span class="wa-char-count" id="waCharCount"></span>
                 </div>
+                <div id="waPreview" class="wa-preview" style="display:none"></div>
                 <div id="waEmojiPicker" class="wa-emoji-picker" style="display:none"></div>
             </div>
             <div class="form-section-sep"></div>
@@ -831,6 +834,18 @@ function aggiornaWaCharCount() {
     const ta = document.getElementById('waMsgInput');
     const el = document.getElementById('waCharCount');
     if (el) el.textContent = ta.value.length ? ta.value.length + ' car.' : '';
+    // Auto-resize
+    ta.style.height = 'auto';
+    ta.style.height = Math.max(110, ta.scrollHeight) + 'px';
+    // Bold preview
+    const preview = document.getElementById('waPreview');
+    if (!preview) return;
+    if (!ta.value.trim()) { preview.style.display = 'none'; return; }
+    preview.style.display = '';
+    preview.innerHTML = ta.value
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/\*([^*\n]+)\*/g, '<strong>$1</strong>')
+        .replace(/\n/g, '<br>');
 }
 async function apriWa(id) {
     const t = tasks.find(x => x.id === id);
