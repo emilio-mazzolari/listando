@@ -110,7 +110,7 @@ module.exports = async function handler(req, res) {
     // For each task, find which anticipo(i) fire today
     const dateDue = [];
     for (const t of (dateTasks || [])) {
-        const anticipi = (t.rem_anticipi || '1').split(',').map(Number);
+        const anticipi = (t.rem_anticipi != null && t.rem_anticipi !== '' ? t.rem_anticipi : '0').split(',').map(Number);
         const inviati  = (t.rem_inviati  || '').split(',').map(Number).filter(n => Number.isFinite(n) && n >= 0);
         for (const anticipo of anticipi) {
             if (inviati.includes(anticipo)) continue;
@@ -169,9 +169,50 @@ module.exports = async function handler(req, res) {
         return mins >= totalMins && mins < windowEnd;
     });
 
+    const isDebug = req.query?.debug === '1' || req.body?.debug === '1';
+
     const totalDue = dateDue.length + weeklyDue.length + dailyDue.length;
-    const debug = { totalMins, windowEnd, date, dow, subs: Object.keys(subsByEmail), vapidOk: !!process.env.VAPID_PRIVATE_KEY };
-    if (!totalDue) return res.json({ sent: 0, ...debug });
+    const baseDebug = { totalMins, windowEnd, date, dow, subs: Object.keys(subsByEmail), vapidOk: !!process.env.VAPID_PRIVATE_KEY };
+
+    if (isDebug) {
+        // Return detailed task diagnostics without actually sending
+        const debugDateTasks = (dateTasks || []).map(t => {
+            const anticipi = (t.rem_anticipi != null && t.rem_anticipi !== '' ? t.rem_anticipi : '0').split(',').map(Number);
+            const inviati  = (t.rem_inviati  || '').split(',').map(Number).filter(n => Number.isFinite(n) && n >= 0);
+            const reasons = anticipi.map(a => {
+                if (inviati.includes(a)) return `anticipo=${a}: già_inviato`;
+                const [y, mo, dd] = t.scadenza.split('-').map(Number);
+                const remMs = Date.UTC(y, mo - 1, dd) - a * 86400000;
+                const remDate = new Date(remMs).toISOString().slice(0, 10);
+                if (remDate !== date) return `anticipo=${a}: remDate=${remDate}≠today`;
+                const timeStr = (t.rem_ora || '09:00').substring(0, 5);
+                const [hh, mm] = timeStr.split(':').map(Number);
+                const mins = hh * 60 + mm;
+                if (mins < totalMins) return `anticipo=${a}: ora=${mins}min<finestra(${totalMins})`;
+                if (mins >= windowEnd) return `anticipo=${a}: ora=${mins}min>=finestrafine(${windowEnd})`;
+                return `anticipo=${a}: DOVREBBE_SCATTARE`;
+            });
+            return { id: t.id, titolo: t.titolo, scadenza: t.scadenza, rem_ora: t.rem_ora, rem_anticipi: t.rem_anticipi, rem_inviati: t.rem_inviati, completato: t.completato, notificato: t.notificato, reasons };
+        });
+        const debugWeekly = (weeklyTasks || []).map(t => {
+            const days = (t.giorni_settimana || '').split(',').map(Number);
+            const anticipi = t.rem_anticipi ? t.rem_anticipi.split(',').map(Number).filter(n => Number.isFinite(n) && n >= 0) : [0];
+            const matchesDay = days.some(d => anticipi.some(a => ((d - a) % 7 + 7) % 7 === dow));
+            const timeStr = (t.rem_ora || t.ora || '').substring(0, 5);
+            const [hh, mm] = timeStr ? timeStr.split(':').map(Number) : [0, 0];
+            const mins = hh * 60 + mm;
+            return { id: t.id, titolo: t.titolo, giorni_settimana: t.giorni_settimana, rem_anticipi: t.rem_anticipi, rem_ora: t.rem_ora, notificato: t.notificato, matchesDay, mins, inWindow: mins >= totalMins && mins < windowEnd };
+        });
+        const debugDaily = (dailyTasks || []).map(t => {
+            const timeStr = (t.rem_ora || t.ora || '').substring(0, 5);
+            const [hh, mm] = timeStr ? timeStr.split(':').map(Number) : [0, 0];
+            const mins = hh * 60 + mm;
+            return { id: t.id, titolo: t.titolo, rem_ora: t.rem_ora, notificato: t.notificato, mins, inWindow: mins >= totalMins && mins < windowEnd };
+        });
+        return res.json({ ...baseDebug, dateTasks: debugDateTasks, weeklyTasks: debugWeekly, dailyTasks: debugDaily, due: { date: dateDue.length, weekly: weeklyDue.length, daily: dailyDue.length } });
+    }
+
+    if (!totalDue) return res.json({ sent: 0, ...baseDebug });
 
     async function notifica(task, timeStr) {
         let sent = 0;
@@ -215,7 +256,7 @@ module.exports = async function handler(req, res) {
         sent += await notifica(task, timeStr);
         const inviati = (task.rem_inviati || '').split(',').map(Number).filter(n => Number.isFinite(n) && n >= 0);
         inviati.push(anticipo);
-        const anticipi = (task.rem_anticipi || '1').split(',').map(Number);
+        const anticipi = (task.rem_anticipi != null && task.rem_anticipi !== '' ? task.rem_anticipi : '0').split(',').map(Number);
         const allSent = anticipi.every(a => inviati.includes(a));
         await sb.from('todo').update({
             rem_inviati: inviati.join(','),

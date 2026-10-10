@@ -462,7 +462,7 @@ const WA_EMOJIS = {
 const REM_OPTIONS = [0, 1, 2, 7];
 const REM_LABELS  = { 0: 'Stesso giorno', 1: '1 giorno prima', 2: '2 giorni prima', 7: '1 settimana prima' };
 const DOW_FULL = ['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
-let remAnticipi = [1];
+let remAnticipi = [0];
 let remOra = '09:00';
 
 async function carica() {
@@ -1148,7 +1148,7 @@ function apriModale() {
     catSelezionata = 'Generale';
     ultimoGiornoMese = false;
     promemoriaPush = false; promemoriaMail = false;
-    remAnticipi = [1]; remOra = '09:00';
+    remAnticipi = [0]; remOra = '09:00';
     taskTipo = 'task'; setTipo('task');
     waDestinatari = []; renderWaChips();
     document.getElementById('waDestInput').value = '';
@@ -1173,7 +1173,7 @@ function apriModifica(id) {
     catSelezionata = t.categoria || 'Generale';
     promemoriaPush = !!t.promemoria_push;
     promemoriaMail = !!t.promemoria_email;
-    remAnticipi = t.rem_anticipi ? t.rem_anticipi.split(',').map(Number) : [1];
+    remAnticipi = t.rem_anticipi != null && t.rem_anticipi !== '' ? t.rem_anticipi.split(',').map(Number) : [0];
     remOra = t.rem_ora || '09:00';
     taskTipo = t.tipo || 'task'; setTipo(taskTipo);
     waDestinatari = t.wa_numero ? t.wa_numero.split(',').map(s => s.trim()).filter(Boolean) : [];
