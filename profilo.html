@@ -248,35 +248,48 @@
 
     <!-- Notifiche -->
     <div class="settings-group">
-        <div class="group-label">Notifiche</div>
+        <div class="group-label">Notifiche push</div>
         <div class="group-card">
+            <!-- Stato dispositivo corrente -->
             <div class="row">
-                <div class="row-icon" style="background:#f0fff8">🔔</div>
+                <div class="row-icon" style="background:#f0fff8">📱</div>
                 <div class="row-body">
-                    <div class="row-label">Riepilogo settimanale</div>
-                    <div class="row-sub">Ogni domenica ~ ore 8:00</div>
+                    <div class="row-label">Questo dispositivo</div>
+                    <div class="row-sub" id="subStatoNotifiche">Controllo…</div>
                 </div>
                 <div class="row-right">
-                    <label class="toggle-wrap">
+                    <span class="status-badge inattive" id="badgeStato">—</span>
+                    <label class="toggle-wrap" style="display:none" id="wrapToggle">
                         <input type="checkbox" id="toggleNotifiche" onchange="onToggleNotifiche(this.checked)">
                         <span class="toggle-slider"></span>
                     </label>
                 </div>
             </div>
-            <div class="row" id="rowStatoNotifiche" style="display:none">
-                <div class="row-icon" style="background:var(--grey-light)">📡</div>
+            <!-- Pulsante test (solo se attivo) -->
+            <div class="row" id="rowTest" style="display:none">
+                <div class="row-icon" style="background:#f5f0ff">🧪</div>
                 <div class="row-body">
-                    <div class="row-label">Stato</div>
-                    <div class="row-sub" id="subStatoNotifiche">Controllo…</div>
+                    <div class="row-label">Verifica consegna</div>
+                    <div class="row-sub">Invia una notifica di prova a questo dispositivo</div>
                 </div>
                 <div class="row-right">
-                    <span class="status-badge inattive" id="badgeStato">—</span>
-                    <button class="btn-test" id="btnTest" onclick="testNotifica()" style="display:none">Test</button>
+                    <button class="btn-test" id="btnTest" onclick="testNotifica()">Test</button>
+                </div>
+            </div>
+            <!-- Cosa ricevi -->
+            <div class="row" id="rowTipi" style="display:none">
+                <div class="row-icon" style="background:#fff8f0">📋</div>
+                <div class="row-body">
+                    <div class="row-label">Tipi di notifica attivi</div>
+                    <div class="row-sub">Promemoria attività · Riepilogo domenicale debiti · Nuovi feedback</div>
                 </div>
             </div>
         </div>
         <div class="info-box" id="infoBlocco" style="display:none">
-            ⚠️ Le notifiche sono bloccate dal browser. Per attivarle vai nelle Impostazioni del browser → Sito → Notifiche → Consenti.
+            ⚠️ Le notifiche sono bloccate dal browser. Per attivarle: Impostazioni → Safari/Chrome → Sito → Notifiche → Consenti.
+        </div>
+        <div class="info-box" id="infoIos" style="display:none; background:#fff8f0; color:#b45309;">
+            📲 Su iPhone/iPad le notifiche push funzionano solo se aggiungi Listando alla schermata Home (Condividi → Aggiungi a Home) e apri l'app da lì.
         </div>
     </div>
 
@@ -512,53 +525,63 @@ async function salvaProfilo() {
 
 // ── Notifiche ─────────────────────────────────────────────────────────
 async function aggiornaStatoNotifiche() {
-    const toggle = document.getElementById('toggleNotifiche');
-    const badge = document.getElementById('badgeStato');
-    const sub_row = document.getElementById('rowStatoNotifiche');
-    const btnTest = document.getElementById('btnTest');
+    const toggle     = document.getElementById('toggleNotifiche');
+    const wrapToggle = document.getElementById('wrapToggle');
+    const badge      = document.getElementById('badgeStato');
+    const rowTest    = document.getElementById('rowTest');
+    const rowTipi    = document.getElementById('rowTipi');
     const infoBlocco = document.getElementById('infoBlocco');
-    const subStato = document.getElementById('subStatoNotifiche');
+    const infoIos    = document.getElementById('infoIos');
+    const subStato   = document.getElementById('subStatoNotifiche');
 
-    sub_row.style.display = '';
+    const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    const isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
 
     if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
-        toggle.disabled = true; toggle.checked = false;
         badge.textContent = 'Non supportato'; badge.className = 'status-badge bloccate';
-        subStato.textContent = 'Il tuo browser non supporta le notifiche push';
+        subStato.textContent = 'Il tuo browser non supporta le push';
+        if (isIos && !isStandalone) infoIos.style.display = '';
         return;
     }
 
+    wrapToggle.style.display = '';
     const perm = Notification.permission;
+
     if (perm === 'denied') {
         toggle.disabled = true; toggle.checked = false;
         badge.textContent = 'Bloccate'; badge.className = 'status-badge bloccate';
-        subStato.textContent = 'Sblocca nelle impostazioni del browser';
-        infoBlocco.style.display = ''; btnTest.style.display = 'none';
+        subStato.textContent = 'Sblocca nelle impostazioni';
+        infoBlocco.style.display = '';
+        rowTest.style.display = 'none'; rowTipi.style.display = 'none';
         return;
     }
+
     infoBlocco.style.display = 'none';
+
     if (perm === 'default') {
         toggle.checked = false;
         badge.textContent = 'Non attive'; badge.className = 'status-badge inattive';
-        subStato.textContent = 'Tocca il toggle per attivare';
-        btnTest.style.display = 'none'; return;
+        subStato.textContent = 'Attiva per ricevere tutte le notifiche';
+        rowTest.style.display = 'none'; rowTipi.style.display = 'none';
+        if (isIos && !isStandalone) infoIos.style.display = '';
+        return;
     }
+
     try {
         const reg = await navigator.serviceWorker.ready;
         const sub = await reg.pushManager.getSubscription();
         if (sub) {
             toggle.checked = true;
             badge.textContent = 'Attive'; badge.className = 'status-badge attive';
-            subStato.textContent = 'Ricezione notifiche domenicali attiva';
-            btnTest.style.display = '';
+            subStato.textContent = 'Notifiche push abilitate su questo dispositivo';
+            rowTest.style.display = ''; rowTipi.style.display = '';
         } else {
             toggle.checked = false;
             badge.textContent = 'Non attive'; badge.className = 'status-badge inattive';
-            subStato.textContent = 'Permesso concesso ma non iscritto — attiva il toggle';
-            btnTest.style.display = 'none';
+            subStato.textContent = 'Attiva il toggle per iscriverti';
+            rowTest.style.display = 'none'; rowTipi.style.display = 'none';
         }
     } catch (e) {
-        toggle.checked = false;
         badge.textContent = 'Errore'; badge.className = 'status-badge bloccate';
         subStato.textContent = e.message;
     }
