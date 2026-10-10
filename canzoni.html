@@ -223,6 +223,18 @@
         /* ── Empty ── */
         .empty-msg { text-align: center; padding: 48px 24px; color: #bbb; font-weight: 700; font-size: 15px; }
 
+        /* ── Shared songs ── */
+        .shared-badge { font-size: 10px; font-weight: 800; background: #e8f4ff; color: #3384d4; border-radius: 6px; padding: 2px 6px; margin-left: 6px; vertical-align: middle; flex-shrink: 0; }
+        .song-item.shared-item { background: #f8fbff; }
+        .song-item.shared-item .song-title { color: #3384d4; }
+        .btn-share-remove { width: 32px; height: 32px; border-radius: 50%; border: none; background: none; font-size: 16px; color: #bbb; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+
+        /* ── Share modal ── */
+        .share-row { display: flex; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--grey-light); }
+        .share-row:last-child { border-bottom: none; }
+        .share-email { flex: 1; font-size: 14px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .btn-share-del { padding: 5px 10px; border-radius: 8px; border: none; background: #fff0f0; color: var(--red); font-size: 12px; font-weight: 800; cursor: pointer; flex-shrink: 0; }
+
         /* ── Context menu ── */
         .ctx-menu { display: none; position: fixed; z-index: 999; background: var(--white); border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.18); padding: 8px; min-width: 180px; }
         .ctx-menu.open { display: block; }
@@ -273,6 +285,14 @@
     </div>
     <div class="playlists-scroll" id="playlistsScroll"></div>
 
+    <!-- Canzoni condivise con me -->
+    <div id="sharedSection" style="display:none">
+        <div class="songs-header">
+            <div class="songs-title">🔗 Condivise con te</div>
+        </div>
+        <div id="sharedSongsList"></div>
+    </div>
+
     <div class="songs-header">
         <div class="songs-title">Tutte le canzoni</div>
         <button class="btn-shuffle" onclick="shuffle()">🔀 Shuffle</button>
@@ -300,8 +320,9 @@
 <!-- Context menu -->
 <div class="ctx-menu" id="ctxMenu">
     <div class="ctx-item" id="ctxRinomina" onclick="ctxAction('rinomina')">✏️ Modifica</div>
+    <div class="ctx-item" id="ctxCondividi" onclick="ctxAction('condividi')">🔗 Condividi</div>
     <div class="ctx-item" id="ctxSposta" style="display:none" onclick="ctxAction('sposta')">📁 Sposta raccolta</div>
-    <div class="ctx-item danger" onclick="ctxAction('elimina')">🗑️ Elimina</div>
+    <div class="ctx-item danger" id="ctxElimina" onclick="ctxAction('elimina')">🗑️ Elimina</div>
 </div>
 
 <!-- Playlist modal -->
@@ -315,6 +336,25 @@
         </div>
         <button class="btn-save-modal" onclick="salvaPlaylist()">SALVA</button>
         <button class="btn-delete-modal" id="btnElPlaylist" style="display:none" onclick="eliminaPlaylist()">ELIMINA RACCOLTA</button>
+    </div>
+</div>
+
+<!-- Share modal -->
+<div class="modal-overlay" id="modaleCondividi">
+    <div class="modal-box">
+        <div class="modal-handle"></div>
+        <div class="modal-title">🔗 Condividi</div>
+        <div style="font-size:14px;font-weight:800;color:#555;margin-bottom:16px" id="condividiSongName"></div>
+        <div class="form-group">
+            <label class="form-label">Email utente</label>
+            <input class="form-input" id="condividiEmailInput" type="email" placeholder="utente@email.com"
+                   onkeydown="if(event.key==='Enter') aggiungiCondivisione()">
+        </div>
+        <button class="btn-save-modal" onclick="aggiungiCondivisione()">CONDIVIDI</button>
+        <div id="condividiListaWrap" style="margin-top:18px;display:none">
+            <div class="form-label" style="margin-bottom:8px">Già condivisa con</div>
+            <div id="condividiLista"></div>
+        </div>
     </div>
 </div>
 
@@ -434,8 +474,10 @@ if (!userEmail) location.href = 'login.html';
 
 const audio = document.getElementById('audioEl');
 let playlists = [], songs = [], queue = [], queueIdx = 0;
+let sharedSongs = [];       // songs shared with me by other users
 let currentPlaylistId = null, editPlaylistId = null, editSongId = null;
-let ctxTargetId = null;
+let ctxTargetId = null, ctxIsShared = false;
+let condividiTargetId = null;
 let currentSpeed = 1.0;
 let repeatMode = 0;   // 0=off 1=all 2=one
 let isShuffleOn = false;
@@ -444,19 +486,49 @@ let isExpanded = false;
 
 // ── Data ───────────────────────────────────────────────────────────────
 async function carica() {
-    const [{ data: pl }, { data: s }] = await Promise.all([
+    const [{ data: pl }, { data: s }, { data: condDiv }] = await Promise.all([
         sb.from('canzoni_playlist').select('*').eq('email_utente', userEmail).is('parent_id', null).order('nome'),
-        sb.from('canzoni').select('*').eq('email_utente', userEmail).order('sort_order').order('titolo')
+        sb.from('canzoni').select('*').eq('email_utente', userEmail).order('sort_order').order('titolo'),
+        sb.from('canzoni_condivisioni').select('*, canzoni(*)').eq('email_destinatario', userEmail)
     ]);
     playlists = pl || [];
     songs = s || [];
+    sharedSongs = (condDiv || [])
+        .filter(c => c.canzoni)
+        .map(c => ({ ...c.canzoni, _mittente: c.email_mittente, _condDiv_id: c.id }));
     renderMain();
 }
 
 // ── Render ─────────────────────────────────────────────────────────────
 function renderMain() {
     renderPlaylists();
+    renderSharedSection();
     renderSongList('allSongsList', songs);
+}
+
+function renderSharedSection() {
+    const section = document.getElementById('sharedSection');
+    const list = document.getElementById('sharedSongsList');
+    if (!sharedSongs.length) { section.style.display = 'none'; return; }
+    section.style.display = '';
+    list.innerHTML = sharedSongs.map((s, i) => {
+        const isPlay = queue.length > 0 && queue[queueIdx]?.id === s.id;
+        const isPlaying = isPlay && !audio.paused;
+        const dur = s.durata_sec ? fmtTime(s.durata_sec) : '—';
+        const mittente = (s._mittente || '').split('@')[0];
+        const numEl = isPlay
+            ? `<div class="eq-bars${isPlaying ? '' : ' paused'}"><div class="eq-bar"></div><div class="eq-bar"></div><div class="eq-bar"></div></div>`
+            : `<span style="color:#3384d4;font-size:13px;font-weight:700">${i + 1}</span>`;
+        return `<div class="song-item shared-item${isPlay ? ' playing' : ''}" onclick="playFromShared(${s.id})">
+            <div class="song-num">${numEl}</div>
+            <div class="song-info">
+                <div class="song-title">${s.titolo}</div>
+                <div class="song-artist">da ${mittente}${s.artista ? ' · ' + s.artista : ''}</div>
+            </div>
+            <div class="song-dur">${dur}</div>
+            <button class="btn-share-remove" onclick="event.stopPropagation(); rimuoviSharedSong(${s._condDiv_id})" title="Rimuovi">✕</button>
+        </div>`;
+    }).join('');
 }
 
 function renderPlaylists() {
@@ -498,7 +570,7 @@ function songItemHtml(s, i) {
             ${s.artista ? `<div class="song-artist">${s.artista}</div>` : ''}
         </div>
         <div class="song-dur">${dur}</div>
-        <button class="btn-song-more" onclick="event.stopPropagation(); apriCtxSong(${s.id}, event)">⋮</button>
+        <button class="btn-song-more" onclick="event.stopPropagation(); apriCtxSong(${s.id}, event, false)">⋮</button>
     </div>`;
 }
 
@@ -859,8 +931,13 @@ async function eliminaPlaylist() {
 }
 
 // ── Context menu ────────────────────────────────────────────────────────
-function apriCtxSong(id, e) {
+function apriCtxSong(id, e, isShared) {
     ctxTargetId = id;
+    ctxIsShared = !!isShared;
+    // Own songs: show all options. Shared songs: nothing useful to show.
+    document.getElementById('ctxRinomina').style.display = isShared ? 'none' : '';
+    document.getElementById('ctxCondividi').style.display = isShared ? 'none' : '';
+    document.getElementById('ctxElimina').style.display  = isShared ? 'none' : '';
     showCtx(e.clientX, e.clientY);
 }
 function showCtx(x, y) {
@@ -875,6 +952,7 @@ document.addEventListener('click', e => {
 
 async function ctxAction(action) {
     document.getElementById('ctxMenu').classList.remove('open');
+    if (action === 'condividi') { apriCondividi(ctxTargetId); return; }
     const s = songs.find(x => x.id === ctxTargetId);
     if (!s) return;
     if (action === 'rinomina') apriEditSong(s);
@@ -915,6 +993,72 @@ async function eliminaSong() {
     await eliminaSongById(editSongId);
 }
 
+// ── Condivisione ────────────────────────────────────────────────────────
+async function apriCondividi(songId) {
+    condividiTargetId = songId;
+    const s = songs.find(x => x.id === songId);
+    document.getElementById('condividiSongName').textContent = s?.titolo || '';
+    document.getElementById('condividiEmailInput').value = '';
+    await refreshCondividiLista();
+    document.getElementById('modaleCondividi').classList.add('open');
+}
+
+async function refreshCondividiLista() {
+    const { data: shares } = await sb.from('canzoni_condivisioni')
+        .select('*').eq('canzone_id', condividiTargetId).eq('email_mittente', userEmail);
+    const wrap = document.getElementById('condividiListaWrap');
+    const lista = document.getElementById('condividiLista');
+    if (!shares?.length) { wrap.style.display = 'none'; return; }
+    wrap.style.display = '';
+    lista.innerHTML = shares.map(sh =>
+        `<div class="share-row">
+            <span class="share-email">${sh.email_destinatario}</span>
+            <button class="btn-share-del" onclick="eliminaCondivisione(${sh.id})">Rimuovi</button>
+        </div>`
+    ).join('');
+}
+
+async function aggiungiCondivisione() {
+    const email = document.getElementById('condividiEmailInput').value.trim().toLowerCase();
+    if (!email.includes('@')) { toast('Email non valida'); return; }
+    if (email === userEmail) { toast('Non puoi condividere con te stesso'); return; }
+    const { error } = await sb.from('canzoni_condivisioni').insert({
+        canzone_id: condividiTargetId,
+        email_mittente: userEmail,
+        email_destinatario: email
+    });
+    if (error) {
+        toast(error.code === '23505' ? 'Già condivisa con questo utente' : 'Errore: ' + error.message);
+        return;
+    }
+    document.getElementById('condividiEmailInput').value = '';
+    toast('✓ Condivisa con ' + email);
+    await refreshCondividiLista();
+}
+
+async function eliminaCondivisione(shareId) {
+    await sb.from('canzoni_condivisioni').delete().eq('id', shareId);
+    toast('Condivisione rimossa');
+    await refreshCondividiLista();
+    await carica();
+}
+
+async function rimuoviSharedSong(condDivId) {
+    if (!confirm('Rimuovere questa canzone dalle condivise con te?')) return;
+    await sb.from('canzoni_condivisioni').delete().eq('id', condDivId);
+    toast('Rimossa dalle condivise');
+    await carica();
+}
+
+function playFromShared(id) {
+    const idx = sharedSongs.findIndex(x => x.id === id);
+    if (idx === -1) return;
+    origQueue = sharedSongs;
+    queue = [...sharedSongs];
+    queueIdx = idx;
+    loadAndPlay();
+}
+
 async function eliminaSongById(id) {
     const s = songs.find(x => x.id === id);
     if (!s) return;
@@ -930,7 +1074,7 @@ async function eliminaSongById(id) {
     if (currentPlaylistId) apriPlaylist(currentPlaylistId);
 }
 
-[document.getElementById('modalePlaylist'), document.getElementById('modaleSong')].forEach(m => {
+[document.getElementById('modalePlaylist'), document.getElementById('modaleSong'), document.getElementById('modaleCondividi')].forEach(m => {
     m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
 });
 
