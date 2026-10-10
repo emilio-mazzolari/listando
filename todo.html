@@ -788,13 +788,29 @@ async function assicuraPushSub() {
             userVisibleOnly: true,
             applicationServerKey: _b64ToUint8(VAPID_PUBLIC_KEY)
         });
-        await fetch('/api/subscribe', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: userEmail, subscription: sub.toJSON() })
-        }).catch(() => {});
     }
+    // Always (re-)send subscription to server — covers new devices and subscription renewals
+    await fetch('/api/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: userEmail, subscription: sub.toJSON() })
+    }).catch(() => {});
     return true;
+}
+
+// Silently re-register this device on page load if permission already granted
+if ('serviceWorker' in navigator && 'PushManager' in window && Notification.permission === 'granted' && userEmail) {
+    navigator.serviceWorker.register('/sw.js');
+    navigator.serviceWorker.ready.then(async reg => {
+        const sub = await reg.pushManager.getSubscription();
+        if (sub) {
+            fetch('/api/subscribe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: userEmail, subscription: sub.toJSON() })
+            }).catch(() => {});
+        }
+    });
 }
 async function togglePush() {
     if (!promemoriaPush) {

@@ -368,7 +368,7 @@ const _HR = { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY 
 const userEmail = localStorage.getItem('userEmail');
 if (!userEmail) location.href = 'login.html';
 
-const VAPID_PUBLIC_KEY = 'BATe8jx7GOX6w2NUFoMQoGI6l8BRyJEVcsDlwf3IdIa5AEENkxpSCNuhkl4PgDxR_8f-AJerrYxENnH0mb-MTys';
+const VAPID_PUBLIC_KEY = 'BIyJ8XdT5OaVM9uGh9rgjqMzBNd9q2haLd4k_Ugq7ZvUgZrzmOFmRb8-E0-_vUGHZ1_cGxIz84hakLZJPWgxFQM';
 
 let originali = { nome: '', cognome: '', dataNascita: '' };
 let fotoBase64 = null;
@@ -582,10 +582,14 @@ async function attivaPush() {
     try {
         await navigator.serviceWorker.register('/sw.js');
         const reg = await navigator.serviceWorker.ready;
-        const sub = await reg.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
-        });
+        let sub = await reg.pushManager.getSubscription();
+        if (!sub) {
+            sub = await reg.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+            });
+        }
+        // Always re-register to ensure this device is in the DB
         const res = await fetch('/api/subscribe', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -593,8 +597,23 @@ async function attivaPush() {
         });
         if (!res.ok) throw new Error('Errore server');
         localStorage.removeItem('pushDismissed');
-        toast('✓ Notifiche attivate');
+        toast('✓ Notifiche attivate su questo dispositivo');
     } catch (err) { toast('Errore: ' + err.message); }
+}
+
+// Silently re-register this device on load if permission already granted
+if ('serviceWorker' in navigator && 'PushManager' in window && Notification.permission === 'granted' && userEmail) {
+    navigator.serviceWorker.register('/sw.js');
+    navigator.serviceWorker.ready.then(async reg => {
+        const sub = await reg.pushManager.getSubscription();
+        if (sub) {
+            fetch('/api/subscribe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: userEmail, subscription: sub.toJSON() })
+            }).catch(() => {});
+        }
+    });
 }
 
 async function disattivaPush() {
@@ -612,15 +631,25 @@ async function disattivaPush() {
 
 async function testNotifica() {
     if (Notification.permission !== 'granted') { toast('Abilita prima le notifiche'); return; }
+    const btn = document.getElementById('btnTest');
+    btn.textContent = '…'; btn.disabled = true;
     try {
-        const reg = await navigator.serviceWorker.ready;
-        await reg.showNotification('📊 Riepilogo settimanale — Listando', {
-            body: '💸 Devo: €50,00 (1)\n💰 Mi devono: €200,00 (1)\nSaldo netto: +€150,00',
-            icon: '/logolistando.png', badge: '/logolistando.png',
-            tag: 'listando-test', data: { url: '/debiti.html' },
+        const res = await fetch('/api/test-push', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: userEmail })
         });
-        toast('Notifica di test inviata!');
-    } catch (err) { toast('Errore: ' + err.message); }
+        const data = await res.json();
+        if (data.sent > 0) {
+            toast(`✅ Push inviata a ${data.sent} dispositivo${data.sent > 1 ? 'i' : ''}`);
+        } else {
+            toast('⚠️ Nessun dispositivo registrato — riattiva le notifiche');
+        }
+    } catch (err) {
+        toast('Errore: ' + err.message);
+    } finally {
+        btn.textContent = 'Test'; btn.disabled = false;
+    }
 }
 
 // ── Account ───────────────────────────────────────────────────────────
