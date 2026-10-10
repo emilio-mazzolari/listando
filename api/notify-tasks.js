@@ -192,7 +192,8 @@ module.exports = async function handler(req, res) {
                 if (mins >= windowEnd) return `anticipo=${a}: ora=${mins}min>=finestrafine(${windowEnd})`;
                 return `anticipo=${a}: DOVREBBE_SCATTARE`;
             });
-            return { id: t.id, titolo: t.titolo, scadenza: t.scadenza, rem_ora: t.rem_ora, rem_anticipi: t.rem_anticipi, rem_inviati: t.rem_inviati, completato: t.completato, notificato: t.notificato, reasons };
+            const hasSub = !!(subsByEmail[t.email_utente]?.length);
+            return { id: t.id, titolo: t.titolo, email_utente: t.email_utente, scadenza: t.scadenza, rem_ora: t.rem_ora, rem_anticipi: t.rem_anticipi, rem_inviati: t.rem_inviati, completato: t.completato, notificato: t.notificato, hasSub, reasons };
         });
         const debugWeekly = (weeklyTasks || []).map(t => {
             const days = (t.giorni_settimana || '').split(',').map(Number);
@@ -201,13 +202,15 @@ module.exports = async function handler(req, res) {
             const timeStr = (t.rem_ora || t.ora || '').substring(0, 5);
             const [hh, mm] = timeStr ? timeStr.split(':').map(Number) : [0, 0];
             const mins = hh * 60 + mm;
-            return { id: t.id, titolo: t.titolo, giorni_settimana: t.giorni_settimana, rem_anticipi: t.rem_anticipi, rem_ora: t.rem_ora, notificato: t.notificato, matchesDay, mins, inWindow: mins >= totalMins && mins < windowEnd };
+            const hasSub = !!(subsByEmail[t.email_utente]?.length);
+            return { id: t.id, titolo: t.titolo, email_utente: t.email_utente, giorni_settimana: t.giorni_settimana, rem_anticipi: t.rem_anticipi, rem_ora: t.rem_ora, notificato: t.notificato, matchesDay, mins, inWindow: mins >= totalMins && mins < windowEnd, hasSub };
         });
         const debugDaily = (dailyTasks || []).map(t => {
             const timeStr = (t.rem_ora || t.ora || '').substring(0, 5);
             const [hh, mm] = timeStr ? timeStr.split(':').map(Number) : [0, 0];
             const mins = hh * 60 + mm;
-            return { id: t.id, titolo: t.titolo, rem_ora: t.rem_ora, notificato: t.notificato, mins, inWindow: mins >= totalMins && mins < windowEnd };
+            const hasSub = !!(subsByEmail[t.email_utente]?.length);
+            return { id: t.id, titolo: t.titolo, email_utente: t.email_utente, rem_ora: t.rem_ora, notificato: t.notificato, mins, inWindow: mins >= totalMins && mins < windowEnd, hasSub };
         });
         return res.json({ ...baseDebug, dateTasks: debugDateTasks, weeklyTasks: debugWeekly, dailyTasks: debugDaily, due: { date: dateDue.length, weekly: weeklyDue.length, daily: dailyDue.length } });
     }
