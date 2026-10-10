@@ -96,12 +96,14 @@ module.exports = async function handler(req, res) {
         d.setDate(d.getDate() + i);
         checkDates.push(d.toISOString().split('T')[0]);
     }
+    // Include mensile/annuale (periodicita not null but scadenza-based) alongside one-off tasks
     const { data: dateTasks, error } = await sb.from('todo')
         .select('*')
         .eq('completato', false)
         .eq('promemoria_push', true)
         .in('scadenza', checkDates)
-        .is('periodicita', null);
+        .not('periodicita', 'eq', 'settimanale')
+        .not('periodicita', 'eq', 'giornaliera');
 
     if (error) return res.status(500).json({ error: error.message });
 
@@ -136,7 +138,13 @@ module.exports = async function handler(req, res) {
     const weeklyDue = (weeklyTasks || []).filter(t => {
         if (!t.giorni_settimana) return false;
         const days = t.giorni_settimana.split(',').map(Number);
-        if (!days.includes(dow)) return false;
+        // rem_anticipi tells us N days BEFORE the action day to send the notification.
+        // Notification fires when: (action_day - anticipo + 7) % 7 === today (dow)
+        const anticipi = t.rem_anticipi
+            ? t.rem_anticipi.split(',').map(Number).filter(n => Number.isFinite(n) && n >= 0)
+            : [0];
+        const matchesDay = days.some(d => anticipi.some(a => ((d - a) % 7 + 7) % 7 === dow));
+        if (!matchesDay) return false;
         const timeStr = (t.rem_ora || t.ora || '').substring(0, 5);
         if (!timeStr) return false;
         const [hh, mm] = timeStr.split(':').map(Number);
