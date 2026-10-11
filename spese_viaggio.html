@@ -1878,7 +1878,9 @@ function renderStatistiche() {
             <div class="stat-row-val" style="font-weight:900;color:var(--dark)">${cur}${totale.toFixed(2)}</div>
         </div>
     </div>` : ''}
-    <button class="btn-export" onclick="esportaCSV()">📥 Esporta CSV</button>`;
+    <button class="btn-export" onclick="esportaCSV()">📥 Esporta CSV</button>
+    <button class="btn-export" style="margin-top:6px;border-color:#3b82f6;background:#eff6ff;color:#3b82f6" onclick="document.getElementById('importCsvInput').click()">📤 Importa CSV (ripristina)</button>
+    <input type="file" id="importCsvInput" accept=".csv" style="display:none" onchange="importaCSV(this)">`;
     el.innerHTML = html;
 }
 
@@ -1906,6 +1908,69 @@ function esportaCSV() {
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     URL.revokeObjectURL(url);
     toast('✓ CSV scaricato');
+}
+
+async function importaCSV(input) {
+    const file = input.files[0];
+    input.value = '';
+    if (!file) return;
+    const text = await file.text();
+    const lines = text.replace(/^﻿/, '').split('\n').filter(l => l.trim());
+    if (lines.length < 2) { toast('CSV vuoto o non valido'); return; }
+
+    function parseRow(line) {
+        const cols = []; let cur = '', inQ = false;
+        for (let i = 0; i < line.length; i++) {
+            const c = line[i];
+            if (c === '"') { if (inQ && line[i+1] === '"') { cur += '"'; i++; } else inQ = !inQ; }
+            else if (c === ',' && !inQ) { cols.push(cur); cur = ''; }
+            else cur += c;
+        }
+        cols.push(cur);
+        return cols;
+    }
+
+    const header = parseRow(lines[0]);
+    const iData = header.indexOf('Data'), iDesc = header.indexOf('Descrizione'),
+          iCat = header.indexOf('Categoria'), iPag = header.indexOf('Pagato da'),
+          iImp = header.indexOf('Importo'), iValOrig = header.indexOf('Val. originale'),
+          iImpOrig = header.indexOf('Imp. originale'), iDiv = header.indexOf('Diviso tra');
+
+    const rows = lines.slice(1).map(l => parseRow(l));
+    if (!rows.length) { toast('Nessuna spesa nel CSV'); return; }
+
+    const nomeFile = file.name.replace('_spese.csv','').replace(/_/g,' ');
+    if (!confirm(`Importare ${rows.length} spese nel viaggio "${viaggi.find(v=>v.id===viaggioCorrenteId)?.nome || ''}"?\n\nLe spese esistenti NON verranno cancellate.`)) return;
+
+    let ok = 0, fail = 0;
+    for (const r of rows) {
+        const payer = partecipantiAttuali.find(p =>
+            p.nome.toLowerCase() === (r[iPag]||'').toLowerCase()
+        );
+        const divNomi = (r[iDiv]||'').split(' / ').map(n => n.trim()).filter(Boolean);
+        const divIds = divNomi.map(n => {
+            const p = partecipantiAttuali.find(x => x.nome.toLowerCase() === n.toLowerCase());
+            return p ? p.id : null;
+        }).filter(Boolean);
+
+        const body = {
+            viaggio_id: viaggioCorrenteId,
+            email_utente: userEmail,
+            data: r[iData] || null,
+            descrizione: r[iDesc] || '',
+            categoria: r[iCat] || '🛒',
+            pagato_da: payer ? payer.id : null,
+            importo: parseFloat(r[iImp]) || 0,
+            valuta_orig: r[iValOrig] || viaggioCorrenteValuta || 'EUR',
+            importo_orig: parseFloat(r[iImpOrig]) || parseFloat(r[iImp]) || 0,
+            divisione: JSON.stringify(divIds.length ? divIds : partecipantiAttuali.map(p => p.id))
+        };
+        const res = await apiPost('/sv_spese', body);
+        if (res?.id) ok++; else fail++;
+    }
+
+    toast(`✓ Importate ${ok} spese${fail ? ` (${fail} errori)` : ''}`);
+    await caricaSpese();
 }
 
 function mostraCatDettaglio(macroId) {
