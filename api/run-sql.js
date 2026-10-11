@@ -1,0 +1,103 @@
+const { createClient } = require('@supabase/supabase-js');
+
+const SUPABASE_URL = 'https://eejdpophfxsrqdvsucye.supabase.co';
+const PROJECT_REF  = 'eejdpophfxsrqdvsucye';
+
+const STATEMENTS = [
+    `CREATE TABLE IF NOT EXISTS note (
+        id bigint generated always as identity primary key,
+        email_utente text not null,
+        titolo text,
+        contenuto text,
+        colore text default '#fff9c4',
+        pinned boolean default false,
+        created_at timestamptz default now(),
+        updated_at timestamptz default now()
+    )`,
+    `CREATE TABLE IF NOT EXISTS hobby (
+        id bigint generated always as identity primary key,
+        email_utente text not null,
+        nome text not null,
+        emoji text default '🎸',
+        colore text default '#F97316',
+        descrizione text,
+        ore_totali numeric default 0,
+        created_at timestamptz default now()
+    )`,
+    `CREATE TABLE IF NOT EXISTS hobby_sessioni (
+        id bigint generated always as identity primary key,
+        email_utente text not null,
+        hobby_id bigint not null references hobby(id) on delete cascade,
+        data date not null,
+        durata_min int not null,
+        note text,
+        created_at timestamptz default now()
+    )`,
+    `ALTER TABLE canzoni_playlist ADD COLUMN IF NOT EXISTS parent_id bigint REFERENCES canzoni_playlist(id) ON DELETE SET NULL`,
+    `CREATE TABLE IF NOT EXISTS vendita_annunci (
+        id bigint generated always as identity primary key,
+        email_utente text not null,
+        titolo text not null,
+        descrizione text,
+        prezzo numeric(10,2),
+        categoria text,
+        condizione text default 'buono',
+        visibilita text default 'pubblico',
+        stato text default 'attivo',
+        created_at timestamptz default now(),
+        updated_at timestamptz default now()
+    )`,
+    `CREATE TABLE IF NOT EXISTS vendita_foto (
+        id bigint generated always as identity primary key,
+        annuncio_id bigint not null references vendita_annunci(id) on delete cascade,
+        url text not null,
+        ordine int default 0
+    )`,
+    `CREATE TABLE IF NOT EXISTS vendita_accesso (
+        id bigint generated always as identity primary key,
+        annuncio_id bigint not null references vendita_annunci(id) on delete cascade,
+        email_utente text not null,
+        unique(annuncio_id, email_utente)
+    )`,
+    `CREATE TABLE IF NOT EXISTS vendita_chat (
+        id bigint generated always as identity primary key,
+        annuncio_id bigint not null references vendita_annunci(id) on delete cascade,
+        email_mittente text not null,
+        email_venditore text not null,
+        messaggio text not null,
+        letto boolean default false,
+        created_at timestamptz default now()
+    )`,
+    `ALTER PUBLICATION supabase_realtime ADD TABLE IF NOT EXISTS vendita_chat`,
+];
+
+async function runSql(serviceKey, sql) {
+    const resp = await fetch(`https://api.supabase.com/v1/projects/${PROJECT_REF}/database/query`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${serviceKey}`
+        },
+        body: JSON.stringify({ query: sql })
+    });
+    const text = await resp.text();
+    return { ok: resp.ok, status: resp.status, body: text.slice(0, 300) };
+}
+
+module.exports = async function handler(req, res) {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    if (req.method === 'OPTIONS') return res.status(200).end();
+
+    const key = process.env.SUPABASE_SERVICE_KEY;
+    if (!key) return res.status(500).json({ error: 'SUPABASE_SERVICE_KEY non configurata' });
+
+    const results = [];
+    for (const sql of STATEMENTS) {
+        const label = sql.trim().split('\n')[0].slice(0, 60);
+        const r = await runSql(key, sql);
+        results.push({ sql: label, ok: r.ok, status: r.status, body: r.body });
+    }
+
+    const allOk = results.every(r => r.ok);
+    return res.status(200).json({ allOk, results });
+};

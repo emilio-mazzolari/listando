@@ -539,23 +539,43 @@ async function loadSelezionati(annuncioId) {
 
 function buildFormUI() {
     buildPhotoRow();
-    buildPillRow('condRow', CONDIZIONI, fCond.toLowerCase(), v => { fCond = v.toLowerCase(); buildPillRow('condRow', CONDIZIONI, fCond, v2 => { fCond = v2.toLowerCase(); buildPillRow('condRow', CONDIZIONI, fCond, null, true); }, true); });
-    buildPillRow('condRow', CONDIZIONI, fCond, v => { fCond = v.toLowerCase(); buildFormUI(); }, true);
-    buildPillRow('catRow', CATEGORIE, fCat, v => { fCat = v; buildFormUI(); }, true);
-    buildPillRow('visRow', Object.keys(VIS_LABELS), fVis, v => { fVis = v; toggleSelWrap(); buildFormUI(); }, true, VIS_LABELS);
+    renderCondRow();
+    renderCatRow();
+    renderVisRow();
     toggleSelWrap();
     renderSelTags();
 }
 
-function buildPillRow(rowId, items, active, onClick, skipBuild, labelMap) {
-    const row = document.getElementById(rowId);
+function setPill(type, val) {
+    if (type === 'cond') fCond = val;
+    else if (type === 'cat') fCat = val;
+    else if (type === 'vis') { fVis = val; toggleSelWrap(); }
+    renderCondRow(); renderCatRow(); renderVisRow();
+}
+
+function renderCondRow() {
+    const row = document.getElementById('condRow');
     if (!row) return;
-    row.innerHTML = items.map(item => {
-        const val = item.toLowerCase ? item.toLowerCase() : item;
-        const label = labelMap ? labelMap[item] : item;
-        const isActive = (val === active || item === active);
-        return `<button class="pill${isActive ? ' on' : ''}" onclick="(${onClick.toString()})('${item}')">${label}</button>`;
+    row.innerHTML = CONDIZIONI.map(c => {
+        const val = c.toLowerCase();
+        return `<button class="pill${val === fCond ? ' on' : ''}" onclick="setPill('cond','${val}')">${c}</button>`;
     }).join('');
+}
+
+function renderCatRow() {
+    const row = document.getElementById('catRow');
+    if (!row) return;
+    row.innerHTML = CATEGORIE.map(c =>
+        `<button class="pill${c === fCat ? ' on' : ''}" onclick="setPill('cat','${c}')">${c}</button>`
+    ).join('');
+}
+
+function renderVisRow() {
+    const row = document.getElementById('visRow');
+    if (!row) return;
+    row.innerHTML = Object.keys(VIS_LABELS).map(v =>
+        `<button class="pill${v === fVis ? ' on' : ''}" onclick="setPill('vis','${v}')">${VIS_LABELS[v]}</button>`
+    ).join('');
 }
 
 function buildPhotoRow() {
