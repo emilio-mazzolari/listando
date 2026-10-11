@@ -94,7 +94,8 @@
         .badge-scad.oggi { background: #fff4e0; color: var(--orange); }
         .badge-period { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 8px; background: rgba(48,176,199,0.1); color: var(--teal); }
         .badge-reminder { font-size: 11px; font-weight: 700; padding: 3px 6px; border-radius: 8px; background: var(--grey-light); letter-spacing: 1px; }
-        .btn-cal { background: none; border: none; font-size: 16px; cursor: pointer; padding: 2px 4px; opacity: 0.45; transition: opacity 0.15s; line-height: 1; flex-shrink: 0; }
+        .btn-cal { background: none; border: none; cursor: pointer; padding: 2px 4px; opacity: 0.5; transition: opacity 0.15s; line-height: 1; flex-shrink: 0; display: inline-flex; align-items: center; }
+        .btn-cal img { width: 18px; height: 18px; display: block; }
         .btn-cal:active { opacity: 1; }
 
         /* Modal */
@@ -663,7 +664,7 @@ function render() {
         const waDest = isWa && t.wa_numero ? t.wa_numero.split(',').map(s => s.trim()).filter(Boolean) : [];
         const waBadge = isWa ? `<span class="wa-badge">💬 WA${waDest.length ? ' · ' + waDest.length + ' dest.' : ''}</span>` : '';
         const calBtn = !isWa
-            ? `<button class="btn-cal" title="Aggiungi al calendario" onclick="event.stopPropagation(); aggiungiCalendario(${t.id})">📅</button>`
+            ? `<button class="btn-cal" title="Aggiungi a Google Calendar" onclick="event.stopPropagation(); aggiungiCalendario(${t.id})"><img src="https://www.google.com/s2/favicons?domain=calendar.google.com&sz=32" alt="Google Calendar"></button>`
             : '';
         return `<div class="task-card ${t.priorita}${t.completato ? ' done' : ''}" onclick="apriModifica(${t.id})">
             <div class="task-check${t.completato ? ' done' : ''}" onclick="event.stopPropagation(); toggleDone(${t.id})">${t.completato ? '✓' : ''}</div>
