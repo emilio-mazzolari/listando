@@ -80,6 +80,12 @@ const STATEMENTS = [
     `ALTER TABLE IF EXISTS vendita_foto DISABLE ROW LEVEL SECURITY`,
     `ALTER TABLE IF EXISTS vendita_accesso DISABLE ROW LEVEL SECURITY`,
     `ALTER TABLE IF EXISTS vendita_chat DISABLE ROW LEVEL SECURITY`,
+    `ALTER TABLE IF EXISTS valigie DISABLE ROW LEVEL SECURITY`,
+    `ALTER TABLE IF EXISTS cose_valigia DISABLE ROW LEVEL SECURITY`,
+    `ALTER TABLE IF EXISTS documenti_valigia DISABLE ROW LEVEL SECURITY`,
+    `ALTER TABLE IF EXISTS sv_viaggi DISABLE ROW LEVEL SECURITY`,
+    `ALTER TABLE IF EXISTS sv_spese DISABLE ROW LEVEL SECURITY`,
+    `ALTER TABLE IF EXISTS sv_partecipanti DISABLE ROW LEVEL SECURITY`,
     `DO $$ BEGIN
         IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='objects' AND schemaname='storage' AND policyname='allow upload vendita-foto') THEN
             CREATE POLICY "allow upload vendita-foto" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'vendita-foto');

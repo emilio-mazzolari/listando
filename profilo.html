@@ -164,6 +164,7 @@
         .icon-tab { width: 24px; height: 24px; stroke-width: 2.5px; stroke: var(--dark); fill: none; }
 
         /* Toast */
+        @keyframes spin { to { transform: rotate(360deg); } }
         .toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--dark); color: white; padding: 12px 20px; border-radius: 14px; font-weight: 700; font-size: 14px; opacity: 0; transition: all 0.25s; white-space: nowrap; z-index: 999; pointer-events: none; }
         .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
@@ -320,6 +321,33 @@
                 </div>
                 <div class="row-right">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Backup -->
+    <div class="settings-group">
+        <div class="group-label">Backup dati</div>
+        <div class="group-card">
+            <div class="row" style="cursor:pointer" onclick="scaricaBackup()">
+                <div class="row-icon" style="background:#e8f5e9">💾</div>
+                <div class="row-body">
+                    <div class="row-label">Scarica backup ora</div>
+                    <div class="row-sub">Scarica tutti i tuoi dati in JSON</div>
+                </div>
+                <div class="row-right" id="backupSpinner" style="display:none">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0fba8d" stroke-width="2.5" style="animation:spin 1s linear infinite"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                </div>
+            </div>
+            <div class="row" style="cursor:default;border-top:1.5px solid var(--grey-light)">
+                <div class="row-icon" style="background:#f0f4ff">🔄</div>
+                <div class="row-body">
+                    <div class="row-label">Backup automatico</div>
+                    <div class="row-sub" id="backupAutoSub">Ogni domenica alle 3:00</div>
+                </div>
+                <div class="row-right">
+                    <span style="font-size:11px;font-weight:700;color:#0fba8d;background:#e8f5e9;padding:3px 8px;border-radius:8px">Attivo</span>
                 </div>
             </div>
         </div>
@@ -700,6 +728,32 @@ async function testNotifica() {
         toast('Errore: ' + err.message);
     } finally {
         btn.textContent = 'Test'; btn.disabled = false;
+    }
+}
+
+// ── Backup ────────────────────────────────────────────────────────────
+async function scaricaBackup() {
+    const spinner = document.getElementById('backupSpinner');
+    spinner.style.display = '';
+    try {
+        const res = await fetch(`/api/backup?email=${encodeURIComponent(userEmail)}`);
+        if (!res.ok) throw new Error('Errore ' + res.status);
+        const data = await res.json();
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const date = new Date().toISOString().slice(0, 10);
+        a.href = url;
+        a.download = `listando_backup_${date}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        localStorage.setItem('lastBackup', new Date().toISOString());
+        document.getElementById('backupAutoSub').textContent = `Ogni domenica alle 3:00 · Manuale: oggi`;
+        toast('✓ Backup scaricato');
+    } catch (e) {
+        toast('Errore backup: ' + e.message);
+    } finally {
+        spinner.style.display = 'none';
     }
 }
 
