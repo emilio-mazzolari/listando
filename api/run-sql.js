@@ -98,6 +98,22 @@ const STATEMENTS = [
 ];
 
 async function runSql(serviceKey, sql) {
+    // Try project-level pg endpoint (works with service key, no PAT needed)
+    const pgResp = await fetch(`${SUPABASE_URL}/pg/query`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'apikey': serviceKey,
+            'Authorization': `Bearer ${serviceKey}`
+        },
+        body: JSON.stringify({ query: sql })
+    });
+    if (pgResp.ok) {
+        const body = await pgResp.text();
+        return { ok: true, status: pgResp.status, body: body.slice(0, 300) };
+    }
+
+    // Fall back to Management API (requires PAT — may fail with 401)
     const resp = await fetch(`https://api.supabase.com/v1/projects/${PROJECT_REF}/database/query`, {
         method: 'POST',
         headers: {
