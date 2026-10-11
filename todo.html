@@ -92,6 +92,8 @@
         .badge-scad.oggi { background: #fff4e0; color: var(--orange); }
         .badge-period { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 8px; background: rgba(48,176,199,0.1); color: var(--teal); }
         .badge-reminder { font-size: 11px; font-weight: 700; padding: 3px 6px; border-radius: 8px; background: var(--grey-light); letter-spacing: 1px; }
+        .btn-cal { background: none; border: none; font-size: 16px; cursor: pointer; padding: 2px 4px; opacity: 0.45; transition: opacity 0.15s; line-height: 1; flex-shrink: 0; }
+        .btn-cal:active { opacity: 1; }
 
         /* Modal */
         .modal-overlay { display: none; position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.5); align-items: flex-end; justify-content: center; }
@@ -658,6 +660,9 @@ function render() {
         const waBtn = isWa && !t.completato ? `<button class="btn-wa-send" onclick="event.stopPropagation(); apriWa(${t.id})"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>Invia</button>` : '';
         const waDest = isWa && t.wa_numero ? t.wa_numero.split(',').map(s => s.trim()).filter(Boolean) : [];
         const waBadge = isWa ? `<span class="wa-badge">💬 WA${waDest.length ? ' · ' + waDest.length + ' dest.' : ''}</span>` : '';
+        const calBtn = (t.scadenza || t.periodicita) && !isWa
+            ? `<button class="btn-cal" title="Aggiungi al calendario" onclick="event.stopPropagation(); aggiungiCalendario(${t.id})">📅</button>`
+            : '';
         return `<div class="task-card ${t.priorita}${t.completato ? ' done' : ''}" onclick="apriModifica(${t.id})">
             <div class="task-check${t.completato ? ' done' : ''}" onclick="event.stopPropagation(); toggleDone(${t.id})">${t.completato ? '✓' : ''}</div>
             <div class="task-body">
@@ -666,6 +671,7 @@ function render() {
                 <div class="task-meta">${waBadge}${scadHtml}</div>
                 ${waBtn}
             </div>
+            ${calBtn}
         </div>`;
     };
 
@@ -1236,6 +1242,89 @@ async function salva() {
     }
     document.getElementById('modale').classList.remove('open');
     await carica();
+}
+
+// ── Google Calendar / ICS ────────────────────────────────────────────
+function aggiungiCalendario(id) {
+    const t = tasks.find(x => x.id === id);
+    if (!t) return;
+
+    const DOW_ICS = ['SU','MO','TU','WE','TH','FR','SA'];
+
+    function pad(n) { return String(n).padStart(2, '0'); }
+
+    function toIcsDate(dateStr, timeStr) {
+        // Returns DTSTART/DTEND strings
+        const [y, mo, d] = dateStr.split('-').map(Number);
+        if (!timeStr) {
+            // All-day: use DATE format
+            const startDate = `${y}${pad(mo)}${pad(d)}`;
+            const end = new Date(Date.UTC(y, mo - 1, d + 1));
+            const endDate = `${end.getUTCFullYear()}${pad(end.getUTCMonth()+1)}${pad(end.getUTCDate())}`;
+            return { start: `DTSTART;VALUE=DATE:${startDate}`, end: `DTEND;VALUE=DATE:${endDate}` };
+        }
+        const [hh, mm] = timeStr.split(':').map(Number);
+        const startStr = `${y}${pad(mo)}${pad(d)}T${pad(hh)}${pad(mm)}00`;
+        // End = start + 1 hour
+        const endDt = new Date(Date.UTC(y, mo - 1, d, hh + 1, mm));
+        const endStr = `${endDt.getUTCFullYear()}${pad(endDt.getUTCMonth()+1)}${pad(endDt.getUTCDate())}T${pad(endDt.getUTCHours())}${pad(endDt.getUTCMinutes())}00`;
+        return { start: `DTSTART;TZID=Europe/Rome:${startStr}`, end: `DTEND;TZID=Europe/Rome:${endStr}` };
+    }
+
+    function makeRRule(t) {
+        if (t.periodicita === 'giornaliera') return 'RRULE:FREQ=DAILY';
+        if (t.periodicita === 'settimanale' && t.giorni_settimana) {
+            const days = t.giorni_settimana.split(',').map(n => DOW_ICS[Number(n)]).join(',');
+            return `RRULE:FREQ=WEEKLY;BYDAY=${days}`;
+        }
+        if (t.periodicita === 'mensile') return 'RRULE:FREQ=MONTHLY';
+        return null;
+    }
+
+    let dtStart, dtEnd, rrule = '';
+
+    if (t.scadenza) {
+        const { start, end } = toIcsDate(t.scadenza, t.ora ? t.ora.substring(0, 5) : null);
+        dtStart = start; dtEnd = end;
+        const r = makeRRule(t);
+        if (r) rrule = '\n' + r;
+    } else if (t.periodicita) {
+        // No fixed date — use today as anchor
+        const now = new Date();
+        const todayStr = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
+        const { start, end } = toIcsDate(todayStr, t.rem_ora ? t.rem_ora.substring(0,5) : null);
+        dtStart = start; dtEnd = end;
+        const r = makeRRule(t);
+        if (r) rrule = '\n' + r;
+    } else return;
+
+    const uid = `listando-${t.id}-${Date.now()}@listando.it`;
+    const desc = (t.note || '').replace(/\n/g, '\\n');
+    const ics = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//Listando//IT',
+        'CALSCALE:GREGORIAN',
+        'METHOD:PUBLISH',
+        'BEGIN:VEVENT',
+        `UID:${uid}`,
+        dtStart,
+        dtEnd,
+        `SUMMARY:${t.titolo}`,
+        desc ? `DESCRIPTION:${desc}` : '',
+        rrule.trim(),
+        'END:VEVENT',
+        'END:VCALENDAR'
+    ].filter(Boolean).join('\r\n');
+
+    const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = t.titolo.replace(/[^a-zA-Z0-9_\- ]/g, '').trim() + '.ics';
+    a.click();
+    URL.revokeObjectURL(url);
+    toast('📅 File calendario scaricato');
 }
 
 async function elimina() {
