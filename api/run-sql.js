@@ -69,6 +69,32 @@ const STATEMENTS = [
         created_at timestamptz default now()
     )`,
     `ALTER PUBLICATION supabase_realtime ADD TABLE IF NOT EXISTS vendita_chat`,
+    `CREATE TABLE IF NOT EXISTS note_condivisioni (
+        id bigint generated always as identity primary key,
+        note_id bigint not null references note(id) on delete cascade,
+        email_condiviso text not null,
+        unique(note_id, email_condiviso)
+    )`,
+    `ALTER TABLE IF EXISTS note_condivisioni DISABLE ROW LEVEL SECURITY`,
+    `ALTER TABLE IF EXISTS vendita_annunci DISABLE ROW LEVEL SECURITY`,
+    `ALTER TABLE IF EXISTS vendita_foto DISABLE ROW LEVEL SECURITY`,
+    `ALTER TABLE IF EXISTS vendita_accesso DISABLE ROW LEVEL SECURITY`,
+    `ALTER TABLE IF EXISTS vendita_chat DISABLE ROW LEVEL SECURITY`,
+    `DO $$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='objects' AND schemaname='storage' AND policyname='allow upload vendita-foto') THEN
+            CREATE POLICY "allow upload vendita-foto" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'vendita-foto');
+        END IF;
+    END $$`,
+    `DO $$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='objects' AND schemaname='storage' AND policyname='allow select vendita-foto') THEN
+            CREATE POLICY "allow select vendita-foto" ON storage.objects FOR SELECT USING (bucket_id = 'vendita-foto');
+        END IF;
+    END $$`,
+    `DO $$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='objects' AND schemaname='storage' AND policyname='allow delete vendita-foto') THEN
+            CREATE POLICY "allow delete vendita-foto" ON storage.objects FOR DELETE USING (bucket_id = 'vendita-foto');
+        END IF;
+    END $$`,
 ];
 
 async function runSql(serviceKey, sql) {

@@ -1246,87 +1246,63 @@ async function salva() {
     await carica();
 }
 
-// ── Google Calendar / ICS ────────────────────────────────────────────
+// ── Google Calendar ────────────────────────────────────────────
 function aggiungiCalendario(id) {
     const t = tasks.find(x => x.id === id);
     if (!t) return;
 
-    const DOW_ICS = ['SU','MO','TU','WE','TH','FR','SA'];
-
     function pad(n) { return String(n).padStart(2, '0'); }
 
-    function toIcsDate(dateStr, timeStr) {
-        // Returns DTSTART/DTEND strings
+    function gcalDate(dateStr, timeStr) {
         const [y, mo, d] = dateStr.split('-').map(Number);
         if (!timeStr) {
-            // All-day: use DATE format
-            const startDate = `${y}${pad(mo)}${pad(d)}`;
-            const end = new Date(Date.UTC(y, mo - 1, d + 1));
-            const endDate = `${end.getUTCFullYear()}${pad(end.getUTCMonth()+1)}${pad(end.getUTCDate())}`;
-            return { start: `DTSTART;VALUE=DATE:${startDate}`, end: `DTEND;VALUE=DATE:${endDate}` };
+            // All-day
+            const start = `${y}${pad(mo)}${pad(d)}`;
+            const endD = new Date(Date.UTC(y, mo - 1, d + 1));
+            const end = `${endD.getUTCFullYear()}${pad(endD.getUTCMonth()+1)}${pad(endD.getUTCDate())}`;
+            return { start, end };
         }
         const [hh, mm] = timeStr.split(':').map(Number);
-        const startStr = `${y}${pad(mo)}${pad(d)}T${pad(hh)}${pad(mm)}00`;
-        // End = start + 1 hour
-        const endDt = new Date(Date.UTC(y, mo - 1, d, hh + 1, mm));
-        const endStr = `${endDt.getUTCFullYear()}${pad(endDt.getUTCMonth()+1)}${pad(endDt.getUTCDate())}T${pad(endDt.getUTCHours())}${pad(endDt.getUTCMinutes())}00`;
-        return { start: `DTSTART;TZID=Europe/Rome:${startStr}`, end: `DTEND;TZID=Europe/Rome:${endStr}` };
+        // Google Calendar uses local time in the URL without timezone suffix
+        const start = `${y}${pad(mo)}${pad(d)}T${pad(hh)}${pad(mm)}00`;
+        const endDt = new Date(y, mo - 1, d, hh + 1, mm);
+        const end = `${endDt.getFullYear()}${pad(endDt.getMonth()+1)}${pad(endDt.getDate())}T${pad(endDt.getHours())}${pad(endDt.getMinutes())}00`;
+        return { start, end };
     }
 
-    function makeRRule(t) {
-        if (t.periodicita === 'giornaliera') return 'RRULE:FREQ=DAILY';
+    function gcalRRule(t) {
+        const DOW = ['SU','MO','TU','WE','TH','FR','SA'];
+        if (t.periodicita === 'giornaliera') return 'DAILY';
         if (t.periodicita === 'settimanale' && t.giorni_settimana) {
-            const days = t.giorni_settimana.split(',').map(n => DOW_ICS[Number(n)]).join(',');
-            return `RRULE:FREQ=WEEKLY;BYDAY=${days}`;
+            const days = t.giorni_settimana.split(',').map(n => DOW[Number(n)]).join('%2C');
+            return `WEEKLY;BYDAY%3D${days}`;
         }
-        if (t.periodicita === 'mensile') return 'RRULE:FREQ=MONTHLY';
+        if (t.periodicita === 'mensile') return 'MONTHLY';
         return null;
     }
 
-    let dtStart, dtEnd, rrule = '';
-
+    let dates = null;
     if (t.scadenza) {
-        const { start, end } = toIcsDate(t.scadenza, t.ora ? t.ora.substring(0, 5) : null);
-        dtStart = start; dtEnd = end;
-        const r = makeRRule(t);
-        if (r) rrule = '\n' + r;
+        dates = gcalDate(t.scadenza, t.ora ? t.ora.substring(0, 5) : null);
     } else if (t.periodicita) {
-        // No fixed date — use today as anchor
         const now = new Date();
         const todayStr = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
-        const { start, end } = toIcsDate(todayStr, t.rem_ora ? t.rem_ora.substring(0,5) : null);
-        dtStart = start; dtEnd = end;
-        const r = makeRRule(t);
-        if (r) rrule = '\n' + r;
-    } else return;
+        dates = gcalDate(todayStr, t.rem_ora ? t.rem_ora.substring(0, 5) : null);
+    } else {
+        toast('Aggiungi una scadenza per usare il calendario');
+        return;
+    }
 
-    const uid = `listando-${t.id}-${Date.now()}@listando.it`;
-    const desc = (t.note || '').replace(/\n/g, '\\n');
-    const ics = [
-        'BEGIN:VCALENDAR',
-        'VERSION:2.0',
-        'PRODID:-//Listando//IT',
-        'CALSCALE:GREGORIAN',
-        'METHOD:PUBLISH',
-        'BEGIN:VEVENT',
-        `UID:${uid}`,
-        dtStart,
-        dtEnd,
-        `SUMMARY:${t.titolo}`,
-        desc ? `DESCRIPTION:${desc}` : '',
-        rrule.trim(),
-        'END:VEVENT',
-        'END:VCALENDAR'
-    ].filter(Boolean).join('\r\n');
+    const params = new URLSearchParams({
+        action: 'TEMPLATE',
+        text: t.titolo,
+        dates: `${dates.start}/${dates.end}`,
+    });
+    if (t.note) params.set('details', t.note);
+    const rrule = gcalRRule(t);
+    if (rrule) params.set('recur', `RRULE:FREQ=${rrule}`);
 
-    const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = t.titolo.replace(/[^a-zA-Z0-9_\- ]/g, '').trim() + '.ics';
-    a.click();
-    URL.revokeObjectURL(url);
-    toast('📅 File calendario scaricato');
+    window.open(`https://calendar.google.com/calendar/render?${params.toString()}`, '_blank');
 }
 
 async function elimina() {

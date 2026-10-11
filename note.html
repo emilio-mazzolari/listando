@@ -30,7 +30,7 @@
         .notes-grid { padding:8px 10px; column-count:2; column-gap:8px; }
         .note-card { break-inside:avoid; border-radius:16px; padding:14px 14px 28px; margin-bottom:8px; cursor:pointer; box-shadow:0 1px 5px rgba(0,0,0,.09); position:relative; transition:box-shadow .15s; }
         .note-card:active { box-shadow:0 3px 14px rgba(0,0,0,.16); }
-        .note-pin { position:absolute; top:10px; right:10px; font-size:14px; }
+        .note-badge { position:absolute; top:10px; right:10px; font-size:14px; }
         .note-title { font-weight:900; font-size:14px; margin-bottom:6px; line-height:1.3; }
         .note-body { font-size:12px; color:#444; line-height:1.5; white-space:pre-wrap; word-break:break-word; }
         .note-date { position:absolute; bottom:8px; left:14px; font-size:10px; color:#aaa; font-weight:700; }
@@ -43,11 +43,16 @@
         .modal-handle { width:40px; height:4px; background:rgba(0,0,0,.15); border-radius:4px; margin:0 auto 16px; }
         .form-input { width:100%; padding:12px 14px; border-radius:14px; border:2px solid rgba(0,0,0,.12); font-size:15px; font-family:inherit; outline:none; background:rgba(255,255,255,.7); margin-bottom:10px; }
         .form-textarea { width:100%; padding:12px 14px; border-radius:14px; border:2px solid rgba(0,0,0,.12); font-size:15px; font-family:inherit; outline:none; resize:none; min-height:160px; background:rgba(255,255,255,.7); }
+        .fmt-toolbar { display:flex; gap:6px; margin:8px 0 2px; }
+        .fmt-btn { padding:6px 12px; border-radius:10px; border:1.5px solid rgba(0,0,0,.15); background:rgba(255,255,255,.7); font-size:13px; font-weight:800; cursor:pointer; color:#444; font-family:inherit; }
+        .fmt-btn:active { background:rgba(0,0,0,.08); }
         .color-row { display:flex; gap:10px; flex-wrap:wrap; margin:14px 0 4px; }
         .color-dot { width:30px; height:30px; border-radius:50%; cursor:pointer; border:3px solid transparent; flex-shrink:0; transition:transform .1s; }
         .color-dot.active { border-color:#555 !important; transform:scale(1.18); }
         .btn-save { width:100%; padding:15px; border-radius:18px; border:none; background:var(--amber); color:white; font-weight:900; font-size:16px; cursor:pointer; font-family:inherit; margin-top:10px; }
+        .btn-share-open { width:100%; padding:13px; border-radius:18px; border:2px solid var(--grey); background:var(--white); color:var(--dark); font-weight:800; font-size:14px; cursor:pointer; font-family:inherit; margin-top:8px; }
         .btn-del { width:100%; padding:13px; border-radius:18px; border:none; background:#fff0f0; color:var(--red); font-weight:800; font-size:14px; cursor:pointer; font-family:inherit; margin-top:8px; }
+        .owner-info { font-size:12px; color:#888; font-weight:700; margin-bottom:10px; }
 
         .empty-msg { text-align:center; padding:60px 24px; color:#bbb; font-weight:700; font-size:15px; column-span:all; }
 
@@ -56,6 +61,19 @@
         .ctx-item { padding:12px 16px; font-size:14px; font-weight:700; cursor:pointer; border-radius:10px; }
         .ctx-item:active { background:var(--grey-light); }
         .ctx-item.danger { color:var(--red); }
+        .ctx-item.hide { display:none; }
+
+        /* Share modal */
+        .share-title { font-weight:900; font-size:17px; margin-bottom:4px; }
+        .share-section-label { font-size:12px; color:#888; font-weight:700; margin:16px 0 6px; text-transform:uppercase; letter-spacing:.4px; }
+        .share-add-row { display:flex; gap:8px; }
+        .share-add-row .form-input { margin-bottom:0; flex:1; }
+        .btn-add-share { padding:12px 18px; border-radius:14px; border:none; background:var(--amber); color:white; font-weight:900; font-size:15px; cursor:pointer; }
+        .email-chip-list { display:flex; flex-direction:column; gap:6px; }
+        .email-chip { display:flex; align-items:center; gap:8px; background:var(--grey-light); border-radius:12px; padding:10px 14px; }
+        .email-chip-text { flex:1; font-size:14px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .btn-chip-del { width:28px; height:28px; border-radius:8px; border:none; background:rgba(255,59,48,.12); color:var(--red); font-size:18px; line-height:1; cursor:pointer; flex-shrink:0; }
+        .no-shares { color:#bbb; font-size:13px; font-weight:600; padding:4px 0; }
 
         .toast { position:fixed; bottom:90px; left:50%; transform:translateX(-50%) translateY(20px); background:rgba(0,0,0,.85); color:white; padding:12px 20px; border-radius:14px; font-weight:700; font-size:14px; opacity:0; transition:all .25s; z-index:9999; pointer-events:none; white-space:nowrap; }
         .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
@@ -79,19 +97,43 @@
 <button class="fab" onclick="apriNuova()">+</button>
 
 <div class="ctx-menu" id="ctxMenu">
-    <div class="ctx-item" onclick="ctxAction('pin')">📌 Fissa / rimuovi</div>
-    <div class="ctx-item" onclick="ctxAction('edit')">✏️ Modifica</div>
-    <div class="ctx-item danger" onclick="ctxAction('del')">🗑️ Elimina</div>
+    <div class="ctx-item" id="ctxPin"   onclick="ctxAction('pin')">📌 Fissa / rimuovi</div>
+    <div class="ctx-item"               onclick="ctxAction('edit')">✏️ Modifica</div>
+    <div class="ctx-item" id="ctxShare" onclick="ctxAction('share')">👥 Condividi</div>
+    <div class="ctx-item danger hide" id="ctxDel" onclick="ctxAction('del')">🗑️ Elimina</div>
 </div>
 
+<!-- Edit modal -->
 <div class="modal-overlay" id="modaleNota">
     <div class="modal-box" id="noteBox">
         <div class="modal-handle"></div>
+        <div class="owner-info" id="ownerInfo" style="display:none"></div>
         <input class="form-input" id="nTitolo" placeholder="Titolo (opzionale)" type="text">
         <textarea class="form-textarea" id="nCorpo" placeholder="Scrivi qui…"></textarea>
+        <div class="fmt-toolbar">
+            <button class="fmt-btn" onclick="inserisciBullet()">• Lista</button>
+            <button class="fmt-btn" onclick="inserisciLinea()">— Separatore</button>
+        </div>
         <div class="color-row" id="colorRow"></div>
         <button class="btn-save" onclick="salva()">SALVA</button>
+        <button class="btn-share-open" id="btnShare" style="display:none" onclick="apriCondividi(editId)">👥 Condividi con…</button>
         <button class="btn-del" id="btnDel" style="display:none" onclick="elimina()">ELIMINA NOTA</button>
+    </div>
+</div>
+
+<!-- Share modal -->
+<div class="modal-overlay" id="modaleCondivisione">
+    <div class="modal-box" style="background:var(--white)">
+        <div class="modal-handle"></div>
+        <div class="share-title">👥 Condividi nota</div>
+        <div class="share-section-label">Aggiungi utente</div>
+        <div class="share-add-row">
+            <input class="form-input" id="shareEmailInput" type="email" placeholder="email@esempio.com"
+                onkeydown="if(event.key==='Enter')aggiungiEmail()">
+            <button class="btn-add-share" onclick="aggiungiEmail()">+</button>
+        </div>
+        <div class="share-section-label">Condivisa con</div>
+        <div class="email-chip-list" id="emailChipList"></div>
     </div>
 </div>
 
@@ -109,13 +151,17 @@ const COLORS = [
     '#ede0ff','#ffe0b2','#d0f4f1','#ffffff'
 ];
 
-let notes = [], editId = null, editColor = '#fff9c4', ctxId = null;
+let notes = [], editId = null, editColor = '#ffffff', ctxId = null, shareNoteId = null;
 let lpTimer;
 
 async function carica() {
-    const { data } = await sb.from('note').select('*').eq('email_utente', userEmail)
-        .order('pinned', { ascending: false }).order('updated_at', { ascending: false });
-    notes = data || [];
+    const [{ data: mie }, { data: condivise }] = await Promise.all([
+        sb.from('note').select('*').eq('email_utente', userEmail)
+            .order('pinned', { ascending: false }).order('updated_at', { ascending: false }),
+        sb.from('note_condivisioni').select('note(*)').eq('email_condiviso', userEmail)
+    ]);
+    const shared = (condivise || []).filter(r => r.note).map(r => ({ ...r.note, _condivisa: true }));
+    notes = [...(mie || []), ...shared];
     render(document.getElementById('searchInput').value);
 }
 
@@ -132,11 +178,12 @@ function render(q = '') {
     grid.innerHTML = list.map(n => {
         const body = (n.contenuto || '').substring(0, 300);
         const date = new Date(n.updated_at).toLocaleDateString('it-IT', { day: '2-digit', month: 'short' });
+        const badge = n._condivisa ? '👥' : (n.pinned ? '📌' : '');
         return `<div class="note-card" style="background:${n.colore || '#fff9c4'}"
             onclick="apriEdit(${n.id})"
             oncontextmenu="event.preventDefault();apriCtx(${n.id},event)"
             ontouchstart="lpStart(${n.id},event)" ontouchend="lpEnd()" ontouchmove="lpEnd()">
-            ${n.pinned ? `<div class="note-pin">📌</div>` : ''}
+            ${badge ? `<div class="note-badge">${badge}</div>` : ''}
             ${n.titolo ? `<div class="note-title">${esc(n.titolo)}</div>` : ''}
             ${body ? `<div class="note-body">${esc(body)}${(n.contenuto||'').length>300?'…':''}</div>` : ''}
             <div class="note-date">${date}</div>
@@ -146,11 +193,47 @@ function render(q = '') {
 
 function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
+function isOwner(id) {
+    const n = notes.find(x => x.id === id);
+    return !!n && !n._condivisa;
+}
+
+function inserisciBullet() {
+    const ta = document.getElementById('nCorpo');
+    const start = ta.selectionStart, end = ta.selectionEnd, val = ta.value;
+    const lineStart = val.lastIndexOf('\n', start - 1) + 1;
+    if (start === end) {
+        if (val.substring(lineStart, lineStart + 2) === '• ') {
+            ta.value = val.substring(0, lineStart) + val.substring(lineStart + 2);
+            ta.selectionStart = ta.selectionEnd = Math.max(lineStart, start - 2);
+        } else {
+            ta.value = val.substring(0, lineStart) + '• ' + val.substring(lineStart);
+            ta.selectionStart = ta.selectionEnd = start + 2;
+        }
+    } else {
+        const chunk = val.substring(lineStart, end);
+        const converted = chunk.split('\n').map(l => l.startsWith('• ') ? l.slice(2) : '• ' + l).join('\n');
+        ta.value = val.substring(0, lineStart) + converted + val.substring(end);
+    }
+    ta.focus();
+}
+
+function inserisciLinea() {
+    const ta = document.getElementById('nCorpo');
+    const pos = ta.selectionStart, val = ta.value;
+    const sep = '\n——————————\n';
+    ta.value = val.substring(0, pos) + sep + val.substring(pos);
+    ta.selectionStart = ta.selectionEnd = pos + sep.length;
+    ta.focus();
+}
+
 function apriNuova() {
-    editId = null; editColor = '#fff9c4';
+    editId = null; editColor = '#ffffff';
     document.getElementById('nTitolo').value = '';
     document.getElementById('nCorpo').value = '';
     document.getElementById('btnDel').style.display = 'none';
+    document.getElementById('btnShare').style.display = 'none';
+    document.getElementById('ownerInfo').style.display = 'none';
     buildColors(); applyBg();
     document.getElementById('modaleNota').classList.add('open');
     setTimeout(() => document.getElementById('nCorpo').focus(), 250);
@@ -162,7 +245,16 @@ function apriEdit(id) {
     editId = id; editColor = n.colore || '#fff9c4';
     document.getElementById('nTitolo').value = n.titolo || '';
     document.getElementById('nCorpo').value = n.contenuto || '';
-    document.getElementById('btnDel').style.display = '';
+    const own = !n._condivisa;
+    document.getElementById('btnDel').style.display = own ? '' : 'none';
+    document.getElementById('btnShare').style.display = own ? '' : 'none';
+    const ownerInfo = document.getElementById('ownerInfo');
+    if (n._condivisa) {
+        ownerInfo.textContent = `👤 Condivisa da ${n.email_utente}`;
+        ownerInfo.style.display = '';
+    } else {
+        ownerInfo.style.display = 'none';
+    }
     buildColors(); applyBg();
     document.getElementById('modaleNota').classList.add('open');
 }
@@ -179,10 +271,18 @@ async function salva() {
     const titolo = document.getElementById('nTitolo').value.trim();
     const contenuto = document.getElementById('nCorpo').value.trim();
     if (!titolo && !contenuto) { toast('Scrivi qualcosa prima di salvare'); return; }
-    const row = { email_utente: userEmail, titolo: titolo || null, contenuto: contenuto || null, colore: editColor, updated_at: new Date().toISOString() };
     let err;
-    if (editId) { ({ error: err } = await sb.from('note').update(row).eq('id', editId)); }
-    else { ({ error: err } = await sb.from('note').insert({ ...row, pinned: false })); }
+    if (editId) {
+        const n = notes.find(x => x.id === editId);
+        const row = { titolo: titolo || null, contenuto: contenuto || null, colore: editColor, updated_at: new Date().toISOString() };
+        if (!n?._condivisa) row.email_utente = userEmail;
+        ({ error: err } = await sb.from('note').update(row).eq('id', editId));
+    } else {
+        ({ error: err } = await sb.from('note').insert({
+            email_utente: userEmail, titolo: titolo || null, contenuto: contenuto || null,
+            colore: editColor, pinned: false, updated_at: new Date().toISOString()
+        }));
+    }
     if (err) { toast('Errore: ' + err.message); return; }
     document.getElementById('modaleNota').classList.remove('open');
     toast('✓ Salvata');
@@ -208,15 +308,20 @@ function lpEnd() { clearTimeout(lpTimer); }
 
 function apriCtx(id, e) {
     ctxId = id;
+    const own = isOwner(id);
+    document.getElementById('ctxPin').classList.toggle('hide', !own);
+    document.getElementById('ctxShare').classList.toggle('hide', !own);
+    document.getElementById('ctxDel').classList.toggle('hide', !own);
     const m = document.getElementById('ctxMenu');
     m.classList.add('open');
     m.style.left = Math.min(e.clientX, window.innerWidth - 180) + 'px';
-    m.style.top  = Math.min(e.clientY, window.innerHeight - 140) + 'px';
+    m.style.top  = Math.min(e.clientY, window.innerHeight - 160) + 'px';
 }
 
 async function ctxAction(action) {
     document.getElementById('ctxMenu').classList.remove('open');
-    if (action === 'edit') { apriEdit(ctxId); return; }
+    if (action === 'edit')  { apriEdit(ctxId); return; }
+    if (action === 'share') { apriCondividi(ctxId); return; }
     if (action === 'pin') {
         const n = notes.find(x => x.id === ctxId);
         if (!n) return;
@@ -232,11 +337,67 @@ async function ctxAction(action) {
     }
 }
 
+/* ---- CONDIVISIONE ---- */
+
+async function apriCondividi(id) {
+    shareNoteId = id;
+    document.getElementById('shareEmailInput').value = '';
+    document.getElementById('modaleNota').classList.remove('open');
+    await caricaCondivisioni();
+    document.getElementById('modaleCondivisione').classList.add('open');
+    setTimeout(() => document.getElementById('shareEmailInput').focus(), 300);
+}
+
+async function caricaCondivisioni() {
+    const { data } = await sb.from('note_condivisioni').select('email_condiviso').eq('note_id', shareNoteId);
+    const list = document.getElementById('emailChipList');
+    if (!data?.length) {
+        list.innerHTML = `<div class="no-shares">Nessuno ancora — aggiungi una email sopra</div>`;
+        return;
+    }
+    list.innerHTML = data.map(r => `
+        <div class="email-chip">
+            <div class="email-chip-text">${esc(r.email_condiviso)}</div>
+            <button class="btn-chip-del" onclick="rimuoviEmail('${esc(r.email_condiviso)}')">×</button>
+        </div>`).join('');
+}
+
+async function aggiungiEmail() {
+    const input = document.getElementById('shareEmailInput');
+    const email = input.value.trim().toLowerCase();
+    if (!email || !email.includes('@')) { toast('Inserisci una email valida'); return; }
+    if (email === userEmail.toLowerCase()) { toast('Non puoi condividere con te stesso'); return; }
+    const { error } = await sb.from('note_condivisioni').insert({ note_id: shareNoteId, email_condiviso: email });
+    if (error) {
+        toast(error.code === '23505' ? 'Email già presente' : 'Errore: ' + error.message);
+        return;
+    }
+    input.value = '';
+    toast(`✓ Condivisa con ${email}`);
+    await caricaCondivisioni();
+}
+
+async function rimuoviEmail(email) {
+    await sb.from('note_condivisioni').delete().eq('note_id', shareNoteId).eq('email_condiviso', email);
+    await caricaCondivisioni();
+    toast('Condivisione rimossa');
+}
+
+/* ---- CHIUSURA MODALI ---- */
+
 document.addEventListener('click', e => {
-    if (!document.getElementById('ctxMenu').contains(e.target)) document.getElementById('ctxMenu').classList.remove('open');
+    if (!document.getElementById('ctxMenu').contains(e.target))
+        document.getElementById('ctxMenu').classList.remove('open');
 });
 document.getElementById('modaleNota').addEventListener('click', e => {
-    if (e.target === document.getElementById('modaleNota')) document.getElementById('modaleNota').classList.remove('open');
+    if (e.target === document.getElementById('modaleNota'))
+        document.getElementById('modaleNota').classList.remove('open');
+});
+document.getElementById('modaleCondivisione').addEventListener('click', e => {
+    if (e.target === document.getElementById('modaleCondivisione')) {
+        document.getElementById('modaleCondivisione').classList.remove('open');
+        carica();
+    }
 });
 
 let toastTimer;

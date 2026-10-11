@@ -13,7 +13,7 @@
     <meta name="apple-mobile-web-app-title" content="Listando">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root { color-scheme:light; --teal:#10B981; --teal-d:#059669; --grey:#d8dddc; --grey-l:#f2f2f7; --dark:#111; --bg:#f5f6f8; --white:#fff; --red:#ff3b30; }
+        :root { color-scheme:light; --teal:#16a34a; --teal-d:#15803d; --grey:#d8dddc; --grey-l:#f2f2f7; --dark:#111; --bg:#f5f6f8; --white:#fff; --red:#ff3b30; }
         * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
         html,body { overflow-x:hidden; max-width:100%; margin:0; }
         body { font-family:'Segoe UI',system-ui,sans-serif; background:var(--bg); color:var(--dark); padding-bottom:90px; }
@@ -709,10 +709,11 @@ async function salva() {
                 const ext = slot.file.name.split('.').pop() || 'jpg';
                 const path = `${userEmail}/${annuncioId}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
                 const { error: upErr } = await sb.storage.from('vendita-foto').upload(path, slot.file, { upsert: false });
-                if (!upErr) {
-                    const { data: { publicUrl } } = sb.storage.from('vendita-foto').getPublicUrl(path);
-                    await sb.from('vendita_foto').insert({ annuncio_id: annuncioId, url: publicUrl, ordine: ordine++ });
-                }
+                if (upErr) { toast('Errore upload foto: ' + upErr.message); continue; }
+                const { data: { publicUrl } } = sb.storage.from('vendita-foto').getPublicUrl(path);
+                const { error: insErr } = await sb.from('vendita_foto').insert({ annuncio_id: annuncioId, url: publicUrl, ordine: ordine });
+                if (insErr) { toast('Errore salvataggio foto: ' + insErr.message); }
+                else { ordine++; }
             }
         }
 
