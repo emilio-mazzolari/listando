@@ -196,6 +196,10 @@
         }
         .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--accent); }
         .form-textarea { resize: none; min-height: 120px; line-height: 1.5; }
+        .label-row { display: flex; align-items: center; justify-content: space-between; }
+        .btn-mic { background: none; border: 2px solid var(--grey); border-radius: 50%; width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; flex-shrink: 0; }
+        .btn-mic.recording { border-color: #ff3b30; background: #ff3b30; color: white; animation: pulse-mic 1s ease-in-out infinite; }
+        @keyframes pulse-mic { 0%,100% { transform: scale(1); } 50% { transform: scale(1.12); } }
         .form-row { display: flex; gap: 10px; }
         .form-row .form-group { flex: 1; }
 
@@ -320,7 +324,7 @@
         <div class="import-panel" id="importPanel"></div>
 
         <div class="form-group">
-            <label class="form-label">Titolo *</label>
+            <label class="form-label label-row">Titolo *<button type="button" class="btn-mic" onclick="toggleMic('fTitolo',this)" title="Dettatura vocale"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></button></label>
             <input class="form-input" id="fTitolo" type="text" placeholder="Es. Spaghetti alla carbonara">
         </div>
         <div class="form-row">
@@ -348,7 +352,7 @@
         </div>
 
         <div class="form-group">
-            <label class="form-label">Procedura</label>
+            <label class="form-label label-row">Procedura<button type="button" class="btn-mic" onclick="toggleMic('fProcedura',this)" title="Dettatura vocale"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></button></label>
             <textarea class="form-textarea" id="fProcedura" placeholder="Un passaggio per riga, oppure testo libero…" rows="6"></textarea>
         </div>
 
@@ -358,7 +362,7 @@
         </div>
 
         <div class="form-group">
-            <label class="form-label">Note</label>
+            <label class="form-label label-row">Note<button type="button" class="btn-mic" onclick="toggleMic('fNote',this)" title="Dettatura vocale"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></button></label>
             <input class="form-input" id="fNote" type="text" placeholder="Varianti, consigli…">
         </div>
 
@@ -436,6 +440,34 @@ let pendingMediaFile = null, currentMediaUrl = null, currentMediaPath = null;
 let importMode = null, ocrFile = null;
 
 const cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+
+// ── Dettatura vocale ──────────────────────────────────────────────
+let _micRec = null, _micBtn = null;
+function toggleMic(targetId, btn) {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { alert('Il tuo browser non supporta la dettatura vocale'); return; }
+    if (_micRec) {
+        _micRec.stop();
+        return;
+    }
+    if (_micBtn && _micBtn !== btn) { _micBtn.classList.remove('recording'); }
+    _micBtn = btn;
+    _micRec = new SR();
+    _micRec.lang = 'it-IT';
+    _micRec.continuous = true;
+    _micRec.interimResults = false;
+    _micRec.onstart = () => btn.classList.add('recording');
+    _micRec.onresult = e => {
+        const testo = Array.from(e.results).slice(e.resultIndex).map(r => r[0].transcript).join(' ');
+        const el = document.getElementById(targetId);
+        if (!el) return;
+        if (el.tagName === 'TEXTAREA') el.value += (el.value ? '\n' : '') + testo;
+        else el.value = (el.value ? el.value + ' ' : '') + testo;
+    };
+    _micRec.onerror = () => { btn.classList.remove('recording'); _micRec = null; _micBtn = null; };
+    _micRec.onend = () => { btn.classList.remove('recording'); _micRec = null; _micBtn = null; };
+    _micRec.start();
+}
 
 // ── Import from text/photo ────────────────────────────────────────────
 function toggleImport(mode) {
