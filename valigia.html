@@ -407,7 +407,8 @@ function showView(id) {
 }
 async function get(path) {
     const r = await fetch(`${URL}${path}`, { headers: HR });
-    return r.json();
+    const data = await r.json();
+    return Array.isArray(data) ? data : [];
 }
 async function post(path, body) {
     return fetch(`${URL}${path}`, { method: 'POST', headers: H, body: JSON.stringify(body) });
