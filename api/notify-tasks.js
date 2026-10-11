@@ -68,6 +68,8 @@ module.exports = async function handler(req, res) {
     try { sb = getSb(); } catch (e) { return res.status(500).json({ error: e.message }); }
 
     const { date, totalMins, dow, romeDate } = getRomeTime();
+    // Start window 5 min early to absorb slight cron delays; end 65 min later
+    const windowStart = totalMins - 5;
     const windowEnd = totalMins + 65;
 
     // ── Reset notificato at midnight for recurring tasks (scadenza=null) ──
@@ -121,7 +123,7 @@ module.exports = async function handler(req, res) {
             const timeStr = (t.rem_ora || '09:00').substring(0, 5);
             const [hh, mm] = timeStr.split(':').map(Number);
             const mins = hh * 60 + mm;
-            if (mins < totalMins || mins >= windowEnd) continue;
+            if (mins < windowStart || mins >= windowEnd) continue;
             dateDue.push({ task: t, anticipo, timeStr });
         }
     }
@@ -149,7 +151,7 @@ module.exports = async function handler(req, res) {
         if (!timeStr) return false;
         const [hh, mm] = timeStr.split(':').map(Number);
         const mins = hh * 60 + mm;
-        return mins >= totalMins && mins < windowEnd;
+        return mins >= windowStart && mins < windowEnd;
     });
 
     // ── 3. Daily recurring tasks ──────────────────────────────────────────
@@ -166,7 +168,7 @@ module.exports = async function handler(req, res) {
         if (!timeStr) return false;
         const [hh, mm] = timeStr.split(':').map(Number);
         const mins = hh * 60 + mm;
-        return mins >= totalMins && mins < windowEnd;
+        return mins >= windowStart && mins < windowEnd;
     });
 
     const isDebug = req.query?.debug === '1' || req.body?.debug === '1';
@@ -188,7 +190,7 @@ module.exports = async function handler(req, res) {
                 const timeStr = (t.rem_ora || '09:00').substring(0, 5);
                 const [hh, mm] = timeStr.split(':').map(Number);
                 const mins = hh * 60 + mm;
-                if (mins < totalMins) return `anticipo=${a}: ora=${mins}min<finestra(${totalMins})`;
+                if (mins < windowStart) return `anticipo=${a}: ora=${mins}min<finestraInizio(${windowStart})`;
                 if (mins >= windowEnd) return `anticipo=${a}: ora=${mins}min>=finestrafine(${windowEnd})`;
                 return `anticipo=${a}: DOVREBBE_SCATTARE`;
             });
@@ -203,14 +205,14 @@ module.exports = async function handler(req, res) {
             const [hh, mm] = timeStr ? timeStr.split(':').map(Number) : [0, 0];
             const mins = hh * 60 + mm;
             const hasSub = !!(subsByEmail[t.email_utente]?.length);
-            return { id: t.id, titolo: t.titolo, email_utente: t.email_utente, giorni_settimana: t.giorni_settimana, rem_anticipi: t.rem_anticipi, rem_ora: t.rem_ora, notificato: t.notificato, matchesDay, mins, inWindow: mins >= totalMins && mins < windowEnd, hasSub };
+            return { id: t.id, titolo: t.titolo, email_utente: t.email_utente, giorni_settimana: t.giorni_settimana, rem_anticipi: t.rem_anticipi, rem_ora: t.rem_ora, notificato: t.notificato, matchesDay, mins, inWindow: mins >= windowStart && mins < windowEnd, hasSub };
         });
         const debugDaily = (dailyTasks || []).map(t => {
             const timeStr = (t.rem_ora || t.ora || '').substring(0, 5);
             const [hh, mm] = timeStr ? timeStr.split(':').map(Number) : [0, 0];
             const mins = hh * 60 + mm;
             const hasSub = !!(subsByEmail[t.email_utente]?.length);
-            return { id: t.id, titolo: t.titolo, email_utente: t.email_utente, rem_ora: t.rem_ora, notificato: t.notificato, mins, inWindow: mins >= totalMins && mins < windowEnd, hasSub };
+            return { id: t.id, titolo: t.titolo, email_utente: t.email_utente, rem_ora: t.rem_ora, notificato: t.notificato, mins, inWindow: mins >= windowStart && mins < windowEnd, hasSub };
         });
         return res.json({ ...baseDebug, dateTasks: debugDateTasks, weeklyTasks: debugWeekly, dailyTasks: debugDaily, due: { date: dateDue.length, weekly: weeklyDue.length, daily: dailyDue.length } });
     }
