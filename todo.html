@@ -61,16 +61,20 @@
         .btn-clear-done { font-size: 11px; font-weight: 800; color: var(--red); border: none; background: none; cursor: pointer; padding: 0; }
         .empty-msg { text-align: center; padding: 64px 24px; color: #bbb; font-weight: 700; font-size: 15px; }
 
+        .task-wrap { position: relative; overflow: hidden; border-radius: 18px; margin-bottom: 8px; }
         .task-card {
             background: var(--white); border-radius: 18px;
-            margin-bottom: 8px; display: flex; align-items: flex-start; gap: 12px;
+            display: flex; align-items: flex-start; gap: 12px;
             padding: 14px 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);
             border-left: 5px solid transparent; cursor: pointer;
+            transition: transform 0.25s cubic-bezier(0.25,0.46,0.45,0.94);
+            will-change: transform; position: relative; z-index: 1;
         }
         .task-card.alta { border-left-color: var(--alta); }
         .task-card.media { border-left-color: var(--media); }
         .task-card.bassa { border-left-color: var(--bassa); }
         .task-card.done { opacity: 0.45; }
+        .btn-swipe-del { position: absolute; right: 0; top: 0; bottom: 0; width: 72px; background: var(--red); color: white; border: none; font-size: 22px; cursor: pointer; border-radius: 0 18px 18px 0; display: flex; align-items: center; justify-content: center; z-index: 0; }
         .task-title-row { display: flex; align-items: flex-start; gap: 6px; }
         .btn-copia-task { background: none; border: none; font-size: 20px; cursor: pointer; padding: 0 2px; opacity: 0.3; transition: opacity 0.15s; line-height: 1; flex-shrink: 0; margin-top: 1px; }
         .btn-copia-task:active { opacity: 1; }
@@ -667,15 +671,18 @@ function render() {
         const calBtn = !isWa
             ? `<button class="btn-cal" title="Aggiungi a Google Calendar" onclick="event.stopPropagation(); aggiungiCalendario(${t.id})"><img src="https://www.google.com/s2/favicons?domain=calendar.google.com&sz=32" alt="Google Calendar"></button>`
             : '';
-        return `<div class="task-card ${t.priorita}${t.completato ? ' done' : ''}" onclick="apriModifica(${t.id})">
-            <div class="task-check${t.completato ? ' done' : ''}" onclick="event.stopPropagation(); toggleDone(${t.id})">${t.completato ? '✓' : ''}</div>
-            <div class="task-body">
-                <div class="task-title${t.completato ? ' done' : ''}">${t.titolo}</div>
-                ${waMsgPreview}
-                <div class="task-meta">${waBadge}${scadHtml}</div>
-                ${waBtn}
+        return `<div class="task-wrap" data-id="${t.id}">
+            <div class="task-card ${t.priorita}${t.completato ? ' done' : ''}" onclick="apriModifica(${t.id})">
+                <div class="task-check${t.completato ? ' done' : ''}" onclick="event.stopPropagation(); toggleDone(${t.id})">${t.completato ? '✓' : ''}</div>
+                <div class="task-body">
+                    <div class="task-title${t.completato ? ' done' : ''}">${t.titolo}</div>
+                    ${waMsgPreview}
+                    <div class="task-meta">${waBadge}${scadHtml}</div>
+                    ${waBtn}
+                </div>
+                ${calBtn}
             </div>
-            ${calBtn}
+            <button class="btn-swipe-del" onclick="eliminaDaCard(${t.id})">🗑️</button>
         </div>`;
     };
 
@@ -690,6 +697,7 @@ function render() {
     if (done.length) html += `<div class="section-title">✅ Completate <button class="btn-clear-done" onclick="event.stopPropagation(); clearDone()">Svuota</button></div>` + done.map(renderTask).join('');
 
     body.innerHTML = html;
+    initSwipe();
 }
 
 async function toggleDone(id) {
@@ -1336,6 +1344,48 @@ async function elimina() {
 document.getElementById('modale').addEventListener('click', e => {
     if (e.target === document.getElementById('modale')) document.getElementById('modale').classList.remove('open');
 });
+
+// ── Swipe-to-delete ────────────────────────────────────────────────
+function initSwipe() {
+    document.querySelectorAll('.task-wrap').forEach(wrap => {
+        const card = wrap.querySelector('.task-card');
+        let startX, startY, dragging = false;
+        wrap.addEventListener('touchstart', e => {
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+            dragging = false;
+            card.style.transition = 'none';
+        }, { passive: true });
+        wrap.addEventListener('touchmove', e => {
+            const dx = e.touches[0].clientX - startX;
+            const dy = e.touches[0].clientY - startY;
+            if (!dragging && Math.abs(dy) > Math.abs(dx)) return;
+            dragging = true;
+            if (dx < 0) card.style.transform = `translateX(${Math.max(dx, -72)}px)`;
+            else if (card.classList.contains('swiped')) card.style.transform = `translateX(${Math.min(dx - 72, 0)}px)`;
+        }, { passive: true });
+        wrap.addEventListener('touchend', e => {
+            card.style.transition = '';
+            card.style.transform = '';
+            if (!dragging) return;
+            const dx = e.changedTouches[0].clientX - startX;
+            if (dx < -40) card.classList.add('swiped');
+            else card.classList.remove('swiped');
+        });
+    });
+    document.addEventListener('touchstart', e => {
+        if (!e.target.closest('.task-wrap')) {
+            document.querySelectorAll('.task-card.swiped').forEach(c => c.classList.remove('swiped'));
+        }
+    }, { passive: true });
+}
+
+async function eliminaDaCard(id) {
+    const { error } = await sb.from('todo').delete().eq('id', id);
+    if (error) { toast('Errore eliminazione'); return; }
+    toast('Eliminato');
+    await carica();
+}
 
 let toastTimer;
 function toast(msg) {
