@@ -233,11 +233,14 @@
                 </div>
                 <input class="row-input" id="fDataNascita" type="date" oninput="onCampoChange()">
             </div>
-            <div class="row">
+            <div class="row" style="cursor:pointer" onclick="apriCambioEmail()">
                 <div class="row-icon" style="background:#fff8f0">✉️</div>
                 <div class="row-body">
                     <div class="row-label">Email</div>
                     <div class="row-sub" id="emailDisplay">—</div>
+                </div>
+                <div class="row-right">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
                 </div>
             </div>
         </div>
@@ -366,6 +369,29 @@
         <div class="sheet-handle"></div>
         <div class="sheet-title">📬 Feedback ricevuti</div>
         <div id="adminFeedbackList"><div style="text-align:center;color:#aaa;padding:20px">Caricamento…</div></div>
+    </div>
+</div>
+
+<!-- Modal: Cambia email -->
+<div class="sheet-overlay" id="sheetCambioEmail" onclick="if(event.target===this)chiudiCambioEmail()">
+    <div class="sheet-box">
+        <div class="sheet-handle"></div>
+        <div class="sheet-title">Cambia email</div>
+        <p style="font-size:13px;color:#888;margin:0 0 16px">Inserisci la nuova email. Verrai disconnesso e dovrai accedere con la nuova email.</p>
+        <div style="margin-bottom:12px">
+            <label style="font-size:11px;font-weight:800;color:#999;text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:6px">Nuova email</label>
+            <input type="email" id="fNuovaEmail" placeholder="nuova@email.com"
+                   style="width:100%;padding:12px 14px;border:2px solid #e5e7eb;border-radius:14px;font-size:15px;font-family:inherit;outline:none"
+                   oninput="onNuovaEmailChange()">
+        </div>
+        <div style="margin-bottom:20px">
+            <label style="font-size:11px;font-weight:800;color:#999;text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:6px">Conferma nuova email</label>
+            <input type="email" id="fConfermaEmail" placeholder="nuova@email.com"
+                   style="width:100%;padding:12px 14px;border:2px solid #e5e7eb;border-radius:14px;font-size:15px;font-family:inherit;outline:none"
+                   oninput="onNuovaEmailChange()">
+        </div>
+        <div id="errCambioEmail" style="display:none;font-size:13px;color:#ff3b30;font-weight:700;margin-bottom:12px"></div>
+        <button class="btn-salva" id="btnCambioEmail" onclick="confermaCambioEmail()" disabled>SALVA NUOVA EMAIL</button>
     </div>
 </div>
 
@@ -685,6 +711,54 @@ async function logout() {
     localStorage.removeItem('userEmail');
     localStorage.removeItem('pushDismissed');
     location.href = 'login.html';
+}
+
+// ── Cambia email ──────────────────────────────────────────────────────
+function apriCambioEmail() {
+    document.getElementById('fNuovaEmail').value = '';
+    document.getElementById('fConfermaEmail').value = '';
+    document.getElementById('errCambioEmail').style.display = 'none';
+    document.getElementById('btnCambioEmail').disabled = true;
+    document.getElementById('sheetCambioEmail').classList.add('open');
+}
+function chiudiCambioEmail() {
+    document.getElementById('sheetCambioEmail').classList.remove('open');
+}
+function onNuovaEmailChange() {
+    const a = document.getElementById('fNuovaEmail').value.trim();
+    const b = document.getElementById('fConfermaEmail').value.trim();
+    const err = document.getElementById('errCambioEmail');
+    err.style.display = 'none';
+    const valid = a.includes('@') && b.includes('@') && a === b && a !== userEmail;
+    document.getElementById('btnCambioEmail').disabled = !valid;
+    if (b && a !== b) { err.textContent = 'Le email non corrispondono'; err.style.display = ''; }
+    else if (a && a === userEmail) { err.textContent = 'La nuova email è uguale a quella attuale'; err.style.display = ''; }
+}
+async function confermaCambioEmail() {
+    const newEmail = document.getElementById('fNuovaEmail').value.trim();
+    const btn = document.getElementById('btnCambioEmail');
+    const err = document.getElementById('errCambioEmail');
+    btn.disabled = true; btn.textContent = 'Salvataggio…';
+    err.style.display = 'none';
+    try {
+        const res = await fetch('/api/change-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ oldEmail: userEmail, newEmail })
+        });
+        const data = await res.json();
+        if (!res.ok) { err.textContent = data.error || 'Errore'; err.style.display = ''; btn.disabled = false; btn.textContent = 'SALVA NUOVA EMAIL'; return; }
+        chiudiCambioEmail();
+        toast('✅ Email aggiornata — effettua di nuovo l\'accesso');
+        setTimeout(async () => {
+            await sb.auth.signOut();
+            localStorage.removeItem('userEmail');
+            location.href = 'login.html';
+        }, 1800);
+    } catch (e) {
+        err.textContent = 'Errore di rete'; err.style.display = '';
+        btn.disabled = false; btn.textContent = 'SALVA NUOVA EMAIL';
+    }
 }
 
 // ── Toast ─────────────────────────────────────────────────────────────
