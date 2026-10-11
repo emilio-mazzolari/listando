@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <title>Listando - Valigia</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="/logolistando.png">
@@ -694,7 +696,9 @@ async function spostaDoc(idx, dir) {
 async function apriDocumento(id, tipo) {
     const win = window.open('about:blank', '_blank');
     if (!win) { toast('Consenti i popup per aprire i documenti'); return; }
-    win.document.write('<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width"><style>body{margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif;color:#aaa;font-size:16px;background:#f5f6f8}</style></head><body>Caricamento…</body></html>');
+    win.document.write('<!DOCTYPE html><html><head><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
+    <meta name="viewport" content="width=device-width"><style>body{margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif;color:#aaa;font-size:16px;background:#f5f6f8}</style></head><body>Caricamento…</body></html>');
     try {
         const r = await fetch(`${URL}/documenti_valigia?id=eq.${id}&select=data,tipo,nome`, { headers: HR });
         const [doc] = await r.json();
