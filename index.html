@@ -88,6 +88,13 @@
         .sortable-chosen { transform: scale(1.06); box-shadow: 0 8px 28px rgba(0,0,0,0.18); z-index: 10; }
 
         .icon-svg { width: 30px; height: 30px; flex-shrink: 0; pointer-events: none; }
+        .toggle-switch { position:relative; display:inline-block; width:46px; height:26px; flex-shrink:0; }
+        .toggle-switch input { opacity:0; width:0; height:0; }
+        .toggle-slider { position:absolute; cursor:pointer; inset:0; background:#ccc; border-radius:26px; transition:.2s; }
+        .toggle-slider:before { content:''; position:absolute; width:20px; height:20px; left:3px; bottom:3px; background:white; border-radius:50%; transition:.2s; box-shadow:0 1px 3px rgba(0,0,0,.2); }
+        .toggle-switch input:checked + .toggle-slider { background:var(--green); }
+        .toggle-switch input:checked + .toggle-slider:before { transform:translateX(20px); }
+        #menuGrid [data-id].sezione-nascosta { display: none; }
 
         .tab-bar {
             position: fixed;
@@ -421,6 +428,29 @@
                 </div>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
+
+            <!-- Personalizza sezioni -->
+            <button onclick="apriPersonalizza()" style="width:100%;display:flex;align-items:center;gap:16px;padding:16px;border-radius:16px;border:none;background:#f5f6f8;cursor:pointer;font-family:inherit;text-align:left;margin-top:10px">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+                    <line x1="14" y1="17.5" x2="21" y2="17.5"/><line x1="17.5" y1="14" x2="17.5" y2="21"/>
+                </svg>
+                <div style="flex:1">
+                    <div style="font-weight:800;font-size:15px;color:#111">Personalizza sezioni</div>
+                    <div style="font-size:13px;color:#888;font-weight:600;margin-top:2px">Scegli quali sezioni vedere in home</div>
+                </div>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- Overlay Personalizza sezioni -->
+    <div id="personalizzaOverlay" style="display:none;position:fixed;inset:0;z-index:201;background:rgba(0,0,0,0.45);align-items:flex-end;justify-content:center" onclick="if(event.target===this)chiudiPersonalizza()">
+        <div style="background:white;border-radius:28px 28px 0 0;padding:24px 20px;padding-bottom:max(24px,env(safe-area-inset-bottom,24px));width:100%;max-width:500px;max-height:80vh;overflow-y:auto">
+            <div style="width:40px;height:4px;background:#ddd;border-radius:4px;margin:0 auto 20px"></div>
+            <div style="font-weight:900;font-size:18px;margin-bottom:4px">Personalizza sezioni</div>
+            <div style="font-size:13px;color:#888;font-weight:600;margin-bottom:20px">Attiva o disattiva le sezioni visibili in home</div>
+            <div id="personalizzaList"></div>
         </div>
     </div>
 
@@ -633,6 +663,48 @@
             if (!editMode) toggleEditMode();
         }
 
+        // ── Personalizza sezioni ──────────────────────────────────────────
+        const HIDDEN_KEY = 'listando_home_hidden_' + _email;
+        function getHidden() { return JSON.parse(localStorage.getItem(HIDDEN_KEY) || '[]'); }
+        function applyHidden() {
+            const hidden = getHidden();
+            document.querySelectorAll('#menuGrid [data-id]').forEach(el => {
+                el.classList.toggle('sezione-nascosta', hidden.includes(el.dataset.id));
+            });
+        }
+        function apriPersonalizza() {
+            chiudiImpostazioni();
+            renderPersonalizza();
+            document.getElementById('personalizzaOverlay').style.display = 'flex';
+        }
+        function chiudiPersonalizza() {
+            document.getElementById('personalizzaOverlay').style.display = 'none';
+        }
+        function renderPersonalizza() {
+            const hidden = getHidden();
+            const items = [...document.querySelectorAll('#menuGrid [data-id]')].map(el => ({
+                id: el.dataset.id,
+                label: el.querySelector('span')?.innerText?.trim().replace('\n',' ') || el.dataset.id,
+                color: el.style.borderColor || '#999'
+            }));
+            document.getElementById('personalizzaList').innerHTML = items.map(item => `
+                <div style="display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid #f0f0f0">
+                    <div style="width:12px;height:12px;border-radius:3px;background:${item.color};flex-shrink:0"></div>
+                    <div style="flex:1;font-weight:700;font-size:15px;color:#111">${item.label}</div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" ${hidden.includes(item.id) ? '' : 'checked'} onchange="toggleSezione('${item.id}',this.checked)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            `).join('');
+        }
+        function toggleSezione(id, visible) {
+            let hidden = getHidden();
+            hidden = visible ? hidden.filter(h => h !== id) : [...new Set([...hidden, id])];
+            localStorage.setItem(HIDDEN_KEY, JSON.stringify(hidden));
+            applyHidden();
+        }
+
         // Block navigation clicks while in edit mode
         document.getElementById('menuGrid').addEventListener('click', e => {
             if (editMode) e.preventDefault();
@@ -654,6 +726,7 @@
 
         applyOrder();
         applyView();
+        applyHidden();
 
         const sortable = Sortable.create(document.getElementById('menuGrid'), {
             animation: 200,
