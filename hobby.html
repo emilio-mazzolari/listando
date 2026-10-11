@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Listando - Hobby</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/logolistando.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Listando">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root { color-scheme:light; --horange:#F97316; --grey:#d8dddc; --grey-light:#f2f2f7; --dark:#111; --bg:#f5f6f8; --white:#fff; --red:#ff3b30; }
+        * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+        html,body { overflow-x:hidden; max-width:100%; margin:0; }
+        body { font-family:'Segoe UI',system-ui,sans-serif; background:var(--bg); color:var(--dark); padding-bottom:100px; }
+
+        .page-header { position:sticky; top:0; z-index:100; background:var(--white); border-bottom:2px solid var(--grey-light); display:flex; align-items:center; gap:10px; padding:14px 16px; padding-top:max(14px,env(safe-area-inset-top,14px)); }
+        .btn-back { width:40px; height:40px; border-radius:12px; border:2.5px solid var(--grey); background:var(--white); display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; }
+        .btn-back svg { width:18px; height:18px; stroke:var(--dark); fill:none; stroke-width:2.5; }
+        .header-title { font-weight:900; font-size:18px; flex:1; }
+        .btn-add-hdr { width:40px; height:40px; border-radius:12px; border:none; background:var(--horange); color:white; font-size:20px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+
+        /* ── Main grid ── */
+        .hobby-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:14px; }
+        .hobby-card { border-radius:20px; padding:16px 14px 14px; cursor:pointer; box-shadow:0 1px 5px rgba(0,0,0,.09); transition:box-shadow .15s; position:relative; }
+        .hobby-card:active { box-shadow:0 3px 14px rgba(0,0,0,.16); }
+        .hobby-emoji-big { font-size:36px; margin-bottom:10px; }
+        .hobby-card-name { font-weight:900; font-size:15px; margin-bottom:4px; }
+        .hobby-card-hours { font-size:12px; font-weight:700; color:rgba(0,0,0,.5); }
+        .hobby-card-more { position:absolute; top:10px; right:10px; width:28px; height:28px; border-radius:50%; border:none; background:rgba(0,0,0,.08); font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+
+        /* ── Hobby detail ── */
+        .back-row { display:flex; align-items:center; gap:8px; padding:12px 16px; cursor:pointer; }
+        .back-row span { font-size:13px; font-weight:800; color:var(--horange); }
+        .detail-hero { display:flex; align-items:center; gap:16px; padding:0 16px 16px; }
+        .detail-emoji { width:70px; height:70px; border-radius:20px; font-size:34px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+        .detail-name { font-weight:900; font-size:22px; }
+        .detail-desc { font-size:13px; color:#888; font-weight:600; margin-top:4px; }
+        .btn-edit-detail { flex-shrink:0; padding:8px 14px; border-radius:12px; border:2px solid var(--grey); background:none; font-size:13px; font-weight:800; cursor:pointer; font-family:inherit; }
+
+        .stats-strip { display:flex; gap:8px; padding:0 14px 14px; }
+        .stat-box { flex:1; background:var(--white); border-radius:14px; padding:12px 8px; text-align:center; box-shadow:0 1px 4px rgba(0,0,0,.06); }
+        .stat-num { font-weight:900; font-size:18px; color:var(--horange); }
+        .stat-lbl { font-size:10px; color:#999; font-weight:700; margin-top:2px; }
+
+        .session-hdr { display:flex; align-items:center; padding:6px 16px 4px; }
+        .session-hdr-title { font-weight:900; font-size:14px; color:#888; flex:1; text-transform:uppercase; letter-spacing:.4px; }
+        .btn-add-session { padding:7px 14px; border-radius:12px; border:none; background:var(--horange); color:white; font-size:13px; font-weight:800; cursor:pointer; font-family:inherit; }
+
+        .session-item { display:flex; align-items:center; gap:12px; padding:12px 16px; border-bottom:1px solid var(--grey-light); }
+        .session-date { font-size:13px; font-weight:800; color:#888; min-width:60px; }
+        .session-dur { font-size:15px; font-weight:900; color:var(--horange); min-width:56px; }
+        .session-note { flex:1; font-size:13px; color:#555; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .btn-del-session { width:28px; height:28px; border-radius:50%; border:none; background:none; font-size:14px; color:#ddd; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+
+        .empty-msg { text-align:center; padding:50px 24px; color:#bbb; font-weight:700; font-size:14px; }
+
+        /* ── Context menu ── */
+        .ctx-menu { display:none; position:fixed; z-index:999; background:var(--white); border-radius:16px; box-shadow:0 8px 32px rgba(0,0,0,.18); padding:8px; min-width:160px; }
+        .ctx-menu.open { display:block; }
+        .ctx-item { padding:12px 16px; font-size:14px; font-weight:700; cursor:pointer; border-radius:10px; }
+        .ctx-item:active { background:var(--grey-light); }
+        .ctx-item.danger { color:var(--red); }
+
+        /* ── Modals ── */
+        .modal-overlay { display:none; position:fixed; inset:0; z-index:300; background:rgba(0,0,0,.5); align-items:flex-end; justify-content:center; }
+        .modal-overlay.open { display:flex; }
+        .modal-box { background:var(--white); border-radius:28px 28px 0 0; padding:24px 20px; padding-bottom:max(24px,env(safe-area-inset-bottom,24px)); width:100%; max-width:500px; max-height:88vh; overflow-y:auto; }
+        .modal-handle { width:40px; height:4px; background:var(--grey); border-radius:4px; margin:0 auto 20px; }
+        .modal-title { font-weight:900; font-size:18px; margin-bottom:18px; }
+        .form-group { margin-bottom:14px; }
+        .form-label { font-size:12px; font-weight:800; color:#666; margin-bottom:5px; display:block; text-transform:uppercase; letter-spacing:.4px; }
+        .form-input { width:100%; padding:12px 14px; border-radius:14px; border:2.5px solid var(--grey); font-size:15px; font-family:inherit; outline:none; transition:border-color .2s; }
+        .form-input:focus { border-color:var(--horange); }
+        .form-row { display:flex; gap:10px; }
+        .form-row .form-group { flex:1; }
+        .emoji-grid { display:grid; grid-template-columns:repeat(8,1fr); gap:6px; margin-top:6px; }
+        .emoji-btn { width:100%; aspect-ratio:1; border-radius:10px; border:2px solid transparent; font-size:20px; cursor:pointer; background:var(--grey-light); display:flex; align-items:center; justify-content:center; transition:border-color .1s; }
+        .emoji-btn.active { border-color:var(--horange); background:rgba(249,115,22,.1); }
+        .color-chips { display:flex; gap:8px; flex-wrap:wrap; margin-top:6px; }
+        .color-chip { width:30px; height:30px; border-radius:50%; cursor:pointer; border:3px solid transparent; transition:transform .1s; flex-shrink:0; }
+        .color-chip.active { border-color:#333; transform:scale(1.18); }
+        .btn-save { width:100%; padding:15px; border-radius:18px; border:none; background:var(--horange); color:white; font-weight:900; font-size:16px; cursor:pointer; font-family:inherit; margin-top:8px; }
+        .btn-del { width:100%; padding:13px; border-radius:18px; border:none; background:#fff0f0; color:var(--red); font-weight:800; font-size:14px; cursor:pointer; font-family:inherit; margin-top:8px; }
+
+        .toast { position:fixed; bottom:90px; left:50%; transform:translateX(-50%) translateY(20px); background:rgba(0,0,0,.85); color:white; padding:12px 20px; border-radius:14px; font-weight:700; font-size:14px; opacity:0; transition:all .25s; z-index:9999; pointer-events:none; white-space:nowrap; }
+        .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+    </style>
+</head>
+<body>
+
+<div class="page-header">
+    <button class="btn-back" id="btnBack" onclick="goBack()">
+        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div class="header-title" id="headerTitle">HOBBY</div>
+    <button class="btn-add-hdr" id="btnAdd" onclick="apriNuovoHobby()">+</button>
+</div>
+
+<div id="mainView">
+    <div class="hobby-grid" id="hobbyGrid"></div>
+</div>
+
+<div id="detailView" style="display:none">
+    <div class="back-row" onclick="tornaAlMain()">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+        <span>Hobby</span>
+    </div>
+    <div class="detail-hero">
+        <div class="detail-emoji" id="detEmoji"></div>
+        <div style="flex:1;min-width:0">
+            <div class="detail-name" id="detName"></div>
+            <div class="detail-desc" id="detDesc"></div>
+        </div>
+        <button class="btn-edit-detail" onclick="apriEditHobby(currentHobbyId)">✏️ Modifica</button>
+    </div>
+    <div class="stats-strip" id="statsStrip"></div>
+    <div class="session-hdr">
+        <div class="session-hdr-title">Sessioni</div>
+        <button class="btn-add-session" onclick="apriNuovaSessione()">+ Aggiungi</button>
+    </div>
+    <div id="sessionList"></div>
+</div>
+
+<!-- Hobby context menu -->
+<div class="ctx-menu" id="ctxMenu">
+    <div class="ctx-item" onclick="ctxAction('edit')">✏️ Modifica</div>
+    <div class="ctx-item danger" onclick="ctxAction('del')">🗑️ Elimina</div>
+</div>
+
+<!-- Hobby modal -->
+<div class="modal-overlay" id="modaleHobby">
+    <div class="modal-box">
+        <div class="modal-handle"></div>
+        <div class="modal-title" id="hobbyModalTitle">Nuovo hobby</div>
+        <div class="form-group">
+            <label class="form-label">Nome *</label>
+            <input class="form-input" id="hNome" placeholder="es. Chitarra, Fotografia, Corsa…">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Descrizione</label>
+            <input class="form-input" id="hDesc" placeholder="Breve descrizione (opzionale)">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Emoji</label>
+            <div class="emoji-grid" id="emojiGrid"></div>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Colore</label>
+            <div class="color-chips" id="colorChips"></div>
+        </div>
+        <button class="btn-save" onclick="salvaHobby()">SALVA</button>
+        <button class="btn-del" id="btnDelHobby" style="display:none" onclick="eliminaHobby()">ELIMINA HOBBY</button>
+    </div>
+</div>
+
+<!-- Session modal -->
+<div class="modal-overlay" id="modaleSessione">
+    <div class="modal-box">
+        <div class="modal-handle"></div>
+        <div class="modal-title">Aggiungi sessione</div>
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label">Data</label>
+                <input class="form-input" id="sData" type="date">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Durata (min)</label>
+                <input class="form-input" id="sDurata" type="number" min="1" placeholder="60">
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Note</label>
+            <input class="form-input" id="sNote" placeholder="Com'è andata? Cosa hai imparato?">
+        </div>
+        <button class="btn-save" onclick="salvaSessione()">SALVA SESSIONE</button>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = "https://eejdpophfxsrqdvsucye.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlamRwb3BoZnhzcnFkdnN1Y3llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2NTMzMDQsImV4cCI6MjA5MzIyOTMwNH0.mpxbwlJyIdZgqKIdutHbLd85JR1P11yiglbYeApi17k";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const userEmail = localStorage.getItem('userEmail');
+if (!userEmail) location.href = 'login.html';
+
+const EMOJIS = ['🎸','📸','🏃','🎨','✍️','🎵','⚽','🧘','🏊','🎮','🍳','🪴','♟️','🎭','🚴','📖','🎬','🧩'];
+const COLORS = ['#F97316','#8B5CF6','#0fba8d','#3384d4','#f43f5e','#1db954','#F59E0B','#e91e8c'];
+
+let hobbies = [], sessions = [], editHobbyId = null, currentHobbyId = null;
+let selEmoji = '🎸', selColor = '#F97316', ctxId = null;
+
+async function carica() {
+    const { data } = await sb.from('hobby').select('*').eq('email_utente', userEmail).order('created_at');
+    hobbies = data || [];
+    renderMain();
+}
+
+async function caricaSessioni(hId) {
+    const { data } = await sb.from('hobby_sessioni').select('*').eq('hobby_id', hId).eq('email_utente', userEmail).order('data', { ascending: false });
+    sessions = data || [];
+}
+
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function fmtMin(m) {
+    if (!m) return '0 min';
+    if (m < 60) return m + ' min';
+    const h = Math.floor(m / 60), r = m % 60;
+    return r ? `${h}h ${r}m` : `${h}h`;
+}
+
+function renderMain() {
+    const grid = document.getElementById('hobbyGrid');
+    if (!hobbies.length) {
+        grid.innerHTML = '<div style="grid-column:span 2;text-align:center;padding:60px 24px;color:#bbb;font-weight:700;font-size:15px">🎸 Nessun hobby — tocca + per aggiungerne uno</div>';
+        return;
+    }
+    grid.innerHTML = hobbies.map(h => {
+        const totMin = h.ore_totali || 0;
+        return `<div class="hobby-card" style="background:${h.colore}18" onclick="apriHobby(${h.id})">
+            <button class="hobby-card-more" onclick="event.stopPropagation(); apriCtx(${h.id}, event)">⋮</button>
+            <div class="hobby-emoji-big">${h.emoji}</div>
+            <div class="hobby-card-name">${esc(h.nome)}</div>
+            <div class="hobby-card-hours" style="color:${h.colore}">${fmtMin(totMin)} totali</div>
+        </div>`;
+    }).join('');
+}
+
+async function apriHobby(id) {
+    currentHobbyId = id;
+    const h = hobbies.find(x => x.id === id);
+    if (!h) return;
+    await caricaSessioni(id);
+
+    document.getElementById('mainView').style.display = 'none';
+    document.getElementById('detailView').style.display = '';
+    document.getElementById('headerTitle').textContent = h.nome;
+    document.getElementById('btnAdd').onclick = apriNuovaSessione;
+
+    document.getElementById('detEmoji').textContent = h.emoji;
+    document.getElementById('detEmoji').style.background = h.colore + '22';
+    document.getElementById('detName').textContent = h.nome;
+    document.getElementById('detDesc').textContent = h.descrizione || '';
+
+    // Stats
+    const totMin = sessions.reduce((s, x) => s + (x.durata_min || 0), 0);
+    const thisMonth = sessions.filter(s => s.data?.startsWith(new Date().toISOString().slice(0,7)));
+    const mMin = thisMonth.reduce((s, x) => s + (x.durata_min || 0), 0);
+    document.getElementById('statsStrip').innerHTML = `
+        <div class="stat-box"><div class="stat-num" style="color:${h.colore}">${sessions.length}</div><div class="stat-lbl">Sessioni</div></div>
+        <div class="stat-box"><div class="stat-num" style="color:${h.colore}">${fmtMin(totMin)}</div><div class="stat-lbl">Totale</div></div>
+        <div class="stat-box"><div class="stat-num" style="color:${h.colore}">${fmtMin(mMin)}</div><div class="stat-lbl">Questo mese</div></div>`;
+
+    renderSessioni(h.colore);
+}
+
+function renderSessioni(colore) {
+    const list = document.getElementById('sessionList');
+    if (!sessions.length) {
+        list.innerHTML = '<div class="empty-msg">Nessuna sessione — aggiungi la prima!</div>';
+        return;
+    }
+    list.innerHTML = sessions.map(s => {
+        const d = new Date(s.data + 'T00:00:00').toLocaleDateString('it-IT', { day: '2-digit', month: 'short' });
+        return `<div class="session-item">
+            <div class="session-date">${d}</div>
+            <div class="session-dur" style="color:${colore}">${fmtMin(s.durata_min)}</div>
+            <div class="session-note">${esc(s.note || '')}</div>
+            <button class="btn-del-session" onclick="eliminaSessione(${s.id})">✕</button>
+        </div>`;
+    }).join('');
+}
+
+function tornaAlMain() {
+    currentHobbyId = null;
+    document.getElementById('mainView').style.display = '';
+    document.getElementById('detailView').style.display = 'none';
+    document.getElementById('headerTitle').textContent = 'HOBBY';
+    document.getElementById('btnAdd').onclick = apriNuovoHobby;
+}
+
+function goBack() {
+    if (currentHobbyId) tornaAlMain();
+    else history.back();
+}
+
+// ── Hobby CRUD ─────────────────────────────────────────────────────────
+function apriNuovoHobby() {
+    editHobbyId = null; selEmoji = '🎸'; selColor = '#F97316';
+    document.getElementById('hNome').value = '';
+    document.getElementById('hDesc').value = '';
+    document.getElementById('hobbyModalTitle').textContent = 'Nuovo hobby';
+    document.getElementById('btnDelHobby').style.display = 'none';
+    buildPicker();
+    document.getElementById('modaleHobby').classList.add('open');
+}
+
+function apriEditHobby(id) {
+    const h = hobbies.find(x => x.id === id);
+    if (!h) return;
+    editHobbyId = id; selEmoji = h.emoji; selColor = h.colore;
+    document.getElementById('hNome').value = h.nome;
+    document.getElementById('hDesc').value = h.descrizione || '';
+    document.getElementById('hobbyModalTitle').textContent = 'Modifica hobby';
+    document.getElementById('btnDelHobby').style.display = '';
+    buildPicker();
+    document.getElementById('modaleHobby').classList.add('open');
+}
+
+function buildPicker() {
+    document.getElementById('emojiGrid').innerHTML = EMOJIS.map(e =>
+        `<button class="emoji-btn${e===selEmoji?' active':''}" onclick="selEmoji='${e}';buildPicker()">${e}</button>`
+    ).join('');
+    document.getElementById('colorChips').innerHTML = COLORS.map(c =>
+        `<div class="color-chip${c===selColor?' active':''}" style="background:${c}" onclick="selColor='${c}';buildPicker()"></div>`
+    ).join('');
+}
+
+async function salvaHobby() {
+    const nome = document.getElementById('hNome').value.trim();
+    if (!nome) { toast('Inserisci il nome'); return; }
+    const row = { email_utente: userEmail, nome, descrizione: document.getElementById('hDesc').value.trim() || null, emoji: selEmoji, colore: selColor };
+    if (editHobbyId) {
+        await sb.from('hobby').update(row).eq('id', editHobbyId);
+    } else {
+        await sb.from('hobby').insert(row);
+    }
+    document.getElementById('modaleHobby').classList.remove('open');
+    toast('✓ Salvato');
+    await carica();
+    if (currentHobbyId) await apriHobby(currentHobbyId);
+}
+
+async function eliminaHobby() {
+    if (!editHobbyId || !confirm('Eliminare questo hobby e tutte le sessioni?')) return;
+    await sb.from('hobby').delete().eq('id', editHobbyId);
+    document.getElementById('modaleHobby').classList.remove('open');
+    toast('Hobby eliminato');
+    tornaAlMain();
+    await carica();
+}
+
+// ── Session CRUD ───────────────────────────────────────────────────────
+function apriNuovaSessione() {
+    document.getElementById('sData').value = new Date().toISOString().split('T')[0];
+    document.getElementById('sDurata').value = '';
+    document.getElementById('sNote').value = '';
+    document.getElementById('modaleSessione').classList.add('open');
+}
+
+async function salvaSessione() {
+    const data = document.getElementById('sData').value;
+    const durata_min = parseInt(document.getElementById('sDurata').value);
+    if (!data || !durata_min || durata_min < 1) { toast('Inserisci data e durata'); return; }
+    const note = document.getElementById('sNote').value.trim() || null;
+    await sb.from('hobby_sessioni').insert({ email_utente: userEmail, hobby_id: currentHobbyId, data, durata_min, note });
+    // Update total
+    const newTotal = (hobbies.find(h => h.id === currentHobbyId)?.ore_totali || 0) + durata_min;
+    await sb.from('hobby').update({ ore_totali: newTotal }).eq('id', currentHobbyId);
+    document.getElementById('modaleSessione').classList.remove('open');
+    toast('✓ Sessione aggiunta');
+    await carica();
+    await apriHobby(currentHobbyId);
+}
+
+async function eliminaSessione(sid) {
+    const s = sessions.find(x => x.id === sid);
+    if (!s || !confirm('Eliminare questa sessione?')) return;
+    await sb.from('hobby_sessioni').delete().eq('id', sid);
+    const newTotal = Math.max(0, (hobbies.find(h => h.id === currentHobbyId)?.ore_totali || 0) - (s.durata_min || 0));
+    await sb.from('hobby').update({ ore_totali: newTotal }).eq('id', currentHobbyId);
+    toast('Sessione eliminata');
+    await carica();
+    await apriHobby(currentHobbyId);
+}
+
+// ── Context menu ───────────────────────────────────────────────────────
+function apriCtx(id, e) {
+    ctxId = id; e.stopPropagation();
+    const m = document.getElementById('ctxMenu');
+    m.classList.add('open');
+    m.style.left = Math.min(e.clientX, window.innerWidth - 170) + 'px';
+    m.style.top  = Math.min(e.clientY, window.innerHeight - 110) + 'px';
+}
+function ctxAction(action) {
+    document.getElementById('ctxMenu').classList.remove('open');
+    if (action === 'edit') apriEditHobby(ctxId);
+    if (action === 'del') { editHobbyId = ctxId; eliminaHobby(); }
+}
+document.addEventListener('click', e => {
+    if (!document.getElementById('ctxMenu').contains(e.target)) document.getElementById('ctxMenu').classList.remove('open');
+});
+[document.getElementById('modaleHobby'), document.getElementById('modaleSessione')].forEach(m => {
+    m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+});
+
+let toastTimer;
+function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+carica();
+</script>
+</body>
+</html>

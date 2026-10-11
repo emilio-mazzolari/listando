@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Listando - In Vendita</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/logolistando.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Listando">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root { color-scheme:light; --teal:#10B981; --teal-d:#059669; --grey:#d8dddc; --grey-l:#f2f2f7; --dark:#111; --bg:#f5f6f8; --white:#fff; --red:#ff3b30; }
+        * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+        html,body { overflow-x:hidden; max-width:100%; margin:0; }
+        body { font-family:'Segoe UI',system-ui,sans-serif; background:var(--bg); color:var(--dark); padding-bottom:90px; }
+
+        /* Header */
+        .page-header { position:sticky; top:0; z-index:100; background:var(--white); border-bottom:2px solid var(--grey-l); padding:14px 16px; padding-top:max(14px,env(safe-area-inset-top,14px)); }
+        .header-top { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+        .btn-back { width:40px; height:40px; border-radius:12px; border:2.5px solid var(--grey); background:var(--white); display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; }
+        .btn-back svg { width:18px; height:18px; stroke:var(--dark); fill:none; stroke-width:2.5; }
+        .header-title { font-weight:900; font-size:18px; flex:1; }
+        .tab-row { display:flex; gap:8px; }
+        .tab-btn { flex:1; padding:9px; border-radius:12px; border:2px solid var(--grey); background:var(--white); font-weight:800; font-size:13px; cursor:pointer; font-family:inherit; color:#666; transition:all .15s; }
+        .tab-btn.active { background:var(--teal); border-color:var(--teal); color:var(--white); }
+
+        /* Search */
+        .search-wrap { padding:10px 12px 4px; }
+        .search-bar { width:100%; padding:10px 14px; border-radius:14px; border:2px solid var(--grey); font-size:15px; font-family:inherit; outline:none; background:var(--white); }
+        .search-bar:focus { border-color:var(--teal); }
+
+        /* Grid */
+        .listings-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:10px; }
+        .listing-card { background:var(--white); border-radius:16px; overflow:hidden; box-shadow:0 1px 5px rgba(0,0,0,.09); cursor:pointer; position:relative; transition:transform .12s; }
+        .listing-card:active { transform:scale(0.96); }
+        .listing-photo { width:100%; aspect-ratio:1; object-fit:cover; background:#eee; display:block; }
+        .listing-no-photo { width:100%; aspect-ratio:1; background:linear-gradient(135deg,#e8f5e9,#c8e6c9); display:flex; align-items:center; justify-content:center; font-size:40px; }
+        .listing-info { padding:10px 10px 12px; }
+        .listing-price { font-weight:900; font-size:17px; color:var(--teal-d); margin-bottom:3px; }
+        .listing-title { font-weight:700; font-size:13px; line-height:1.3; margin-bottom:6px; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+        .listing-badges { display:flex; gap:4px; flex-wrap:wrap; }
+        .badge { padding:2px 7px; border-radius:6px; font-size:10px; font-weight:800; }
+        .bc-nuovo { background:#dcfce7; color:#166534; }
+        .bc-ottimo { background:#dbeafe; color:#1e40af; }
+        .bc-buono { background:#fef3c7; color:#92400e; }
+        .bc-discreto { background:#fce7f3; color:#9d174d; }
+        .bs-venduto { background:#fee2e2; color:#991b1b; }
+        .bs-riservato { background:#fef3c7; color:#92400e; }
+        .badge-mine { position:absolute; top:7px; left:7px; background:rgba(0,0,0,.6); color:white; font-size:9px; font-weight:800; padding:3px 7px; border-radius:7px; }
+        .badge-priv { position:absolute; top:7px; right:7px; font-size:12px; }
+
+        /* FAB */
+        .fab { position:fixed; bottom:max(24px,env(safe-area-inset-bottom,24px)); right:20px; z-index:100; width:56px; height:56px; border-radius:50%; border:none; background:var(--teal); color:white; font-size:28px; cursor:pointer; box-shadow:0 4px 16px rgba(16,185,129,.4); display:flex; align-items:center; justify-content:center; }
+
+        /* Detail fullscreen */
+        .fullscreen { display:none; position:fixed; inset:0; z-index:200; background:var(--bg); overflow-y:auto; }
+        .fullscreen.open { display:block; }
+        .fs-header { position:sticky; top:0; z-index:10; background:var(--white); border-bottom:1.5px solid var(--grey-l); display:flex; align-items:center; gap:10px; padding:14px 16px; padding-top:max(14px,env(safe-area-inset-top,14px)); }
+        .fs-title { font-weight:900; font-size:16px; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .fs-menu-btn { width:36px; height:36px; border-radius:10px; border:none; background:var(--grey-l); display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:18px; }
+
+        /* Photo carousel */
+        .carousel { position:relative; }
+        .carousel-inner { display:flex; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; }
+        .carousel-inner::-webkit-scrollbar { display:none; }
+        .carousel-slide { flex:none; width:100%; scroll-snap-align:start; }
+        .carousel-slide img { width:100%; height:280px; object-fit:contain; background:#1a1a1a; display:block; }
+        .carousel-dots { position:absolute; bottom:8px; left:50%; transform:translateX(-50%); display:flex; gap:5px; }
+        .cdot { width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,.5); }
+        .cdot.on { background:white; width:14px; border-radius:3px; }
+        .no-photo-big { height:220px; background:linear-gradient(135deg,#e8f5e9,#a7f3d0); display:flex; align-items:center; justify-content:center; font-size:72px; }
+
+        .detail-body { padding:20px 16px; }
+        .detail-price { font-size:28px; font-weight:900; color:var(--teal-d); margin-bottom:6px; }
+        .detail-title { font-size:20px; font-weight:900; margin-bottom:10px; line-height:1.3; }
+        .detail-meta { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+        .detail-desc { font-size:15px; line-height:1.6; color:#444; white-space:pre-wrap; margin-bottom:20px; }
+        .seller-row { display:flex; align-items:center; gap:12px; padding:14px; background:var(--grey-l); border-radius:16px; margin-bottom:20px; }
+        .seller-av { width:44px; height:44px; border-radius:50%; background:var(--teal); display:flex; align-items:center; justify-content:center; color:white; font-weight:900; font-size:16px; flex-shrink:0; }
+        .seller-lbl { font-size:11px; color:#888; font-weight:700; }
+        .seller-email { font-size:14px; font-weight:800; word-break:break-all; }
+
+        .btn-chat { width:100%; padding:15px; border-radius:18px; border:none; background:var(--teal); color:white; font-weight:900; font-size:16px; cursor:pointer; font-family:inherit; margin-bottom:10px; }
+        .btn-outline { width:100%; padding:13px; border-radius:18px; border:2px solid var(--grey); background:var(--white); color:var(--dark); font-weight:800; font-size:14px; cursor:pointer; font-family:inherit; margin-bottom:8px; }
+        .btn-danger { width:100%; padding:13px; border-radius:18px; border:none; background:#fff0f0; color:var(--red); font-weight:800; font-size:14px; cursor:pointer; font-family:inherit; margin-bottom:8px; }
+        .stato-row { display:flex; gap:8px; margin-bottom:12px; }
+        .btn-stato { flex:1; padding:10px 4px; border-radius:12px; border:2px solid var(--grey); background:var(--white); font-weight:800; font-size:11px; cursor:pointer; font-family:inherit; }
+        .btn-stato.on { border-color:var(--teal); background:var(--teal); color:white; }
+        .section-title { font-weight:900; font-size:14px; margin:16px 0 10px; color:#666; text-transform:uppercase; letter-spacing:.5px; }
+        .conv-item { display:flex; align-items:center; gap:12px; padding:12px 14px; background:var(--white); border-radius:14px; margin-bottom:8px; cursor:pointer; border:1.5px solid var(--grey-l); }
+        .conv-av { width:36px; height:36px; border-radius:50%; background:var(--teal); color:white; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:13px; flex-shrink:0; }
+        .conv-email { font-size:13px; font-weight:700; }
+        .conv-preview { font-size:12px; color:#888; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .unread-dot { width:10px; height:10px; border-radius:50%; background:var(--teal); flex-shrink:0; }
+
+        /* Modal bottom sheet */
+        .modal-ov { display:none; position:fixed; inset:0; z-index:300; background:rgba(0,0,0,.5); align-items:flex-end; justify-content:center; }
+        .modal-ov.open { display:flex; }
+        .modal-box { border-radius:28px 28px 0 0; background:var(--white); padding:20px; padding-bottom:max(20px,env(safe-area-inset-bottom,20px)); width:100%; max-width:500px; max-height:92vh; overflow-y:auto; }
+        .modal-handle { width:40px; height:4px; background:rgba(0,0,0,.15); border-radius:4px; margin:0 auto 16px; }
+        .modal-title { font-weight:900; font-size:18px; margin-bottom:16px; }
+        .form-label { font-size:11px; font-weight:800; color:#888; margin-bottom:5px; margin-top:12px; display:block; text-transform:uppercase; letter-spacing:.5px; }
+        .form-input { width:100%; padding:12px 14px; border-radius:14px; border:2px solid rgba(0,0,0,.12); font-size:15px; font-family:inherit; outline:none; background:#fafafa; margin-bottom:2px; }
+        .form-textarea { width:100%; padding:12px 14px; border-radius:14px; border:2px solid rgba(0,0,0,.12); font-size:15px; font-family:inherit; outline:none; resize:none; min-height:100px; background:#fafafa; }
+        .form-input:focus,.form-textarea:focus { border-color:var(--teal); }
+        .pill-row { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:2px; }
+        .pill { padding:8px 14px; border-radius:20px; border:2px solid var(--grey); font-size:13px; font-weight:700; cursor:pointer; background:var(--white); font-family:inherit; }
+        .pill.on { border-color:var(--teal); background:var(--teal); color:white; }
+
+        /* Photo slots */
+        .photo-row { display:flex; gap:8px; margin:4px 0 10px; }
+        .photo-slot { width:72px; height:72px; border-radius:14px; border:2.5px dashed var(--grey); background:var(--grey-l); display:flex; align-items:center; justify-content:center; cursor:pointer; position:relative; flex-shrink:0; overflow:hidden; }
+        .photo-slot img { width:100%; height:100%; object-fit:cover; }
+        .photo-slot .rm { position:absolute; top:2px; right:2px; width:20px; height:20px; border-radius:50%; background:rgba(0,0,0,.7); color:white; font-size:11px; display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:2; border:none; }
+        .photo-add-icon { font-size:22px; color:#bbb; }
+
+        /* Selezionati tag input */
+        .sel-wrap { display:none; }
+        .sel-wrap.open { display:block; }
+        .sel-tags { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; min-height:28px; }
+        .sel-tag { display:inline-flex; align-items:center; gap:5px; background:#e8f5e9; border:1.5px solid #a7f3d0; padding:4px 10px; border-radius:20px; font-size:12px; font-weight:700; }
+        .sel-tag button { border:none; background:none; cursor:pointer; color:#555; font-size:13px; padding:0; line-height:1; }
+
+        .btn-save { width:100%; padding:15px; border-radius:18px; border:none; background:var(--teal); color:white; font-weight:900; font-size:16px; cursor:pointer; font-family:inherit; margin-top:12px; }
+        .btn-del-m { width:100%; padding:13px; border-radius:18px; border:none; background:#fff0f0; color:var(--red); font-weight:800; font-size:14px; cursor:pointer; font-family:inherit; margin-top:8px; }
+
+        /* Chat screen */
+        .chat-screen { display:none; position:fixed; inset:0; z-index:400; background:var(--bg); flex-direction:column; }
+        .chat-screen.open { display:flex; }
+        .chat-hdr { background:var(--white); border-bottom:1.5px solid var(--grey-l); padding:14px 16px; padding-top:max(14px,env(safe-area-inset-top,14px)); display:flex; align-items:center; gap:10px; flex-shrink:0; }
+        .chat-hdr-info { flex:1; min-width:0; }
+        .chat-hdr-title { font-weight:900; font-size:15px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .chat-hdr-sub { font-size:11px; color:#888; font-weight:600; }
+        .chat-msgs { flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:10px; }
+        .msg-wrap { display:flex; flex-direction:column; max-width:75%; }
+        .msg-wrap.me { align-self:flex-end; align-items:flex-end; }
+        .msg-wrap.other { align-self:flex-start; align-items:flex-start; }
+        .bubble { padding:10px 14px; border-radius:18px; font-size:14px; line-height:1.4; }
+        .me .bubble { background:var(--teal); color:white; border-bottom-right-radius:4px; }
+        .other .bubble { background:var(--white); border:1.5px solid var(--grey); border-bottom-left-radius:4px; }
+        .msg-time { font-size:10px; color:#aaa; margin-top:3px; }
+        .chat-bar { background:var(--white); border-top:1.5px solid var(--grey-l); padding:12px 16px; padding-bottom:max(12px,env(safe-area-inset-bottom,12px)); display:flex; gap:10px; align-items:flex-end; flex-shrink:0; }
+        .chat-input { flex:1; padding:11px 14px; border-radius:22px; border:2px solid var(--grey); font-size:15px; font-family:inherit; outline:none; resize:none; max-height:100px; }
+        .chat-input:focus { border-color:var(--teal); }
+        .btn-send { width:44px; height:44px; border-radius:50%; border:none; background:var(--teal); color:white; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; }
+        .btn-send svg { width:18px; height:18px; fill:none; stroke:white; stroke-width:2.5; }
+        .no-chat { text-align:center; color:#bbb; font-weight:700; font-size:14px; padding:30px 0; }
+
+        .empty-msg { text-align:center; padding:60px 24px; color:#bbb; font-weight:700; font-size:15px; grid-column:span 2; }
+        .toast { position:fixed; bottom:90px; left:50%; transform:translateX(-50%) translateY(20px); background:rgba(0,0,0,.85); color:white; padding:12px 20px; border-radius:14px; font-weight:700; font-size:14px; opacity:0; transition:all .25s; z-index:9999; pointer-events:none; white-space:nowrap; }
+        .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+        .spin-ov { display:none; position:fixed; inset:0; z-index:9998; background:rgba(0,0,0,.35); align-items:center; justify-content:center; }
+        .spin-ov.open { display:flex; }
+        .spinner { width:48px; height:48px; border:5px solid rgba(255,255,255,.3); border-top-color:white; border-radius:50%; animation:spin .8s linear infinite; }
+        @keyframes spin { to { transform:rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+<!-- Header + tabs -->
+<div class="page-header">
+    <div class="header-top">
+        <button class="btn-back" onclick="history.back()">
+            <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div class="header-title">IN VENDITA</div>
+    </div>
+    <div class="tab-row">
+        <button class="tab-btn active" id="tabScopri" onclick="switchTab('scopri')">🔍 Scopri</button>
+        <button class="tab-btn" id="tabMiei" onclick="switchTab('miei')">📦 I miei</button>
+    </div>
+</div>
+
+<div class="search-wrap">
+    <input class="search-bar" id="searchInput" type="search" placeholder="🔍  Cerca annunci…" oninput="renderGrid(this.value)">
+</div>
+
+<div class="listings-grid" id="listingsGrid"></div>
+
+<button class="fab" onclick="apriNuovo()">+</button>
+
+<!-- ───── Detail overlay ───── -->
+<div class="fullscreen" id="detailOv">
+    <div class="fs-header">
+        <button class="btn-back" onclick="chiudiDettaglio()">
+            <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div class="fs-title" id="detailHdrTitle"></div>
+        <button class="fs-menu-btn" id="detailEditBtn" style="display:none" onclick="apriModifica()">✏️</button>
+    </div>
+    <div id="detailContent"></div>
+</div>
+
+<!-- ───── Create/Edit modal ───── -->
+<div class="modal-ov" id="modaleAnnuncio">
+    <div class="modal-box">
+        <div class="modal-handle"></div>
+        <div class="modal-title" id="modaleTitolo">Nuovo annuncio</div>
+
+        <label class="form-label">Foto (max 4)</label>
+        <div class="photo-row" id="photoRow"></div>
+        <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="onFileChange(this)">
+
+        <label class="form-label">Titolo *</label>
+        <input class="form-input" id="fTitolo" placeholder="Cosa vendi?" type="text">
+
+        <label class="form-label">Prezzo (€)</label>
+        <input class="form-input" id="fPrezzo" placeholder="0.00 — lascia vuoto se trattabile" type="number" min="0" step="0.01">
+
+        <label class="form-label">Descrizione</label>
+        <textarea class="form-textarea" id="fDesc" placeholder="Descrivi il prodotto…"></textarea>
+
+        <label class="form-label">Condizione</label>
+        <div class="pill-row" id="condRow"></div>
+
+        <label class="form-label">Categoria</label>
+        <div class="pill-row" id="catRow"></div>
+
+        <label class="form-label">Visibilità</label>
+        <div class="pill-row" id="visRow"></div>
+
+        <div class="sel-wrap" id="selWrap">
+            <label class="form-label">Email degli utenti che possono vedere questo annuncio</label>
+            <div class="sel-tags" id="selTags"></div>
+            <input class="form-input" id="selInput" type="email" placeholder="email@esempio.it — premi Invio per aggiungere" style="margin-bottom:0">
+        </div>
+
+        <button class="btn-save" onclick="salva()">PUBBLICA</button>
+        <button class="btn-del-m" id="btnDelAnnuncio" style="display:none" onclick="eliminaAnnuncio()">ELIMINA ANNUNCIO</button>
+    </div>
+</div>
+
+<!-- ───── Chat screen ───── -->
+<div class="chat-screen" id="chatScreen">
+    <div class="chat-hdr">
+        <button class="btn-back" onclick="chiudiChat()">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div class="chat-hdr-info">
+            <div class="chat-hdr-title" id="chatTitle"></div>
+            <div class="chat-hdr-sub" id="chatSub"></div>
+        </div>
+    </div>
+    <div class="chat-msgs" id="chatMsgs"></div>
+    <div class="chat-bar">
+        <textarea class="chat-input" id="chatInput" rows="1" placeholder="Scrivi un messaggio…"
+            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();inviaMsg();}"
+            oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,100)+'px'"></textarea>
+        <button class="btn-send" onclick="inviaMsg()">
+            <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="spin-ov" id="spinOv"><div class="spinner"></div></div>
+
+<script>
+const SUPABASE_URL = "https://eejdpophfxsrqdvsucye.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlamRwb3BoZnhzcnFkdnN1Y3llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2NTMzMDQsImV4cCI6MjA5MzIyOTMwNH0.mpxbwlJyIdZgqKIdutHbLd85JR1P11yiglbYeApi17k";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const userEmail = localStorage.getItem('userEmail');
+if (!userEmail) location.href = 'login.html';
+
+const CONDIZIONI = ['Nuovo','Ottimo','Buono','Discreto'];
+const CATEGORIE  = ['Elettronica','Abbigliamento','Casa','Sport','Auto/Moto','Libri','Giochi','Altro'];
+const VIS_LABELS = { privato:'🔒 Solo io', selezionati:'👥 Selezionati', pubblico:'🌍 Tutti' };
+
+let annunci = [], miei = [], currentTab = 'scopri';
+let selectedAnnuncio = null;
+let editId = null;
+let fCond = 'buono', fCat = 'Altro', fVis = 'pubblico';
+let photoSlots = [null, null, null, null]; // { type:'existing'|'new', url, file, id }
+let selEmails = [];
+let chatAnnuncioId = null, chatPartner = null, chatRealtime = null;
+let chatMessages = [];
+
+// ── Data loading ──────────────────────────────────────────
+async function carica() {
+    if (currentTab === 'scopri') await caricaScopri();
+    else await caricaMiei();
+}
+
+async function caricaScopri() {
+    const { data: pub } = await sb.from('vendita_annunci')
+        .select('*, vendita_foto(id,url,ordine)')
+        .eq('visibilita', 'pubblico')
+        .order('created_at', { ascending: false });
+
+    const { data: myAccess } = await sb.from('vendita_accesso')
+        .select('annuncio_id').eq('email_utente', userEmail);
+
+    let sel = [];
+    if (myAccess?.length) {
+        const ids = myAccess.map(a => a.annuncio_id);
+        const { data } = await sb.from('vendita_annunci')
+            .select('*, vendita_foto(id,url,ordine)')
+            .in('id', ids);
+        sel = data || [];
+    }
+
+    const seen = new Set();
+    annunci = [...(pub || []), ...sel].filter(a => {
+        if (seen.has(a.id)) return false;
+        seen.add(a.id);
+        sortFoto(a);
+        return true;
+    });
+    renderGrid(document.getElementById('searchInput').value);
+}
+
+async function caricaMiei() {
+    const { data } = await sb.from('vendita_annunci')
+        .select('*, vendita_foto(id,url,ordine)')
+        .eq('email_utente', userEmail)
+        .order('created_at', { ascending: false });
+    miei = (data || []).map(a => { sortFoto(a); return a; });
+    renderGrid(document.getElementById('searchInput').value);
+}
+
+function sortFoto(a) {
+    if (a.vendita_foto) a.vendita_foto.sort((x, y) => x.ordine - y.ordine);
+}
+
+// ── Tabs ──────────────────────────────────────────────────
+function switchTab(tab) {
+    currentTab = tab;
+    document.getElementById('tabScopri').classList.toggle('active', tab === 'scopri');
+    document.getElementById('tabMiei').classList.toggle('active', tab === 'miei');
+    document.getElementById('listingsGrid').innerHTML = '';
+    carica();
+}
+
+// ── Grid render ───────────────────────────────────────────
+function renderGrid(q = '') {
+    const grid = document.getElementById('listingsGrid');
+    const low = q.toLowerCase();
+    const list = (currentTab === 'scopri' ? annunci : miei).filter(a =>
+        !q || a.titolo.toLowerCase().includes(low) || (a.descrizione || '').toLowerCase().includes(low));
+
+    if (!list.length) {
+        grid.innerHTML = `<div class="empty-msg">${currentTab === 'scopri' ? '🏪 Nessun annuncio disponibile' : '📦 Nessun annuncio — tocca + per crearne uno'}</div>`;
+        return;
+    }
+    grid.innerHTML = list.map(cardHtml).join('');
+}
+
+function cardHtml(a) {
+    const foto = a.vendita_foto?.[0];
+    const photoEl = foto
+        ? `<img class="listing-photo" src="${foto.url}" loading="lazy">`
+        : `<div class="listing-no-photo">🏷️</div>`;
+    const prezzo = a.prezzo != null ? `€ ${Number(a.prezzo).toFixed(2).replace('.', ',')}` : 'Prezzo libero';
+    const cond = (a.condizione || 'buono').toLowerCase();
+    const statoBadge = a.stato !== 'attivo'
+        ? `<span class="badge bs-${a.stato}">${a.stato === 'venduto' ? 'Venduto' : 'Riservato'}</span>` : '';
+    const mineBadge = a.email_utente === userEmail ? `<div class="badge-mine">Mio</div>` : '';
+    const privBadge = a.visibilita === 'privato' ? `<div class="badge-priv">🔒</div>` : (a.visibilita === 'selezionati' ? `<div class="badge-priv">👥</div>` : '');
+    return `<div class="listing-card" onclick="apriDettaglio(${a.id})">
+        ${mineBadge}${privBadge}
+        ${photoEl}
+        <div class="listing-info">
+            <div class="listing-price">${prezzo}</div>
+            <div class="listing-title">${esc(a.titolo)}</div>
+            <div class="listing-badges">
+                <span class="badge bc-${cond}">${ucFirst(cond)}</span>
+                ${statoBadge}
+            </div>
+        </div>
+    </div>`;
+}
+
+// ── Detail ────────────────────────────────────────────────
+async function apriDettaglio(id) {
+    const a = [...annunci, ...miei].find(x => x.id === id);
+    if (!a) return;
+    selectedAnnuncio = a;
+    document.getElementById('detailHdrTitle').textContent = a.titolo;
+    document.getElementById('detailEditBtn').style.display = a.email_utente === userEmail ? '' : 'none';
+    document.getElementById('detailContent').innerHTML = buildDetailHtml(a);
+    bindCarouselDots();
+    if (a.email_utente === userEmail) await loadConversazioni(a.id);
+    document.getElementById('detailOv').classList.add('open');
+}
+
+function chiudiDettaglio() {
+    document.getElementById('detailOv').classList.remove('open');
+    selectedAnnuncio = null;
+}
+
+function buildDetailHtml(a) {
+    const foto = a.vendita_foto || [];
+    let carouselHtml;
+    if (foto.length) {
+        const slides = foto.map(f => `<div class="carousel-slide"><img src="${f.url}" alt=""></div>`).join('');
+        const dots = foto.length > 1 ? `<div class="carousel-dots">${foto.map((_, i) => `<div class="cdot${i === 0 ? ' on' : ''}"></div>`).join('')}</div>` : '';
+        carouselHtml = `<div class="carousel"><div class="carousel-inner" id="carouselInner">${slides}</div>${dots}</div>`;
+    } else {
+        carouselHtml = `<div class="no-photo-big">🏷️</div>`;
+    }
+
+    const prezzo = a.prezzo != null ? `€ ${Number(a.prezzo).toFixed(2).replace('.', ',')}` : 'Prezzo libero';
+    const cond = (a.condizione || 'buono').toLowerCase();
+    const condBadge = `<span class="badge bc-${cond}" style="padding:5px 12px;font-size:12px">${ucFirst(cond)}</span>`;
+    const catBadge = a.categoria ? `<span class="badge" style="background:#f0f0f0;color:#555;padding:5px 12px;font-size:12px">${a.categoria}</span>` : '';
+    const statoBadge = a.stato !== 'attivo'
+        ? `<span class="badge bs-${a.stato}" style="padding:5px 12px;font-size:12px">${a.stato === 'venduto' ? '✓ Venduto' : '⏳ Riservato'}</span>` : '';
+
+    const initials = (a.email_utente || '?')[0].toUpperCase();
+    const sellerHtml = `<div class="seller-row">
+        <div class="seller-av">${initials}</div>
+        <div><div class="seller-lbl">Venditore</div><div class="seller-email">${esc(a.email_utente)}</div></div>
+    </div>`;
+
+    let actionsHtml = '';
+    if (a.email_utente === userEmail) {
+        actionsHtml = `
+            <div class="section-title">Stato annuncio</div>
+            <div class="stato-row">
+                <button class="btn-stato${a.stato==='attivo'?' on':''}" onclick="aggiornaStato('attivo')">Attivo</button>
+                <button class="btn-stato${a.stato==='riservato'?' on':''}" onclick="aggiornaStato('riservato')">Riservato</button>
+                <button class="btn-stato${a.stato==='venduto'?' on':''}" onclick="aggiornaStato('venduto')">Venduto</button>
+            </div>
+            <div class="section-title">Conversazioni</div>
+            <div id="convList"><div class="no-chat">Caricamento…</div></div>`;
+    } else if (a.stato === 'attivo') {
+        actionsHtml = `<button class="btn-chat" onclick="apriChat(${a.id},'${esc(a.email_utente)}','${esc(a.titolo)}')">💬  Chatta col venditore</button>`;
+    } else {
+        actionsHtml = `<div style="text-align:center;color:#aaa;font-weight:700;font-size:14px;padding:10px 0">Annuncio non più disponibile</div>`;
+    }
+
+    return `${carouselHtml}
+    <div class="detail-body">
+        <div class="detail-price">${prezzo}</div>
+        <div class="detail-title">${esc(a.titolo)}</div>
+        <div class="detail-meta">${condBadge}${catBadge}${statoBadge}</div>
+        ${a.descrizione ? `<div class="detail-desc">${esc(a.descrizione)}</div>` : ''}
+        ${sellerHtml}
+        ${actionsHtml}
+    </div>`;
+}
+
+function bindCarouselDots() {
+    const inner = document.getElementById('carouselInner');
+    if (!inner) return;
+    inner.addEventListener('scroll', () => {
+        const idx = Math.round(inner.scrollLeft / inner.clientWidth);
+        document.querySelectorAll('.cdot').forEach((d, i) => d.classList.toggle('on', i === idx));
+    }, { passive: true });
+}
+
+async function aggiornaStato(stato) {
+    if (!selectedAnnuncio) return;
+    await sb.from('vendita_annunci').update({ stato }).eq('id', selectedAnnuncio.id);
+    selectedAnnuncio.stato = stato;
+    // Refresh detail
+    document.getElementById('detailContent').innerHTML = buildDetailHtml(selectedAnnuncio);
+    bindCarouselDots();
+    await loadConversazioni(selectedAnnuncio.id);
+    await carica();
+    toast('✓ Stato aggiornato');
+}
+
+async function loadConversazioni(annuncioId) {
+    const { data } = await sb.from('vendita_chat')
+        .select('email_mittente, messaggio, created_at, letto')
+        .eq('annuncio_id', annuncioId)
+        .neq('email_mittente', userEmail)
+        .order('created_at', { ascending: false });
+
+    const convList = document.getElementById('convList');
+    if (!convList) return;
+    if (!data?.length) { convList.innerHTML = '<div class="no-chat">Nessuna conversazione ancora</div>'; return; }
+
+    // Deduplicate by buyer
+    const buyers = new Map();
+    for (const m of data) {
+        if (!buyers.has(m.email_mittente)) buyers.set(m.email_mittente, m);
+    }
+
+    convList.innerHTML = [...buyers.entries()].map(([email, last]) => {
+        const hasUnread = !last.letto;
+        const init = email[0].toUpperCase();
+        const time = new Date(last.created_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+        return `<div class="conv-item" onclick="apriChatSeller(${annuncioId},'${esc(email)}','${esc(selectedAnnuncio?.titolo||'')}')">
+            <div class="conv-av">${init}</div>
+            <div style="flex:1;min-width:0">
+                <div class="conv-email">${esc(email)}</div>
+                <div class="conv-preview">${esc(last.messaggio)}</div>
+            </div>
+            ${hasUnread ? '<div class="unread-dot"></div>' : ''}
+        </div>`;
+    }).join('');
+}
+
+// ── Edit / Create ─────────────────────────────────────────
+function apriNuovo() {
+    editId = null;
+    photoSlots = [null, null, null, null];
+    selEmails = [];
+    fCond = 'buono'; fCat = 'Altro'; fVis = 'pubblico';
+    document.getElementById('fTitolo').value = '';
+    document.getElementById('fPrezzo').value = '';
+    document.getElementById('fDesc').value = '';
+    document.getElementById('btnDelAnnuncio').style.display = 'none';
+    document.getElementById('modaleTitolo').textContent = 'Nuovo annuncio';
+    buildFormUI();
+    document.getElementById('modaleAnnuncio').classList.add('open');
+}
+
+function apriModifica() {
+    if (!selectedAnnuncio) return;
+    const a = selectedAnnuncio;
+    editId = a.id;
+    fCond = a.condizione || 'buono'; fCat = a.categoria || 'Altro'; fVis = a.visibilita || 'pubblico';
+    document.getElementById('fTitolo').value = a.titolo || '';
+    document.getElementById('fPrezzo').value = a.prezzo != null ? a.prezzo : '';
+    document.getElementById('fDesc').value = a.descrizione || '';
+    document.getElementById('btnDelAnnuncio').style.display = '';
+    document.getElementById('modaleTitolo').textContent = 'Modifica annuncio';
+    // Load existing photos
+    photoSlots = [null, null, null, null];
+    (a.vendita_foto || []).forEach((f, i) => {
+        if (i < 4) photoSlots[i] = { type: 'existing', url: f.url, id: f.id };
+    });
+    buildFormUI();
+    // Load selezionati emails
+    if (fVis === 'selezionati') loadSelezionati(a.id);
+    document.getElementById('modaleAnnuncio').classList.add('open');
+}
+
+async function loadSelezionati(annuncioId) {
+    const { data } = await sb.from('vendita_accesso').select('email_utente').eq('annuncio_id', annuncioId);
+    selEmails = (data || []).map(r => r.email_utente);
+    renderSelTags();
+}
+
+function buildFormUI() {
+    buildPhotoRow();
+    buildPillRow('condRow', CONDIZIONI, fCond.toLowerCase(), v => { fCond = v.toLowerCase(); buildPillRow('condRow', CONDIZIONI, fCond, v2 => { fCond = v2.toLowerCase(); buildPillRow('condRow', CONDIZIONI, fCond, null, true); }, true); });
+    buildPillRow('condRow', CONDIZIONI, fCond, v => { fCond = v.toLowerCase(); buildFormUI(); }, true);
+    buildPillRow('catRow', CATEGORIE, fCat, v => { fCat = v; buildFormUI(); }, true);
+    buildPillRow('visRow', Object.keys(VIS_LABELS), fVis, v => { fVis = v; toggleSelWrap(); buildFormUI(); }, true, VIS_LABELS);
+    toggleSelWrap();
+    renderSelTags();
+}
+
+function buildPillRow(rowId, items, active, onClick, skipBuild, labelMap) {
+    const row = document.getElementById(rowId);
+    if (!row) return;
+    row.innerHTML = items.map(item => {
+        const val = item.toLowerCase ? item.toLowerCase() : item;
+        const label = labelMap ? labelMap[item] : item;
+        const isActive = (val === active || item === active);
+        return `<button class="pill${isActive ? ' on' : ''}" onclick="(${onClick.toString()})('${item}')">${label}</button>`;
+    }).join('');
+}
+
+function buildPhotoRow() {
+    const row = document.getElementById('photoRow');
+    row.innerHTML = photoSlots.map((slot, i) => {
+        if (slot) {
+            return `<div class="photo-slot">
+                <img src="${slot.url}" alt="">
+                <button class="rm" onclick="removePhoto(${i})">✕</button>
+            </div>`;
+        }
+        return `<div class="photo-slot" onclick="pickPhoto(${i})"><div class="photo-add-icon">+</div></div>`;
+    }).join('');
+}
+
+function pickPhoto(idx) {
+    document.getElementById('fileInput').dataset.idx = idx;
+    document.getElementById('fileInput').value = '';
+    document.getElementById('fileInput').click();
+}
+
+function onFileChange(input) {
+    const idx = parseInt(input.dataset.idx);
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+        photoSlots[idx] = { type: 'new', url: e.target.result, file };
+        buildPhotoRow();
+    };
+    reader.readAsDataURL(file);
+}
+
+function removePhoto(idx) {
+    photoSlots[idx] = null;
+    buildPhotoRow();
+}
+
+function toggleSelWrap() {
+    document.getElementById('selWrap').classList.toggle('open', fVis === 'selezionati');
+}
+
+document.getElementById('selInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ',') {
+        e.preventDefault();
+        const val = document.getElementById('selInput').value.trim().toLowerCase();
+        if (val && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val) && !selEmails.includes(val)) {
+            selEmails.push(val);
+            renderSelTags();
+        }
+        document.getElementById('selInput').value = '';
+    }
+});
+
+function renderSelTags() {
+    document.getElementById('selTags').innerHTML = selEmails.map((e, i) =>
+        `<div class="sel-tag">${esc(e)}<button onclick="removeSelEmail(${i})">✕</button></div>`
+    ).join('');
+}
+
+function removeSelEmail(i) { selEmails.splice(i, 1); renderSelTags(); }
+
+// ── Save ──────────────────────────────────────────────────
+async function salva() {
+    const titolo = document.getElementById('fTitolo').value.trim();
+    if (!titolo) { toast('Inserisci un titolo'); return; }
+    const prezzo = document.getElementById('fPrezzo').value.trim();
+    const desc = document.getElementById('fDesc').value.trim();
+
+    spin(true);
+    try {
+        const row = {
+            email_utente: userEmail,
+            titolo,
+            descrizione: desc || null,
+            prezzo: prezzo ? parseFloat(prezzo) : null,
+            condizione: fCond,
+            categoria: fCat,
+            visibilita: fVis,
+            updated_at: new Date().toISOString()
+        };
+
+        let annuncioId = editId;
+        if (editId) {
+            await sb.from('vendita_annunci').update(row).eq('id', editId);
+        } else {
+            const { data, error } = await sb.from('vendita_annunci').insert({ ...row, stato: 'attivo' }).select().single();
+            if (error) { toast('Errore: ' + error.message); spin(false); return; }
+            annuncioId = data.id;
+        }
+
+        // Handle photos
+        if (editId) {
+            // Delete removed existing photos
+            const keptIds = photoSlots.filter(s => s?.type === 'existing').map(s => s.id);
+            const { data: allFoto } = await sb.from('vendita_foto').select('id,url').eq('annuncio_id', editId);
+            for (const f of (allFoto || [])) {
+                if (!keptIds.includes(f.id)) {
+                    // Delete from storage
+                    const path = storagePathFromUrl(f.url);
+                    if (path) await sb.storage.from('vendita-foto').remove([path]);
+                    await sb.from('vendita_foto').delete().eq('id', f.id);
+                }
+            }
+        }
+
+        // Upload new photos
+        let ordine = photoSlots.filter(s => s?.type === 'existing').length;
+        for (const slot of photoSlots) {
+            if (slot?.type === 'new') {
+                const ext = slot.file.name.split('.').pop() || 'jpg';
+                const path = `${userEmail}/${annuncioId}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+                const { error: upErr } = await sb.storage.from('vendita-foto').upload(path, slot.file, { upsert: false });
+                if (!upErr) {
+                    const { data: { publicUrl } } = sb.storage.from('vendita-foto').getPublicUrl(path);
+                    await sb.from('vendita_foto').insert({ annuncio_id: annuncioId, url: publicUrl, ordine: ordine++ });
+                }
+            }
+        }
+
+        // Handle selezionati access list
+        if (fVis === 'selezionati') {
+            await sb.from('vendita_accesso').delete().eq('annuncio_id', annuncioId);
+            if (selEmails.length) {
+                await sb.from('vendita_accesso').insert(selEmails.map(email => ({ annuncio_id: annuncioId, email_utente: email })));
+            }
+        } else {
+            await sb.from('vendita_accesso').delete().eq('annuncio_id', annuncioId);
+        }
+
+        document.getElementById('modaleAnnuncio').classList.remove('open');
+        toast(editId ? '✓ Annuncio aggiornato' : '✓ Annuncio pubblicato');
+        if (selectedAnnuncio?.id === editId) chiudiDettaglio();
+        await carica();
+    } catch(e) { toast('Errore: ' + e.message); }
+    spin(false);
+}
+
+function storagePathFromUrl(url) {
+    try {
+        const marker = '/vendita-foto/';
+        const idx = url.indexOf(marker);
+        return idx !== -1 ? url.slice(idx + marker.length) : null;
+    } catch { return null; }
+}
+
+async function eliminaAnnuncio() {
+    if (!editId || !confirm('Eliminare questo annuncio?')) return;
+    spin(true);
+    // Delete photos from storage
+    const { data: foto } = await sb.from('vendita_foto').select('url').eq('annuncio_id', editId);
+    for (const f of (foto || [])) {
+        const p = storagePathFromUrl(f.url);
+        if (p) await sb.storage.from('vendita-foto').remove([p]);
+    }
+    await sb.from('vendita_annunci').delete().eq('id', editId);
+    document.getElementById('modaleAnnuncio').classList.remove('open');
+    if (selectedAnnuncio?.id === editId) chiudiDettaglio();
+    toast('Annuncio eliminato');
+    await carica();
+    spin(false);
+}
+
+// ── Chat (buyer) ──────────────────────────────────────────
+function apriChat(annuncioId, emailVenditore, titolo) {
+    chatAnnuncioId = annuncioId;
+    chatPartner = emailVenditore;
+    document.getElementById('chatTitle').textContent = titolo;
+    document.getElementById('chatSub').textContent = emailVenditore;
+    apriChatComune(annuncioId, emailVenditore);
+}
+
+// ── Chat (seller view: specific buyer) ───────────────────
+function apriChatSeller(annuncioId, emailBuyer, titolo) {
+    chatAnnuncioId = annuncioId;
+    chatPartner = emailBuyer;
+    document.getElementById('chatTitle').textContent = titolo;
+    document.getElementById('chatSub').textContent = emailBuyer;
+    apriChatComune(annuncioId, emailBuyer);
+}
+
+async function apriChatComune(annuncioId, partner) {
+    document.getElementById('chatMsgs').innerHTML = '';
+    document.getElementById('chatScreen').classList.add('open');
+    await loadMsgs(annuncioId, partner);
+
+    // Subscribe to realtime
+    if (chatRealtime) { await chatRealtime.unsubscribe(); chatRealtime = null; }
+    chatRealtime = sb.channel(`chat-${annuncioId}-${[userEmail, partner].sort().join('-')}`)
+        .on('postgres_changes', {
+            event: 'INSERT', schema: 'public', table: 'vendita_chat',
+            filter: `annuncio_id=eq.${annuncioId}`
+        }, payload => {
+            const m = payload.new;
+            if ((m.email_mittente === userEmail || m.email_mittente === partner) &&
+                (m.email_venditore === userEmail || m.email_venditore === partner)) {
+                appendMsg(m);
+                scrollMsgs();
+            }
+        })
+        .subscribe();
+
+    // Mark as read
+    await sb.from('vendita_chat')
+        .update({ letto: true })
+        .eq('annuncio_id', annuncioId)
+        .eq('email_mittente', partner)
+        .eq('letto', false);
+}
+
+async function loadMsgs(annuncioId, partner) {
+    const { data } = await sb.from('vendita_chat')
+        .select('*')
+        .eq('annuncio_id', annuncioId)
+        .or(`and(email_mittente.eq.${userEmail},email_venditore.eq.${partner}),and(email_mittente.eq.${partner},email_venditore.eq.${userEmail})`)
+        .order('created_at', { ascending: true });
+
+    document.getElementById('chatMsgs').innerHTML = '';
+    (data || []).forEach(m => appendMsg(m));
+    scrollMsgs();
+}
+
+function appendMsg(m) {
+    const isMe = m.email_mittente === userEmail;
+    const time = new Date(m.created_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+    const el = document.createElement('div');
+    el.className = `msg-wrap ${isMe ? 'me' : 'other'}`;
+    el.innerHTML = `<div class="bubble">${esc(m.messaggio)}</div><div class="msg-time">${time}</div>`;
+    document.getElementById('chatMsgs').appendChild(el);
+}
+
+function scrollMsgs() {
+    const el = document.getElementById('chatMsgs');
+    el.scrollTop = el.scrollHeight;
+}
+
+async function inviaMsg() {
+    const input = document.getElementById('chatInput');
+    const testo = input.value.trim();
+    if (!testo || !chatAnnuncioId || !chatPartner) return;
+    input.value = '';
+    input.style.height = 'auto';
+
+    // Determine who is venditore and who is mittente
+    const annuncio = [...annunci, ...miei].find(a => a.id === chatAnnuncioId);
+    const isVenditore = annuncio?.email_utente === userEmail;
+    const emailMittente = userEmail;
+    const emailVenditore = isVenditore ? userEmail : chatPartner;
+
+    const { error } = await sb.from('vendita_chat').insert({
+        annuncio_id: chatAnnuncioId,
+        email_mittente: emailMittente,
+        email_venditore: emailVenditore,
+        messaggio: testo,
+        letto: false
+    });
+    if (error) { toast('Errore invio'); }
+}
+
+async function chiudiChat() {
+    document.getElementById('chatScreen').classList.remove('open');
+    if (chatRealtime) { await chatRealtime.unsubscribe(); chatRealtime = null; }
+    // Refresh conversazioni if seller
+    if (selectedAnnuncio?.email_utente === userEmail) {
+        await loadConversazioni(selectedAnnuncio.id);
+    }
+}
+
+// ── Modal close on backdrop ───────────────────────────────
+document.getElementById('modaleAnnuncio').addEventListener('click', e => {
+    if (e.target === document.getElementById('modaleAnnuncio'))
+        document.getElementById('modaleAnnuncio').classList.remove('open');
+});
+
+// ── Helpers ───────────────────────────────────────────────
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function ucFirst(s) { return s ? s[0].toUpperCase() + s.slice(1) : s; }
+
+let toastTimer;
+function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function spin(on) { document.getElementById('spinOv').classList.toggle('open', on); }
+
+// ── Init ──────────────────────────────────────────────────
+carica();
+</script>
+</body>
+</html>

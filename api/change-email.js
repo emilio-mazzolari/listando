@@ -72,10 +72,16 @@ module.exports = async function handler(req, res) {
         { table: 'sv_partecipanti',      col: 'email_utente' },
         { table: 'sv_partecipanti',      col: 'email_collegata' },
         { table: 'sv_spese',             col: 'email_utente' },
-        { table: 'sv_budget',            col: 'email_utente' },
-        { table: 'valigie',              col: 'email_utente' },
+{ table: 'valigie',              col: 'email_utente' },
         { table: 'cose_valigia',         col: 'email_utente' },
         { table: 'documenti_valigia',    col: 'email_utente' },
+        { table: 'note',                 col: 'email_utente' },
+        { table: 'hobby',                col: 'email_utente' },
+        { table: 'hobby_sessioni',       col: 'email_utente' },
+        { table: 'vendita_annunci',      col: 'email_utente' },
+        { table: 'vendita_accesso',      col: 'email_utente' },
+        { table: 'vendita_chat',         col: 'email_mittente' },
+        { table: 'vendita_chat',         col: 'email_venditore' },
     ];
 
     for (const { table, col } of tables) {
