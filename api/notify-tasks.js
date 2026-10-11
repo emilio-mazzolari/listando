@@ -68,8 +68,8 @@ module.exports = async function handler(req, res) {
     try { sb = getSb(); } catch (e) { return res.status(500).json({ error: e.message }); }
 
     const { date, totalMins, dow, romeDate } = getRomeTime();
-    // Start window 5 min early to absorb slight cron delays; end 65 min later
-    const windowStart = totalMins - 5;
+    // Window spans 65 min back + 65 min forward so a missed cron is caught by the next one
+    const windowStart = totalMins - 65;
     const windowEnd = totalMins + 65;
 
     // ── Reset notificato at midnight for recurring tasks (scadenza=null) ──
