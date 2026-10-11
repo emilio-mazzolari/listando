@@ -582,8 +582,14 @@ function renderSharedSection() {
     }).join('');
 }
 
+function countSongsDeep(plId) {
+    const direct = songs.filter(s => s.playlist_id === plId).length;
+    return direct + playlists.filter(p => p.parent_id === plId)
+        .reduce((sum, sub) => sum + countSongsDeep(sub.id), 0);
+}
+
 function playlistCardHtml(pl, isSub) {
-    const count = songs.filter(s => s.playlist_id === pl.id).length;
+    const count = countSongsDeep(pl.id);
     const cover = isSub
         ? `<div class="playlist-cover" style="background:linear-gradient(135deg,#3384d4,#1a5fa8)">📁<div class="playlist-cover-count">${count}</div></div>`
         : `<div class="playlist-cover">🎵<div class="playlist-cover-count">${count}</div></div>`;
@@ -671,8 +677,13 @@ function renderPlaylistView() {
     document.getElementById('playlistView').style.display = '';
     document.getElementById('headerTitle').textContent = pl.nome;
     document.getElementById('plDetailName').textContent = pl.nome;
+    const totalCount = countSongsDeep(id);
+    const directCount = plSongs.length;
     const subInfo = subPls.length ? ` · ${subPls.length} sottocart.` : '';
-    document.getElementById('plDetailCount').textContent = `${plSongs.length} canzoni${subInfo}`;
+    const countLabel = totalCount !== directCount
+        ? `${totalCount} canzoni (${directCount} dirette)${subInfo}`
+        : `${directCount} canzoni${subInfo}`;
+    document.getElementById('plDetailCount').textContent = countLabel;
     const parentName = playlistStack.length > 1
         ? playlists.find(p => p.id === playlistStack[playlistStack.length - 2])?.nome || 'Raccolte'
         : 'Raccolte';
