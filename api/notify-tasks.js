@@ -68,9 +68,10 @@ module.exports = async function handler(req, res) {
     try { sb = getSb(); } catch (e) { return res.status(500).json({ error: e.message }); }
 
     const { date, totalMins, dow, romeDate } = getRomeTime();
-    // Window spans 65 min back + 65 min forward so a missed cron is caught by the next one
-    const windowStart = totalMins - 65;
-    const windowEnd = totalMins + 65;
+    // Send all unnotified tasks scheduled from midnight up to now (+5 min buffer).
+    // notificato + rem_inviati prevent double-sends if the cron fires more than once.
+    const windowStart = 0;
+    const windowEnd = totalMins + 5;
 
     // ── Reset notificato at midnight for recurring tasks (scadenza=null) ──
     // Runs on the 00:xx cron pass to allow re-notification the next occurrence
