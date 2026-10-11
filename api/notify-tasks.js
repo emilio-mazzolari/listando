@@ -174,7 +174,7 @@ module.exports = async function handler(req, res) {
     const isDebug = req.query?.debug === '1' || req.body?.debug === '1';
 
     const totalDue = dateDue.length + weeklyDue.length + dailyDue.length;
-    const baseDebug = { totalMins, windowEnd, date, dow, subs: Object.keys(subsByEmail), vapidOk: !!process.env.VAPID_PRIVATE_KEY };
+    const baseDebug = { totalMins, windowStart, windowEnd, date, dow, subs: Object.keys(subsByEmail), vapidOk: !!process.env.VAPID_PRIVATE_KEY };
 
     if (isDebug) {
         // Return detailed task diagnostics without actually sending
