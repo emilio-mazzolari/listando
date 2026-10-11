@@ -60,9 +60,10 @@ async function sendPush(sb, sub, payload) {
 
 module.exports = async function handler(req, res) {
     const secret = process.env.CRON_SECRET;
-    if (secret && req.headers.authorization !== `Bearer ${secret}`) {
-        return res.status(401).end();
-    }
+    const authOk = !secret
+        || req.headers.authorization === `Bearer ${secret}`
+        || req.query?.key === secret;
+    if (!authOk) return res.status(401).end();
 
     let sb;
     try { sb = getSb(); } catch (e) { return res.status(500).json({ error: e.message }); }
