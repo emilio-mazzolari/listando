@@ -1210,7 +1210,8 @@ async function salva() {
         promemoria_email: (scadenza || periodicita) ? promemoriaMail : false,
         rem_anticipi: (scadenza || periodicita) && (promemoriaPush || promemoriaMail) ? remAnticipi.join(',') : null,
         rem_ora:      (scadenza || periodicita) && (promemoriaPush || promemoriaMail) ? (remOra || '09:00') : null,
-        rem_inviati:  null,
+        // On edit: preserve rem_inviati so already-sent anticipi don't fire again
+        ...(editId ? {} : { rem_inviati: null }),
         periodicita: periodicita,
         giorni_settimana: (periodicita === 'settimanale' && giorniSettimana.length) ? [...giorniSettimana].sort((a,b)=>a-b).join(',') : null,
         notificato: false,

@@ -224,7 +224,8 @@ module.exports = async function handler(req, res) {
         const payload = JSON.stringify({
             title: '⏰ ' + task.titolo,
             body: task.note || `Promemoria alle ${timeStr}`,
-            url: '/todo.html'
+            url: '/todo.html',
+            tag: 'todo-' + task.id
         });
         if (task.promemoria_push) {
             for (const sub of (subsByEmail[task.email_utente] || [])) {

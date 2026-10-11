@@ -29,8 +29,6 @@ self.addEventListener("activate", (event) => {
         keys.map(k => k !== CACHE_NAME ? caches.delete(k) : null)
       ))
       .then(() => self.clients.claim())
-      .then(() => self.clients.matchAll({ type: "window" }))
-      .then(clients => clients.forEach(c => c.navigate(c.url)))
   );
 });
 
@@ -44,16 +42,16 @@ self.addEventListener("fetch", (event) => {
 
 /* PUSH */
 self.addEventListener("push", (event) => {
-  let data = { title: "Listando", body: "", url: "/debiti.html" };
+  let data = { title: "Listando", body: "", url: "/todo.html" };
   try { data = event.data.json(); } catch (e) {}
   event.waitUntil(
     self.registration.showNotification(data.title, {
       body: data.body,
       icon: "/logolistando.png",
       badge: "/logolistando.png",
-      tag: "listando-weekly",
+      tag: data.tag || ("listando-" + Date.now()),
       renotify: true,
-      data: { url: data.url || "/debiti.html" },
+      data: { url: data.url || "/todo.html" },
     })
   );
 });
@@ -61,7 +59,7 @@ self.addEventListener("push", (event) => {
 /* NOTIFICATION CLICK */
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const url = event.notification.data?.url || "/debiti.html";
+  const url = event.notification.data?.url || "/todo.html";
   event.waitUntil(
     clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
       const existing = list.find((c) => c.url.includes("listando") || c.url.endsWith("/"));

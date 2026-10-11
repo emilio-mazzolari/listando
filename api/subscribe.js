@@ -1,8 +1,16 @@
 const { createClient } = require('@supabase/supabase-js');
 
 const SUPABASE_URL = 'https://eejdpophfxsrqdvsucye.supabase.co';
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
-const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+let _sb;
+function getSb() {
+    if (!_sb) {
+        const key = process.env.SUPABASE_SERVICE_KEY;
+        if (!key) throw new Error('SUPABASE_SERVICE_KEY non configurata');
+        _sb = createClient(SUPABASE_URL, key, { auth: { persistSession: false } });
+    }
+    return _sb;
+}
 
 module.exports = async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -13,6 +21,9 @@ module.exports = async function handler(req, res) {
     if (!email || !subscription?.endpoint || !subscription?.keys?.p256dh || !subscription?.keys?.auth) {
         return res.status(400).json({ error: 'Payload non valido' });
     }
+
+    let sb;
+    try { sb = getSb(); } catch (e) { return res.status(500).json({ error: e.message }); }
 
     const { error } = await sb.from('push_subscriptions').upsert({
         email_utente: email,
