@@ -58,10 +58,51 @@ module.exports = async function handler(req, res) {
 
     const sb = createClient(SUPABASE_URL, key, { auth: { persistSession: false } });
 
-    // GET: download backup per un singolo utente
+    // GET: download backup o recovery album foto
     if (req.method === 'GET') {
         const email = req.query.email;
         if (!email) return res.status(400).json({ error: 'email richiesta' });
+
+        // ?action=recover-album&album_id=X — ripristina righe foto da storage
+        if (req.query.action === 'recover-album') {
+            const albumId = parseInt(req.query.album_id);
+            if (!albumId) return res.status(400).json({ error: 'album_id richiesto' });
+
+            const slug = email.replace(/[^a-zA-Z0-9]/g, '_');
+            const prefix = `${slug}/${albumId}`;
+
+            const { data: files, error: listErr } = await sb.storage.from('foto').list(prefix);
+            if (listErr) return res.status(500).json({ error: 'Storage list: ' + listErr.message });
+            if (!files || !files.length) return res.status(200).json({ recovered: 0, message: 'Nessun file trovato nel bucket per questo album' });
+
+            // Prende gli storage_path già presenti nel DB per evitare duplicati
+            const { data: existing } = await sb.from('foto').select('storage_path').eq('album_id', albumId);
+            const existingPaths = new Set((existing || []).map(r => r.storage_path));
+
+            let recovered = 0;
+            const errors = [];
+            for (const file of files) {
+                const path = `${prefix}/${file.name}`;
+                if (existingPaths.has(path)) continue;
+                const { data: { publicUrl } } = sb.storage.from('foto').getPublicUrl(path);
+                const ext = file.name.split('.').pop().toLowerCase();
+                const isVideo = ['mp4','mov','webm','avi','mkv','m4v'].includes(ext);
+                const mediaType = isVideo ? 'video' : (file.metadata?.mimetype || 'image/jpeg');
+                const { error: insErr } = await sb.from('foto').insert({
+                    album_id: albumId,
+                    email_utente: email,
+                    storage_path: path,
+                    url: publicUrl,
+                    size_bytes: file.metadata?.size || 0,
+                    sort_order: new Date(file.created_at || Date.now()).getTime(),
+                    media_type: mediaType,
+                });
+                if (insErr) errors.push({ file: file.name, error: insErr.message });
+                else recovered++;
+            }
+            return res.status(200).json({ recovered, total: files.length, errors });
+        }
+
         const tables = await fetchUserData(sb, email);
         return res.status(200).json({ email, version: 1, createdAt: new Date().toISOString(), tables });
     }
