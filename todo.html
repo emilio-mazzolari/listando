@@ -132,7 +132,8 @@
         .form-section-sep { height: 1px; background: var(--grey-light); margin: 16px 0; }
 
         .btn-save-modal { width: 100%; padding: 16px; border-radius: 18px; border: none; background: var(--teal); color: white; font-weight: 900; font-size: 16px; cursor: pointer; font-family: inherit; margin-top: 8px; }
-        .btn-delete-modal { width: 100%; padding: 14px; border-radius: 18px; border: none; background: #fff0f0; color: var(--red); font-weight: 800; font-size: 14px; cursor: pointer; font-family: inherit; margin-top: 8px; }
+        .btn-delete-modal { width: 100%; padding: 14px; border-radius: 18px; border: none; background: #fff0f0; color: var(--red); font-weight: 800; font-size: 14px; cursor: pointer; font-family: inherit; margin-top: 8px; transition: background 0.2s, color 0.2s; }
+        .btn-delete-modal.confirming { background: var(--red); color: white; }
 
         .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 70px; background: white; display: flex; justify-content: space-around; align-items: center; border-top: 2px solid var(--grey-light); padding-bottom: env(safe-area-inset-bottom); z-index: 100; }
         .tab-item { flex: 1; text-align: center; font-size: 11px; color: var(--dark); text-decoration: none; font-weight: 800; display: flex; flex-direction: column; align-items: center; gap: 4px; }
@@ -1153,7 +1154,11 @@ function apriModale() {
     document.getElementById('fNote').value = '';
     document.getElementById('fData').value = '';
     document.getElementById('fOra').value = '';
-    document.getElementById('btnElimina').style.display = 'none';
+    const btnEl = document.getElementById('btnElimina');
+    btnEl.style.display = 'none';
+    btnEl.classList.remove('confirming');
+    btnEl.textContent = 'ELIMINA';
+    clearTimeout(eliminaConfirmTimer);
     catSelezionata = 'Generale';
     ultimoGiornoMese = false;
     promemoriaPush = false; promemoriaMail = false;
@@ -1306,9 +1311,23 @@ function aggiungiCalendario(id) {
     window.open(`https://calendar.google.com/calendar/render?${params.toString()}`, '_blank');
 }
 
+let eliminaConfirmTimer = null;
 async function elimina() {
-    if (!editId || !confirm('Eliminare questa attività?')) return;
-    await sb.from('todo').delete().eq('id', editId);
+    if (!editId) return;
+    const btn = document.getElementById('btnElimina');
+    if (!btn.classList.contains('confirming')) {
+        btn.classList.add('confirming');
+        btn.textContent = 'TOCCA ANCORA PER ELIMINARE';
+        clearTimeout(eliminaConfirmTimer);
+        eliminaConfirmTimer = setTimeout(() => {
+            btn.classList.remove('confirming');
+            btn.textContent = 'ELIMINA';
+        }, 3000);
+        return;
+    }
+    clearTimeout(eliminaConfirmTimer);
+    const { error } = await sb.from('todo').delete().eq('id', editId);
+    if (error) { toast('Errore eliminazione'); return; }
     document.getElementById('modale').classList.remove('open');
     toast('Eliminato');
     await carica();
