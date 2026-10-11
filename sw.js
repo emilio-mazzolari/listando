@@ -1,8 +1,11 @@
-const CACHE_NAME = "lista-spesa-cache-v100";
+const CACHE_NAME = "lista-spesa-cache-v101";
 
 const FILES = [
   "/manifest.json",
   "/logolistando.png",
+  "/logolistando-192.png",
+  "/favicon-32.png",
+  "/favicon-16.png",
   "/index.html",
   "/login.html",
   "/spese_viaggio.html",
