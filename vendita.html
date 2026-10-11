@@ -658,6 +658,15 @@ function renderSelTags() {
 
 function removeSelEmail(i) { selEmails.splice(i, 1); renderSelTags(); }
 
+function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
 // ── Save ──────────────────────────────────────────────────
 async function salva() {
     const titolo = document.getElementById('fTitolo').value.trim();
@@ -702,18 +711,19 @@ async function salva() {
             }
         }
 
-        // Upload new photos
+        // Upload new photos via server proxy (bypasses storage policies + RLS)
         let ordine = photoSlots.filter(s => s?.type === 'existing').length;
         for (const slot of photoSlots) {
             if (slot?.type === 'new') {
-                const ext = slot.file.name.split('.').pop() || 'jpg';
-                const path = `${userEmail}/${annuncioId}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-                const { error: upErr } = await sb.storage.from('vendita-foto').upload(path, slot.file, { upsert: false });
-                if (upErr) { toast('Errore upload foto: ' + upErr.message); continue; }
-                const { data: { publicUrl } } = sb.storage.from('vendita-foto').getPublicUrl(path);
-                const { error: insErr } = await sb.from('vendita_foto').insert({ annuncio_id: annuncioId, url: publicUrl, ordine: ordine });
-                if (insErr) { toast('Errore salvataggio foto: ' + insErr.message); }
-                else { ordine++; }
+                const base64 = await fileToBase64(slot.file);
+                const resp = await fetch('/api/upload-foto', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ file: base64, fileName: slot.file.name, annuncioId, email: userEmail, ordine })
+                });
+                const result = await resp.json();
+                if (!resp.ok) { toast('Errore foto: ' + (result.error || resp.status)); continue; }
+                ordine++;
             }
         }
 
