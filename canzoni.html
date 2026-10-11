@@ -486,16 +486,24 @@ let isExpanded = false;
 
 // ── Data ───────────────────────────────────────────────────────────────
 async function carica() {
-    const [{ data: pl }, { data: s }, { data: condDiv }] = await Promise.all([
-        sb.from('canzoni_playlist').select('*').eq('email_utente', userEmail).is('parent_id', null).order('nome'),
-        sb.from('canzoni').select('*').eq('email_utente', userEmail).order('sort_order').order('titolo'),
-        sb.from('canzoni_condivisioni').select('*, canzoni(*)').eq('email_destinatario', userEmail)
+    // Query playlists and songs in parallel; condivisioni is optional (table may not exist)
+    const [plRes, sRes] = await Promise.all([
+        sb.from('canzoni_playlist').select('*').eq('email_utente', userEmail).order('nome'),
+        sb.from('canzoni').select('*').eq('email_utente', userEmail).order('titolo')
     ]);
-    playlists = pl || [];
-    songs = s || [];
-    sharedSongs = (condDiv || [])
-        .filter(c => c.canzoni)
-        .map(c => ({ ...c.canzoni, _mittente: c.email_mittente, _condDiv_id: c.id }));
+    playlists = plRes.data || [];
+    songs = sRes.data || [];
+
+    // condivisioni is optional — silently ignore if table doesn't exist
+    try {
+        const { data: condDiv } = await sb.from('canzoni_condivisioni')
+            .select('*, canzoni(*)')
+            .eq('email_destinatario', userEmail);
+        sharedSongs = (condDiv || [])
+            .filter(c => c.canzoni)
+            .map(c => ({ ...c.canzoni, _mittente: c.email_mittente, _condDiv_id: c.id }));
+    } catch (_) { sharedSongs = []; }
+
     renderMain();
 }
 
