@@ -139,6 +139,8 @@
         }
         .ingredient-row:last-child { border-bottom: none; }
         .ing-qty { font-size: 13px; font-weight: 900; color: var(--accent); min-width: 56px; }
+        .ing-qty-editable { cursor: pointer; border-bottom: 1.5px dashed var(--accent); }
+        .ing-qty-input { width: 64px; border: none; border-bottom: 2px solid var(--accent); background: transparent; font-size: 13px; font-weight: 900; color: var(--accent); outline: none; padding: 0; font-family: inherit; }
         .ing-nome { font-size: 14px; font-weight: 700; }
         .step-block { display: flex; gap: 12px; margin-bottom: 14px; }
         .step-num {
@@ -673,42 +675,77 @@ function scalaQta(qtaStr, fattore) {
     return r % 1 === 0 ? String(r) : r.toFixed(1);
 }
 
+function ingRigaHtml(i, j, fattore) {
+    const qtaScalata = scalaQta(i.quantita, fattore);
+    const hasQta = i.quantita !== '' && i.quantita != null && !isNaN(parseFloat(String(i.quantita).replace(',', '.')));
+    const qtaHtml = [qtaScalata, i.unita].filter(Boolean).join(' ');
+    return `<div class="ingredient-row">
+        <div class="ing-qty${hasQta ? ' ing-qty-editable' : ''}" ${hasQta ? `onclick="editIngQty(${j},this)"` : ''}>${qtaHtml}</div>
+        <div class="ing-nome">${cap(i.nome)}</div>
+    </div>`;
+}
+
+function aggiornaIngList(ings, fattore) {
+    const porzioniDisplay = scalaQta(String(porzioniBase), fattore) || String(Math.round(porzioniCorrente * 10) / 10);
+    document.getElementById('porzioniNum').textContent = porzioniDisplay;
+    document.getElementById('ingList').innerHTML = ings.map((i, j) => ingRigaHtml(i, j, fattore)).join('');
+}
+
 function renderIngHtml(ings, fattore) {
     if (!ings.length) return '';
-    const r = ricette.find(x => x.id === dettaglioRicId);
-    const hasPortions = r?.porzioni;
+    const porzioniDisplay = scalaQta(String(porzioniBase), fattore) || String(porzioniCorrente);
     const scalerHtml = `
         <div class="porzioni-scaler">
             <span class="porzioni-scaler-label">👥 Porzioni</span>
             <div class="porzioni-ctrl">
                 <button class="porzioni-btn" onclick="cambiaPortions(-1)">−</button>
-                <span class="porzioni-num" id="porzioniNum">${porzioniCorrente}</span>
+                <span class="porzioni-num" id="porzioniNum">${porzioniDisplay}</span>
                 <button class="porzioni-btn" onclick="cambiaPortions(+1)">+</button>
             </div>
         </div>`;
-    const rows = ings.map(i => {
-        const qtaScalata = scalaQta(i.quantita, fattore);
-        return `<div class="ingredient-row">
-            <div class="ing-qty">${[qtaScalata, i.unita].filter(Boolean).join(' ')}</div>
-            <div class="ing-nome">${cap(i.nome)}</div>
-        </div>`;
-    }).join('');
+    const rows = ings.map((i, j) => ingRigaHtml(i, j, fattore)).join('');
     return `<div class="section-label">Ingredienti</div>${scalerHtml}<div id="ingList">${rows}</div>`;
 }
 
 function cambiaPortions(delta) {
     porzioniCorrente = Math.max(1, porzioniCorrente + delta);
-    document.getElementById('porzioniNum').textContent = porzioniCorrente;
     const fattore = porzioniCorrente / porzioniBase;
     const r = ricette.find(x => x.id === dettaglioRicId);
+    aggiornaIngList(Array.isArray(r?.ingredienti) ? r.ingredienti : [], fattore);
+}
+
+function editIngQty(idx, el) {
+    const r = ricette.find(x => x.id === dettaglioRicId);
     const ings = Array.isArray(r?.ingredienti) ? r.ingredienti : [];
-    document.getElementById('ingList').innerHTML = ings.map(i => {
-        const qtaScalata = scalaQta(i.quantita, fattore);
-        return `<div class="ingredient-row">
-            <div class="ing-qty">${[qtaScalata, i.unita].filter(Boolean).join(' ')}</div>
-            <div class="ing-nome">${cap(i.nome)}</div>
-        </div>`;
-    }).join('');
+    const ing = ings[idx];
+    if (!ing) return;
+    const baseQta = parseFloat(String(ing.quantita).replace(',', '.'));
+    if (isNaN(baseQta) || baseQta === 0) return;
+
+    const fattoreAttuale = porzioniCorrente / porzioniBase;
+    const qtaAttuale = scalaQta(ing.quantita, fattoreAttuale);
+
+    const input = document.createElement('input');
+    input.type = 'number'; input.step = 'any'; input.min = '0.01';
+    input.value = qtaAttuale; input.className = 'ing-qty-input';
+    el.innerHTML = ''; el.appendChild(input);
+    if (ing.unita) el.insertAdjacentText('beforeend', ' ' + ing.unita);
+    input.focus(); input.select();
+
+    let applied = false;
+    function apply() {
+        if (applied) return; applied = true;
+        const newVal = parseFloat(input.value);
+        if (!isNaN(newVal) && newVal > 0) {
+            const nuovoFattore = newVal / baseQta;
+            porzioniCorrente = porzioniBase * nuovoFattore;
+            aggiornaIngList(ings, nuovoFattore);
+        } else {
+            aggiornaIngList(ings, fattoreAttuale);
+        }
+    }
+    input.addEventListener('blur', apply);
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); input.blur(); } });
 }
 
 function apriDettaglio(id) {
