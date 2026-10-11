@@ -180,8 +180,10 @@ async function salva() {
     const contenuto = document.getElementById('nCorpo').value.trim();
     if (!titolo && !contenuto) { toast('Scrivi qualcosa prima di salvare'); return; }
     const row = { email_utente: userEmail, titolo: titolo || null, contenuto: contenuto || null, colore: editColor, updated_at: new Date().toISOString() };
-    if (editId) await sb.from('note').update(row).eq('id', editId);
-    else await sb.from('note').insert({ ...row, pinned: false });
+    let err;
+    if (editId) { ({ error: err } = await sb.from('note').update(row).eq('id', editId)); }
+    else { ({ error: err } = await sb.from('note').insert({ ...row, pinned: false })); }
+    if (err) { toast('Errore: ' + err.message); return; }
     document.getElementById('modaleNota').classList.remove('open');
     toast('✓ Salvata');
     await carica();
@@ -189,7 +191,8 @@ async function salva() {
 
 async function elimina() {
     if (!editId || !confirm('Eliminare questa nota?')) return;
-    await sb.from('note').delete().eq('id', editId);
+    const { error: err } = await sb.from('note').delete().eq('id', editId);
+    if (err) { toast('Errore: ' + err.message); return; }
     document.getElementById('modaleNota').classList.remove('open');
     toast('Nota eliminata');
     await carica();
