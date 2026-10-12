@@ -15,7 +15,7 @@
     <style>
         :root {
             color-scheme: light;
-            --accent: #6c5ce7;
+            --accent: #e4b3e6;
             --accent-bg: rgba(108,92,231,0.08);
             --green: #0fba8d; --red: #ff3b30; --orange: #ff9500;
             --grey: #d8dddc; --grey-light: #f2f2f7;
@@ -321,7 +321,7 @@ function render() {
         } else {
             if (ritardo.length) html += sezioneHtml('In ritardo', '#ff3b30', ritardo, 'ritardo');
             if (ogg.length)     html += sezioneHtml('Oggi', '#ff9500', ogg, 'oggi');
-            if (pross.length)   html += sezioneHtml('Prossime', '#6c5ce7', pross, 'normale');
+            if (pross.length)   html += sezioneHtml('Prossime', '#e4b3e6', pross, 'normale');
         }
     } else if (tabCorrente === 'oggi') {
         const ogg = faccende.filter(f => isOggi(f) && filtroAttivo(f));
