@@ -113,6 +113,14 @@ const STATEMENTS = [
     `ALTER TABLE IF EXISTS password_vault DISABLE ROW LEVEL SECURITY`,
     `ALTER TABLE IF EXISTS push_subscriptions DISABLE ROW LEVEL SECURITY`,
     `ALTER TABLE IF EXISTS profili DISABLE ROW LEVEL SECURITY`,
+    `CREATE TABLE IF NOT EXISTS app_feedback (
+        id bigint generated always as identity primary key,
+        email_utente text not null,
+        tipo text not null default 'suggerimento',
+        testo text not null,
+        created_at timestamptz default now()
+    )`,
+    `ALTER TABLE IF EXISTS app_feedback DISABLE ROW LEVEL SECURITY`,
     `DO $$ BEGIN
         IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='objects' AND schemaname='storage' AND policyname='allow upload vendita-foto') THEN
             CREATE POLICY "allow upload vendita-foto" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'vendita-foto');

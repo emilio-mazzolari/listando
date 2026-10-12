@@ -3,7 +3,7 @@ const { createClient } = require('@supabase/supabase-js');
 
 const SUPABASE_URL = 'https://eejdpophfxsrqdvsucye.supabase.co';
 const RESEND_KEY = process.env.RESEND_API_KEY;
-const ADMIN_EMAIL = 'emilio.mazzolari.shop@gmail.com';
+const ADMIN_EMAIL = 'emilio.mazzolari@gmail.com';
 
 let _sb;
 function getSb() {
