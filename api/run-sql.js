@@ -121,6 +121,30 @@ const STATEMENTS = [
         created_at timestamptz default now()
     )`,
     `ALTER TABLE IF EXISTS app_feedback DISABLE ROW LEVEL SECURITY`,
+    `CREATE TABLE IF NOT EXISTS faccende (
+        id bigint generated always as identity primary key,
+        email_utente text not null,
+        titolo text not null,
+        descrizione text,
+        categoria text not null default 'Altro',
+        frequenza text not null default 'una_tantum',
+        intervallo_giorni int,
+        prossima_data date,
+        responsabile text,
+        archiviata boolean default false,
+        created_at timestamptz default now(),
+        updated_at timestamptz default now()
+    )`,
+    `CREATE TABLE IF NOT EXISTS faccende_esecuzioni (
+        id bigint generated always as identity primary key,
+        faccenda_id bigint not null references faccende(id) on delete cascade,
+        email_utente text not null,
+        completata_il date not null default current_date,
+        note text,
+        created_at timestamptz default now()
+    )`,
+    `ALTER TABLE IF EXISTS faccende DISABLE ROW LEVEL SECURITY`,
+    `ALTER TABLE IF EXISTS faccende_esecuzioni DISABLE ROW LEVEL SECURITY`,
     `DO $$ BEGIN
         IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='objects' AND schemaname='storage' AND policyname='allow upload vendita-foto') THEN
             CREATE POLICY "allow upload vendita-foto" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'vendita-foto');
