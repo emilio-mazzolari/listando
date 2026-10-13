@@ -145,6 +145,15 @@ const STATEMENTS = [
     )`,
     `ALTER TABLE IF EXISTS faccende DISABLE ROW LEVEL SECURITY`,
     `ALTER TABLE IF EXISTS faccende_esecuzioni DISABLE ROW LEVEL SECURITY`,
+    `CREATE TABLE IF NOT EXISTS faccende_condivisioni (
+        id bigint generated always as identity primary key,
+        faccenda_id bigint not null references faccende(id) on delete cascade,
+        email_proprietario text not null,
+        email_condiviso text not null,
+        created_at timestamptz default now(),
+        unique(faccenda_id, email_condiviso)
+    )`,
+    `ALTER TABLE IF EXISTS faccende_condivisioni DISABLE ROW LEVEL SECURITY`,
     `DO $$ BEGIN
         IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='objects' AND schemaname='storage' AND policyname='allow upload vendita-foto') THEN
             CREATE POLICY "allow upload vendita-foto" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'vendita-foto');
