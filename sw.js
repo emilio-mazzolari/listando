@@ -1,4 +1,4 @@
-const CACHE_NAME = "lista-spesa-cache-v103";
+const CACHE_NAME = "lista-spesa-cache-v104";
 
 const FILES = [
   "/manifest.json",
@@ -11,6 +11,7 @@ const FILES = [
   "/spese_viaggio.html",
   "/spesa.html",
   "/todo.html",
+  "/password.html",
 ];
 
 /* INSTALL */
