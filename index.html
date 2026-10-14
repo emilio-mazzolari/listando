@@ -467,6 +467,18 @@
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
 
+            <!-- Ordina per -->
+            <button onclick="apriOrdinamento()" style="width:100%;display:flex;align-items:center;gap:16px;padding:16px;border-radius:16px;border:none;background:#f5f6f8;cursor:pointer;font-family:inherit;text-align:left;margin-top:10px">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="3" y1="6" x2="21" y2="6"/><line x1="6" y1="12" x2="18" y2="12"/><line x1="9" y1="18" x2="15" y2="18"/>
+                </svg>
+                <div style="flex:1">
+                    <div style="font-weight:800;font-size:15px;color:#111">Ordina per</div>
+                    <div id="settingsSortLabel" style="font-size:13px;color:#888;font-weight:600;margin-top:2px">Personalizzato</div>
+                </div>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+
             <!-- Personalizza sezioni -->
             <button onclick="apriPersonalizza()" style="width:100%;display:flex;align-items:center;gap:16px;padding:16px;border-radius:16px;border:none;background:#f5f6f8;cursor:pointer;font-family:inherit;text-align:left;margin-top:10px">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -479,6 +491,15 @@
                 </div>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
+        </div>
+    </div>
+
+    <!-- Overlay Ordina per -->
+    <div id="ordinamentoOverlay" style="display:none;position:fixed;inset:0;z-index:202;background:rgba(0,0,0,0.45);align-items:flex-end;justify-content:center" onclick="if(event.target===this)chiudiOrdinamento()">
+        <div style="background:white;border-radius:28px 28px 0 0;padding:24px 20px;padding-bottom:max(24px,env(safe-area-inset-bottom,24px));width:100%;max-width:500px">
+            <div style="width:40px;height:4px;background:#ddd;border-radius:4px;margin:0 auto 20px"></div>
+            <div style="font-weight:900;font-size:18px;margin-bottom:20px">Ordina sezioni</div>
+            <div id="ordinamentoList"></div>
         </div>
     </div>
 
@@ -670,7 +691,7 @@
             document.getElementById('editBar').classList.toggle('open', editMode);
             const btn = document.getElementById('btnImpostazioni');
             if (btn) btn.style.color = editMode ? 'var(--green)' : '';
-            sortable.option('disabled', !editMode);
+            sortable.option('disabled', !editMode || sortMode !== 'custom');
             if (!editMode) saveOrder();
         }
 
@@ -743,6 +764,72 @@
             applyHidden();
         }
 
+        // ── Ordina per ────────────────────────────────────────────────────
+        const SORT_KEY   = 'listando_home_sort_'  + _email;
+        const USAGE_KEY  = 'listando_home_usage_' + _email;
+        const SORT_OPTS  = [
+            { id: 'custom',   label: 'Personalizzato',  sub: 'Trascina le card per riordinare' },
+            { id: 'alpha',    label: 'Alfabetico',       sub: 'A → Z' },
+            { id: 'usage',    label: 'Più usate',        sub: 'Le sezioni che apri di più vengono prima' },
+        ];
+        let sortMode = localStorage.getItem(SORT_KEY) || 'custom';
+
+        function getUsage() { return JSON.parse(localStorage.getItem(USAGE_KEY) || '{}'); }
+        function trackUsage(id) {
+            const u = getUsage();
+            u[id] = (u[id] || 0) + 1;
+            localStorage.setItem(USAGE_KEY, JSON.stringify(u));
+        }
+
+        function applySortMode() {
+            const lbl = document.getElementById('settingsSortLabel');
+            if (lbl) lbl.textContent = SORT_OPTS.find(o => o.id === sortMode)?.label || 'Personalizzato';
+            sortable.option('disabled', sortMode !== 'custom' || !editMode);
+
+            if (sortMode === 'alpha') {
+                const grid = document.getElementById('menuGrid');
+                const items = [...grid.querySelectorAll('[data-id]')];
+                items.sort((a, b) => {
+                    const la = a.querySelector('span')?.innerText?.trim() || a.dataset.id;
+                    const lb = b.querySelector('span')?.innerText?.trim() || b.dataset.id;
+                    return la.localeCompare(lb, 'it');
+                });
+                items.forEach(el => grid.appendChild(el));
+            } else if (sortMode === 'usage') {
+                const grid = document.getElementById('menuGrid');
+                const usage = getUsage();
+                const items = [...grid.querySelectorAll('[data-id]')];
+                items.sort((a, b) => (usage[b.dataset.id] || 0) - (usage[a.dataset.id] || 0));
+                items.forEach(el => grid.appendChild(el));
+            } else {
+                applyOrder();
+            }
+        }
+
+        function apriOrdinamento() {
+            chiudiImpostazioni();
+            document.getElementById('ordinamentoList').innerHTML = SORT_OPTS.map(o => `
+                <div onclick="impostaSortMode('${o.id}')" style="display:flex;align-items:center;gap:14px;padding:16px;border-radius:16px;margin-bottom:8px;background:${sortMode===o.id?'#fff3e0':'#f5f6f8'};border:2px solid ${sortMode===o.id?'#ff9500':'transparent'};cursor:pointer">
+                    <div style="flex:1">
+                        <div style="font-weight:800;font-size:15px;color:#111">${o.label}</div>
+                        <div style="font-size:12px;color:#888;font-weight:600;margin-top:2px">${o.sub}</div>
+                    </div>
+                    ${sortMode===o.id ? '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ff9500" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>' : ''}
+                </div>
+            `).join('');
+            document.getElementById('ordinamentoOverlay').style.display = 'flex';
+        }
+        function chiudiOrdinamento() {
+            document.getElementById('ordinamentoOverlay').style.display = 'none';
+        }
+        function impostaSortMode(mode) {
+            sortMode = mode;
+            localStorage.setItem(SORT_KEY, mode);
+            chiudiOrdinamento();
+            applySortMode();
+            if (mode === 'custom' && !editMode) toggleEditMode();
+        }
+
         // Block navigation clicks while in edit mode
         document.getElementById('menuGrid').addEventListener('click', e => {
             if (editMode) e.preventDefault();
@@ -762,7 +849,6 @@
             applyView();
         }
 
-        applyOrder();
         applyView();
         applyHidden();
 
@@ -771,6 +857,14 @@
             ghostClass: 'sortable-ghost',
             chosenClass: 'sortable-chosen',
             disabled: true,
+        });
+
+        applySortMode();
+
+        // Traccia click su ogni sezione per "Più usate"
+        document.getElementById('menuGrid').addEventListener('click', e => {
+            const card = e.target.closest('[data-id]');
+            if (card && !editMode) trackUsage(card.dataset.id);
         });
 
         // ── Ricerca globale ───────────────────────────────────────────────

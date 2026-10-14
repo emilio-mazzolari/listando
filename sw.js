@@ -1,4 +1,4 @@
-const CACHE_NAME = "lista-spesa-cache-v105";
+const CACHE_NAME = "lista-spesa-cache-v106";
 
 const FILES = [
   "/manifest.json",
