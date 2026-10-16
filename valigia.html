@@ -483,8 +483,14 @@ document.addEventListener('click', e => {
 async function caricaValigie() {
     const el = document.getElementById('listaValigie');
     try {
-        const orderParam = sortValigie === 'nome' ? 'nome.asc' : sortValigie === 'viaggio' ? 'data_viaggio.asc.nullslast' : 'created_at.desc';
-        const resV = await fetch(`${URL}/valigie?email_utente=eq.${userEmail}&order=${orderParam}`, { headers: HR });
+        let orderParam = sortValigie === 'nome' ? 'nome.asc' : sortValigie === 'viaggio' ? 'data_viaggio.asc.nullslast' : 'created_at.desc';
+        let resV = await fetch(`${URL}/valigie?email_utente=eq.${userEmail}&order=${orderParam}`, { headers: HR });
+        // Fallback se data_viaggio non esiste ancora
+        if (!resV.ok && sortValigie === 'viaggio') {
+            orderParam = 'created_at.desc';
+            resV = await fetch(`${URL}/valigie?email_utente=eq.${userEmail}&order=${orderParam}`, { headers: HR });
+            toast('⚠️ Aggiungi colonna data_viaggio in Supabase');
+        }
         if (!resV.ok) {
             el.innerHTML = `<div class="empty-msg" style="color:#eb445a">Configurazione mancante.<br><small style="font-weight:600;color:#aaa">Esegui il setup SQL in Supabase per attivare la sezione.</small></div>`;
             return;
