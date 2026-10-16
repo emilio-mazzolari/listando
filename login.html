@@ -121,7 +121,8 @@
 
         button:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
 
-        #gBtnOverlay iframe { width: 100% !important; height: 100% !important; border: none; }
+        #gSignInWrap { display: flex; justify-content: center; width: 100%; min-height: 44px; }
+        #gSignInWrap iframe { border-radius: 18px !important; }
 
         @media (min-width: 768px)  { .card { max-width: 420px; } }
         @media (min-width: 1024px) { .card { max-width: 460px; } }
@@ -159,13 +160,7 @@
                onkeydown="if(event.key==='Enter') loginManuale()">
         <button class="btn-email" id="btnEmail" onclick="loginManuale()">INVIA LINK DI ACCESSO</button>
         <div class="divider">OPPURE</div>
-        <div style="position:relative;width:100%">
-            <button class="btn-google" style="width:100%;pointer-events:none">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" width="20" alt="G">
-                Accedi con Google
-            </button>
-            <div id="gBtnOverlay" style="position:absolute;inset:0;overflow:hidden;border-radius:18px;cursor:pointer"></div>
-        </div>
+        <div id="gSignInWrap"></div>
     </div>
 
     <div id="status"></div>
@@ -355,12 +350,14 @@ async function initGIS() {
         },
         auto_select: false
     });
-    const overlay = document.getElementById('gBtnOverlay');
-    if (overlay) {
-        google.accounts.id.renderButton(overlay, {
+    const wrap = document.getElementById('gSignInWrap');
+    if (wrap) {
+        google.accounts.id.renderButton(wrap, {
             type: 'standard',
             size: 'large',
-            width: Math.min(overlay.closest('.card')?.offsetWidth - 60 || 320, 400)
+            text: 'signin_with',
+            locale: 'it',
+            width: 280
         });
     }
 }
