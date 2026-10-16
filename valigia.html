@@ -197,7 +197,22 @@
             <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
         </button>
         <div class="header-title">🧳 LE MIE VALIGIE</div>
+        <button id="btnSortValigie" onclick="toggleSortValigie()" style="width:36px;height:36px;border-radius:10px;border:2px solid var(--grey);background:white;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2.5" stroke-linecap="round"><path d="M3 6h18M6 12h12M9 18h6"/></svg>
+        </button>
         <button class="btn-add-hdr" onclick="apriModalNuova()">+</button>
+    </div>
+    <!-- Menu sort -->
+    <div id="sortMenu" style="display:none;position:fixed;top:70px;right:16px;z-index:150;background:white;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,0.15);overflow:hidden;min-width:160px">
+        <button onclick="impostaSortValigie('data')" id="sortOptData" style="width:100%;padding:14px 18px;border:none;background:none;font-weight:700;font-size:14px;font-family:inherit;cursor:pointer;text-align:left;display:flex;align-items:center;gap:10px">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            Data creazione
+        </button>
+        <div style="height:1px;background:#f0f0f0;margin:0 12px"></div>
+        <button onclick="impostaSortValigie('nome')" id="sortOptNome" style="width:100%;padding:14px 18px;border:none;background:none;font-weight:700;font-size:14px;font-family:inherit;cursor:pointer;text-align:left;display:flex;align-items:center;gap:10px">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2.5" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="18" x2="9" y2="18"/></svg>
+            Nome (A→Z)
+        </button>
     </div>
     <div class="body-content" id="listaValigie"></div>
 </div>
@@ -424,11 +439,43 @@ function logout() {
     location.href = 'login.html';
 }
 
+// ── Sort valigie ──────────────────────────────────────────────
+let sortValigie = localStorage.getItem('listando_valigie_sort') || 'data';
+
+function toggleSortValigie() {
+    const menu = document.getElementById('sortMenu');
+    const open = menu.style.display === 'block';
+    menu.style.display = open ? 'none' : 'block';
+    aggiornaUISortValigie();
+}
+
+function chiudiSortMenu() {
+    document.getElementById('sortMenu').style.display = 'none';
+}
+
+function aggiornaUISortValigie() {
+    const accent = 'var(--accent)';
+    document.getElementById('sortOptData').style.color = sortValigie === 'data' ? '#feb310' : '';
+    document.getElementById('sortOptNome').style.color = sortValigie === 'nome' ? '#feb310' : '';
+}
+
+function impostaSortValigie(tipo) {
+    sortValigie = tipo;
+    localStorage.setItem('listando_valigie_sort', tipo);
+    chiudiSortMenu();
+    caricaValigie();
+}
+
+document.addEventListener('click', e => {
+    if (!e.target.closest('#sortMenu') && !e.target.closest('#btnSortValigie')) chiudiSortMenu();
+});
+
 // ── View 1: Lista valigie ─────────────────────────────────────
 async function caricaValigie() {
     const el = document.getElementById('listaValigie');
     try {
-        const resV = await fetch(`${URL}/valigie?email_utente=eq.${userEmail}&order=created_at.asc`, { headers: HR });
+        const orderParam = sortValigie === 'nome' ? 'nome.asc' : 'created_at.desc';
+        const resV = await fetch(`${URL}/valigie?email_utente=eq.${userEmail}&order=${orderParam}`, { headers: HR });
         if (!resV.ok) {
             el.innerHTML = `<div class="empty-msg" style="color:#eb445a">Configurazione mancante.<br><small style="font-weight:600;color:#aaa">Esegui il setup SQL in Supabase per attivare la sezione.</small></div>`;
             return;

@@ -307,6 +307,11 @@
 <div class="app">
     <h2 class="page-title">Le mie cose</h2>
 
+    <div class="input-search" style="margin-bottom:10px">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="ricerca" placeholder="Cerca…" oninput="renderItems()" autocomplete="off">
+    </div>
+
     <div class="cat-grid" id="catGrid">
         <div style="text-align:center;padding:20px;color:#aaa;font-weight:700;grid-column:span 2">Caricamento…</div>
     </div>
@@ -316,10 +321,6 @@
             <input type="text" id="nuovaCosa" placeholder="Aggiungi cosa…"
                    onkeydown="if(event.key==='Enter') aggiungiArticolo()">
             <button class="btn-aggiungi" onclick="aggiungiArticolo()">+ Aggiungi</button>
-        </div>
-        <div class="input-search">
-            <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input type="text" id="ricerca" placeholder="Cerca…" oninput="renderItems()" autocomplete="off">
         </div>
     </div>
 
