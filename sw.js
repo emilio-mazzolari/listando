@@ -1,4 +1,5 @@
-const CACHE_NAME = "lista-spesa-cache-v114";
+const CACHE_NAME = "lista-spesa-cache-v115";
+const API_CACHE  = "lista-spesa-api-v115";
 
 const FILES = [
   "/manifest.json",
@@ -51,7 +52,7 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys()
       .then(keys => Promise.all(
-        keys.map(k => k !== CACHE_NAME ? caches.delete(k) : null)
+        keys.map(k => (k !== CACHE_NAME && k !== API_CACHE) ? caches.delete(k) : null)
       ))
       .then(() => self.clients.claim())
   );
@@ -61,13 +62,30 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
 
-  // Supabase API e risorse esterne: solo network
-  if (url.hostname !== self.location.hostname) {
-    event.respondWith(fetch(event.request));
+  // Supabase REST API — GET: network first, cache come fallback offline
+  if (url.hostname === 'eejdpophfxsrqdvsucye.supabase.co' &&
+      url.pathname.startsWith('/rest/v1/') &&
+      event.request.method === 'GET') {
+    event.respondWith(
+      caches.open(API_CACHE).then(cache =>
+        fetch(event.request)
+          .then(response => {
+            if (response.ok) cache.put(event.request, response.clone());
+            return response;
+          })
+          .catch(() => cache.match(event.request).then(r => r || Response.error()))
+      )
+    );
     return;
   }
 
-  // File locali: cache first, aggiorna in background (stale-while-revalidate)
+  // Risorse esterne (CDN, auth Supabase, ecc.): solo network
+  if (url.hostname !== self.location.hostname) {
+    event.respondWith(fetch(event.request).catch(() => Response.error()));
+    return;
+  }
+
+  // File locali: cache first + aggiornamento in background
   event.respondWith(
     caches.open(CACHE_NAME).then(cache =>
       cache.match(event.request).then(cached => {
