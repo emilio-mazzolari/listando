@@ -11,15 +11,33 @@ webpush.setVapidDetails(
     process.env.VAPID_PRIVATE_KEY
 );
 
+function isPrimaDomenicaMese() {
+    const now = new Date();
+    return now.getDay() === 0 && now.getDate() <= 7;
+}
+
+async function sendPush(sub, payload) {
+    try {
+        await webpush.sendNotification(
+            { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+            payload
+        );
+        return true;
+    } catch (err) {
+        if (err.statusCode === 410 || err.statusCode === 404) {
+            await sb.from('push_subscriptions').delete().eq('endpoint', sub.endpoint);
+        }
+        return false;
+    }
+}
+
 module.exports = async function handler(req, res) {
-    // Vercel verifica automaticamente CRON_SECRET nell'header Authorization
     const secret = process.env.CRON_SECRET;
     if (secret) {
         const auth = req.headers.authorization;
         if (auth !== `Bearer ${secret}`) return res.status(401).end();
     }
 
-    // Recupera tutte le sottoscrizioni push
     const { data: subs, error: subErr } = await sb.from('push_subscriptions').select('*');
     if (subErr) return res.status(500).json({ error: subErr.message });
     if (!subs?.length) return res.status(200).json({ sent: 0, msg: 'Nessuna sottoscrizione' });
@@ -27,6 +45,21 @@ module.exports = async function handler(req, res) {
     const emails = [...new Set(subs.map(s => s.email_utente))];
     let sent = 0, failed = 0;
 
+    // Prima domenica del mese → notifica Sostieni a tutti
+    if (isPrimaDomenicaMese()) {
+        const sostieniPayload = JSON.stringify({
+            title: '🌟 Listando',
+            body: 'Listando è gratuita grazie a chi la sostiene. Se ti piace, un piccolo contributo fa la differenza 🙏',
+            url: '/index.html',
+            tag: 'sostieni',
+        });
+        for (const sub of subs) {
+            const ok = await sendPush(sub, sostieniPayload);
+            ok ? sent++ : failed++;
+        }
+    }
+
+    // Ogni domenica → riepilogo debiti per ogni utente
     for (const email of emails) {
         const { data: voci } = await sb.from('debiti_crediti')
             .select('tipo, importo, quantita')
@@ -52,7 +85,6 @@ module.exports = async function handler(req, res) {
         ].filter(Boolean);
 
         const body = righe.length > 0 ? righe.join('\n') : 'Tutto in ordine, nessuna voce aperta 🎉';
-
         const payload = JSON.stringify({
             title: '📊 Riepilogo settimanale — Listando',
             body,
@@ -61,21 +93,10 @@ module.exports = async function handler(req, res) {
 
         const userSubs = subs.filter(s => s.email_utente === email);
         for (const sub of userSubs) {
-            try {
-                await webpush.sendNotification(
-                    { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-                    payload
-                );
-                sent++;
-            } catch (err) {
-                failed++;
-                // Rimuovi sottoscrizioni scadute
-                if (err.statusCode === 410 || err.statusCode === 404) {
-                    await sb.from('push_subscriptions').delete().eq('endpoint', sub.endpoint);
-                }
-            }
+            const ok = await sendPush(sub, payload);
+            ok ? sent++ : failed++;
         }
     }
 
-    return res.status(200).json({ sent, failed });
+    return res.status(200).json({ sent, failed, primaDomenica: isPrimaDomenicaMese() });
 };

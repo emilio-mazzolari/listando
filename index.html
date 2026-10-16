@@ -432,6 +432,48 @@
         </div>
     </div>
 
+    <!-- Popup domenicale Sostieni -->
+    <div id="sostieniPopup" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.5);align-items:flex-end;justify-content:center">
+        <div style="background:white;border-radius:28px 28px 0 0;padding:24px 20px;padding-bottom:max(28px,env(safe-area-inset-bottom,28px));width:100%;max-width:500px">
+            <div style="width:40px;height:4px;background:#ddd;border-radius:4px;margin:0 auto 18px"></div>
+            <div style="text-align:center;margin-bottom:14px">
+                <div style="font-size:32px;line-height:1;margin-bottom:8px">💛</div>
+                <div style="font-weight:900;font-size:19px;color:#111">Sostieni Listando</div>
+            </div>
+            <p style="font-size:14px;color:#555;line-height:1.65;margin:0 0 18px;text-align:center">
+                Listando è un'app gratuita grazie a chi la sostiene.<br>
+                Se ti piace, sostieni il progetto con un piccolo contributo di 0,50 euro.
+            </p>
+            <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:20px">
+                <a href="https://www.paypal.me/emiliomazzolari/0.50EUR" target="_blank" rel="noopener" onclick="chiudiSostieniPopup()" style="display:inline-flex;flex-direction:column;align-items:center;gap:6px;padding:12px 20px;border-radius:14px;background:#003087;color:white;text-decoration:none;font-family:inherit;min-width:80px;">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="white" stroke="none"><rect x="10.5" y="4" width="3" height="6" rx="1.5" transform="rotate(0,12,12)"/><rect x="10.5" y="4" width="3" height="6" rx="1.5" transform="rotate(72,12,12)"/><rect x="10.5" y="4" width="3" height="6" rx="1.5" transform="rotate(144,12,12)"/><rect x="10.5" y="4" width="3" height="6" rx="1.5" transform="rotate(216,12,12)"/><rect x="10.5" y="4" width="3" height="6" rx="1.5" transform="rotate(288,12,12)"/><circle cx="12" cy="12" r="2.8"/></svg>
+                    <span style="font-size:16px;font-weight:900">€ 0,50</span>
+                </a>
+                <a href="https://www.paypal.me/emiliomazzolari/5EUR" target="_blank" rel="noopener" onclick="chiudiSostieniPopup()" style="display:inline-flex;flex-direction:column;align-items:center;gap:6px;padding:12px 20px;border-radius:14px;background:#003087;color:white;text-decoration:none;font-family:inherit;min-width:80px;">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                    <span style="font-size:16px;font-weight:900">€ 5</span>
+                </a>
+                <a href="https://www.paypal.me/emiliomazzolari/50EUR" target="_blank" rel="noopener" onclick="chiudiSostieniPopup()" style="display:inline-flex;flex-direction:column;align-items:center;gap:6px;padding:12px 20px;border-radius:14px;background:#003087;color:white;text-decoration:none;font-family:inherit;min-width:80px;">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                    <span style="font-size:16px;font-weight:900">€ 50</span>
+                </a>
+            </div>
+            <div style="border-top:1.5px solid #f0f0f0;padding-top:16px;margin-bottom:16px">
+                <p style="font-size:13px;color:#666;line-height:1.6;margin:0 0 10px;text-align:center">
+                    <strong>Passaparola!</strong> Condividi Listando con qualcuno a cui pensi possa piacere o essere utile.
+                </p>
+                <button onclick="condividiListando();chiudiSostieniPopup()" style="display:flex;align-items:center;gap:8px;margin:0 auto;padding:10px 22px;border-radius:12px;background:#8d3d3f;color:white;border:none;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                    Condividi Listando
+                </button>
+            </div>
+            <div style="display:flex;gap:8px">
+                <button onclick="sostieniNonMostrare()" style="flex:1;padding:12px;border-radius:14px;border:none;background:#f5f6f8;color:#888;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit;">Non mostrare più</button>
+                <button onclick="chiudiSostieniPopup()" style="flex:1;padding:12px;border-radius:14px;border:none;background:#f5f6f8;color:#111;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit;">Dopo</button>
+            </div>
+        </div>
+    </div>
+
     <div class="edit-bar" id="editBar">
         <button class="btn-done-edit" onclick="toggleEditMode()">✓ Fatto — ordine salvato</button>
     </div>
@@ -664,6 +706,34 @@
         }
 
         window.addEventListener('load', () => setTimeout(initSW, 800));
+
+        // ── Popup domenicale Sostieni ────────────────────────────────────
+        const SOSTIENI_NEVER_KEY  = 'listando_sostieni_never_'  + _email;
+        const SOSTIENI_SHOWN_KEY  = 'listando_sostieni_shown_'  + _email;
+
+        function isSunday() { return new Date().getDay() === 0; }
+        function todayStr()  { return new Date().toISOString().slice(0, 10); }
+
+        function checkSostieniPopup() {
+            if (!isSunday()) return;
+            if (localStorage.getItem(SOSTIENI_NEVER_KEY)) return;
+            if (localStorage.getItem(SOSTIENI_SHOWN_KEY) === todayStr()) return;
+            setTimeout(() => {
+                document.getElementById('sostieniPopup').style.display = 'flex';
+                localStorage.setItem(SOSTIENI_SHOWN_KEY, todayStr());
+            }, 2500);
+        }
+
+        function chiudiSostieniPopup() {
+            document.getElementById('sostieniPopup').style.display = 'none';
+        }
+
+        function sostieniNonMostrare() {
+            localStorage.setItem(SOSTIENI_NEVER_KEY, '1');
+            chiudiSostieniPopup();
+        }
+
+        window.addEventListener('load', checkSostieniPopup);
 
         // ── Drag to reorder (per-user) ────────────────────────────────────
         const _email = localStorage.getItem('userEmail') || 'default';
