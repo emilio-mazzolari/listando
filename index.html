@@ -715,13 +715,14 @@
         function todayStr()  { return new Date().toISOString().slice(0, 10); }
 
         function checkSostieniPopup() {
-            if (!isSunday()) return;
-            if (localStorage.getItem(SOSTIENI_NEVER_KEY)) return;
-            if (localStorage.getItem(SOSTIENI_SHOWN_KEY) === todayStr()) return;
+            const preview = new URLSearchParams(location.search).get('preview') === 'sostieni';
+            if (!preview && !isSunday()) return;
+            if (!preview && localStorage.getItem(SOSTIENI_NEVER_KEY)) return;
+            if (!preview && localStorage.getItem(SOSTIENI_SHOWN_KEY) === todayStr()) return;
             setTimeout(() => {
                 document.getElementById('sostieniPopup').style.display = 'flex';
-                localStorage.setItem(SOSTIENI_SHOWN_KEY, todayStr());
-            }, 2500);
+                if (!preview) localStorage.setItem(SOSTIENI_SHOWN_KEY, todayStr());
+            }, preview ? 500 : 2500);
         }
 
         function chiudiSostieniPopup() {

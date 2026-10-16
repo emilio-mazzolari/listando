@@ -24,7 +24,7 @@ module.exports = async function handler(req, res) {
     if (req.method === 'OPTIONS') return res.status(200).end();
     if (req.method !== 'POST') return res.status(405).end();
 
-    const { email } = req.body || {};
+    const { email, title, body, url } = req.body || {};
     if (!email) return res.status(400).json({ error: 'email mancante' });
 
     let sb;
@@ -34,9 +34,9 @@ module.exports = async function handler(req, res) {
     if (!subs?.length) return res.status(200).json({ sent: 0, message: 'Nessuna subscription trovata per questa email' });
 
     const payload = JSON.stringify({
-        title: '✅ Push funzionante!',
-        body: `Notifiche attive su questo dispositivo`,
-        url: '/profilo.html'
+        title: title || '✅ Push funzionante!',
+        body: body || 'Notifiche attive su questo dispositivo',
+        url: url || '/profilo.html'
     });
 
     let sent = 0;
