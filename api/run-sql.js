@@ -167,6 +167,7 @@ const STATEMENTS = [
         unique(faccenda_id, email_condiviso)
     )`,
     `ALTER TABLE IF EXISTS faccende_condivisioni DISABLE ROW LEVEL SECURITY`,
+    `ALTER TABLE IF EXISTS valigie ADD COLUMN IF NOT EXISTS data_viaggio date`,
     `DO $$ BEGIN
         IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='objects' AND schemaname='storage' AND policyname='allow upload vendita-foto') THEN
             CREATE POLICY "allow upload vendita-foto" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'vendita-foto');
