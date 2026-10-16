@@ -442,7 +442,7 @@
             </div>
             <p style="font-size:14px;color:#555;line-height:1.65;margin:0 0 18px;text-align:center">
                 Listando è un'app gratuita grazie a chi la sostiene.<br>
-                Se ti piace, sostieni il progetto con un piccolo contributo di 0,50 euro. 🙏
+                Se ti piace, sostieni il progetto con un piccolo contributo di 0,50 euro.
             </p>
             <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:20px">
                 <a href="https://www.paypal.me/emiliomazzolari/0.50EUR" target="_blank" rel="noopener" onclick="chiudiSostieniPopup()" style="display:inline-flex;flex-direction:column;align-items:center;gap:6px;padding:12px 20px;border-radius:14px;background:#003087;color:white;text-decoration:none;font-family:inherit;min-width:80px;">
@@ -460,7 +460,7 @@
             </div>
             <div style="border-top:1.5px solid #f0f0f0;padding-top:16px;margin-bottom:16px">
                 <p style="font-size:13px;color:#666;line-height:1.6;margin:0 0 10px;text-align:center">
-                    <strong>Passaparola!</strong> Condividi Listando con qualcuno a cui pensi possa piacere o essere utile.
+                    <strong>Passaparola!</strong> Condividi con qualcuno a cui pensi possa piacere o essere utile.
                 </p>
                 <button onclick="condividiListando();chiudiSostieniPopup()" style="display:flex;align-items:center;gap:8px;margin:0 auto;padding:10px 22px;border-radius:12px;background:#8d3d3f;color:white;border:none;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit;">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
@@ -532,6 +532,17 @@
                     <div style="font-size:13px;color:#888;font-weight:600;margin-top:2px">Scegli quali sezioni vedere in home</div>
                 </div>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+
+            <!-- Anteprima popup Sostieni (solo admin) -->
+            <button onclick="chiudiImpostazioni();document.getElementById('sostieniPopup').style.display='flex'" style="width:100%;display:flex;align-items:center;gap:16px;padding:16px;border-radius:16px;border:none;background:#fff3e0;cursor:pointer;font-family:inherit;text-align:left;margin-top:10px">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ff9500" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                </svg>
+                <div style="flex:1">
+                    <div style="font-weight:800;font-size:15px;color:#111">Anteprima popup Sostieni</div>
+                    <div style="font-size:13px;color:#888;font-weight:600;margin-top:2px">Mostra subito il popup di supporto</div>
+                </div>
             </button>
         </div>
     </div>
