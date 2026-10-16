@@ -216,7 +216,7 @@
         <div style="height:1px;background:#f0f0f0;margin:0 12px"></div>
         <button onclick="impostaSortValigie('viaggio')" id="sortOptViaggio" style="width:100%;padding:14px 18px;border:none;background:none;font-weight:700;font-size:14px;font-family:inherit;cursor:pointer;text-align:left;display:flex;align-items:center;gap:10px">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2.5" stroke-linecap="round"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21 4 19 2c-2-2-4-2-5.5-.5L10 5 1.8 6.2a1 1 0 0 0-.5 1.7l2.5 2.5-1 3.5 3.5-1 2.5 2.5a1 1 0 0 0 1.7-.5z"/></svg>
-            Data viaggio
+            <span id="sortOptViaggioLabel">Data viaggio</span>
         </button>
     </div>
     <div class="body-content" id="listaValigie"></div>
@@ -449,7 +449,10 @@ function logout() {
 }
 
 // ── Sort valigie ──────────────────────────────────────────────
-let sortValigie = localStorage.getItem('listando_valigie_sort') || 'data';
+let _sv = localStorage.getItem('listando_valigie_sort') || 'data';
+// migra vecchio valore 'viaggio' → 'viaggio_desc'
+if (_sv === 'viaggio') _sv = 'viaggio_desc';
+let sortValigie = _sv;
 
 function toggleSortValigie() {
     const menu = document.getElementById('sortMenu');
@@ -463,14 +466,25 @@ function chiudiSortMenu() {
 }
 
 function aggiornaUISortValigie() {
-    document.getElementById('sortOptData').style.color    = sortValigie === 'data'    ? '#feb310' : '';
-    document.getElementById('sortOptNome').style.color    = sortValigie === 'nome'    ? '#feb310' : '';
-    document.getElementById('sortOptViaggio').style.color = sortValigie === 'viaggio' ? '#feb310' : '';
+    const isViaggio = sortValigie === 'viaggio_asc' || sortValigie === 'viaggio_desc';
+    document.getElementById('sortOptData').style.color    = sortValigie === 'data' ? '#feb310' : '';
+    document.getElementById('sortOptNome').style.color    = sortValigie === 'nome' ? '#feb310' : '';
+    document.getElementById('sortOptViaggio').style.color = isViaggio ? '#feb310' : '';
+    const lbl = document.getElementById('sortOptViaggioLabel');
+    if (lbl) {
+        if (sortValigie === 'viaggio_desc')     lbl.textContent = 'Data viaggio ↓ recente';
+        else if (sortValigie === 'viaggio_asc') lbl.textContent = 'Data viaggio ↑ meno recente';
+        else                                    lbl.textContent = 'Data viaggio';
+    }
 }
 
 function impostaSortValigie(tipo) {
-    sortValigie = tipo;
-    localStorage.setItem('listando_valigie_sort', tipo);
+    if (tipo === 'viaggio') {
+        sortValigie = sortValigie === 'viaggio_desc' ? 'viaggio_asc' : 'viaggio_desc';
+    } else {
+        sortValigie = tipo;
+    }
+    localStorage.setItem('listando_valigie_sort', sortValigie);
     chiudiSortMenu();
     caricaValigie();
 }
@@ -483,10 +497,17 @@ document.addEventListener('click', e => {
 async function caricaValigie() {
     const el = document.getElementById('listaValigie');
     try {
-        let orderParam = sortValigie === 'nome' ? 'nome.asc' : sortValigie === 'viaggio' ? 'data_viaggio.asc.nullslast' : 'created_at.desc';
+        const isViagSort = sortValigie === 'viaggio_asc' || sortValigie === 'viaggio_desc';
+        let orderParam = sortValigie === 'nome'
+            ? 'nome.asc'
+            : sortValigie === 'viaggio_desc'
+                ? 'data_viaggio.desc.nullslast'
+                : sortValigie === 'viaggio_asc'
+                    ? 'data_viaggio.asc.nullslast'
+                    : 'created_at.desc';
         let resV = await fetch(`${URL}/valigie?email_utente=eq.${userEmail}&order=${orderParam}`, { headers: HR });
         // Fallback se data_viaggio non esiste ancora
-        if (!resV.ok && sortValigie === 'viaggio') {
+        if (!resV.ok && isViagSort) {
             orderParam = 'created_at.desc';
             resV = await fetch(`${URL}/valigie?email_utente=eq.${userEmail}&order=${orderParam}`, { headers: HR });
             toast('⚠️ Aggiungi colonna data_viaggio in Supabase');

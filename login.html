@@ -12,6 +12,7 @@
     <meta name="mobile-web-app-capable" content="yes">
     <link rel="apple-touch-icon" href="/icon-pwa-512.png">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer onload="initGIS()"></script>
     <style>
         :root {
             color-scheme: light dark;
@@ -169,6 +170,7 @@
 const SUPABASE_URL = "https://eejdpophfxsrqdvsucye.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlamRwb3BoZnhzcnFkdnN1Y3llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2NTMzMDQsImV4cCI6MjA5MzIyOTMwNH0.mpxbwlJyIdZgqKIdutHbLd85JR1P11yiglbYeApi17k";
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const GOOGLE_CLIENT_ID = '549698561491-705ik8oum8ag9iftd4uq944p9apihrvk.apps.googleusercontent.com';
 const statusDiv = document.getElementById('status');
 
 const BIO_KEY   = 'bioCredId';
@@ -322,17 +324,43 @@ async function loginManuale() {
     }
 }
 
-// ── Google OAuth ────────────────────────────────────────────────────
+// ── Google Identity Services ────────────────────────────────────────
+function initGIS() {
+    if (!GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID.startsWith('INSERISCI')) return;
+    google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: async (response) => {
+            statusDiv.innerHTML = 'Accesso in corso…';
+            const { error } = await supabaseClient.auth.signInWithIdToken({
+                provider: 'google',
+                token: response.credential
+            });
+            if (error) statusDiv.innerHTML = `<span class="error">${error.message}</span>`;
+        },
+        auto_select: false,
+        cancel_on_tap_outside: true
+    });
+}
+
 document.getElementById('btnGoogle').addEventListener('click', async () => {
     statusDiv.innerHTML = 'Connessione a Google…';
-    const { error } = await supabaseClient.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-            redirectTo: 'https://listando.it/login.html',
-            queryParams: { access_type: 'online' }
-        }
-    });
-    if (error) statusDiv.innerHTML = `<span class="error">${error.message}</span>`;
+    if (typeof google !== 'undefined' && google.accounts && GOOGLE_CLIENT_ID && !GOOGLE_CLIENT_ID.startsWith('INSERISCI')) {
+        google.accounts.id.prompt((notification) => {
+            if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+                // fallback al redirect classico
+                supabaseClient.auth.signInWithOAuth({
+                    provider: 'google',
+                    options: { redirectTo: 'https://listando.it/login.html', queryParams: { access_type: 'online' } }
+                });
+            }
+        });
+    } else {
+        const { error } = await supabaseClient.auth.signInWithOAuth({
+            provider: 'google',
+            options: { redirectTo: 'https://listando.it/login.html', queryParams: { access_type: 'online' } }
+        });
+        if (error) statusDiv.innerHTML = `<span class="error">${error.message}</span>`;
+    }
 });
 
 supabaseClient.auth.onAuthStateChange(async (event, session) => {
