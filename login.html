@@ -330,15 +330,26 @@ async function loginManuale() {
 }
 
 // ── Google Identity Services ────────────────────────────────────────
-function initGIS() {
+let _gisNonce = null;
+
+async function initGIS() {
     if (!GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID.startsWith('INSERISCI')) return;
+
+    // Genera nonce: raw → Supabase, SHA-256 hash → Google
+    const raw = btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32))));
+    _gisNonce = raw;
+    const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(raw));
+    const hashedNonce = Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2,'0')).join('');
+
     google.accounts.id.initialize({
         client_id: GOOGLE_CLIENT_ID,
+        nonce: hashedNonce,
         callback: async (response) => {
             statusDiv.innerHTML = 'Accesso in corso…';
             const { error } = await supabaseClient.auth.signInWithIdToken({
                 provider: 'google',
-                token: response.credential
+                token: response.credential,
+                nonce: _gisNonce
             });
             if (error) statusDiv.innerHTML = `<span class="error">${error.message}</span>`;
         },
