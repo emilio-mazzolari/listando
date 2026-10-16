@@ -1,4 +1,4 @@
-const CACHE_NAME = "lista-spesa-cache-v108";
+const CACHE_NAME = "lista-spesa-cache-v109";
 
 const FILES = [
   "/manifest.json",
@@ -55,6 +55,7 @@ self.addEventListener("push", (event) => {
       badge: "/logolistando.png",
       tag: data.tag || ("listando-" + Date.now()),
       renotify: true,
+      requireInteraction: true,
       data: { url: data.url || "/todo.html" },
     })
   );
