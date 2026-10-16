@@ -121,6 +121,8 @@
 
         button:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
 
+        #gBtnOverlay iframe { width: 100% !important; height: 100% !important; border: none; }
+
         @media (min-width: 768px)  { .card { max-width: 420px; } }
         @media (min-width: 1024px) { .card { max-width: 460px; } }
     </style>
@@ -157,10 +159,13 @@
                onkeydown="if(event.key==='Enter') loginManuale()">
         <button class="btn-email" id="btnEmail" onclick="loginManuale()">INVIA LINK DI ACCESSO</button>
         <div class="divider">OPPURE</div>
-        <button class="btn-google" id="btnGoogle">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" width="20" alt="G">
-            Accedi con Google
-        </button>
+        <div style="position:relative;width:100%">
+            <button class="btn-google" style="width:100%;pointer-events:none">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" width="20" alt="G">
+                Accedi con Google
+            </button>
+            <div id="gBtnOverlay" style="position:absolute;inset:0;overflow:hidden;border-radius:18px;cursor:pointer"></div>
+        </div>
     </div>
 
     <div id="status"></div>
@@ -337,31 +342,17 @@ function initGIS() {
             });
             if (error) statusDiv.innerHTML = `<span class="error">${error.message}</span>`;
         },
-        auto_select: false,
-        cancel_on_tap_outside: true
+        auto_select: false
     });
-}
-
-document.getElementById('btnGoogle').addEventListener('click', async () => {
-    statusDiv.innerHTML = 'Connessione a Google…';
-    if (typeof google !== 'undefined' && google.accounts && GOOGLE_CLIENT_ID && !GOOGLE_CLIENT_ID.startsWith('INSERISCI')) {
-        google.accounts.id.prompt((notification) => {
-            if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-                // fallback al redirect classico
-                supabaseClient.auth.signInWithOAuth({
-                    provider: 'google',
-                    options: { redirectTo: 'https://listando.it/login.html', queryParams: { access_type: 'online' } }
-                });
-            }
+    const overlay = document.getElementById('gBtnOverlay');
+    if (overlay) {
+        google.accounts.id.renderButton(overlay, {
+            type: 'standard',
+            size: 'large',
+            width: Math.min(overlay.closest('.card')?.offsetWidth - 60 || 320, 400)
         });
-    } else {
-        const { error } = await supabaseClient.auth.signInWithOAuth({
-            provider: 'google',
-            options: { redirectTo: 'https://listando.it/login.html', queryParams: { access_type: 'online' } }
-        });
-        if (error) statusDiv.innerHTML = `<span class="error">${error.message}</span>`;
     }
-});
+}
 
 supabaseClient.auth.onAuthStateChange(async (event, session) => {
     if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session) {
