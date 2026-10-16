@@ -719,8 +719,6 @@
         window.addEventListener('load', () => setTimeout(initSW, 800));
 
         // ── Popup domenicale Sostieni ────────────────────────────────────
-        const SOSTIENI_NEVER_KEY  = 'listando_sostieni_never_'  + _email;
-        const SOSTIENI_SHOWN_KEY  = 'listando_sostieni_shown_'  + _email;
 
         function isSunday() { return new Date().getDay() === 0; }
         function todayStr()  { return new Date().toISOString().slice(0, 10); }
@@ -750,6 +748,8 @@
         // ── Drag to reorder (per-user) ────────────────────────────────────
         const _email = localStorage.getItem('userEmail') || 'default';
         const ORDER_KEY = 'listando_home_order_' + _email;
+        const SOSTIENI_NEVER_KEY  = 'listando_sostieni_never_'  + _email;
+        const SOSTIENI_SHOWN_KEY  = 'listando_sostieni_shown_'  + _email;
         let editMode = false;
 
         function applyOrder() {
