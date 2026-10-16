@@ -1,17 +1,38 @@
-const CACHE_NAME = "lista-spesa-cache-v113";
+const CACHE_NAME = "lista-spesa-cache-v114";
 
 const FILES = [
   "/manifest.json",
   "/logolistando.png",
   "/logolistando-192.png",
+  "/icon-pwa-192.png",
+  "/icon-pwa-512.png",
   "/favicon-32.png",
   "/favicon-16.png",
   "/index.html",
   "/login.html",
-  "/spese_viaggio.html",
-  "/spesa.html",
-  "/todo.html",
+  "/canzoni.html",
+  "/debiti.html",
+  "/desideri.html",
+  "/faccende.html",
+  "/film.html",
+  "/foto.html",
+  "/foto_album.html",
+  "/hobby.html",
+  "/libri.html",
+  "/luoghi.html",
+  "/note.html",
   "/password.html",
+  "/profilo.html",
+  "/ricette.html",
+  "/risparmi.html",
+  "/spesa.html",
+  "/spesa_prodotti.html",
+  "/spese_viaggio.html",
+  "/todo.html",
+  "/utenze.html",
+  "/valigia.html",
+  "/valigia_elencocose.html",
+  "/vendita.html",
 ];
 
 /* INSTALL */
@@ -36,11 +57,27 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-/* FETCH — network first, fallback to cache */
+/* FETCH */
 self.addEventListener("fetch", (event) => {
+  const url = new URL(event.request.url);
+
+  // Supabase API e risorse esterne: solo network
+  if (url.hostname !== self.location.hostname) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
+  // File locali: cache first, aggiorna in background (stale-while-revalidate)
   event.respondWith(
-    fetch(event.request)
-      .catch(() => caches.match(event.request))
+    caches.open(CACHE_NAME).then(cache =>
+      cache.match(event.request).then(cached => {
+        const networkFetch = fetch(event.request).then(response => {
+          if (response.ok) cache.put(event.request, response.clone());
+          return response;
+        }).catch(() => null);
+        return cached || networkFetch;
+      })
+    )
   );
 });
 
