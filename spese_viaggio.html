@@ -203,6 +203,9 @@
         .split-check input[type=number]:focus { border-color: var(--accent); }
         .btn-tutti { padding: 8px 16px; border-radius: 10px; border: 2px solid var(--grey); background: var(--white); font-size: 13px; font-weight: 800; cursor: pointer; font-family: inherit; margin-bottom: 10px; }
         .btn-tutti.active { border-color: var(--accent); background: var(--accent-bg); color: #9f1239; }
+        .split-quick-row { display: flex; gap: 8px; flex-wrap: wrap; }
+        .split-hint { font-size: 12px; font-weight: 700; color: #888; margin: -4px 0 10px; }
+        .badge-personale { display: inline-block; font-size: 10px; font-weight: 800; padding: 1px 6px; border-radius: 6px; background: #eef2ff; color: #4f46e5; margin-left: 4px; vertical-align: 1px; }
 
         /* currency row */
         .currency-row { display: flex; gap: 8px; margin-bottom: 10px; }
@@ -427,6 +430,7 @@
             .section-label, .form-label { color: #aaa; }
         }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
@@ -593,7 +597,11 @@
             <button class="split-type-btn" onclick="setSplitType('percentuali')" data-type="percentuali">% Perc.</button>
             <button class="split-type-btn" onclick="setSplitType('quote')" data-type="quote">÷ Quote</button>
         </div>
-        <button class="btn-tutti" id="btnTutti" onclick="toggleTutti()" style="display:none">✓ Tutti</button>
+        <div class="split-quick-row">
+            <button class="btn-tutti" id="btnTutti" onclick="toggleTutti()" style="display:none">✓ Tutti</button>
+            <button class="btn-tutti" id="btnSoloMe" onclick="setSoloPerMe()" style="display:none">🔒 Spesa solo per me</button>
+        </div>
+        <div class="split-hint" id="hintSoloMe" style="display:none">Spesa personale: gli altri partecipanti non la vedranno.</div>
         <div id="splitContainer"></div>
         <input class="form-input" id="dataSpesa" type="date" style="margin-top:6px">
         <div class="foto-area">
@@ -997,8 +1005,29 @@
 <script>
 const URL_S = "https://eejdpophfxsrqdvsucye.supabase.co/rest/v1";
 const KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlamRwb3BoZnhzcnFkdnN1Y3llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2NTMzMDQsImV4cCI6MjA5MzIyOTMwNH0.mpxbwlJyIdZgqKIdutHbLd85JR1P11yiglbYeApi17k";
-const H  = { "apikey": KEY, "Authorization": "Bearer " + KEY, "Content-Type": "application/json", "Prefer": "return=minimal" };
-const HR = { "apikey": KEY, "Authorization": "Bearer " + KEY };
+// Le richieste al database partono col token dell'utente loggato (non con la
+// sola chiave pubblica): così le regole RLS di Supabase sanno chi sta leggendo
+// e restituiscono solo le spese che lo riguardano.
+const _sb = (window.supabase && window.supabase.createClient) ? window.supabase.createClient(URL_S.replace('/rest/v1', ''), KEY) : null;
+async function _bearer() {
+    if (!_sb) return KEY;
+    try {
+        const { data } = await _sb.auth.getSession();
+        const token = data?.session?.access_token;
+        if (token) return token;
+    } catch(e) {}
+    // Offline: niente login, si usa la cache del service worker
+    if (!navigator.onLine) return KEY;
+    // Sessione scaduta o assente: serve rifare il login
+    if (localStorage.getItem('userEmail')) {
+        localStorage.setItem('pendingUrl', location.href);
+        localStorage.removeItem('userEmail');
+        location.href = 'login.html';
+    }
+    return KEY;
+}
+async function hdrR() { return { "apikey": KEY, "Authorization": "Bearer " + await _bearer() }; }
+async function hdrW() { return { ...(await hdrR()), "Content-Type": "application/json", "Prefer": "return=minimal" }; }
 
 const userEmail = localStorage.getItem('userEmail');
 const _joinId = new URLSearchParams(location.search).get('join');
@@ -1110,6 +1139,7 @@ function populateCurrencySelects(...ids) {
 
 let viaggi = [], viaggioCorrenteId = null, partecipantiAttuali = [];
 let speseAttuali = [], fotoProfili = {}, tabAttiva = 'spese';
+let saldiServer = null, _speseGrezze = [];
 let emojiViaggioScelta = '✈️', nuoviPart = [], pagatoreScelto = null;
 let catScelta = '🛒', splitTutti = true, spesaInEditId = null;
 let catEmojiCatAttiva = '🍕';
@@ -1137,19 +1167,59 @@ function showView(id) {
 
 // ── API ─────────────────────────────────────────────────────────
 async function apiGet(path) {
-    try { const r = await fetch(`${URL_S}${path}`, { headers: HR }); return await r.json(); } catch(e) { return null; }
+    try { const r = await fetch(`${URL_S}${path}`, { headers: await hdrR() }); return await r.json(); } catch(e) { return null; }
 }
 async function apiGetArr(path) {
     const d = await apiGet(path); return Array.isArray(d) ? d : [];
 }
 async function apiPost(path, body) {
-    return fetch(`${URL_S}${path}`, { method: 'POST', headers: H, body: JSON.stringify(body) });
+    return fetch(`${URL_S}${path}`, { method: 'POST', headers: await hdrW(), body: JSON.stringify(body) });
 }
 async function apiPatch(path, body) {
-    return fetch(`${URL_S}${path}`, { method: 'PATCH', headers: H, body: JSON.stringify(body) });
+    return fetch(`${URL_S}${path}`, { method: 'PATCH', headers: await hdrW(), body: JSON.stringify(body) });
 }
 async function apiDel(path) {
-    return fetch(`${URL_S}${path}`, { method: 'DELETE', headers: H });
+    return fetch(`${URL_S}${path}`, { method: 'DELETE', headers: await hdrW() });
+}
+// Chiama una funzione del database (Supabase RPC).
+// Restituisce null se la funzione non esiste ancora, RPC_ERRORE se la chiamata fallisce.
+const RPC_ERRORE = { errore: true };
+async function apiRpc(nome, args) {
+    try {
+        const r = await fetch(`${URL_S}/rpc/${nome}`, { method: 'POST', headers: { ...(await hdrR()), "Content-Type": "application/json" }, body: JSON.stringify(args) });
+        if (r.status === 404) return null;
+        if (!r.ok) return RPC_ERRORE;
+        return await r.json();
+    } catch(e) { return RPC_ERRORE; }
+}
+
+// ── Visibilità spese ────────────────────────────────────────────
+// Ognuno vede solo le spese che lo riguardano: è tra chi divide la spesa,
+// l'ha pagata, oppure l'ha registrata. Stessa regola delle policy RLS
+// (supabase/migrations/20261018_sv_spese_visibilita.sql); qui serve anche
+// finché la migrazione non è stata eseguita.
+const _me = () => (userEmail || '').toLowerCase();
+function idsDivisione(s) {
+    try {
+        let d = typeof s.divisione === 'string' ? JSON.parse(s.divisione || '[]') : (s.divisione || []);
+        if (typeof d === 'string') d = JSON.parse(d);
+        return Array.isArray(d) ? d.map(String) : [];
+    } catch(e) { return []; }
+}
+function mieiPartecipanti(parts) {
+    return parts.filter(p => (p.email_collegata || '').toLowerCase() === _me()).map(p => String(p.id));
+}
+function spesaVisibile(s, parts, viaggio) {
+    if ((s.email_utente || '').toLowerCase() === _me()) return true;
+    const miei = mieiPartecipanti(parts);
+    // Vecchi viaggi: se il creatore non è ancora collegato a un partecipante vede tutto
+    if (!miei.length) return (viaggio?.email_utente || '').toLowerCase() === _me();
+    if (miei.includes(String(s.pagato_da))) return true;
+    return idsDivisione(s).some(id => miei.includes(id));
+}
+function isSpesaPersonale(s) {
+    const div = idsDivisione(s);
+    return div.length > 0 && div.every(id => id === String(s.pagato_da));
 }
 
 // ── Currency ────────────────────────────────────────────────────
@@ -1385,7 +1455,7 @@ async function caricaViaggi() {
     const elBanner = document.getElementById('invitiBanner');
     elLista.innerHTML = ''; elBanner.innerHTML = '';
     try {
-        const resV = await fetch(`${URL_S}/sv_viaggi?email_utente=eq.${userEmail}&order=created_at.desc`, { headers: HR });
+        const resV = await fetch(`${URL_S}/sv_viaggi?email_utente=eq.${userEmail}&order=created_at.desc`, { headers: await hdrR() });
         if (!resV.ok) {
             elLista.innerHTML = `<div class="empty-msg" style="color:#eb445a">Tabelle non trovate.<br><small style="font-weight:600;color:#aaa">Esegui il setup SQL e ricarica.</small></div>`;
             return;
@@ -1426,8 +1496,8 @@ async function caricaViaggi() {
 
         const allViaggioIds = viaggi.map(v => v.id);
         const [allPart, allSpese] = await Promise.all([
-            apiGetArr(`/sv_partecipanti?viaggio_id=in.(${allViaggioIds.join(',')})&select=viaggio_id,nome`),
-            apiGetArr(`/sv_spese?viaggio_id=in.(${allViaggioIds.join(',')})&select=viaggio_id,importo`)
+            apiGetArr(`/sv_partecipanti?viaggio_id=in.(${allViaggioIds.join(',')})&select=id,viaggio_id,nome,email_collegata`),
+            apiGetArr(`/sv_spese?viaggio_id=in.(${allViaggioIds.join(',')})&select=viaggio_id,importo,pagato_da,divisione,email_utente`)
         ]);
 
         // Ripristina stato dopo refresh
@@ -1442,7 +1512,8 @@ async function caricaViaggi() {
         elLista.innerHTML = viaggi.map(v => {
             const isCondiviso = !propri.find(p => p.id === v.id);
             const vPart = allPart.filter(p => p.viaggio_id == v.id);
-            const tot = allSpese.filter(s => s.viaggio_id == v.id).reduce((a, s) => a + parseFloat(s.importo || 0), 0);
+            // Totale calcolato solo sulle spese che l'utente vede
+            const tot = allSpese.filter(s => s.viaggio_id == v.id && spesaVisibile(s, vPart, v)).reduce((a, s) => a + parseFloat(s.importo || 0), 0);
             const cur = v.valuta || 'EUR';
             const nomi2 = vPart.slice(0, 2).map(p => p.nome).join(', ');
             const extra = vPart.length > 2 ? ` +${vPart.length - 2}` : '';
@@ -1474,6 +1545,7 @@ async function apriViaggio(id) {
     viaggioCorrenteValuta = v?.valuta || 'EUR';
     document.getElementById('titoloViaggio').textContent = `${v.emoji || '✈️'} ${v.nome}`;
     filtroTesto = ''; filtroPagatore = '';
+    partecipantiAttuali = []; _speseGrezze = []; speseAttuali = []; saldiServer = null;
     sessionStorage.setItem('sv_vid', id);
     sessionStorage.setItem('sv_tab', 'piano');
     _collapsedDays = {};
@@ -1495,7 +1567,11 @@ function tornaALista() {
 async function eliminaViaggio(id) {
     const v = viaggi.find(x => x.id === id);
     if (!confirm(`Eliminare il viaggio "${v.nome}" con tutte le spese?`)) return;
-    await Promise.all([apiDel(`/sv_spese?viaggio_id=eq.${id}`), apiDel(`/sv_partecipanti?viaggio_id=eq.${id}`)]);
+    // Con l'RLS il creatore non vede le spese personali degli altri: le elimina il database
+    const eliminate = await apiRpc('sv_elimina_spese_viaggio', { p_viaggio_id: id });
+    if (eliminate === RPC_ERRORE) { toast('Errore: viaggio non eliminato'); return; }
+    if (eliminate === null) await apiDel(`/sv_spese?viaggio_id=eq.${id}`);
+    await apiDel(`/sv_partecipanti?viaggio_id=eq.${id}`);
     await apiDel(`/sv_viaggi?id=eq.${id}`);
     toast('Viaggio eliminato');
     caricaViaggi();
@@ -1538,8 +1614,26 @@ function mostraTab(tab) {
 }
 
 // ── Spese ─────────────────────────────────────────────────────────
+// speseAttuali = solo le spese che l'utente vede (lista, totali, statistiche, CSV, budget).
+// saldiServer = saldi per persona calcolati dal database su TUTTE le spese del viaggio
+//               (funzione sv_saldi): così "chi deve a chi" resta corretto anche se
+//               alcune spese non sono visibili. null = funzione non ancora installata.
 async function caricaSpese() {
-    speseAttuali = await apiGetArr(`/sv_spese?viaggio_id=eq.${viaggioCorrenteId}&order=data.desc,created_at.desc`);
+    const vid = viaggioCorrenteId;
+    const [righe, saldi] = await Promise.all([
+        apiGetArr(`/sv_spese?viaggio_id=eq.${vid}&order=data.desc,created_at.desc`),
+        apiRpc('sv_saldi', { p_viaggio_id: vid })
+    ]);
+    if (vid !== viaggioCorrenteId) return;
+    _speseGrezze = righe;
+    saldiServer = Array.isArray(saldi) ? saldi : saldi === RPC_ERRORE ? RPC_ERRORE : null;
+    // partecipantiAttuali può non essere ancora caricato: in quel caso il filtro
+    // viene riapplicato da applicaVisibilita() dopo caricaPartecipanti()
+    applicaVisibilita();
+}
+function applicaVisibilita() {
+    const v = viaggi.find(x => x.id === viaggioCorrenteId);
+    speseAttuali = _speseGrezze.filter(s => spesaVisibile(s, partecipantiAttuali, v));
 }
 
 function aggiorniFiltri() {
@@ -1585,7 +1679,7 @@ function renderSpese() {
             <div class="spesa-cat">${_catEmoji(s)}</div>
             ${hasFoto ? `<img class="spesa-foto-thumb" src="${s.foto}" alt="" onclick="openLightbox('${s.foto}')">` : ''}
             <div class="spesa-info">
-                <div class="spesa-desc">${s.descrizione || ''}</div>
+                <div class="spesa-desc">${s.descrizione || ''}${isSpesaPersonale(s) ? '<span class="badge-personale" title="Spesa personale: gli altri partecipanti non la vedono">🔒 personale</span>' : ''}</div>
                 <div class="spesa-sub">${payerNome} ha pagato ${splitDesc}${dataStr ? ' · ' + dataStr : ''}</div>
                 ${origStr ? `<div class="spesa-orig">${origStr}</div>` : ''}
             </div>
@@ -1618,7 +1712,7 @@ async function eliminaSpesa(id) {
 async function duplicaSpesa(id) {
     const s = speseAttuali.find(x => x.id === id);
     if (!s) return;
-    const { id: _, created_at, ...body } = s;
+    const { id: _, created_at, email_utente: _autore, ...body } = s;
     body.descrizione = body.descrizione + ' (copia)';
     body.data = new Date().toISOString().split('T')[0];
     const res = await apiPost('/sv_spese', { viaggio_id: viaggioCorrenteId, email_utente: userEmail, ...body });
@@ -1663,19 +1757,38 @@ function renderSaldi() {
     const bilanci = {}, pagati = {}, quote = {};
     partecipantiAttuali.forEach(p => { bilanci[p.id] = 0; pagati[p.id] = 0; quote[p.id] = 0; });
 
+    if (saldiServer === RPC_ERRORE) {
+        // Senza i totali dal database i saldi sarebbero sbagliati (mancano le spese non visibili)
+        el.innerHTML = `<div class="empty-msg">Saldi non disponibili ora (serve la connessione).<br><a href="#" onclick="event.preventDefault(); caricaSpese().then(renderSaldi)" style="color:var(--accent)">Riprova</a></div>`;
+        return;
+    }
+    if (saldiServer) {
+        // Saldi calcolati dal database su tutte le spese del viaggio (solo totali per persona)
+        saldiServer.forEach(r => {
+            const k = r.partecipante_id;
+            bilanci[k] = (bilanci[k] || 0) + parseFloat(r.bilancio || 0);
+            pagati[k]  = (pagati[k]  || 0) + parseFloat(r.pagato   || 0);
+            quote[k]   = (quote[k]   || 0) + parseFloat(r.quota    || 0);
+        });
+    } else {
+    // Funzione sv_saldi non ancora installata: calcolo locale come prima
     const SALDI_CONTABILI = new Set(['🤝', '💸']);
-    speseAttuali.forEach(s => {
+    const mieiIds = mieiPartecipanti(partecipantiAttuali);
+    _speseGrezze.forEach(s => {
         const divisione = JSON.parse(s.divisione || '[]');
         if (!divisione.length) return;
         const quotePer = calcolaQuotePer(s);
         const isContabile = SALDI_CONTABILI.has(_catEmoji(s));
+        // Le spese personali degli altri non compaiono in "Pagato/Quota" (non spostano i debiti)
+        const nelRiepilogo = !isContabile && (!isSpesaPersonale(s) || mieiIds.includes(String(s.pagato_da)));
         bilanci[s.pagato_da] = (bilanci[s.pagato_da] || 0) + parseFloat(s.importo);
-        if (!isContabile) pagati[s.pagato_da] = (pagati[s.pagato_da] || 0) + parseFloat(s.importo);
+        if (nelRiepilogo) pagati[s.pagato_da] = (pagati[s.pagato_da] || 0) + parseFloat(s.importo);
         divisione.forEach(pid => {
             bilanci[pid] = (bilanci[pid] || 0) - (quotePer[pid] || 0);
-            if (!isContabile) quote[pid] = (quote[pid] || 0) + (quotePer[pid] || 0);
+            if (nelRiepilogo) quote[pid] = (quote[pid] || 0) + (quotePer[pid] || 0);
         });
     });
+    }
 
     const transazioni = calcolaSettlement(bilanci);
     const debitiDi = {}, creditiDa = {};
@@ -1966,7 +2079,7 @@ async function importaCSV(input) {
             divisione: JSON.stringify(divIds.length ? divIds : partecipantiAttuali.map(p => p.id))
         };
         const res = await apiPost('/sv_spese', body);
-        if (res?.id) ok++; else fail++;
+        if (res?.ok) ok++; else fail++;
     }
 
     toast(`✓ Importate ${ok} spese${fail ? ` (${fail} errori)` : ''}`);
@@ -2017,6 +2130,7 @@ function chiudiCatDrill(e) {
 // ── Partecipanti ──────────────────────────────────────────────────
 async function caricaPartecipanti() {
     partecipantiAttuali = await apiGetArr(`/sv_partecipanti?viaggio_id=eq.${viaggioCorrenteId}&order=id.asc`);
+    applicaVisibilita();
     await caricaFotoProfili();
 }
 async function ricaricaFoto() {
@@ -2039,9 +2153,13 @@ async function caricaFotoProfili() {
 function renderPartecipanti() {
     const el = document.getElementById('elencoPersone');
     if (!partecipantiAttuali.length) { el.innerHTML = `<div class="empty-msg" style="padding:24px 0">Nessun partecipante ancora.</div>`; return; }
+    const nessunoSonoIo = !mioPartecipanteId();
     el.innerHTML = partecipantiAttuali.map(p => {
         const fp = p.email_collegata ? fotoProfili[p.email_collegata] : null;
         const isSelf = p.email_collegata === userEmail;
+        // Vecchi viaggi: il tuo nome può non essere collegato al tuo account
+        const sonoIoBtn = nessunoSonoIo && !p.email_collegata
+            ? `<button title="Questo partecipante sono io" onclick="event.stopPropagation(); sonoIo(${p.id})" style="height:36px;padding:0 10px;border-radius:10px;border:2px solid var(--green);background:#e8f5e9;color:var(--green);font-weight:800;font-family:inherit;font-size:12px;cursor:pointer;flex-shrink:0">👤 Sono io</button>` : '';
         const inviteBtn = !p.email_collegata
             ? `<button title="Invia invito" onclick="event.stopPropagation(); invitaPartecipante(${p.id})" style="width:36px;height:36px;border-radius:10px;border:2px solid #5856d6;background:rgba(88,86,214,0.08);color:#5856d6;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#5856d6" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
@@ -2052,7 +2170,7 @@ function renderPartecipanti() {
                 <div class="partecipante-nome">${p.nome}${isSelf ? ' <span style="font-size:11px;color:var(--green);font-weight:700">(tu)</span>' : ''}</div>
                 ${p.email_collegata ? `<div class="partecipante-sub">📧 ${p.email_collegata}</div>` : '<div class="partecipante-sub" style="color:#f0a500">⚠️ Non ancora accettato</div>'}
             </div>
-            ${inviteBtn}
+            ${sonoIoBtn}${inviteBtn}
             <button class="btn-del-viaggio" onclick="eliminaPartecipante(${p.id})">
                 <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
@@ -2071,6 +2189,16 @@ async function aggiungiPartecipante() {
     const parts = await apiGetArr(`/sv_partecipanti?viaggio_id=eq.${viaggioCorrenteId}&nome=eq.${encodeURIComponent(nome)}&order=id.desc&limit=1`);
     _invitePartId = parts[0]?.id || null;
     apriModalInvita(nome);
+}
+
+async function sonoIo(partId) {
+    const p = partecipantiAttuali.find(x => x.id === partId);
+    if (!p) return;
+    if (!confirm(`Collegare "${p.nome}" al tuo account?\nDa quel momento vedrai solo le spese che ti riguardano.`)) return;
+    const res = await apiPatch(`/sv_partecipanti?id=eq.${partId}`, { email_collegata: userEmail });
+    if (!res.ok) { toast('Errore nel collegamento'); return; }
+    await caricaPartecipanti(); await caricaSpese(); renderPartecipanti(); renderSpese();
+    toast(`✓ Ora sei "${p.nome}"`);
 }
 
 async function aggiungiMeStesso() {
@@ -2221,7 +2349,7 @@ async function salvaViaggio() {
         const res2 = await apiPost('/sv_viaggi', { email_utente: userEmail, nome, emoji: emojiViaggioScelta });
         if (!res2.ok) { toast('Errore nella creazione'); return; }
     }
-    const rows = await fetch(`${URL_S}/sv_viaggi?email_utente=eq.${userEmail}&nome=eq.${encodeURIComponent(nome)}&order=id.desc&limit=1`, { headers: HR });
+    const rows = await fetch(`${URL_S}/sv_viaggi?email_utente=eq.${userEmail}&nome=eq.${encodeURIComponent(nome)}&order=id.desc&limit=1`, { headers: await hdrR() });
     const [v] = await rows.json();
     if (nuoviPart.length) {
         await Promise.all(nuoviPart.map(n => apiPost('/sv_partecipanti', { viaggio_id: v.id, email_utente: userEmail, nome: n })));
@@ -2261,6 +2389,7 @@ function renderSplitContainer() {
             </div>`
         ).join('');
     }
+    aggiornaStatoSoloMe();
 }
 
 function getQuoteDivisione() {
@@ -2462,6 +2591,7 @@ function apriModalEditSpesa(id) {
             </div>`
         ).join('');
     }
+    aggiornaStatoSoloMe();
     document.getElementById('modalNuovaSpesa').classList.add('open');
     setTimeout(() => document.getElementById('descSpesa').focus(), 300);
 }
@@ -2515,12 +2645,52 @@ function setCat(c) {
 function setPayer(id) {
     pagatoreScelto = id;
     document.querySelectorAll('.payer-btn').forEach(b => b.classList.toggle('active', +b.getAttribute('onclick').match(/\d+/)[0] === id));
+    aggiornaStatoSoloMe();
 }
 function toggleTutti() {
     splitTutti = !splitTutti;
     document.getElementById('btnTutti').classList.toggle('active', splitTutti);
     document.querySelectorAll('#splitContainer input[type=checkbox]').forEach(cb => cb.checked = splitTutti);
+    aggiornaStatoSoloMe();
 }
+
+// ── Spesa solo per me ──────────────────────────────────────────────
+// Un tocco: pago io, divisa solo con me → spesa personale, invisibile agli altri.
+function mioPartecipanteId() {
+    const p = partecipantiAttuali.find(x => (x.email_collegata || '').toLowerCase() === _me());
+    return p ? p.id : null;
+}
+function setSoloPerMe() {
+    const mio = mioPartecipanteId();
+    if (!mio) { toast('Collega prima il tuo nome nella tab Persone ("Sono io")'); return; }
+    if (splitType !== 'uguale') setSplitType('uguale');
+    splitTutti = false;
+    document.getElementById('btnTutti').classList.remove('active');
+    document.querySelectorAll('#splitContainer input[type=checkbox]').forEach(cb => cb.checked = (+cb.id.replace('sp', '') === mio));
+    setPayer(mio);
+}
+function aggiornaStatoSoloMe() {
+    const btn = document.getElementById('btnSoloMe');
+    const hint = document.getElementById('hintSoloMe');
+    if (!btn) return;
+    const mio = mioPartecipanteId();
+    // Visibile solo se ci sono altri partecipanti e io sono collegato al viaggio
+    btn.style.display = (mio && partecipantiAttuali.length > 1) ? '' : 'none';
+    let soloMe = false;
+    if (mio) {
+        if (splitType === 'uguale') {
+            const sel = [...document.querySelectorAll('#splitContainer input:checked')].map(cb => +cb.id.replace('sp', ''));
+            soloMe = sel.length === 1 && sel[0] === mio && pagatoreScelto === mio;
+        } else {
+            const ids = getQuoteDivisione().divisione;
+            soloMe = ids.length === 1 && ids[0] === mio && pagatoreScelto === mio;
+        }
+    }
+    btn.classList.toggle('active', soloMe);
+    hint.style.display = soloMe && partecipantiAttuali.length > 1 ? '' : 'none';
+}
+document.addEventListener('change', e => { if (e.target.closest && e.target.closest('#splitContainer')) aggiornaStatoSoloMe(); });
+document.addEventListener('input',  e => { if (e.target.closest && e.target.closest('#splitContainer')) aggiornaStatoSoloMe(); });
 
 async function salvaSpesa() {
     const desc = document.getElementById('descSpesa').value.trim();
