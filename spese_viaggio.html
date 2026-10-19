@@ -205,6 +205,10 @@
         .btn-tutti.active { border-color: var(--accent); background: var(--accent-bg); color: #9f1239; }
         .split-quick-row { display: flex; gap: 8px; flex-wrap: wrap; }
         .split-hint { font-size: 12px; font-weight: 700; color: #888; margin: -4px 0 10px; }
+        .vedi-come-bar { display: flex; align-items: center; gap: 8px; background: #fff7e6; border: 2px solid #fcd9a0; border-radius: 14px; padding: 8px 12px; margin-bottom: 12px; font-size: 13px; font-weight: 800; color: #b45309; }
+        .vedi-come-bar select { flex: 1; min-width: 0; padding: 7px 8px; border-radius: 10px; border: 2px solid #fcd9a0; background: #fff; font-family: inherit; font-weight: 700; font-size: 13px; color: #333; }
+        .vedi-come-bar.attivo { background: #b45309; border-color: #b45309; color: #fff; }
+        .vedi-come-bar.attivo select { border-color: #fff; }
         .badge-personale { display: inline-block; font-size: 10px; font-weight: 800; padding: 1px 6px; border-radius: 6px; background: #eef2ff; color: #4f46e5; margin-left: 4px; vertical-align: 1px; }
 
         /* currency row */
@@ -461,6 +465,11 @@
         <button class="btn-icon-hdr" onclick="apriModalEditViaggio()" title="Modifica viaggio">✏️</button>
     </div>
     <div class="body-content">
+        <!-- Solo amministratore: vedi il viaggio con gli occhi di un partecipante -->
+        <div class="vedi-come-bar" id="vediComeBar" style="display:none">
+            <span>👁 Vedi come</span>
+            <select id="vediComeSel" onchange="setVediCome(this.value)"></select>
+        </div>
         <div class="inner-tabs">
             <button class="inner-tab active" id="tabBtnPiano" onclick="mostraTab('piano')">Piano</button>
             <button class="inner-tab" id="tabBtnBudget" onclick="mostraTab('budget')">Budget</button>
@@ -639,6 +648,31 @@
             <div style="font-weight:800;font-size:13px;color:#888;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px">Scegli voce di budget</div>
             <div id="budgetSelList" style="max-height:55vh;overflow-y:auto"></div>
         </div>
+    </div>
+</div>
+
+<!-- Modal: Chi sei? (entrando in un viaggio) -->
+<div class="modal-overlay" id="modalChiSei" data-fisso="1">
+    <div class="modal-box">
+        <div class="modal-handle"></div>
+        <div class="modal-title">Chi sei in questo viaggio?</div>
+        <div style="font-size:13px;font-weight:600;color:#888;margin:-6px 0 14px">Se qualcuno ti ha già aggiunto con il tuo nome, sceglilo: così le spese già divise con te restano tue.</div>
+        <div id="chiSeiLista" style="max-height:50vh;overflow-y:auto"></div>
+        <button class="scelta-btn" onclick="_chiudiChiSei('nuovo')" style="margin-top:6px">
+            <span style="font-size:22px">➕</span>
+            <div><div>Non sono in elenco</div><div style="font-size:12px;font-weight:600;color:#888;margin-top:2px">Aggiungimi come nuovo partecipante</div></div>
+        </button>
+    </div>
+</div>
+
+<!-- Modal: Sposta spese (togliendo un partecipante) -->
+<div class="modal-overlay" id="modalSpostaSpese">
+    <div class="modal-box">
+        <div class="modal-handle"></div>
+        <div class="modal-title" id="spostaTitolo">Togli partecipante</div>
+        <div id="spostaTesto" style="font-size:13px;font-weight:600;color:#888;margin:-6px 0 14px"></div>
+        <div id="spostaLista" style="max-height:50vh;overflow-y:auto"></div>
+        <button class="btn-tutti" onclick="document.getElementById('modalSpostaSpese').classList.remove('open')" style="width:100%;margin-top:6px">Annulla</button>
     </div>
 </div>
 
@@ -1209,7 +1243,51 @@ function idsDivisione(s) {
 function mieiPartecipanti(parts) {
     return parts.filter(p => (p.email_collegata || '').toLowerCase() === _me()).map(p => String(p.id));
 }
+// L'amministratore (stessa email di profilo.html) vede tutte le spese dei viaggi
+// di cui fa parte, comprese quelle personali degli altri. Solo lettura.
+const ADMIN_EMAIL = 'emilio.mazzolari@gmail.com';
+const isAdmin = () => _me() === ADMIN_EMAIL;
 function spesaVisibile(s, parts, viaggio) {
+    if (isAdmin() && vediComeId) return spesaVisibilePer(s, parts.find(p => p.id === vediComeId));
+    return isAdmin() || spesaVisibileNormale(s, parts, viaggio);
+}
+
+// ── Vedi come (solo admin) ─────────────────────────────────────────
+// Mostra lista, totali, riepilogo e saldi esattamente come li vede un
+// partecipante. Funziona perché l'admin riceve tutte le spese del viaggio.
+let vediComeId = null;
+function spesaVisibilePer(s, p) {
+    if (!p) return false;
+    const email = (p.email_collegata || '').toLowerCase();
+    if (email && (s.email_utente || '').toLowerCase() === email) return true;
+    if (String(s.pagato_da) === String(p.id)) return true;
+    return idsDivisione(s).includes(String(p.id));
+}
+function renderVediCome() {
+    const bar = document.getElementById('vediComeBar');
+    if (!bar) return;
+    if (!isAdmin() || !partecipantiAttuali.length) { bar.style.display = 'none'; return; }
+    bar.style.display = '';
+    const sel = document.getElementById('vediComeSel');
+    sel.innerHTML = `<option value="">Tutte le spese (admin)</option>` + partecipantiAttuali
+        .filter(p => (p.email_collegata || '').toLowerCase() !== _me())
+        .map(p => `<option value="${p.id}">${p.nome}${p.email_collegata ? '' : ' (non collegato)'}</option>`).join('');
+    sel.value = vediComeId ? String(vediComeId) : '';
+    bar.classList.toggle('attivo', !!vediComeId);
+}
+function setVediCome(val) {
+    vediComeId = val ? +val : null;
+    applicaVisibilita();
+    renderVediCome();
+    filtroPagatore = ''; renderSpese();
+    if (tabAttiva === 'saldi') renderSaldi();
+    if (tabAttiva === 'statistiche') renderStatistiche();
+    if (tabAttiva === 'budget') renderBudget();
+    const p = partecipantiAttuali.find(x => x.id === vediComeId);
+    toast(p ? `👁 Vedi come ${p.nome}` : '👁 Vista admin: tutte le spese');
+}
+// Visibile anche da utente normale? (false = la vedi solo perché sei admin)
+function spesaVisibileNormale(s, parts, viaggio) {
     if ((s.email_utente || '').toLowerCase() === _me()) return true;
     const miei = mieiPartecipanti(parts);
     // Vecchi viaggi: se il creatore non è ancora collegato a un partecipante vede tutto
@@ -1545,7 +1623,7 @@ async function apriViaggio(id) {
     viaggioCorrenteValuta = v?.valuta || 'EUR';
     document.getElementById('titoloViaggio').textContent = `${v.emoji || '✈️'} ${v.nome}`;
     filtroTesto = ''; filtroPagatore = '';
-    partecipantiAttuali = []; _speseGrezze = []; speseAttuali = []; saldiServer = null;
+    partecipantiAttuali = []; _speseGrezze = []; speseAttuali = []; saldiServer = null; vediComeId = null;
     sessionStorage.setItem('sv_vid', id);
     sessionStorage.setItem('sv_tab', 'piano');
     _collapsedDays = {};
@@ -1580,12 +1658,7 @@ async function eliminaViaggio(id) {
 async function accettaInvito(invId, viaggioId) {
     await apiPatch(`/sv_inviti?id=eq.${invId}`, { stato: 'accettato' });
     const existing = await apiGetArr(`/sv_partecipanti?viaggio_id=eq.${viaggioId}&email_collegata=eq.${encodeURIComponent(userEmail)}`);
-    if (!existing.length) {
-        const profilo = await apiGetArr(`/profili?email_utente=eq.${encodeURIComponent(userEmail)}&select=nome,cognome`);
-        const p = profilo[0];
-        const nome = p ? [p.nome, p.cognome].filter(Boolean).join(' ') || userEmail.split('@')[0] : userEmail.split('@')[0];
-        await apiPost('/sv_partecipanti', { viaggio_id: viaggioId, email_utente: userEmail, nome, email_collegata: userEmail });
-    }
+    if (!existing.length) await collegaOAggiungiMe(viaggioId);
     toast('✓ Invito accettato!');
     await caricaViaggi();
 }
@@ -1664,7 +1737,10 @@ function renderSpese() {
         return;
     }
     const cur = symb(viaggioCorrenteValuta);
+    const _vAtt = viaggi.find(x => x.id === viaggioCorrenteId);
     el.innerHTML = filtered.map(s => {
+        // Spesa che vedi solo come amministratore: segnata e non modificabile
+        const soloAdmin = isAdmin() && !spesaVisibileNormale(s, partecipantiAttuali, _vAtt);
         const payer = partecipantiAttuali.find(p => p.id == s.pagato_da);
         const payerNome = payer ? payer.nome : '?';
         const divisione = JSON.parse(s.divisione || '[]');
@@ -1679,13 +1755,13 @@ function renderSpese() {
             <div class="spesa-cat">${_catEmoji(s)}</div>
             ${hasFoto ? `<img class="spesa-foto-thumb" src="${s.foto}" alt="" onclick="openLightbox('${s.foto}')">` : ''}
             <div class="spesa-info">
-                <div class="spesa-desc">${s.descrizione || ''}${isSpesaPersonale(s) ? '<span class="badge-personale" title="Spesa personale: gli altri partecipanti non la vedono">🔒 personale</span>' : ''}</div>
+                <div class="spesa-desc">${s.descrizione || ''}${isSpesaPersonale(s) ? '<span class="badge-personale" title="Spesa personale: gli altri partecipanti non la vedono">🔒 personale</span>' : ''}${soloAdmin ? '<span class="badge-personale" style="background:#fff7e6;color:#b45309" title="La vedi solo perché sei amministratore">👁 admin</span>' : ''}</div>
                 <div class="spesa-sub">${payerNome} ha pagato ${splitDesc}${dataStr ? ' · ' + dataStr : ''}</div>
                 ${origStr ? `<div class="spesa-orig">${origStr}</div>` : ''}
             </div>
             <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0">
                 <div class="spesa-importo">${cur}${parseFloat(s.importo).toFixed(2)}</div>
-                <div style="display:flex;gap:5px">
+                <div style="display:${soloAdmin ? 'none' : 'flex'};gap:5px">
                     <button class="btn-card-sm dup" onclick="duplicaSpesa(${s.id})" title="Duplica">
                         <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
                     </button>
@@ -1757,12 +1833,13 @@ function renderSaldi() {
     const bilanci = {}, pagati = {}, quote = {};
     partecipantiAttuali.forEach(p => { bilanci[p.id] = 0; pagati[p.id] = 0; quote[p.id] = 0; });
 
-    if (saldiServer === RPC_ERRORE) {
+    const _vediCome = isAdmin() && vediComeId;
+    if (saldiServer === RPC_ERRORE && !_vediCome) {
         // Senza i totali dal database i saldi sarebbero sbagliati (mancano le spese non visibili)
         el.innerHTML = `<div class="empty-msg">Saldi non disponibili ora (serve la connessione).<br><a href="#" onclick="event.preventDefault(); caricaSpese().then(renderSaldi)" style="color:var(--accent)">Riprova</a></div>`;
         return;
     }
-    if (saldiServer) {
+    if (saldiServer && !_vediCome) {
         // Saldi calcolati dal database su tutte le spese del viaggio (solo totali per persona)
         saldiServer.forEach(r => {
             const k = r.partecipante_id;
@@ -1773,14 +1850,15 @@ function renderSaldi() {
     } else {
     // Funzione sv_saldi non ancora installata: calcolo locale come prima
     const SALDI_CONTABILI = new Set(['🤝', '💸']);
-    const mieiIds = mieiPartecipanti(partecipantiAttuali);
+    // In "Vedi come" il punto di vista è quello del partecipante scelto
+    const mieiIds = _vediCome ? [String(vediComeId)] : mieiPartecipanti(partecipantiAttuali);
     _speseGrezze.forEach(s => {
         const divisione = JSON.parse(s.divisione || '[]');
         if (!divisione.length) return;
         const quotePer = calcolaQuotePer(s);
         const isContabile = SALDI_CONTABILI.has(_catEmoji(s));
         // Le spese personali degli altri non compaiono in "Pagato/Quota" (non spostano i debiti)
-        const nelRiepilogo = !isContabile && (!isSpesaPersonale(s) || mieiIds.includes(String(s.pagato_da)));
+        const nelRiepilogo = !isContabile && (!isSpesaPersonale(s) || mieiIds.includes(String(s.pagato_da)) || (isAdmin() && !_vediCome));
         bilanci[s.pagato_da] = (bilanci[s.pagato_da] || 0) + parseFloat(s.importo);
         if (nelRiepilogo) pagati[s.pagato_da] = (pagati[s.pagato_da] || 0) + parseFloat(s.importo);
         divisione.forEach(pid => {
@@ -2109,7 +2187,7 @@ function mostraCatDettaglio(macroId) {
                 <div class="drill-sub">${payerNome} · ${dataFmt}</div>
             </div>
             <div class="drill-amt">${cur}${parseFloat(s.importo || 0).toFixed(2)}</div>
-            <button class="drill-edit" onclick="drillEdit(${s.id})">✏️</button>
+            ${isAdmin() && !spesaVisibileNormale(s, partecipantiAttuali, viaggi.find(x => x.id === viaggioCorrenteId)) ? '<span class="drill-edit" title="La vedi solo perché sei amministratore">👁</span>' : `<button class="drill-edit" onclick="drillEdit(${s.id})">✏️</button>`}
         </div>`;
     }).join('') || '<div style="color:#aaa;font-size:13px;font-weight:700;padding:16px 0">Nessuna spesa</div>';
 
@@ -2130,7 +2208,9 @@ function chiudiCatDrill(e) {
 // ── Partecipanti ──────────────────────────────────────────────────
 async function caricaPartecipanti() {
     partecipantiAttuali = await apiGetArr(`/sv_partecipanti?viaggio_id=eq.${viaggioCorrenteId}&order=id.asc`);
+    if (vediComeId && !partecipantiAttuali.some(p => p.id === vediComeId)) vediComeId = null;
     applicaVisibilita();
+    renderVediCome();
     await caricaFotoProfili();
 }
 async function ricaricaFoto() {
@@ -2218,8 +2298,46 @@ function invitaPartecipante(partId) {
 }
 
 async function eliminaPartecipante(id) {
-    if (!confirm('Rimuovere questo partecipante? Le sue spese resteranno.')) return;
     const p = partecipantiAttuali.find(x => x.id === id);
+    if (!p) return;
+    // Quante spese lo coinvolgono? (lo chiede al database: tu non le vedi tutte)
+    const n = await apiRpc('sv_conta_spese_partecipante', { p_partecipante_id: id });
+    if (n === RPC_ERRORE) { toast('Errore di connessione, riprova'); return; }
+    if (n > 0) { apriSpostaSpese(p, n); return; }
+    const msg = n === null ? `Rimuovere ${p.nome}? Le sue spese resteranno.` : `Rimuovere ${p.nome} dal viaggio?`;
+    if (!confirm(msg)) return;
+    await rimuoviPartecipante(p);
+}
+
+// Il partecipante ha spese: prima si sceglie a chi passarle, poi lo si toglie
+function apriSpostaSpese(p, n) {
+    const altri = partecipantiAttuali.filter(x => x.id !== p.id);
+    document.getElementById('spostaTitolo').textContent = `Togli ${p.nome}`;
+    document.getElementById('spostaTesto').textContent = altri.length
+        ? `${p.nome} è in ${n} ${n === 1 ? 'spesa' : 'spese'}. A chi vuoi passarle? Spesso è la stessa persona entrata con un altro nome.`
+        : `${p.nome} è in ${n} ${n === 1 ? 'spesa' : 'spese'}: aggiungi prima un altro partecipante a cui passarle.`;
+    document.getElementById('spostaLista').innerHTML = altri.map(a =>
+        `<div class="budget-sel-item" onclick="spostaSpeseERimuovi(${p.id}, ${a.id})">
+            ${avatarHtml(a.nome, (a.email_collegata && fotoProfili[a.email_collegata]?.foto) || null, 34)}
+            <span class="budget-sel-name">${a.nome}</span>
+        </div>`
+    ).join('');
+    document.getElementById('modalSpostaSpese').classList.add('open');
+}
+async function spostaSpeseERimuovi(daId, aId) {
+    const da = partecipantiAttuali.find(x => x.id === daId);
+    const a  = partecipantiAttuali.find(x => x.id === aId);
+    if (!da || !a) return;
+    if (!confirm(`Passare tutte le spese di ${da.nome} a ${a.nome} e togliere ${da.nome} dal viaggio?`)) return;
+    document.getElementById('modalSpostaSpese').classList.remove('open');
+    const r = await apiRpc('sv_sposta_spese_partecipante', { p_da: daId, p_a: aId });
+    if (r === null || r === RPC_ERRORE) { toast('Errore: spese non spostate, nessuna modifica fatta'); return; }
+    await rimuoviPartecipante(da);
+    await caricaSpese();
+    toast(`✓ ${r} ${r === 1 ? 'spesa passata' : 'spese passate'} a ${a.nome}`);
+}
+async function rimuoviPartecipante(p) {
+    const id = p.id;
     await apiDel(`/sv_partecipanti?id=eq.${id}`);
     if (p?.email_collegata) await apiDel(`/sv_inviti?viaggio_id=eq.${viaggioCorrenteId}&email_invitato=eq.${encodeURIComponent(p.email_collegata)}`);
     await caricaPartecipanti(); renderPartecipanti();
@@ -2764,7 +2882,7 @@ async function salvaSpesa() {
 
 // ── Close modals on backdrop ──────────────────────────────────────
 document.querySelectorAll('.modal-overlay').forEach(m => {
-    m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+    m.addEventListener('click', e => { if (e.target === m && !m.dataset.fisso) m.classList.remove('open'); });
 });
 
 let toastTimer;
@@ -2775,6 +2893,44 @@ function toast(msg) {
     toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
 }
 
+// ── Chi sei? (evita i partecipanti doppi) ─────────────────────────
+// Quando entri in un viaggio (link o invito) e nessun partecipante è collegato
+// alla tua email, l'app ti fa scegliere tra i nomi non ancora collegati,
+// invece di creare subito un doppione.
+let _chiSeiResolve = null;
+function _chiudiChiSei(scelta) {
+    document.getElementById('modalChiSei').classList.remove('open');
+    if (_chiSeiResolve) { const r = _chiSeiResolve; _chiSeiResolve = null; r(scelta); }
+}
+function scegliChiSei(liberi) {
+    document.getElementById('chiSeiLista').innerHTML = liberi.map(p =>
+        `<div class="budget-sel-item" onclick="_chiudiChiSei(${p.id})">
+            ${avatarHtml(p.nome, null, 34)}
+            <span class="budget-sel-name">${p.nome}</span>
+            <span style="font-size:13px;font-weight:800;color:var(--green)">Sono io</span>
+        </div>`
+    ).join('');
+    document.getElementById('modalChiSei').classList.add('open');
+    return new Promise(res => { _chiSeiResolve = res; });
+}
+async function collegaOAggiungiMe(viaggioId) {
+    const liberi = await apiGetArr(`/sv_partecipanti?viaggio_id=eq.${viaggioId}&email_collegata=is.null&order=id.asc`);
+    if (liberi.length) {
+        const scelta = await scegliChiSei(liberi);
+        if (scelta !== 'nuovo') {
+            const res = await apiPatch(`/sv_partecipanti?id=eq.${scelta}&email_collegata=is.null`, { email_collegata: userEmail });
+            if (res.ok) {
+                const p = liberi.find(x => x.id === scelta);
+                toast(`✓ Collegato come "${p?.nome || ''}"`);
+                return;
+            }
+        }
+    }
+    const mioNome = await getMioNome();
+    const resP = await apiPost('/sv_partecipanti', { viaggio_id: +viaggioId, email_utente: userEmail, nome: mioNome, email_collegata: userEmail });
+    if (!resP.ok) await apiPost('/sv_partecipanti', { viaggio_id: +viaggioId, email_utente: userEmail, nome: mioNome });
+}
+
 // ── Join from link ────────────────────────────────────────────────
 async function handleJoinFromLink(viaggioId) {
     history.replaceState({}, '', location.pathname);
@@ -2783,11 +2939,7 @@ async function handleJoinFromLink(viaggioId) {
     const viaggio = viaggioArr[0];
     const byUtente    = await apiGetArr(`/sv_partecipanti?viaggio_id=eq.${viaggioId}&email_utente=eq.${encodeURIComponent(userEmail)}`);
     const byCollegata = await apiGetArr(`/sv_partecipanti?viaggio_id=eq.${viaggioId}&email_collegata=eq.${encodeURIComponent(userEmail)}`);
-    if (!byUtente.length && !byCollegata.length) {
-        const mioNome = await getMioNome();
-        const resP = await apiPost('/sv_partecipanti', { viaggio_id: +viaggioId, email_utente: userEmail, nome: mioNome, email_collegata: userEmail });
-        if (!resP.ok) await apiPost('/sv_partecipanti', { viaggio_id: +viaggioId, email_utente: userEmail, nome: mioNome });
-    }
+    if (!byUtente.length && !byCollegata.length) await collegaOAggiungiMe(+viaggioId);
     await apiPatch(`/sv_inviti?email_invitato=eq.${encodeURIComponent(userEmail)}&viaggio_id=eq.${viaggioId}`, { stato: 'accettato' });
     await caricaViaggi();
     apriViaggio(+viaggioId);
