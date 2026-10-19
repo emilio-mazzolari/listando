@@ -86,7 +86,7 @@ const STATEMENTS = [
     `ALTER TABLE IF EXISTS catalogo_valigia DISABLE ROW LEVEL SECURITY`,
     `ALTER TABLE IF EXISTS categorie_valigia DISABLE ROW LEVEL SECURITY`,
     `ALTER TABLE IF EXISTS sv_viaggi DISABLE ROW LEVEL SECURITY`,
-    `ALTER TABLE IF EXISTS sv_spese DISABLE ROW LEVEL SECURITY`,
+    // sv_spese: RLS ATTIVO (vedi supabase/migrations/20261018_sv_spese_visibilita.sql) — non disattivarlo qui
     `ALTER TABLE IF EXISTS sv_partecipanti DISABLE ROW LEVEL SECURITY`,
     `ALTER TABLE IF EXISTS sv_inviti DISABLE ROW LEVEL SECURITY`,
     `ALTER TABLE IF EXISTS sv_risparmi DISABLE ROW LEVEL SECURITY`,
