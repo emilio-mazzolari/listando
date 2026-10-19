@@ -1269,7 +1269,11 @@ function renderVediCome() {
     if (!isAdmin() || !partecipantiAttuali.length) { bar.style.display = 'none'; return; }
     bar.style.display = '';
     const sel = document.getElementById('vediComeSel');
-    sel.innerHTML = `<option value="">Tutte le spese (admin)</option>` + partecipantiAttuali
+    // Il tuo partecipante: "Solo le mie spese" = la vista che avresti da utente normale
+    const io = partecipantiAttuali.find(p => (p.email_collegata || '').toLowerCase() === _me());
+    sel.innerHTML = `<option value="">Tutte le spese (admin)</option>`
+        + (io ? `<option value="${io.id}">Solo le mie spese</option>` : '')
+        + partecipantiAttuali
         .filter(p => (p.email_collegata || '').toLowerCase() !== _me())
         .map(p => `<option value="${p.id}">${p.nome}${p.email_collegata ? '' : ' (non collegato)'}</option>`).join('');
     sel.value = vediComeId ? String(vediComeId) : '';
@@ -1284,7 +1288,8 @@ function setVediCome(val) {
     if (tabAttiva === 'statistiche') renderStatistiche();
     if (tabAttiva === 'budget') renderBudget();
     const p = partecipantiAttuali.find(x => x.id === vediComeId);
-    toast(p ? `👁 Vedi come ${p.nome}` : '👁 Vista admin: tutte le spese');
+    const sonoIo = p && (p.email_collegata || '').toLowerCase() === _me();
+    toast(!p ? '👁 Vista admin: tutte le spese' : sonoIo ? '👁 Solo le spese a cui partecipi' : `👁 Vedi come ${p.nome}`);
 }
 // Visibile anche da utente normale? (false = la vedi solo perché sei admin)
 function spesaVisibileNormale(s, parts, viaggio) {
