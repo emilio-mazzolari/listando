@@ -252,6 +252,37 @@
         </div>
     </div>
 
+    <!-- Metodi di pagamento -->
+    <div class="settings-group">
+        <div class="group-label">Metodi di pagamento</div>
+        <div class="group-card">
+            <div class="row">
+                <div class="row-icon" style="background:#e8f5e9">🏦</div>
+                <div class="row-body">
+                    <div class="row-label">IBAN</div>
+                </div>
+                <input class="row-input" id="fIban" type="text" placeholder="IT60 X054 2811 1010 0000 0123 456" autocomplete="off" oninput="onCampoChange()" style="font-size:12px;width:180px">
+            </div>
+            <div class="row">
+                <div class="row-icon" style="background:#e8f0fe">🅿️</div>
+                <div class="row-body">
+                    <div class="row-label">PayPal</div>
+                </div>
+                <input class="row-input" id="fPaypal" type="text" placeholder="email o @username" autocomplete="off" oninput="onCampoChange()">
+            </div>
+            <div class="row">
+                <div class="row-icon" style="background:#fff0f0">🔴</div>
+                <div class="row-body">
+                    <div class="row-label">Satispay</div>
+                </div>
+                <input class="row-input" id="fSatispay" type="text" placeholder="+39 333 000 0000" autocomplete="off" oninput="onCampoChange()">
+            </div>
+        </div>
+        <div style="font-size:11px;color:#aaa;font-weight:600;padding:8px 4px 0">
+            Visibili agli altri partecipanti dei tuoi viaggi per facilitare i rimborsi.
+        </div>
+    </div>
+
     <!-- Notifiche -->
     <div class="settings-group">
         <div class="group-label">Notifiche push</div>
@@ -462,6 +493,9 @@ async function init() {
     originali.nome        = ls.nome        || '';
     originali.cognome     = ls.cognome     || '';
     originali.dataNascita = ls.dataNascita || '';
+    originali.iban        = ls.iban        || '';
+    originali.paypal      = ls.paypal      || '';
+    originali.satispay    = ls.satispay    || '';
     fotoBase64            = ls.foto        || null;
 
     // Poi prova Supabase: se risponde bene sovrascrive localStorage
@@ -471,11 +505,15 @@ async function init() {
             const rows = await res.json();
             const data = Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
             if (data) {
-                originali.nome        = data.nome        || '';
-                originali.cognome     = data.cognome     || '';
+                originali.nome        = data.nome         || '';
+                originali.cognome     = data.cognome      || '';
                 originali.dataNascita = data.data_nascita || '';
-                fotoBase64            = data.foto        || null;
-                _salvaLS({ nome: originali.nome, cognome: originali.cognome, dataNascita: originali.dataNascita, foto: fotoBase64 });
+                originali.iban        = data.iban         || '';
+                originali.paypal      = data.paypal       || '';
+                originali.satispay    = data.satispay     || '';
+                fotoBase64            = data.foto         || null;
+                _salvaLS({ nome: originali.nome, cognome: originali.cognome, dataNascita: originali.dataNascita,
+                           iban: originali.iban, paypal: originali.paypal, satispay: originali.satispay, foto: fotoBase64 });
             }
         }
     } catch(e) {}
@@ -483,6 +521,9 @@ async function init() {
     document.getElementById('fNome').value        = originali.nome;
     document.getElementById('fCognome').value     = originali.cognome;
     document.getElementById('fDataNascita').value = originali.dataNascita;
+    document.getElementById('fIban').value        = originali.iban;
+    document.getElementById('fPaypal').value      = originali.paypal;
+    document.getElementById('fSatispay').value    = originali.satispay;
     aggiornaAvatar();
 
     await aggiornaStatoNotifiche();
@@ -543,16 +584,19 @@ function onFotoChange(input) {
 }
 
 async function salvaProfilo() {
-    const nome       = document.getElementById('fNome').value.trim();
-    const cognome    = document.getElementById('fCognome').value.trim();
+    const nome        = document.getElementById('fNome').value.trim();
+    const cognome     = document.getElementById('fCognome').value.trim();
     const dataNascita = document.getElementById('fDataNascita').value || null;
+    const iban        = document.getElementById('fIban').value.trim();
+    const paypal      = document.getElementById('fPaypal').value.trim();
+    const satispay    = document.getElementById('fSatispay').value.trim();
     const btn = document.getElementById('btnSalva');
     btn.disabled = true;
     btn.textContent = 'SALVATAGGIO…';
 
     // 1) Salva sempre su localStorage — funziona senza database
-    _salvaLS({ nome, cognome, dataNascita: dataNascita || '', foto: fotoBase64 });
-    originali = { nome, cognome, dataNascita: dataNascita || '' };
+    _salvaLS({ nome, cognome, dataNascita: dataNascita || '', iban, paypal, satispay, foto: fotoBase64 });
+    originali = { nome, cognome, dataNascita: dataNascita || '', iban, paypal, satispay };
     fotoCambiata = false;
     btn.textContent = 'SALVA';
     toast('✓ Profilo salvato');
@@ -560,11 +604,11 @@ async function salvaProfilo() {
     // 2) Prova a sincronizzare su Supabase (silenziosamente)
     try {
         const checkRes = await fetch(`${URL_S}/profili?email_utente=eq.${encodeURIComponent(userEmail)}&select=email_utente&limit=1`, { headers: _HR });
-        if (!checkRes.ok) return; // tabella non disponibile, non è un errore
+        if (!checkRes.ok) return;
         const existing = await checkRes.json();
         const exists = Array.isArray(existing) && existing.length > 0;
 
-        const body = { nome, cognome, data_nascita: dataNascita };
+        const body = { nome, cognome, data_nascita: dataNascita, iban: iban || null, paypal: paypal || null, satispay: satispay || null };
         if (fotoBase64) body.foto = fotoBase64;
 
         if (exists) {

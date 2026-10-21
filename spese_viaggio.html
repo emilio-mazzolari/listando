@@ -2007,7 +2007,17 @@ async function richiediPagamento(nomeDa, nomeA, importo) {
     const cur = symb(viaggioCorrenteValuta);
     const viaggio = viaggi.find(v => v.id === viaggioCorrenteId);
     const mioNome = await getMioNome();
-    const msg = `Ciao ${nomeDa}! 👋\n${mioNome} ti ricorda che per "${viaggio?.nome || 'il viaggio'}" devi ancora ${cur}${importo.toFixed(2)} a ${nomeA}. Quando puoi! 😊\n\n(Gestito con Listando — https://listando.it)`;
+
+    // Cerca metodi di pagamento del creditore (nomeA)
+    const partA = partecipantiAttuali.find(p => p.nome === nomeA);
+    const profiloA = partA?.email_collegata ? fotoProfili[partA.email_collegata] : null;
+    const metodi = [];
+    if (profiloA?.iban)      metodi.push(`🏦 IBAN: ${profiloA.iban}`);
+    if (profiloA?.paypal)    metodi.push(`🅿️ PayPal: ${profiloA.paypal}`);
+    if (profiloA?.satispay)  metodi.push(`🔴 Satispay: ${profiloA.satispay}`);
+    const metodiStr = metodi.length ? `\n\nCome pagare ${nomeA}:\n${metodi.join('\n')}` : '';
+
+    const msg = `Ciao ${nomeDa}! 👋\n${mioNome} ti ricorda che per "${viaggio?.nome || 'il viaggio'}" devi ancora ${cur}${importo.toFixed(2)} a ${nomeA}. Quando puoi! 😊${metodiStr}\n\n(Gestito con Listando — https://listando.it)`;
     if (navigator.share) {
         try { await navigator.share({ text: msg }); return; } catch(e) {}
     }
@@ -2279,7 +2289,7 @@ async function caricaFotoProfili() {
     try {
         // Valori in in.() non vanno URL-encoded — @ codificato come %40 non matcha
         const inList = emails.map(e => `"${e}"`).join(',');
-        const rows = await apiGetArr(`/profili?email_utente=in.(${inList})&select=email_utente,nome,cognome,foto`);
+        const rows = await apiGetArr(`/profili?email_utente=in.(${inList})&select=email_utente,nome,cognome,foto,iban,paypal,satispay`);
         fotoProfili = {};
         rows.forEach(r => fotoProfili[r.email_utente] = r);
     } catch(e) { fotoProfili = {}; }
