@@ -272,6 +272,10 @@
         .toast { position: fixed; bottom: 105px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--dark); color: white; padding: 12px 20px; border-radius: 14px; font-weight: 700; font-size: 14px; opacity: 0; transition: all 0.25s; white-space: nowrap; z-index: 9999; pointer-events: none; }
         .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
+        .algo-toggle { display: flex; background: var(--grey-light); border-radius: 14px; padding: 4px; gap: 2px; margin-bottom: 14px; }
+        .algo-btn { flex: 1; padding: 9px 4px; border-radius: 10px; border: none; font-weight: 800; font-size: 12px; cursor: pointer; background: transparent; color: #888; font-family: inherit; transition: all 0.2s; }
+        .algo-btn.active { background: var(--white); color: var(--dark); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+
         /* full emoji picker */
         .emoji-cat-tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 10px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
         .emoji-cat-tabs::-webkit-scrollbar { display: none; }
@@ -493,6 +497,10 @@
 
         <!-- TAB SALDI -->
         <div id="tabSaldi" style="display:none">
+            <div class="algo-toggle">
+                <button class="algo-btn active" id="algoBtn1" onclick="setSettlAlgo('1')">Minimo trasferimenti</button>
+                <button class="algo-btn" id="algoBtn2" onclick="setSettlAlgo('2')">Un pagamento a testa</button>
+            </div>
             <div id="contenutoSaldi"></div>
         </div>
 
@@ -1172,6 +1180,7 @@ function populateCurrencySelects(...ids) {
 }
 
 let viaggi = [], viaggioCorrenteId = null, partecipantiAttuali = [];
+let settlAlgo = localStorage.getItem('listando_settl_algo') || '1';
 let speseAttuali = [], fotoProfili = {}, tabAttiva = 'spese';
 let saldiServer = null, _speseGrezze = [];
 let emojiViaggioScelta = '✈️', nuoviPart = [], pagatoreScelto = null;
@@ -1873,7 +1882,9 @@ function renderSaldi() {
     });
     }
 
-    const transazioni = calcolaSettlement(bilanci);
+    document.getElementById('algoBtn1')?.classList.toggle('active', settlAlgo === '1');
+    document.getElementById('algoBtn2')?.classList.toggle('active', settlAlgo === '2');
+    const transazioni = settlAlgo === '2' ? calcolaSettlementHub(bilanci) : calcolaSettlement(bilanci);
     const debitiDi = {}, creditiDa = {};
     partecipantiAttuali.forEach(p => { debitiDi[p.id] = []; creditiDa[p.id] = []; });
     transazioni.forEach(t => {
@@ -2022,6 +2033,45 @@ function calcolaSettlement(bilanci) {
         if (c.saldo < 0.01) creditori.shift();
         if (d.saldo < 0.01) debitori.shift();
     }
+    return res;
+}
+
+function setSettlAlgo(algo) {
+    settlAlgo = algo;
+    localStorage.setItem('listando_settl_algo', algo);
+    renderSaldi();
+}
+
+// Hub-and-spoke: ogni debitore fa UN solo pagamento al creditore principale,
+// che poi redistribuisce il surplus agli altri creditori.
+function calcolaSettlementHub(bilanci) {
+    const creditori = [], debitori = [];
+    Object.entries(bilanci).forEach(([id, saldo]) => {
+        const p = partecipantiAttuali.find(x => x.id == id);
+        const nome = p ? p.nome : `P${id}`;
+        if (saldo > 0.01) creditori.push({ nome, saldo });
+        else if (saldo < -0.01) debitori.push({ nome, saldo: -saldo });
+    });
+    if (!creditori.length || !debitori.length) return [];
+    creditori.sort((a, b) => b.saldo - a.saldo);
+    debitori.sort((a, b) => b.saldo - a.saldo);
+
+    const hub = creditori[0];
+    const res = [];
+
+    // tutti i debitori pagano solo l'hub
+    debitori.forEach(d => {
+        res.push({ da: d.nome, a: hub.nome, importo: Math.round(d.saldo * 100) / 100 });
+    });
+
+    // l'hub redistribuisce il surplus agli altri creditori
+    let surplus = debitori.reduce((s, d) => s + d.saldo, 0) - hub.saldo;
+    for (let i = 1; i < creditori.length && surplus > 0.01; i++) {
+        const amt = Math.min(creditori[i].saldo, surplus);
+        res.push({ da: hub.nome, a: creditori[i].nome, importo: Math.round(amt * 100) / 100 });
+        surplus -= amt;
+    }
+
     return res;
 }
 
