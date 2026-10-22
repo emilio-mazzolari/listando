@@ -102,14 +102,15 @@
         .storico-testo { font-size: 13px; font-weight: 700; color: var(--dark); }
         .storico-data { font-size: 11px; color: #bbb; font-weight: 600; margin-top: 2px; }
         .storico-importo { font-size: 13px; font-weight: 900; color: #888; flex-shrink: 0; }
-        .transazione-top { display: flex; align-items: center; gap: 8px; width: 100%; }
+        .transazione-top { display: flex; align-items: center; gap: 6px; width: 100%; }
         .transazione-card .da { color: var(--red); font-weight: 900; }
         .transazione-card .a { color: var(--green); font-weight: 900; }
         .transazione-card .importo { margin-left: auto; font-weight: 900; font-size: 16px; }
-        .transazione-btns { display: flex; gap: 6px; width: 100%; margin-top: 8px; }
-        .btn-pagato { flex: 1; padding: 9px 6px; border-radius: 10px; border: none; background: var(--green); color: white; font-weight: 900; font-size: 12px; cursor: pointer; white-space: nowrap; }
-        .btn-abbuona { flex: 1; padding: 9px 6px; border-radius: 10px; border: 2px solid var(--grey); background: var(--white); color: #888; font-weight: 900; font-size: 12px; cursor: pointer; white-space: nowrap; }
-        .btn-richiedi { flex: 1; padding: 9px 6px; border-radius: 10px; border: none; background: #5856d6; color: white; font-weight: 900; font-size: 12px; cursor: pointer; white-space: nowrap; }
+        .transazione-arrow { color: #bbb; font-size: 16px; }
+        .transazione-btns { display: flex; gap: 8px; width: 100%; margin-top: 10px; }
+        .btn-pagato { flex: 1; padding: 11px 8px; border-radius: 12px; border: none; background: var(--green); color: white; font-weight: 900; font-size: 13px; cursor: pointer; }
+        .btn-abbuona { flex: 1; padding: 11px 8px; border-radius: 12px; border: 2px solid var(--grey); background: var(--white); color: #888; font-weight: 900; font-size: 13px; cursor: pointer; }
+        .btn-richiedi { flex: 1; padding: 11px 8px; border-radius: 12px; border: none; background: #5856d6; color: white; font-weight: 900; font-size: 13px; cursor: pointer; }
 
         /* stats */
         .stat-box { background: var(--white); border-radius: 16px; padding: 16px; margin-bottom: 10px; box-shadow: var(--shadow); }
@@ -272,9 +273,18 @@
         .toast { position: fixed; bottom: 105px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--dark); color: white; padding: 12px 20px; border-radius: 14px; font-weight: 700; font-size: 14px; opacity: 0; transition: all 0.25s; white-space: nowrap; z-index: 9999; pointer-events: none; }
         .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-        .algo-toggle { display: flex; background: var(--grey-light); border-radius: 14px; padding: 4px; gap: 2px; margin-bottom: 14px; }
+        .algo-toggle { display: flex; background: var(--grey-light); border-radius: 14px; padding: 4px; gap: 2px; margin-bottom: 10px; }
         .algo-btn { flex: 1; padding: 9px 4px; border-radius: 10px; border: none; font-weight: 800; font-size: 12px; cursor: pointer; background: transparent; color: #888; font-family: inherit; transition: all 0.2s; }
         .algo-btn.active { background: var(--white); color: var(--dark); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .algo-box { background: var(--white); border-radius: 16px; padding: 14px 16px; margin-bottom: 14px; box-shadow: var(--shadow); }
+        .algo-box-title { font-size: 13px; font-weight: 900; color: var(--dark); margin-bottom: 4px; }
+        .algo-box-sub { font-size: 12px; color: #888; font-weight: 600; margin-bottom: 12px; line-height: 1.4; }
+        .btn-conferma-algo { width: 100%; padding: 13px; border-radius: 14px; border: none; background: var(--accent); color: white; font-weight: 900; font-size: 14px; cursor: pointer; font-family: inherit; }
+        .algo-badge { display: flex; align-items: center; gap: 10px; background: var(--grey-light); border-radius: 12px; padding: 10px 14px; margin-bottom: 14px; }
+        .algo-badge-label { flex: 1; font-size: 13px; font-weight: 800; color: var(--dark); }
+        .algo-badge-val { font-size: 12px; font-weight: 900; color: var(--accent); }
+        .algo-change-btn { font-size: 11px; font-weight: 800; padding: 5px 10px; border-radius: 8px; border: 1.5px solid var(--grey); background: var(--white); cursor: pointer; color: #888; font-family: inherit; }
+        .algo-waiting { background: #fffbeb; border: 1.5px solid #fcd34d; border-radius: 14px; padding: 14px 16px; margin-bottom: 14px; font-size: 13px; font-weight: 700; color: #92400e; line-height: 1.5; }
 
         /* full emoji picker */
         .emoji-cat-tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 10px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
@@ -497,10 +507,7 @@
 
         <!-- TAB SALDI -->
         <div id="tabSaldi" style="display:none">
-            <div class="algo-toggle">
-                <button class="algo-btn active" id="algoBtn1" onclick="setSettlAlgo('1')">Minimo trasferimenti</button>
-                <button class="algo-btn" id="algoBtn2" onclick="setSettlAlgo('2')">Un pagamento a testa</button>
-            </div>
+            <div id="algoUi"></div>
             <div id="contenutoSaldi"></div>
         </div>
 
@@ -1844,17 +1851,46 @@ function renderSaldi() {
     const el = document.getElementById('contenutoSaldi');
     if (!partecipantiAttuali.length) { el.innerHTML = `<div class="empty-msg">Aggiungi prima dei partecipanti.</div>`; return; }
 
+    const viaggio = viaggi.find(v => v.id === viaggioCorrenteId);
+    const sonoCreatore = (viaggio?.email_utente || '').toLowerCase() === _me();
+    const algoConfermato = viaggio?.settl_algo || null; // null = non ancora scelto
+
+    // ── UI scelta algoritmo ──────────────────────────────────────────
+    const algoEl = document.getElementById('algoUi');
+    if (algoEl) {
+        if (!algoConfermato && sonoCreatore) {
+            algoEl.innerHTML = `<div class="algo-box">
+                <div class="algo-box-title">Scegli il metodo di pareggio</div>
+                <div class="algo-box-sub">Una volta confermato, i partecipanti potranno eseguire i bonifici.</div>
+                <div class="algo-toggle">
+                    <button class="algo-btn ${settlAlgo==='1'?'active':''}" id="algoBtn1" onclick="setSettlAlgo('1')">Minimo trasferimenti</button>
+                    <button class="algo-btn ${settlAlgo==='2'?'active':''}" id="algoBtn2" onclick="setSettlAlgo('2')">Un pagamento a testa</button>
+                </div>
+                <button class="btn-conferma-algo" onclick="confermaAlgo()">✓ Conferma metodo</button>
+            </div>`;
+        } else if (!algoConfermato && !sonoCreatore) {
+            const nomeCreatore = viaggio?.nome ? '' : '';
+            algoEl.innerHTML = `<div class="algo-waiting">⏳ Il creatore del viaggio non ha ancora scelto il metodo di pareggio. I saldi saranno disponibili non appena verrà confermato.</div>`;
+        } else if (algoConfermato) {
+            const label = algoConfermato === '2' ? 'Un pagamento a testa' : 'Minimo trasferimenti';
+            algoEl.innerHTML = `<div class="algo-badge">
+                <span class="algo-badge-label">Metodo pareggio</span>
+                <span class="algo-badge-val">${label}</span>
+                ${sonoCreatore ? `<button class="algo-change-btn" onclick="cambiaAlgo()">Modifica</button>` : ''}
+            </div>`;
+        }
+    }
+
+    // ── Calcolo bilanci ──────────────────────────────────────────────
     const bilanci = {}, pagati = {}, quote = {};
     partecipantiAttuali.forEach(p => { bilanci[p.id] = 0; pagati[p.id] = 0; quote[p.id] = 0; });
 
     const _vediCome = isAdmin() && vediComeId;
     if (saldiServer === RPC_ERRORE && !_vediCome) {
-        // Senza i totali dal database i saldi sarebbero sbagliati (mancano le spese non visibili)
         el.innerHTML = `<div class="empty-msg">Saldi non disponibili ora (serve la connessione).<br><a href="#" onclick="event.preventDefault(); caricaSpese().then(renderSaldi)" style="color:var(--accent)">Riprova</a></div>`;
         return;
     }
     if (saldiServer && !_vediCome) {
-        // Saldi calcolati dal database su tutte le spese del viaggio (solo totali per persona)
         saldiServer.forEach(r => {
             const k = r.partecipante_id;
             bilanci[k] = (bilanci[k] || 0) + parseFloat(r.bilancio || 0);
@@ -1862,37 +1898,36 @@ function renderSaldi() {
             quote[k]   = (quote[k]   || 0) + parseFloat(r.quota    || 0);
         });
     } else {
-    // Funzione sv_saldi non ancora installata: calcolo locale come prima
-    const SALDI_CONTABILI = new Set(['🤝', '💸']);
-    // In "Vedi come" il punto di vista è quello del partecipante scelto
-    const mieiIds = _vediCome ? [String(vediComeId)] : mieiPartecipanti(partecipantiAttuali);
-    _speseGrezze.forEach(s => {
-        const divisione = JSON.parse(s.divisione || '[]');
-        if (!divisione.length) return;
-        const quotePer = calcolaQuotePer(s);
-        const isContabile = SALDI_CONTABILI.has(_catEmoji(s));
-        // Le spese personali degli altri non compaiono in "Pagato/Quota" (non spostano i debiti)
-        const nelRiepilogo = !isContabile && (!isSpesaPersonale(s) || mieiIds.includes(String(s.pagato_da)) || (isAdmin() && !_vediCome));
-        bilanci[s.pagato_da] = (bilanci[s.pagato_da] || 0) + parseFloat(s.importo);
-        if (nelRiepilogo) pagati[s.pagato_da] = (pagati[s.pagato_da] || 0) + parseFloat(s.importo);
-        divisione.forEach(pid => {
-            bilanci[pid] = (bilanci[pid] || 0) - (quotePer[pid] || 0);
-            if (nelRiepilogo) quote[pid] = (quote[pid] || 0) + (quotePer[pid] || 0);
+        const SALDI_CONTABILI = new Set(['🤝', '💸']);
+        const mieiIds = _vediCome ? [String(vediComeId)] : mieiPartecipanti(partecipantiAttuali);
+        _speseGrezze.forEach(s => {
+            const divisione = JSON.parse(s.divisione || '[]');
+            if (!divisione.length) return;
+            const quotePer = calcolaQuotePer(s);
+            const isContabile = SALDI_CONTABILI.has(_catEmoji(s));
+            const nelRiepilogo = !isContabile && (!isSpesaPersonale(s) || mieiIds.includes(String(s.pagato_da)) || (isAdmin() && !_vediCome));
+            bilanci[s.pagato_da] = (bilanci[s.pagato_da] || 0) + parseFloat(s.importo);
+            if (nelRiepilogo) pagati[s.pagato_da] = (pagati[s.pagato_da] || 0) + parseFloat(s.importo);
+            divisione.forEach(pid => {
+                bilanci[pid] = (bilanci[pid] || 0) - (quotePer[pid] || 0);
+                if (nelRiepilogo) quote[pid] = (quote[pid] || 0) + (quotePer[pid] || 0);
+            });
         });
-    });
     }
 
-    document.getElementById('algoBtn1')?.classList.toggle('active', settlAlgo === '1');
-    document.getElementById('algoBtn2')?.classList.toggle('active', settlAlgo === '2');
-    const transazioni = settlAlgo === '2' ? calcolaSettlementHub(bilanci) : calcolaSettlement(bilanci);
+    // ── Settlement (solo se algo confermato) ────────────────────────
+    const algoEffettivo = algoConfermato || settlAlgo;
+    const transazioni = algoEffettivo === '2' ? calcolaSettlementHub(bilanci) : calcolaSettlement(bilanci);
     const debitiDi = {}, creditiDa = {};
     partecipantiAttuali.forEach(p => { debitiDi[p.id] = []; creditiDa[p.id] = []; });
-    transazioni.forEach(t => {
-        const pDa = partecipantiAttuali.find(p => p.nome === t.da);
-        const pA  = partecipantiAttuali.find(p => p.nome === t.a);
-        if (pDa) debitiDi[pDa.id].push({ a: t.a, importo: t.importo });
-        if (pA)  creditiDa[pA.id].push({ da: t.da, importo: t.importo });
-    });
+    if (algoConfermato) {
+        transazioni.forEach(t => {
+            const pDa = partecipantiAttuali.find(p => p.nome === t.da);
+            const pA  = partecipantiAttuali.find(p => p.nome === t.a);
+            if (pDa) debitiDi[pDa.id].push({ a: t.a, importo: t.importo });
+            if (pA)  creditiDa[pA.id].push({ da: t.da, importo: t.importo });
+        });
+    }
 
     const cur = symb(viaggioCorrenteValuta);
     let html = partecipantiAttuali.map(p => {
@@ -1903,9 +1938,11 @@ function renderSaldi() {
         const fp = p.email_collegata ? fotoProfili[p.email_collegata] : null;
         const valStr = netto > 0.01 ? `+${cur}${netto.toFixed(2)}` : netto < -0.01 ? `-${cur}${Math.abs(netto).toFixed(2)}` : `${cur}0`;
         let dettaglio = '';
-        if (debitiDi[p.id].length) dettaglio = debitiDi[p.id].map(d => `📤 Deve <strong>${cur}${d.importo.toFixed(2)}</strong> a ${d.a}`).join('<br>');
-        else if (creditiDa[p.id].length) dettaglio = creditiDa[p.id].map(c => `📥 Riceve <strong>${cur}${c.importo.toFixed(2)}</strong> da ${c.da}`).join('<br>');
-        else if (speseAttuali.length > 0) dettaglio = '✅ In pari';
+        if (algoConfermato) {
+            if (debitiDi[p.id].length) dettaglio = debitiDi[p.id].map(d => `📤 Deve <strong>${cur}${d.importo.toFixed(2)}</strong> a ${d.a}`).join('<br>');
+            else if (creditiDa[p.id].length) dettaglio = creditiDa[p.id].map(c => `📥 Riceve <strong>${cur}${c.importo.toFixed(2)}</strong> da ${c.da}`).join('<br>');
+            else if (speseAttuali.length > 0) dettaglio = '✅ In pari';
+        }
         return `<div class="saldo-card ${cls}">
             ${avatarHtml(p.nome, fp?.foto || null, 38)}
             <div class="saldo-body">
@@ -1917,26 +1954,36 @@ function renderSaldi() {
         </div>`;
     }).join('');
 
-    if (transazioni.length) {
+    if (algoConfermato && transazioni.length) {
+        const mioNome = partecipantiAttuali.find(p => (p.email_collegata || '').toLowerCase() === _me())?.nome || null;
         html += `<div class="sezione-titolo">Come pareggiare</div>`;
-        html += transazioni.map(t =>
-            `<div class="transazione-card">
+        html += transazioni.map(t => {
+            const sonoDebitore  = mioNome === t.da;
+            const sonoCreditor  = mioNome === t.a;
+            let btns = '';
+            if (sonoDebitore) {
+                btns = `<div class="transazione-btns"><button class="btn-pagato" onclick="segnaPagato('${t.da}','${t.a}',${t.importo})">✓ Ho pagato</button></div>`;
+            } else if (sonoCreditor) {
+                btns = `<div class="transazione-btns">
+                    <button class="btn-richiedi" onclick="richiediPagamento('${t.da}','${t.a}',${t.importo})">📤 Richiedi</button>
+                    <button class="btn-abbuona" onclick="abbuonaDebito('${t.da}','${t.a}',${t.importo})">🤝 A posto</button>
+                </div>`;
+            }
+            return `<div class="transazione-card">
                 <div class="transazione-top">
-                    📤 <span class="da">${t.da}</span> → <span class="a">${t.a}</span>
+                    <span class="da">${t.da}</span>
+                    <span class="transazione-arrow">→</span>
+                    <span class="a">${t.a}</span>
                     <span class="importo">${cur}${t.importo.toFixed(2)}</span>
                 </div>
-                <div class="transazione-btns">
-                    <button class="btn-pagato" onclick="segnaPagato('${t.da}','${t.a}',${t.importo})">✓ Pagato</button>
-                    <button class="btn-abbuona" onclick="abbuonaDebito('${t.da}','${t.a}',${t.importo})">🤝 A posto</button>
-                    <button class="btn-richiedi" onclick="richiediPagamento('${t.da}','${t.a}',${t.importo})">📤 Richiedi</button>
-                </div>
-            </div>`
-        ).join('');
-    } else if (speseAttuali.length > 0) {
+                ${btns}
+            </div>`;
+        }).join('');
+    } else if (algoConfermato && speseAttuali.length > 0) {
         html += `<div class="sezione-titolo">Tutto in pari! ✓</div>`;
     }
 
-    // Storico pareggi (voci 🤝 e 💸 create dai bottoni Saldi)
+    // Storico pareggi
     const storicoVoci = speseAttuali.filter(s => s.categoria === '🤝' || s.categoria === '💸');
     if (storicoVoci.length) {
         html += `<div class="sezione-titolo">Storico pareggi</div><div class="items-wrap">`;
@@ -1962,6 +2009,24 @@ function renderSaldi() {
     }
 
     el.innerHTML = html;
+}
+
+async function confermaAlgo() {
+    const v = viaggi.find(x => x.id === viaggioCorrenteId);
+    if (!v) return;
+    await apiPatch(`/sv_viaggi?id=eq.${viaggioCorrenteId}`, { settl_algo: settlAlgo });
+    v.settl_algo = settlAlgo;
+    renderSaldi();
+    toast('✓ Metodo di pareggio confermato');
+}
+
+async function cambiaAlgo() {
+    if (!confirm('Modificare il metodo di pareggio? I partecipanti non potranno più effettuare saldi finché non riconfermi.')) return;
+    const v = viaggi.find(x => x.id === viaggioCorrenteId);
+    if (!v) return;
+    await apiPatch(`/sv_viaggi?id=eq.${viaggioCorrenteId}`, { settl_algo: null });
+    v.settl_algo = null;
+    renderSaldi();
 }
 
 async function segnaPagato(nomeDa, nomeA, importo) {

@@ -172,6 +172,7 @@ const STATEMENTS = [
     `ALTER TABLE profili ADD COLUMN IF NOT EXISTS paypal text`,
     `ALTER TABLE profili ADD COLUMN IF NOT EXISTS satispay text`,
     `ALTER TABLE app_feedback ADD COLUMN IF NOT EXISTS risposta text`,
+    `ALTER TABLE sv_viaggi ADD COLUMN IF NOT EXISTS settl_algo text`,
     `DO $$ BEGIN
         IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='objects' AND schemaname='storage' AND policyname='allow upload vendita-foto') THEN
             CREATE POLICY "allow upload vendita-foto" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'vendita-foto');
