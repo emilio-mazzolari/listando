@@ -111,6 +111,14 @@
         .btn-pagato { flex: 1; padding: 11px 8px; border-radius: 12px; border: none; background: var(--green); color: white; font-weight: 900; font-size: 13px; cursor: pointer; }
         .btn-abbuona { flex: 1; padding: 11px 8px; border-radius: 12px; border: 2px solid var(--grey); background: var(--white); color: #888; font-weight: 900; font-size: 13px; cursor: pointer; }
         .btn-richiedi { flex: 1; padding: 11px 8px; border-radius: 12px; border: none; background: #5856d6; color: white; font-weight: 900; font-size: 13px; cursor: pointer; }
+        .creditore-tap { cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; }
+        .creditore-chevron { font-size: 11px; opacity: 0.6; }
+        .metodi-panel { margin: 8px 0 2px; border-radius: 10px; background: var(--grey-light); padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+        .metodo-riga { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+        .metodo-ico { font-size: 16px; flex-shrink: 0; }
+        .metodo-label { font-weight: 800; color: #888; font-size: 11px; width: 56px; flex-shrink: 0; }
+        .metodo-val { font-weight: 700; color: var(--dark); word-break: break-all; }
+        .metodi-vuoti { font-size: 12px; font-weight: 600; color: #aaa; text-align: center; padding: 2px 0; }
 
         /* stats */
         .stat-box { background: var(--white); border-radius: 16px; padding: 16px; margin-bottom: 10px; box-shadow: var(--shadow); }
@@ -1958,7 +1966,7 @@ function renderSaldi() {
     if (algoConfermato && transazioni.length) {
         const mioNome = partecipantiAttuali.find(p => (p.email_collegata || '').toLowerCase() === _me())?.nome || null;
         html += `<div class="sezione-titolo">Come pareggiare</div>`;
-        html += transazioni.map(t => {
+        html += transazioni.map((t, idx) => {
             const sonoDebitore  = mioNome === t.da;
             const sonoCreditor  = mioNome === t.a;
             let btns = '';
@@ -1970,13 +1978,15 @@ function renderSaldi() {
                     <button class="btn-abbuona" onclick="abbuonaDebito('${t.da}','${t.a}',${t.importo})">🤝 A posto</button>
                 </div>`;
             }
+            const panelId = `metodi-panel-${viaggioCorrenteId}-${idx}`;
             return `<div class="transazione-card">
                 <div class="transazione-top">
                     <span class="da">${t.da}</span>
                     <span class="transazione-arrow">→</span>
-                    <span class="a">${t.a}</span>
+                    <span class="a creditore-tap" onclick="toggleMetodiPagamento('${t.a.replace(/'/g,"\\'")}','${panelId}')">${t.a} <span class="creditore-chevron">▾</span></span>
                     <span class="importo">${cur}${t.importo.toFixed(2)}</span>
                 </div>
+                <div id="${panelId}" class="metodi-panel" style="display:none"></div>
                 ${btns}
             </div>`;
         }).join('');
@@ -2019,6 +2029,29 @@ async function confermaAlgo() {
     v.settl_algo = settlAlgo;
     renderSaldi();
     toast('✓ Metodo di pareggio confermato');
+}
+
+function toggleMetodiPagamento(nomeA, panelId) {
+    const panel = document.getElementById(panelId);
+    if (!panel) return;
+    if (panel.style.display !== 'none') { panel.style.display = 'none'; return; }
+
+    const part = partecipantiAttuali.find(p => p.nome === nomeA);
+    const profilo = part?.email_collegata ? fotoProfili[part.email_collegata] : null;
+    const iban     = profilo?.iban?.trim()     || '';
+    const paypal   = profilo?.paypal?.trim()   || '';
+    const satispay = profilo?.satispay?.trim() || '';
+
+    let inner = '';
+    if (!iban && !paypal && !satispay) {
+        inner = `<div class="metodi-vuoti">${nomeA} non ha ancora inserito metodi di pagamento.</div>`;
+    } else {
+        if (iban)     inner += `<div class="metodo-riga"><span class="metodo-ico">🏦</span><span class="metodo-label">IBAN</span><span class="metodo-val">${iban}</span></div>`;
+        if (paypal)   inner += `<div class="metodo-riga"><span class="metodo-ico">🅿️</span><span class="metodo-label">PayPal</span><span class="metodo-val">${paypal}</span></div>`;
+        if (satispay) inner += `<div class="metodo-riga"><span class="metodo-ico">🔴</span><span class="metodo-label">Satispay</span><span class="metodo-val">${satispay}</span></div>`;
+    }
+    panel.innerHTML = inner;
+    panel.style.display = 'block';
 }
 
 async function cambiaAlgo() {
