@@ -188,6 +188,14 @@
         .fb-from { font-size:11px; color:#888; font-weight:700; }
         .fb-data { font-size:11px; color:#bbb; font-weight:600; margin-left:auto; }
         .fb-text { font-size:13px; font-weight:600; color:#444; line-height:1.5; white-space:pre-wrap; }
+        .fb-actions { display:flex; gap:8px; margin-top:10px; }
+        .fb-btn { padding:7px 13px; border-radius:10px; border:none; font-size:12px; font-weight:800; cursor:pointer; font-family:inherit; transition:all 0.15s; }
+        .fb-btn.reply { background:#f0f9ff; color:#0ea5e9; }
+        .fb-btn.del   { background:#fff0f0; color:var(--red); }
+        .fb-reply-box { margin-top:10px; display:none; }
+        .fb-reply-box textarea { width:100%; border:2px solid #0ea5e9; border-radius:12px; padding:10px 12px; font-size:13px; font-family:inherit; resize:none; outline:none; line-height:1.5; box-sizing:border-box; }
+        .fb-reply-send { margin-top:6px; width:100%; padding:10px; border-radius:10px; border:none; background:#0ea5e9; color:white; font-weight:900; font-size:13px; cursor:pointer; font-family:inherit; }
+        .fb-risposta { margin-top:8px; background:#f0f9ff; border-radius:10px; padding:8px 12px; font-size:12px; color:#0369a1; font-weight:700; line-height:1.5; }
     </style>
 </head>
 <body>
@@ -933,26 +941,85 @@ async function caricaContattoFeedback() {
 
 async function apriAdminFeedback() {
     document.getElementById('sheetAdminFeedback').classList.add('open');
+    await renderAdminFeedback();
+}
+
+async function renderAdminFeedback() {
     document.getElementById('adminFeedbackList').innerHTML = '<div style="text-align:center;color:#aaa;padding:20px">Caricamento…</div>';
     const res = await fetch(`${URL_S}/app_feedback?order=created_at.desc`, { headers: _HR });
     const items = res.ok ? await res.json() : [];
     if (!items.length) {
         document.getElementById('adminFeedbackList').innerHTML = '<div style="text-align:center;color:#aaa;padding:20px;font-weight:700">Nessun feedback ricevuto</div>';
+        caricaContattoFeedback();
         return;
     }
     document.getElementById('adminFeedbackList').innerHTML = items.map(f => {
         const d = new Date(f.created_at);
         const data = d.toLocaleDateString('it-IT', { day:'2-digit', month:'2-digit', year:'2-digit' }) +
                      ' ' + d.toLocaleTimeString('it-IT', { hour:'2-digit', minute:'2-digit' });
-        return `<div class="fb-item">
+        const rispostaHtml = f.risposta
+            ? `<div class="fb-risposta">↩ Risposta inviata: ${f.risposta.replace(/</g,'&lt;')}</div>`
+            : '';
+        return `<div class="fb-item" id="fbi-${f.id}">
             <div class="fb-item-meta">
                 <span class="fb-chip ${f.tipo}">${f.tipo === 'errore' ? '🐛 Errore' : '💡 Suggerimento'}</span>
                 <span class="fb-from">${f.email_utente}</span>
                 <span class="fb-data">${data}</span>
             </div>
             <div class="fb-text">${f.testo.replace(/</g,'&lt;')}</div>
+            ${rispostaHtml}
+            <div class="fb-actions">
+                <button class="fb-btn reply" onclick="toggleRisposta(${f.id})">↩ Rispondi</button>
+                <button class="fb-btn del" onclick="eliminaFeedback(${f.id})">🗑 Elimina</button>
+            </div>
+            <div class="fb-reply-box" id="fbr-${f.id}">
+                <textarea rows="3" placeholder="Scrivi la tua risposta…" id="fbrt-${f.id}"></textarea>
+                <button class="fb-reply-send" onclick="inviaRisposta(${f.id},'${f.email_utente.replace(/'/g,"\\'")}')">Invia risposta</button>
+            </div>
         </div>`;
     }).join('');
+    caricaContattoFeedback();
+}
+
+function toggleRisposta(id) {
+    const box = document.getElementById(`fbr-${id}`);
+    const show = box.style.display !== 'block';
+    box.style.display = show ? 'block' : 'none';
+    if (show) box.querySelector('textarea').focus();
+}
+
+async function eliminaFeedback(id) {
+    if (!confirm('Eliminare questo feedback?')) return;
+    await fetch(`${URL_S}/app_feedback?id=eq.${id}`, { method: 'DELETE', headers: _HR });
+    document.getElementById(`fbi-${id}`)?.remove();
+    caricaContattoFeedback();
+    toast('🗑 Feedback eliminato');
+}
+
+async function inviaRisposta(id, email) {
+    const testo = document.getElementById(`fbrt-${id}`)?.value.trim();
+    if (!testo) return;
+    const btn = document.querySelector(`#fbr-${id} .fb-reply-send`);
+    btn.disabled = true; btn.textContent = 'Invio…';
+    try {
+        const res = await fetch('/api/feedback', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'reply', id, email, risposta: testo })
+        });
+        if (res.ok) {
+            toast('✓ Risposta inviata');
+            document.getElementById(`fbr-${id}`).style.display = 'none';
+            // aggiorna la riga senza ricaricare tutto
+            const existing = document.querySelector(`#fbi-${id} .fb-risposta`);
+            const html = `<div class="fb-risposta">↩ Risposta inviata: ${testo.replace(/</g,'&lt;')}</div>`;
+            if (existing) existing.outerHTML = html;
+            else document.querySelector(`#fbi-${id} .fb-text`).insertAdjacentHTML('afterend', html);
+        } else {
+            toast('Errore invio risposta');
+        }
+    } catch(e) { toast('Errore invio risposta'); }
+    btn.disabled = false; btn.textContent = 'Invia risposta';
 }
 
 function chiudiAdminFeedback() {

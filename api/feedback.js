@@ -26,13 +26,40 @@ module.exports = async function handler(req, res) {
     if (req.method === 'OPTIONS') return res.status(200).end();
     if (req.method !== 'POST') return res.status(405).end();
 
-    const { email, tipo, testo } = req.body || {};
-    if (!email || !testo?.trim()) {
-        return res.status(400).json({ error: 'Payload non valido' });
-    }
+    const { action, email, tipo, testo, id, risposta } = req.body || {};
 
     let sb;
     try { sb = getSb(); } catch (e) { return res.status(500).json({ error: e.message }); }
+
+    // ── Risposta admin a un feedback ───────────────────────────────
+    if (action === 'reply') {
+        if (!id || !email || !risposta?.trim()) return res.status(400).json({ error: 'Payload non valido' });
+        await sb.from('app_feedback').update({ risposta: risposta.trim() }).eq('id', id);
+        if (RESEND_KEY) {
+            await fetch('https://api.resend.com/emails', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    from: 'Emilio — Listando <noreply@listando.it>',
+                    to: email,
+                    subject: 'Risposta al tuo feedback su Listando',
+                    html: `<div style="font-family:sans-serif;max-width:500px;margin:0 auto;padding:24px">
+                        <h3 style="margin:0 0 12px">Ciao! 👋</h3>
+                        <p style="margin:0 0 16px;font-size:15px;line-height:1.6">Ho letto il tuo feedback su Listando e volevo risponderti:</p>
+                        <div style="background:#f0f9ff;border-radius:12px;padding:16px;font-size:15px;line-height:1.6;white-space:pre-wrap;color:#0369a1">${risposta.trim().replace(/</g,'&lt;')}</div>
+                        <p style="margin-top:20px;font-size:13px;color:#888">Grazie per usare Listando!<br>Emilio</p>
+                        <p style="margin-top:8px"><a href="https://listando.it" style="color:#5856d6;font-weight:700">listando.it</a></p>
+                    </div>`
+                })
+            }).catch(() => {});
+        }
+        return res.status(200).json({ ok: true });
+    }
+
+    // ── Nuovo feedback ─────────────────────────────────────────────
+    if (!email || !testo?.trim()) {
+        return res.status(400).json({ error: 'Payload non valido' });
+    }
 
     const tipoSafe = ['suggerimento', 'errore'].includes(tipo) ? tipo : 'suggerimento';
 
