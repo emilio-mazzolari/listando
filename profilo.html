@@ -289,6 +289,9 @@
         <div style="font-size:11px;color:#aaa;font-weight:600;padding:8px 4px 0">
             Visibili agli altri partecipanti dei tuoi viaggi per facilitare i rimborsi.
         </div>
+        <div style="padding: 12px 0 0">
+            <button class="btn-salva" id="btnSalva2" onclick="salvaProfilo()" disabled>SALVA</button>
+        </div>
     </div>
 
     <!-- Notifiche -->
@@ -557,11 +560,15 @@ function aggiornaAvatar() {
 function onCampoChange() {
     aggiornaAvatar();
     const diverso =
-        document.getElementById('fNome').value.trim() !== originali.nome ||
-        document.getElementById('fCognome').value.trim() !== originali.cognome ||
-        document.getElementById('fDataNascita').value !== originali.dataNascita ||
+        document.getElementById('fNome').value.trim()      !== originali.nome ||
+        document.getElementById('fCognome').value.trim()   !== originali.cognome ||
+        document.getElementById('fDataNascita').value      !== originali.dataNascita ||
+        document.getElementById('fIban').value.trim()      !== (originali.iban || '') ||
+        document.getElementById('fPaypal').value.trim()    !== (originali.paypal || '') ||
+        document.getElementById('fSatispay').value.trim()  !== (originali.satispay || '') ||
         fotoCambiata;
-    document.getElementById('btnSalva').disabled = !diverso;
+    document.getElementById('btnSalva').disabled  = !diverso;
+    document.getElementById('btnSalva2').disabled = !diverso;
 }
 
 function onFotoChange(input) {
@@ -598,15 +605,15 @@ async function salvaProfilo() {
     const iban        = document.getElementById('fIban').value.trim();
     const paypal      = document.getElementById('fPaypal').value.trim();
     const satispay    = document.getElementById('fSatispay').value.trim();
-    const btn = document.getElementById('btnSalva');
-    btn.disabled = true;
-    btn.textContent = 'SALVATAGGIO…';
+    const btn  = document.getElementById('btnSalva');
+    const btn2 = document.getElementById('btnSalva2');
+    [btn, btn2].forEach(b => { if(b) { b.disabled = true; b.textContent = 'SALVATAGGIO…'; } });
 
     // 1) Salva sempre su localStorage — funziona senza database
     _salvaLS({ nome, cognome, dataNascita: dataNascita || '', iban, paypal, satispay, foto: fotoBase64 });
     originali = { nome, cognome, dataNascita: dataNascita || '', iban, paypal, satispay };
     fotoCambiata = false;
-    btn.textContent = 'SALVA';
+    [btn, btn2].forEach(b => { if(b) { b.disabled = true; b.textContent = 'SALVA'; } });
     toast('✓ Profilo salvato');
 
     // 2) Prova a sincronizzare su Supabase (silenziosamente)
