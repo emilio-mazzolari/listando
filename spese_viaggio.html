@@ -1861,7 +1861,7 @@ function renderSaldi() {
         if (!algoConfermato && sonoCreatore) {
             algoEl.innerHTML = `<div class="algo-box">
                 <div class="algo-box-title">Scegli il metodo di pareggio</div>
-                <div class="algo-box-sub">Una volta confermato, i partecipanti potranno eseguire i bonifici.</div>
+                <div class="algo-box-sub">Una volta confermato, i partecipanti potranno eseguire i pagamenti.</div>
                 <div class="algo-toggle">
                     <button class="algo-btn ${settlAlgo==='1'?'active':''}" id="algoBtn1" onclick="setSettlAlgo('1')">Minimo trasferimenti</button>
                     <button class="algo-btn ${settlAlgo==='2'?'active':''}" id="algoBtn2" onclick="setSettlAlgo('2')">Un pagamento a testa</button>
@@ -1873,10 +1873,11 @@ function renderSaldi() {
             algoEl.innerHTML = `<div class="algo-waiting">⏳ Il creatore del viaggio non ha ancora scelto il metodo di pareggio. I saldi saranno disponibili non appena verrà confermato.</div>`;
         } else if (algoConfermato) {
             const label = algoConfermato === '2' ? 'Un pagamento a testa' : 'Minimo trasferimenti';
+            const nessunoPagato = !speseAttuali.some(s => s.categoria === '💸' || s.categoria === '🤝');
             algoEl.innerHTML = `<div class="algo-badge">
                 <span class="algo-badge-label">Metodo pareggio</span>
                 <span class="algo-badge-val">${label}</span>
-                ${sonoCreatore ? `<button class="algo-change-btn" onclick="cambiaAlgo()">Modifica</button>` : ''}
+                ${sonoCreatore && nessunoPagato ? `<button class="algo-change-btn" onclick="cambiaAlgo()">Modifica</button>` : ''}
             </div>`;
         }
     }
@@ -2021,7 +2022,7 @@ async function confermaAlgo() {
 }
 
 async function cambiaAlgo() {
-    if (!confirm('Modificare il metodo di pareggio? I partecipanti non potranno più effettuare saldi finché non riconfermi.')) return;
+    if (!confirm('Modificare il metodo di pareggio? I partecipanti non potranno più effettuare pagamenti finché non riconfermi.')) return;
     const v = viaggi.find(x => x.id === viaggioCorrenteId);
     if (!v) return;
     await apiPatch(`/sv_viaggi?id=eq.${viaggioCorrenteId}`, { settl_algo: null });
