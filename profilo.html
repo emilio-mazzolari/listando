@@ -345,7 +345,7 @@
     <div class="settings-group">
         <div class="group-label">Supporto</div>
         <div class="group-card">
-            <div class="row" style="cursor:pointer" onclick="apriFeedback()">
+            <div id="rowInviaFeedback" class="row" style="cursor:pointer" onclick="apriFeedback()">
                 <div class="row-icon" style="background:#f0f9ff">💬</div>
                 <div class="row-body">
                     <div class="row-label">Invia feedback</div>
@@ -942,7 +942,7 @@ async function caricaContattoFeedback() {
     if (res.ok) {
         const items = await res.json();
         const n = Array.isArray(items) ? items.length : 0;
-        document.getElementById('subFeedbackCount').textContent = `${n} messaggio${n === 1 ? '' : 'i'} ricevuto${n === 1 ? '' : 'i'}`;
+        document.getElementById('subFeedbackCount').textContent = n === 1 ? '1 messaggio ricevuto' : `${n} messaggi ricevuti`;
     }
 }
 
@@ -975,9 +975,9 @@ async function renderAdminFeedback() {
             </div>
             <div class="fb-text">${f.testo.replace(/</g,'&lt;')}</div>
             ${rispostaHtml}
-            <div class="fb-actions">
+            <div class="fb-actions" id="fba-${f.id}">
                 <button class="fb-btn reply" onclick="toggleRisposta(${f.id})">↩ Rispondi</button>
-                <button class="fb-btn del" onclick="eliminaFeedback(${f.id})">🗑 Elimina</button>
+                <button class="fb-btn del" onclick="chiediEliminaFeedback(${f.id})">🗑 Elimina</button>
             </div>
             <div class="fb-reply-box" id="fbr-${f.id}">
                 <textarea rows="3" placeholder="Scrivi la tua risposta…" id="fbrt-${f.id}"></textarea>
@@ -995,8 +995,15 @@ function toggleRisposta(id) {
     if (show) box.querySelector('textarea').focus();
 }
 
+function chiediEliminaFeedback(id) {
+    const actions = document.getElementById(`fba-${id}`);
+    if (!actions) return;
+    actions.innerHTML = `<span style="font-size:12px;font-weight:700;color:#888">Eliminare?</span>
+        <button class="fb-btn del" onclick="eliminaFeedback(${id})">Sì, elimina</button>
+        <button class="fb-btn" onclick="renderAdminFeedback()" style="background:var(--grey-light);color:#555">Annulla</button>`;
+}
+
 async function eliminaFeedback(id) {
-    if (!confirm('Eliminare questo feedback?')) return;
     await fetch(`${URL_S}/app_feedback?id=eq.${id}`, { method: 'DELETE', headers: _HR });
     document.getElementById(`fbi-${id}`)?.remove();
     caricaContattoFeedback();
@@ -1035,6 +1042,7 @@ function chiudiAdminFeedback() {
 
 if (userEmail === ADMIN_EMAIL) {
     document.getElementById('rowAdminFeedback').style.display = '';
+    document.getElementById('rowInviaFeedback').style.display = 'none';
     caricaContattoFeedback();
 }
 </script>
