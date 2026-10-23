@@ -459,8 +459,7 @@
 </div>
 
 <!-- Modal: Lista feedback (solo admin) -->
-<div class="sheet-overlay" id="sheetAdminFeedback">
-    <div class="sheet-backdrop" onclick="chiudiAdminFeedback()"></div>
+<div class="sheet-overlay" id="sheetAdminFeedback" onclick="if(!event.target.closest('.sheet-box'))chiudiAdminFeedback()">
     <div class="sheet-box">
         <div class="sheet-handle"></div>
         <div class="sheet-title">📬 Feedback ricevuti</div>
@@ -469,8 +468,7 @@
 </div>
 
 <!-- Modal: Admin iscritti (solo admin) -->
-<div class="sheet-overlay" id="sheetAdminIscritti">
-    <div class="sheet-backdrop" onclick="chiudiAdminIscritti()"></div>
+<div class="sheet-overlay" id="sheetAdminIscritti" onclick="if(!event.target.closest('.sheet-box'))chiudiAdminIscritti()">
     <div class="sheet-box">
         <div class="sheet-handle"></div>
         <div class="sheet-title">👥 Iscritti a Listando</div>

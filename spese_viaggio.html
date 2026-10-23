@@ -2019,8 +2019,8 @@ function renderSaldi() {
         html += `<div class="sezione-titolo">Tutto in pari! ✓</div>`;
     }
 
-    // Storico pareggi
-    const storicoVoci = speseAttuali.filter(s => s.categoria === '💸');
+    // Storico pareggi (💸 pagamenti reali + 🤝 abbuonati)
+    const storicoVoci = speseAttuali.filter(s => s.categoria === '💸' || s.categoria === '🤝');
     if (storicoVoci.length) {
         const rigaStorico = (s) => {
             const pag = partecipantiAttuali.find(p => p.id == s.pagato_da);
@@ -2031,10 +2031,15 @@ function renderSaldi() {
         };
         const _righeStorico = storicoVoci.map(s => {
             const { pag, dest, dataFmt, importo } = rigaStorico(s);
+            const isPag = s.categoria === '💸';
+            // 💸: pag=pagatore, dest=ricevente | 🤝: pag=debitore, dest=creditore che ha abbuonato
+            const testo = isPag
+                ? `${pag?.nome || '?'} ha pagato ${dest?.nome || '?'}`
+                : `${dest?.nome || '?'} ha abbuonato ${pag?.nome || '?'}`;
             return `<div class="storico-riga">
-                <span class="storico-icon">💸</span>
+                <span class="storico-icon">${s.categoria}</span>
                 <div class="storico-body">
-                    <div class="storico-testo">${pag?.nome || '?'} ha pagato ${dest?.nome || '?'}</div>
+                    <div class="storico-testo">${testo}</div>
                     ${dataFmt ? `<div class="storico-data">${dataFmt}</div>` : ''}
                 </div>
                 <span class="storico-importo">${cur}${importo.toFixed(2)}</span>
