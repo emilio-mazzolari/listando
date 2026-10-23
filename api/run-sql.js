@@ -230,8 +230,13 @@ module.exports = async function handler(req, res) {
     const key = process.env.SUPABASE_SERVICE_KEY;
     if (!key) return res.status(500).json({ error: 'SUPABASE_SERVICE_KEY non configurata' });
 
+    // ?solo=testo esegue soltanto le istruzioni che contengono quel testo
+    const solo = req.query?.solo;
+    const daEseguire = solo ? STATEMENTS.filter(sql => sql.includes(solo)) : STATEMENTS;
+    if (solo && !daEseguire.length) return res.status(400).json({ error: `Nessuna istruzione contiene "${solo}"` });
+
     const results = [];
-    for (const sql of STATEMENTS) {
+    for (const sql of daEseguire) {
         const label = sql.trim().split('\n')[0].slice(0, 60);
         const r = await runSql(key, sql);
         results.push({ sql: label, ok: r.ok, status: r.status, body: r.body });
