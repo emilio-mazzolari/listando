@@ -14,7 +14,7 @@ module.exports = async function handler(req, res) {
 
     const sb = createClient(SUPABASE_URL, key, { auth: { persistSession: false } });
     const { data: a } = await sb.from('vendita_annunci')
-        .select('id, titolo, descrizione, prezzo, condizione, categoria, stato, visibilita, vendita_foto(url,ordine)')
+        .select('*, vendita_foto(url,ordine)')
         .eq('id', id)
         .maybeSingle();
 
@@ -88,6 +88,10 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f5f6f8;color:#111;m
 .meta{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
 .badge{padding:5px 12px;border-radius:8px;font-size:12px;font-weight:800;background:#f0f0f0;color:#555}
 .badge.stato{background:#fee2e2;color:#991b1b}
+.deliv{border:1.5px solid #f2f2f7;border-radius:16px;padding:14px;margin-bottom:20px;font-size:14px;font-weight:700}
+.deliv div{margin-bottom:6px}
+.deliv small{display:block;color:#777;font-weight:600;font-size:12px;margin-bottom:10px}
+.sped{display:block;text-align:center;padding:12px;border-radius:14px;border:2px solid #f97316;background:#fff7ed;color:#c2410c;font-weight:900;text-decoration:none}
 .desc{font-size:15px;line-height:1.6;color:#444;white-space:pre-wrap;margin-bottom:24px}
 .cta{display:block;text-align:center;padding:15px;border-radius:18px;background:#16a34a;color:#fff;font-weight:900;font-size:16px;text-decoration:none}
 .hint{text-align:center;color:#888;font-size:12px;margin-top:10px}
@@ -106,12 +110,27 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f5f6f8;color:#111;m
             ${stato ? `<span class="badge stato">${stato}</span>` : ''}
         </div>
         ${a.descrizione ? `<div class="desc">${esc(a.descrizione)}</div>` : ''}
+        ${consegnaHtml(a)}
         ${a.stato === 'venduto' ? '' : `<a class="cta" href="/vendita.html?annuncio=${a.id}">💬 Contatta il venditore su Listando</a>
         <div class="hint">Per scrivere al venditore accedi o registrati a Listando</div>`}
     </div>
 </div>
 </body>
 </html>`;
+}
+
+function consegnaHtml(a) {
+    const cons = a.consegna || 'ritiro';
+    const luogo = a.luogo ? ` · ${esc(a.luogo)}` : '';
+    let html = '<div class="deliv">';
+    if (cons !== 'spedizione') html += `<div>🤝 Ritiro a mano${luogo}</div>`;
+    if (cons !== 'ritiro') {
+        const pacco = [a.sped_peso ? `${a.sped_peso} kg` : '', a.sped_dimensioni ? `${esc(a.sped_dimensioni)} cm` : ''].filter(Boolean).join(' · ');
+        html += `<div>📦 Spedizione disponibile${cons === 'spedizione' ? luogo : ''}</div>
+            <small>${pacco ? pacco + ' — ' : ''}costo a carico dell'acquirente, calcolabile su Spediamo.it</small>
+            <a class="sped" href="https://www.spediamo.it/" target="_blank" rel="noopener">📦 Calcola la spedizione su Spediamo.it</a>`;
+    }
+    return html + '</div>';
 }
 
 function cap(s) { return s ? s[0].toUpperCase() + s.slice(1) : s; }

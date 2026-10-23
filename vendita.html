@@ -150,6 +150,20 @@
         .btn-send svg { width:18px; height:18px; fill:none; stroke:white; stroke-width:2.5; }
         .no-chat { text-align:center; color:#bbb; font-weight:700; font-size:14px; padding:30px 0; }
 
+        .tab-badge { display:none; min-width:18px; height:18px; padding:0 5px; border-radius:9px; background:var(--red); color:white; font-size:11px; line-height:18px; margin-left:4px; }
+        .tab-badge.on { display:inline-block; }
+        .msg-list { grid-column:1/-1; }
+        .msg-thumb { width:44px; height:44px; border-radius:10px; object-fit:cover; flex-shrink:0; background:#e8f5e9; display:flex; align-items:center; justify-content:center; font-size:20px; }
+        .conv-title { font-size:13px; font-weight:900; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .conv-time { font-size:10px; color:#aaa; font-weight:700; flex-shrink:0; }
+        .deliv-box { background:var(--white); border:1.5px solid var(--grey-l); border-radius:16px; padding:14px; margin-bottom:16px; }
+        .deliv-row { font-size:14px; font-weight:700; margin-bottom:6px; }
+        .deliv-sub { font-size:12px; color:#777; font-weight:600; margin-bottom:10px; }
+        .btn-sped { width:100%; padding:12px; border-radius:14px; border:2px solid #f97316; background:#fff7ed; color:#c2410c; font-weight:900; font-size:14px; cursor:pointer; font-family:inherit; }
+        .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+        .quick-row { display:none; gap:6px; padding:8px 16px 0; background:var(--white); border-top:1.5px solid var(--grey-l); flex-shrink:0; overflow-x:auto; }
+        .quick-row.on { display:flex; }
+        .quick-chip { flex:none; padding:6px 12px; border-radius:16px; border:1.5px solid var(--grey); background:var(--white); font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; }
         .empty-msg { text-align:center; padding:60px 24px; color:#bbb; font-weight:700; font-size:15px; grid-column:span 2; }
         .toast { position:fixed; bottom:90px; left:50%; transform:translateX(-50%) translateY(20px); background:rgba(0,0,0,.85); color:white; padding:12px 20px; border-radius:14px; font-weight:700; font-size:14px; opacity:0; transition:all .25s; z-index:9999; pointer-events:none; max-width:calc(100% - 32px); width:max-content; text-align:center; }
         .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
@@ -172,6 +186,7 @@
     <div class="tab-row">
         <button class="tab-btn active" id="tabScopri" onclick="switchTab('scopri')">🔍 Scopri</button>
         <button class="tab-btn" id="tabMiei" onclick="switchTab('miei')">📦 I miei</button>
+        <button class="tab-btn" id="tabMsg" onclick="switchTab('msg')">💬 Messaggi<span class="tab-badge" id="msgBadge"></span></button>
     </div>
 </div>
 
@@ -220,6 +235,25 @@
         <label class="form-label">Categoria</label>
         <div class="pill-row" id="catRow"></div>
 
+        <label class="form-label">Consegna</label>
+        <div class="pill-row" id="consRow"></div>
+
+        <label class="form-label" id="fLuogoLbl">Luogo di ritiro</label>
+        <input class="form-input" id="fLuogo" placeholder="Città e CAP — es. Brescia 25121" type="text">
+
+        <div id="spedWrap" style="display:none">
+            <div class="form-grid">
+                <div>
+                    <label class="form-label">Peso pacco (kg)</label>
+                    <input class="form-input" id="fPeso" placeholder="es. 2" type="number" min="0" step="0.1">
+                </div>
+                <div>
+                    <label class="form-label">Dimensioni (cm)</label>
+                    <input class="form-input" id="fDim" placeholder="es. 40x30x20" type="text">
+                </div>
+            </div>
+        </div>
+
         <label class="form-label">Visibilità</label>
         <div class="pill-row" id="visRow"></div>
 
@@ -246,6 +280,7 @@
         </div>
     </div>
     <div class="chat-msgs" id="chatMsgs"></div>
+    <div class="quick-row" id="quickRow"></div>
     <div class="chat-bar">
         <textarea class="chat-input" id="chatInput" rows="1" placeholder="Scrivi un messaggio…"
             onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();inviaMsg();}"
@@ -269,20 +304,25 @@ if (!userEmail) { localStorage.setItem('pendingUrl', location.pathname + locatio
 const CONDIZIONI = ['Nuovo','Ottimo','Buono','Discreto'];
 const CATEGORIE  = ['Elettronica','Abbigliamento','Casa','Sport','Auto/Moto','Libri','Giochi','Altro'];
 const VIS_LABELS = { privato:'🔒 Solo io', selezionati:'👥 Selezionati', pubblico:'🌍 Tutti' };
+const CONS_LABELS = { ritiro:'🤝 Ritiro a mano', spedizione:'📦 Spedizione', entrambi:'🤝📦 Entrambi' };
+const SPEDIAMO_URL = 'https://www.spediamo.it/';
 
 let annunci = [], miei = [], currentTab = 'scopri';
 let selectedAnnuncio = null;
 let editId = null;
-let fCond = 'buono', fCat = 'Altro', fVis = 'pubblico';
+let fCond = 'buono', fCat = 'Altro', fVis = 'pubblico', fCons = 'ritiro';
 let photoSlots = [null, null, null, null]; // { type:'existing'|'new', url, file, id }
 let selEmails = [];
 let chatAnnuncioId = null, chatPartner = null, chatRealtime = null;
-let chatMessages = [];
+let chatSeen = new Set(), chatLastId = 0, chatPollTimer = null;
+let conversazioni = [];
 
 // ── Data loading ──────────────────────────────────────────
 async function carica() {
     if (currentTab === 'scopri') await caricaScopri();
-    else await caricaMiei();
+    else if (currentTab === 'miei') await caricaMiei();
+    else await caricaMessaggi();
+    aggiornaBadge();
 }
 
 async function caricaScopri() {
@@ -331,12 +371,15 @@ function switchTab(tab) {
     currentTab = tab;
     document.getElementById('tabScopri').classList.toggle('active', tab === 'scopri');
     document.getElementById('tabMiei').classList.toggle('active', tab === 'miei');
+    document.getElementById('tabMsg').classList.toggle('active', tab === 'msg');
+    document.getElementById('searchInput').placeholder = tab === 'msg' ? '🔍  Cerca conversazioni…' : '🔍  Cerca annunci…';
     document.getElementById('listingsGrid').innerHTML = '';
     carica();
 }
 
 // ── Grid render ───────────────────────────────────────────
 function renderGrid(q = '') {
+    if (currentTab === 'msg') return renderMessaggi(q);
     const grid = document.getElementById('listingsGrid');
     const low = q.toLowerCase();
     const list = (currentTab === 'scopri' ? annunci : miei).filter(a =>
@@ -418,6 +461,8 @@ function buildDetailHtml(a) {
         <div><div class="seller-lbl">Venditore</div><div class="seller-email">${esc(a.email_utente)}</div></div>
     </div>`;
 
+    const consegnaHtml = buildConsegnaHtml(a);
+
     let actionsHtml = '';
     if (a.email_utente === userEmail) {
         actionsHtml = `
@@ -430,7 +475,7 @@ function buildDetailHtml(a) {
             <div class="section-title">Conversazioni</div>
             <div id="convList"><div class="no-chat">Caricamento…</div></div>`;
     } else if (a.stato === 'attivo') {
-        actionsHtml = `<button class="btn-chat" onclick="apriChat(${a.id},'${esc(a.email_utente)}','${esc(a.titolo)}')">💬  Chatta col venditore</button>`;
+        actionsHtml = `<button class="btn-chat" data-partner="${esc(a.email_utente)}" onclick="apriChat(${a.id}, this.dataset.partner)">💬  Chatta col venditore</button>`;
     } else {
         actionsHtml = `<div style="text-align:center;color:#aaa;font-weight:700;font-size:14px;padding:10px 0">Annuncio non più disponibile</div>`;
     }
@@ -441,10 +486,41 @@ function buildDetailHtml(a) {
         <div class="detail-title">${esc(a.titolo)}</div>
         <div class="detail-meta">${condBadge}${catBadge}${statoBadge}</div>
         ${a.descrizione ? `<div class="detail-desc">${esc(a.descrizione)}</div>` : ''}
+        ${consegnaHtml}
         ${sellerHtml}
         ${a.visibilita === 'pubblico' ? `<button class="btn-outline" onclick="condividiAnnuncio()">📤  Condividi annuncio</button>` : ''}
         ${actionsHtml}
     </div>`;
+}
+
+function buildConsegnaHtml(a) {
+    const cons = a.consegna || 'ritiro';
+    const ritiro = cons === 'ritiro' || cons === 'entrambi';
+    const sped = cons === 'spedizione' || cons === 'entrambi';
+    const luogo = a.luogo ? esc(a.luogo) : '';
+    let html = '<div class="section-title">Consegna</div><div class="deliv-box">';
+    if (ritiro) html += `<div class="deliv-row">🤝 Ritiro a mano${luogo ? ` · ${luogo}` : ''}</div>`;
+    if (sped) {
+        const pacco = [a.sped_peso ? `${String(a.sped_peso).replace('.', ',')} kg` : '', a.sped_dimensioni ? `${esc(a.sped_dimensioni)} cm` : ''].filter(Boolean).join(' · ');
+        html += `<div class="deliv-row">📦 Spedizione disponibile</div>
+            <div class="deliv-sub">${[luogo && !ritiro ? `Parte da ${luogo}` : (luogo ? `Partenza: ${luogo}` : ''), pacco].filter(Boolean).join(' · ') || 'Concorda i dettagli del pacco col venditore'}<br>Costo di spedizione a carico dell'acquirente, da calcolare su Spediamo.it</div>
+            <button class="btn-sped" onclick="apriSpediamo(${a.id})">📦  Calcola e prenota su Spediamo.it</button>`;
+    }
+    return html + '</div>';
+}
+
+// Spediamo.it non accetta parametri precompilati: copiamo i dati del pacco da incollare nel modulo
+function apriSpediamo(id) {
+    const a = [...annunci, ...miei].find(x => x.id === id) || selectedAnnuncio;
+    window.open(SPEDIAMO_URL, '_blank', 'noopener');
+    if (!a) return;
+    const righe = [
+        `Spedizione: ${a.titolo}`,
+        a.luogo ? `Partenza: ${a.luogo}` : '',
+        a.sped_peso ? `Peso: ${a.sped_peso} kg` : '',
+        a.sped_dimensioni ? `Dimensioni: ${a.sped_dimensioni} cm` : ''
+    ].filter(Boolean).join('\n');
+    navigator.clipboard?.writeText(righe).then(() => toast('📋 Dati del pacco copiati: incollali su Spediamo.it', 3500)).catch(() => {});
 }
 
 function scaricaFotoCorrente() {
@@ -486,34 +562,32 @@ async function aggiornaStato(stato) {
 
 async function loadConversazioni(annuncioId) {
     const { data } = await sb.from('vendita_chat')
-        .select('email_mittente, messaggio, created_at, letto')
+        .select('email_mittente, email_venditore, messaggio, created_at, letto')
         .eq('annuncio_id', annuncioId)
-        .neq('email_mittente', userEmail)
         .order('created_at', { ascending: false });
 
     const convList = document.getElementById('convList');
     if (!convList) return;
-    if (!data?.length) { convList.innerHTML = '<div class="no-chat">Nessuna conversazione ancora</div>'; return; }
 
-    // Deduplicate by buyer
+    // Una conversazione per acquirente: l'altro capo di ogni messaggio
     const buyers = new Map();
-    for (const m of data) {
-        if (!buyers.has(m.email_mittente)) buyers.set(m.email_mittente, m);
+    for (const m of (data || [])) {
+        const partner = m.email_mittente === userEmail ? m.email_venditore : m.email_mittente;
+        if (partner === userEmail) continue;
+        if (!buyers.has(partner)) buyers.set(partner, { last: m, unread: false });
+        if (m.email_mittente === partner && !m.letto) buyers.get(partner).unread = true;
     }
+    if (!buyers.size) { convList.innerHTML = '<div class="no-chat">Nessuna conversazione ancora</div>'; return; }
 
-    convList.innerHTML = [...buyers.entries()].map(([email, last]) => {
-        const hasUnread = !last.letto;
-        const init = email[0].toUpperCase();
-        const time = new Date(last.created_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
-        return `<div class="conv-item" onclick="apriChatSeller(${annuncioId},'${esc(email)}','${esc(selectedAnnuncio?.titolo||'')}')">
-            <div class="conv-av">${init}</div>
+    convList.innerHTML = [...buyers.entries()].map(([email, { last, unread }]) => `
+        <div class="conv-item" data-partner="${esc(email)}" onclick="apriChat(${annuncioId}, this.dataset.partner)">
+            <div class="conv-av">${esc(email[0].toUpperCase())}</div>
             <div style="flex:1;min-width:0">
                 <div class="conv-email">${esc(email)}</div>
-                <div class="conv-preview">${esc(last.messaggio)}</div>
+                <div class="conv-preview">${last.email_mittente === userEmail ? 'Tu: ' : ''}${esc(last.messaggio)}</div>
             </div>
-            ${hasUnread ? '<div class="unread-dot"></div>' : ''}
-        </div>`;
-    }).join('');
+            ${unread ? '<div class="unread-dot"></div>' : ''}
+        </div>`).join('');
 }
 
 // ── Edit / Create ─────────────────────────────────────────
@@ -521,7 +595,10 @@ function apriNuovo() {
     editId = null;
     photoSlots = [null, null, null, null];
     selEmails = [];
-    fCond = 'buono'; fCat = 'Altro'; fVis = 'pubblico';
+    fCond = 'buono'; fCat = 'Altro'; fVis = 'pubblico'; fCons = 'ritiro';
+    document.getElementById('fLuogo').value = '';
+    document.getElementById('fPeso').value = '';
+    document.getElementById('fDim').value = '';
     document.getElementById('fTitolo').value = '';
     document.getElementById('fPrezzo').value = '';
     document.getElementById('fDesc').value = '';
@@ -535,7 +612,10 @@ function apriModifica() {
     if (!selectedAnnuncio) return;
     const a = selectedAnnuncio;
     editId = a.id;
-    fCond = a.condizione || 'buono'; fCat = a.categoria || 'Altro'; fVis = a.visibilita || 'pubblico';
+    fCond = a.condizione || 'buono'; fCat = a.categoria || 'Altro'; fVis = a.visibilita || 'pubblico'; fCons = a.consegna || 'ritiro';
+    document.getElementById('fLuogo').value = a.luogo || '';
+    document.getElementById('fPeso').value = a.sped_peso != null ? a.sped_peso : '';
+    document.getElementById('fDim').value = a.sped_dimensioni || '';
     document.getElementById('fTitolo').value = a.titolo || '';
     document.getElementById('fPrezzo').value = a.prezzo != null ? a.prezzo : '';
     document.getElementById('fDesc').value = a.descrizione || '';
@@ -563,6 +643,7 @@ function buildFormUI() {
     renderCondRow();
     renderCatRow();
     renderVisRow();
+    renderConsRow();
     toggleSelWrap();
     renderSelTags();
 }
@@ -571,7 +652,8 @@ function setPill(type, val) {
     if (type === 'cond') fCond = val;
     else if (type === 'cat') fCat = val;
     else if (type === 'vis') { fVis = val; toggleSelWrap(); }
-    renderCondRow(); renderCatRow(); renderVisRow();
+    else if (type === 'cons') fCons = val;
+    renderCondRow(); renderCatRow(); renderVisRow(); renderConsRow();
 }
 
 function renderCondRow() {
@@ -597,6 +679,16 @@ function renderVisRow() {
     row.innerHTML = Object.keys(VIS_LABELS).map(v =>
         `<button class="pill${v === fVis ? ' on' : ''}" onclick="setPill('vis','${v}')">${VIS_LABELS[v]}</button>`
     ).join('');
+}
+
+function renderConsRow() {
+    const row = document.getElementById('consRow');
+    if (!row) return;
+    row.innerHTML = Object.keys(CONS_LABELS).map(v =>
+        `<button class="pill${v === fCons ? ' on' : ''}" onclick="setPill('cons','${v}')">${CONS_LABELS[v]}</button>`
+    ).join('');
+    document.getElementById('spedWrap').style.display = fCons === 'ritiro' ? 'none' : '';
+    document.getElementById('fLuogoLbl').textContent = fCons === 'spedizione' ? 'Spedisco da (città e CAP)' : 'Luogo di ritiro / partenza';
 }
 
 function buildPhotoRow() {
@@ -685,17 +777,30 @@ async function salva() {
         visibilita: fVis,
         updated_at: new Date().toISOString()
     };
+    const peso = document.getElementById('fPeso').value.trim();
+    const consegna = {
+        consegna: fCons,
+        luogo: document.getElementById('fLuogo').value.trim() || null,
+        sped_peso: fCons !== 'ritiro' && peso ? parseFloat(peso) : null,
+        sped_dimensioni: fCons !== 'ritiro' ? (document.getElementById('fDim').value.trim() || null) : null
+    };
 
     spin(true);
     const isNew = !editId;
     let annuncioId = editId;
+    const problemi = [];
     try {
-        if (editId) {
-            const { error } = await sb.from('vendita_annunci').update(row).eq('id', editId);
-            if (error) throw error;
-        } else {
-            const { data, error } = await sb.from('vendita_annunci').insert({ ...row, stato: 'attivo' }).select().single();
-            if (error) throw error;
+        // Se il DB non ha ancora le colonne di consegna (vedi api/run-sql.js) si salva senza
+        const scrivi = async full => editId
+            ? sb.from('vendita_annunci').update(full).eq('id', editId)
+            : sb.from('vendita_annunci').insert({ ...full, stato: 'attivo' }).select().single();
+        let { data, error } = await scrivi({ ...row, ...consegna });
+        if (error && /consegna|luogo|sped_|column|schema/i.test(errMsg(error))) {
+            ({ data, error } = await scrivi(row));
+            if (!error) problemi.push('dati di consegna non salvati (database da aggiornare)');
+        }
+        if (error) throw error;
+        if (isNew) {
             annuncioId = data.id;
             // Da qui l'annuncio esiste: un nuovo PUBBLICA dopo un errore lo aggiorna invece di duplicarlo
             editId = annuncioId;
@@ -707,7 +812,6 @@ async function salva() {
     }
 
     // L'annuncio è salvato: foto e accessi sono passi secondari, gli errori vengono raccolti
-    const problemi = [];
 
     if (!isNew) {
         // Delete removed existing photos
@@ -850,50 +954,92 @@ async function condividiAnnuncio() {
     }
 }
 
-// ── Chat (buyer) ──────────────────────────────────────────
-function apriChat(annuncioId, emailVenditore, titolo) {
-    chatAnnuncioId = annuncioId;
-    chatPartner = emailVenditore;
-    document.getElementById('chatTitle').textContent = titolo;
-    document.getElementById('chatSub').textContent = emailVenditore;
-    apriChatComune(annuncioId, emailVenditore);
+// ── Chat ──────────────────────────────────────────────────
+// In vendita_chat ogni riga è un messaggio da email_mittente a email_venditore, che è il
+// DESTINATARIO (il nome della colonna è storico): il venditore che risponde scrive all'acquirente.
+function titoloAnnuncio(id) {
+    return [...annunci, ...miei].find(a => a.id === id)?.titolo
+        || conversazioni.find(c => c.annuncioId === id)?.titolo || 'Annuncio';
 }
 
-// ── Chat (seller view: specific buyer) ───────────────────
-function apriChatSeller(annuncioId, emailBuyer, titolo) {
+function apriChat(annuncioId, partner) {
     chatAnnuncioId = annuncioId;
-    chatPartner = emailBuyer;
-    document.getElementById('chatTitle').textContent = titolo;
-    document.getElementById('chatSub').textContent = emailBuyer;
-    apriChatComune(annuncioId, emailBuyer);
+    chatPartner = partner;
+    document.getElementById('chatTitle').textContent = titoloAnnuncio(annuncioId);
+    document.getElementById('chatSub').textContent = partner;
+    renderQuickRow();
+    apriChatComune(annuncioId, partner);
+}
+
+function renderQuickRow() {
+    const row = document.getElementById('quickRow');
+    const a = [...annunci, ...miei].find(x => x.id === chatAnnuncioId);
+    const isBuyer = a && a.email_utente !== userEmail;
+    const chips = [];
+    if (isBuyer) {
+        chips.push('È ancora disponibile?');
+        const cons = a.consegna || 'ritiro';
+        if (cons !== 'spedizione') chips.push('Vorrei ritirarlo a mano');
+        if (cons !== 'ritiro') chips.push('Vorrei la spedizione: la organizzo su spediamo.it');
+    } else if (a) {
+        chips.push('Sì, è disponibile');
+        const cons = a.consegna || 'ritiro';
+        if (cons !== 'ritiro') chips.push(`Per la spedizione puoi calcolare il costo su ${SPEDIAMO_URL}`);
+    }
+    row.innerHTML = chips.map((c, i) => `<button class="quick-chip" data-i="${i}">${esc(c)}</button>`).join('');
+    row.querySelectorAll('.quick-chip').forEach((b, i) => b.onclick = () => {
+        document.getElementById('chatInput').value = chips[i];
+        inviaMsg();
+    });
+    row.classList.toggle('on', chips.length > 0);
+}
+
+function filtroConversazione(partner) {
+    return `and(email_mittente.eq.${userEmail},email_venditore.eq.${partner}),and(email_mittente.eq.${partner},email_venditore.eq.${userEmail})`;
 }
 
 async function apriChatComune(annuncioId, partner) {
     document.getElementById('chatMsgs').innerHTML = '';
+    chatSeen = new Set(); chatLastId = 0;
     document.getElementById('chatScreen').classList.add('open');
     await loadMsgs(annuncioId, partner);
 
-    // Subscribe to realtime
-    if (chatRealtime) { await chatRealtime.unsubscribe(); chatRealtime = null; }
+    if (chatRealtime) { await sb.removeChannel(chatRealtime); chatRealtime = null; }
     chatRealtime = sb.channel(`chat-${annuncioId}-${[userEmail, partner].sort().join('-')}`)
         .on('postgres_changes', {
             event: 'INSERT', schema: 'public', table: 'vendita_chat',
             filter: `annuncio_id=eq.${annuncioId}`
         }, payload => {
             const m = payload.new;
-            if ((m.email_mittente === userEmail || m.email_mittente === partner) &&
-                (m.email_venditore === userEmail || m.email_venditore === partner)) {
-                appendMsg(m);
-                scrollMsgs();
+            if ((m.email_mittente === userEmail && m.email_venditore === partner) ||
+                (m.email_mittente === partner && m.email_venditore === userEmail)) {
+                if (appendMsg(m)) { scrollMsgs(); segnaLetti(); }
             }
         })
         .subscribe();
 
-    // Mark as read
+    // Rete di sicurezza se il realtime non è attivo sulla tabella
+    clearInterval(chatPollTimer);
+    chatPollTimer = setInterval(async () => {
+        if (!chatAnnuncioId) return;
+        const { data } = await sb.from('vendita_chat').select('*')
+            .eq('annuncio_id', chatAnnuncioId).or(filtroConversazione(chatPartner))
+            .gt('id', chatLastId).order('id', { ascending: true });
+        let nuovi = false;
+        (data || []).forEach(m => { if (appendMsg(m)) nuovi = true; });
+        if (nuovi) { scrollMsgs(); segnaLetti(); }
+    }, 5000);
+
+    await segnaLetti();
+}
+
+async function segnaLetti() {
+    if (!chatAnnuncioId) return;
     await sb.from('vendita_chat')
         .update({ letto: true })
-        .eq('annuncio_id', annuncioId)
-        .eq('email_mittente', partner)
+        .eq('annuncio_id', chatAnnuncioId)
+        .eq('email_mittente', chatPartner)
+        .eq('email_venditore', userEmail)
         .eq('letto', false);
 }
 
@@ -901,21 +1047,39 @@ async function loadMsgs(annuncioId, partner) {
     const { data } = await sb.from('vendita_chat')
         .select('*')
         .eq('annuncio_id', annuncioId)
-        .or(`and(email_mittente.eq.${userEmail},email_venditore.eq.${partner}),and(email_mittente.eq.${partner},email_venditore.eq.${userEmail})`)
+        .or(filtroConversazione(partner))
         .order('created_at', { ascending: true });
 
     document.getElementById('chatMsgs').innerHTML = '';
+    if (!data?.length) {
+        document.getElementById('chatMsgs').innerHTML = '<div class="no-chat" id="chatEmpty">Scrivi il primo messaggio 👋</div>';
+    }
     (data || []).forEach(m => appendMsg(m));
     scrollMsgs();
 }
 
+// Ritorna false se il messaggio era già mostrato (arriva sia da realtime che da polling/invio)
 function appendMsg(m) {
+    if (m.id != null) {
+        if (chatSeen.has(m.id)) return false;
+        chatSeen.add(m.id);
+        chatLastId = Math.max(chatLastId, m.id);
+    }
+    document.getElementById('chatEmpty')?.remove();
     const isMe = m.email_mittente === userEmail;
-    const time = new Date(m.created_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+    const d = new Date(m.created_at);
+    const oggi = d.toDateString() === new Date().toDateString();
+    const time = (oggi ? '' : d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' }) + ' ')
+        + d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
     const el = document.createElement('div');
     el.className = `msg-wrap ${isMe ? 'me' : 'other'}`;
-    el.innerHTML = `<div class="bubble">${esc(m.messaggio)}</div><div class="msg-time">${time}</div>`;
+    el.innerHTML = `<div class="bubble">${linkify(esc(m.messaggio))}</div><div class="msg-time">${time}</div>`;
     document.getElementById('chatMsgs').appendChild(el);
+    return true;
+}
+
+function linkify(html) {
+    return html.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">$1</a>');
 }
 
 function scrollMsgs() {
@@ -930,29 +1094,107 @@ async function inviaMsg() {
     input.value = '';
     input.style.height = 'auto';
 
-    // Determine who is venditore and who is mittente
-    const annuncio = [...annunci, ...miei].find(a => a.id === chatAnnuncioId);
-    const isVenditore = annuncio?.email_utente === userEmail;
-    const emailMittente = userEmail;
-    const emailVenditore = isVenditore ? userEmail : chatPartner;
-
-    const { error } = await sb.from('vendita_chat').insert({
+    const { data, error } = await sb.from('vendita_chat').insert({
         annuncio_id: chatAnnuncioId,
-        email_mittente: emailMittente,
-        email_venditore: emailVenditore,
+        email_mittente: userEmail,
+        email_venditore: chatPartner, // destinatario
         messaggio: testo,
         letto: false
-    });
-    if (error) { toast('Errore invio'); }
+    }).select().single();
+    if (error) { toast('Errore invio: ' + errMsg(error)); input.value = testo; return; }
+    if (appendMsg(data)) scrollMsgs();
+
+    // Notifica push al destinatario (best effort)
+    fetch('/api/vendita', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ azione: 'notifica-chat', messaggioId: data.id })
+    }).catch(() => {});
 }
 
 async function chiudiChat() {
     document.getElementById('chatScreen').classList.remove('open');
-    if (chatRealtime) { await chatRealtime.unsubscribe(); chatRealtime = null; }
-    // Refresh conversazioni if seller
-    if (selectedAnnuncio?.email_utente === userEmail) {
-        await loadConversazioni(selectedAnnuncio.id);
+    clearInterval(chatPollTimer); chatPollTimer = null;
+    chatAnnuncioId = null;
+    if (chatRealtime) { await sb.removeChannel(chatRealtime); chatRealtime = null; }
+    if (selectedAnnuncio?.email_utente === userEmail) await loadConversazioni(selectedAnnuncio.id);
+    if (currentTab === 'msg') await caricaMessaggi();
+    aggiornaBadge();
+}
+
+// ── Messaggi (tutte le conversazioni, come venditore e come acquirente) ──
+async function caricaMessaggi() {
+    const { data, error } = await sb.from('vendita_chat')
+        .select('*, vendita_annunci(id,titolo,email_utente,vendita_foto(url,ordine))')
+        .or(`email_mittente.eq.${userEmail},email_venditore.eq.${userEmail}`)
+        .order('created_at', { ascending: false })
+        .limit(500);
+    if (error) { toast('Errore: ' + errMsg(error)); return; }
+
+    const map = new Map();
+    for (const m of (data || [])) {
+        const partner = m.email_mittente === userEmail ? m.email_venditore : m.email_mittente;
+        if (partner === userEmail || !m.vendita_annunci) continue; // righe storiche senza destinatario
+        const key = `${m.annuncio_id}|${partner}`;
+        if (!map.has(key)) {
+            const ann = m.vendita_annunci;
+            const foto = (ann.vendita_foto || []).sort((x, y) => x.ordine - y.ordine)[0];
+            map.set(key, {
+                annuncioId: m.annuncio_id, partner, titolo: ann.titolo,
+                foto: foto?.url, sonoVenditore: ann.email_utente === userEmail,
+                ultimo: m, nonLetti: 0
+            });
+        }
+        if (m.email_venditore === userEmail && m.email_mittente === partner && !m.letto) map.get(key).nonLetti++;
     }
+    conversazioni = [...map.values()];
+    if (currentTab === 'msg') renderMessaggi(document.getElementById('searchInput').value);
+}
+
+function renderMessaggi(q = '') {
+    const grid = document.getElementById('listingsGrid');
+    const low = q.toLowerCase();
+    const list = conversazioni.filter(c => !q || c.titolo.toLowerCase().includes(low) || c.partner.toLowerCase().includes(low));
+    if (!list.length) {
+        grid.innerHTML = '<div class="empty-msg">💬 Nessuna conversazione — apri un annuncio e scrivi al venditore</div>';
+        return;
+    }
+    grid.innerHTML = '<div class="msg-list">' + list.map((c, i) => {
+        const d = new Date(c.ultimo.created_at);
+        const quando = d.toDateString() === new Date().toDateString()
+            ? d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
+            : d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' });
+        const thumb = c.foto ? `<img class="msg-thumb" src="${esc(c.foto)}" alt="">` : '<div class="msg-thumb">🏷️</div>';
+        const anteprima = (c.ultimo.email_mittente === userEmail ? 'Tu: ' : '') + c.ultimo.messaggio;
+        return `<div class="conv-item" data-i="${conversazioni.indexOf(c)}" onclick="apriConversazione(this.dataset.i)">
+            ${thumb}
+            <div style="flex:1;min-width:0">
+                <div class="conv-title">${esc(c.titolo)}</div>
+                <div class="conv-email">${c.sonoVenditore ? '🛒 ' : '🏷️ '}${esc(c.partner)}</div>
+                <div class="conv-preview" style="${c.nonLetti ? 'color:#111;font-weight:800' : ''}">${esc(anteprima)}</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+                <div class="conv-time">${quando}</div>
+                ${c.nonLetti ? `<span class="tab-badge on" style="margin:0">${c.nonLetti}</span>` : ''}
+            </div>
+        </div>`;
+    }).join('') + '</div>';
+}
+
+function apriConversazione(i) {
+    const c = conversazioni[i];
+    if (c) apriChat(c.annuncioId, c.partner);
+}
+
+async function aggiornaBadge() {
+    const { count } = await sb.from('vendita_chat')
+        .select('id', { count: 'exact', head: true })
+        .eq('email_venditore', userEmail)
+        .neq('email_mittente', userEmail)
+        .eq('letto', false);
+    const b = document.getElementById('msgBadge');
+    b.textContent = count > 99 ? '99+' : (count || '');
+    b.classList.toggle('on', count > 0);
 }
 
 // ── Modal close on backdrop ───────────────────────────────
@@ -962,7 +1204,7 @@ document.getElementById('modaleAnnuncio').addEventListener('click', e => {
 });
 
 // ── Helpers ───────────────────────────────────────────────
-function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function esc(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 function ucFirst(s) { return s ? s[0].toUpperCase() + s.slice(1) : s; }
 
 let toastTimer;
@@ -978,7 +1220,15 @@ function spin(on) { document.getElementById('spinOv').classList.toggle('open', o
 // ── Init ──────────────────────────────────────────────────
 (async () => {
     await carica();
-    const linkId = parseInt(new URLSearchParams(location.search).get('annuncio'));
+    const params = new URLSearchParams(location.search);
+    const chatId = parseInt(params.get('chat')), con = params.get('con');
+    if (chatId && con) {
+        if (!annunci.some(a => a.id === chatId)) await caricaMiei();
+        if (![...annunci, ...miei].some(a => a.id === chatId)) await caricaMessaggi();
+        apriChat(chatId, con);
+        return;
+    }
+    const linkId = parseInt(params.get('annuncio'));
     if (!linkId) return;
     if (!annunci.some(a => a.id === linkId)) await caricaMiei();
     if ([...annunci, ...miei].some(a => a.id === linkId)) apriDettaglio(linkId);
