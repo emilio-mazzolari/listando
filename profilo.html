@@ -172,6 +172,10 @@
         .sheet-overlay { display:none; position:fixed; inset:0; z-index:200; background:rgba(0,0,0,0.5); align-items:flex-end; justify-content:center; }
         .sheet-overlay.open { display:flex; }
         .sheet-box { background:var(--white); border-radius:28px 28px 0 0; padding:20px 20px; padding-bottom:max(24px,env(safe-area-inset-bottom,24px)); width:100%; max-width:500px; max-height:85vh; overflow-y:auto; }
+        @media (min-width:1024px) {
+            .sheet-overlay { align-items:center; }
+            .sheet-box { border-radius:28px; max-width:560px; max-height:80vh; }
+        }
         .sheet-handle { width:40px; height:4px; background:var(--grey); border-radius:4px; margin:0 auto 20px; }
         .sheet-title { font-weight:900; font-size:17px; margin-bottom:16px; }
         .ftipo-row { display:flex; gap:8px; margin-bottom:14px; }
@@ -248,8 +252,8 @@
                 <div class="row-icon" style="background:#fff8f0">✉️</div>
                 <div class="row-body">
                     <div class="row-label">Email</div>
-                    <div class="row-sub" id="emailDisplay">—</div>
                 </div>
+                <span id="emailDisplay" style="font-size:13px;font-weight:700;color:#888;margin-right:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px">—</span>
                 <div class="row-right">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
                 </div>
@@ -975,13 +979,13 @@ async function renderAdminFeedback() {
             </div>
             <div class="fb-text">${f.testo.replace(/</g,'&lt;')}</div>
             ${rispostaHtml}
-            <div class="fb-actions" id="fba-${f.id}">
-                <button class="fb-btn reply" onclick="toggleRisposta(${f.id})">↩ Rispondi</button>
-                <button class="fb-btn del" onclick="chiediEliminaFeedback(${f.id})">🗑 Elimina</button>
+            <div class="fb-actions">
+                <button class="fb-btn reply" onclick="event.stopPropagation();toggleRisposta(${f.id})">↩ Rispondi</button>
+                <button class="fb-btn del" onclick="event.stopPropagation();eliminaFeedback(${f.id})">🗑 Elimina</button>
             </div>
             <div class="fb-reply-box" id="fbr-${f.id}">
                 <textarea rows="3" placeholder="Scrivi la tua risposta…" id="fbrt-${f.id}"></textarea>
-                <button class="fb-reply-send" onclick="inviaRisposta(${f.id},'${f.email_utente.replace(/'/g,"\\'")}')">Invia risposta</button>
+                <button class="fb-reply-send" onclick="event.stopPropagation();inviaRisposta(${f.id},'${f.email_utente.replace(/'/g,"\\'")}')">Invia risposta</button>
             </div>
         </div>`;
     }).join('');
@@ -990,24 +994,31 @@ async function renderAdminFeedback() {
 
 function toggleRisposta(id) {
     const box = document.getElementById(`fbr-${id}`);
+    if (!box) return;
     const show = box.style.display !== 'block';
     box.style.display = show ? 'block' : 'none';
-    if (show) box.querySelector('textarea').focus();
-}
-
-function chiediEliminaFeedback(id) {
-    const actions = document.getElementById(`fba-${id}`);
-    if (!actions) return;
-    actions.innerHTML = `<span style="font-size:12px;font-weight:700;color:#888">Eliminare?</span>
-        <button class="fb-btn del" onclick="eliminaFeedback(${id})">Sì, elimina</button>
-        <button class="fb-btn" onclick="renderAdminFeedback()" style="background:var(--grey-light);color:#555">Annulla</button>`;
+    if (show) {
+        box.querySelector('textarea').focus();
+        setTimeout(() => box.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
+    }
 }
 
 async function eliminaFeedback(id) {
-    await fetch(`${URL_S}/app_feedback?id=eq.${id}`, { method: 'DELETE', headers: _HR });
-    document.getElementById(`fbi-${id}`)?.remove();
-    caricaContattoFeedback();
-    toast('🗑 Feedback eliminato');
+    const item = document.getElementById(`fbi-${id}`);
+    if (!item) return;
+    item.style.opacity = '0.4';
+    const res = await fetch(`${URL_S}/app_feedback?id=eq.${id}`, {
+        method: 'DELETE',
+        headers: { ..._HR, 'Prefer': 'return=minimal' }
+    });
+    if (res.ok || res.status === 204) {
+        item.remove();
+        caricaContattoFeedback();
+        toast('🗑 Feedback eliminato');
+    } else {
+        item.style.opacity = '';
+        toast('Errore eliminazione (' + res.status + ')');
+    }
 }
 
 async function inviaRisposta(id, email) {
