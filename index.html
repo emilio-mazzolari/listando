@@ -535,6 +535,19 @@
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
 
+            <!-- Colori sezioni -->
+            <button onclick="apriColori()" style="width:100%;display:flex;align-items:center;gap:16px;padding:16px;border-radius:16px;border:none;background:#f5f6f8;cursor:pointer;font-family:inherit;text-align:left;margin-top:10px">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="13.5" cy="6.5" r="1.5"/><circle cx="17.5" cy="10.5" r="1.5"/><circle cx="8.5" cy="7.5" r="1.5"/><circle cx="6.5" cy="12.5" r="1.5"/>
+                    <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.93 0 1.5-.75 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c3.31 0 6-2.69 6-6 0-4.96-4.49-9-10-9z"/>
+                </svg>
+                <div style="flex:1">
+                    <div style="font-weight:800;font-size:15px;color:#111">Colori sezioni</div>
+                    <div style="font-size:13px;color:#888;font-weight:600;margin-top:2px">Scegli il colore di ogni sezione</div>
+                </div>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+
             <!-- Anteprima popup Sostieni (solo admin) -->
             <button onclick="chiudiImpostazioni();document.getElementById('sostieniPopup').style.display='flex'" style="width:100%;display:flex;align-items:center;gap:16px;padding:16px;border-radius:16px;border:none;background:#fff3e0;cursor:pointer;font-family:inherit;text-align:left;margin-top:10px">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ff9500" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -564,6 +577,34 @@
             <div style="font-weight:900;font-size:18px;margin-bottom:4px">Personalizza sezioni</div>
             <div style="font-size:13px;color:#888;font-weight:600;margin-bottom:20px">Attiva o disattiva le sezioni visibili in home</div>
             <div id="personalizzaList"></div>
+        </div>
+    </div>
+
+    <!-- Overlay Colori sezioni -->
+    <div id="coloriOverlay" style="display:none;position:fixed;inset:0;z-index:201;background:rgba(0,0,0,0.45);align-items:flex-end;justify-content:center" onclick="if(event.target===this)chiudiColori()">
+        <div style="background:white;border-radius:28px 28px 0 0;padding:24px 20px;padding-bottom:max(24px,env(safe-area-inset-bottom,24px));width:100%;max-width:500px;max-height:80vh;overflow-y:auto">
+            <div style="width:40px;height:4px;background:#ddd;border-radius:4px;margin:0 auto 20px"></div>
+            <div style="font-weight:900;font-size:18px;margin-bottom:4px">Colori sezioni</div>
+            <div style="font-size:13px;color:#888;font-weight:600;margin-bottom:12px">Tocca una sezione per cambiarne il colore</div>
+            <div id="coloriList"></div>
+            <button id="coloriResetAll" onclick="ripristinaTuttiColori()" style="width:100%;margin-top:16px;padding:14px;border-radius:16px;border:none;background:#f5f6f8;color:#ff3b30;font-weight:800;font-size:14px;cursor:pointer;font-family:inherit">Ripristina colori originali</button>
+        </div>
+    </div>
+
+    <!-- Overlay scelta colore -->
+    <div id="paletteOverlay" style="display:none;position:fixed;inset:0;z-index:203;background:rgba(0,0,0,0.45);align-items:flex-end;justify-content:center" onclick="if(event.target===this)chiudiPalette()">
+        <div style="background:white;border-radius:28px 28px 0 0;padding:24px 20px;padding-bottom:max(24px,env(safe-area-inset-bottom,24px));width:100%;max-width:500px">
+            <div style="width:40px;height:4px;background:#ddd;border-radius:4px;margin:0 auto 20px"></div>
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px">
+                <div id="paletteAnteprima" style="width:52px;height:52px;border-radius:14px;border:3px solid #999;display:flex;align-items:center;justify-content:center;flex-shrink:0"></div>
+                <div style="font-weight:900;font-size:18px" id="paletteTitolo"></div>
+            </div>
+            <div id="paletteGrid" style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px"></div>
+            <label style="display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:16px;background:#f5f6f8;margin-top:16px;cursor:pointer">
+                <input type="color" id="paletteCustom" style="width:36px;height:36px;border:none;padding:0;background:none;cursor:pointer" oninput="scegliColore(this.value, true)">
+                <span style="font-weight:800;font-size:15px;color:#111;flex:1">Colore personalizzato</span>
+            </label>
+            <button onclick="scegliColore(null)" style="width:100%;margin-top:10px;padding:14px;border-radius:16px;border:none;background:#f5f6f8;color:#111;font-weight:800;font-size:14px;cursor:pointer;font-family:inherit">Ripristina colore originale</button>
         </div>
     </div>
 
@@ -847,6 +888,101 @@
             applyHidden();
         }
 
+        // ── Colori sezioni (per-user) ─────────────────────────────────────
+        const COLORS_KEY = 'listando_home_colors_' + _email;
+        const PALETTE = [
+            '#ff3b30','#f43f5e','#e91e8c','#e4b3e6','#8b5cf6','#7c5cbf',
+            '#3384d4','#0ea5e9','#30b0c7','#14b8a6','#1db954','#00c91e',
+            '#256635','#84cc16','#c9a227','#feb310','#ff9500','#ff6b35',
+            '#c2873f','#8b5a2b','#64748b','#334155','#1e3a8a','#be123c'
+        ];
+        let paletteId = null;
+
+        function getColors() {
+            try { return JSON.parse(localStorage.getItem(COLORS_KEY) || '{}'); } catch { return {}; }
+        }
+        // Colore originale di ogni card, letto dall'HTML prima di applicare le personalizzazioni
+        document.querySelectorAll('#menuGrid [data-id]').forEach(el => {
+            el.dataset.colorOrig = el.querySelector('svg')?.getAttribute('stroke') || el.style.borderColor;
+        });
+        function coloreSezione(el) { return getColors()[el.dataset.id] || el.dataset.colorOrig; }
+        function applyColors() {
+            document.querySelectorAll('#menuGrid [data-id]').forEach(el => {
+                const c = coloreSezione(el);
+                el.style.borderColor = c;
+                el.querySelectorAll('svg, svg [stroke]').forEach(n => {
+                    if (n.hasAttribute('stroke') && n.getAttribute('stroke') !== 'none') n.setAttribute('stroke', c);
+                });
+            });
+        }
+        function labelSezione(el) {
+            return el.querySelector('span')?.innerText?.trim().replace(/\n/g, ' ') || el.dataset.id;
+        }
+        function iconaSezione(el, size) {
+            const svg = el.querySelector('svg')?.cloneNode(true);
+            if (!svg) return '';
+            svg.removeAttribute('class');
+            svg.setAttribute('width', size); svg.setAttribute('height', size);
+            return svg.outerHTML;
+        }
+        function apriColori() {
+            chiudiImpostazioni();
+            renderColori();
+            document.getElementById('coloriOverlay').style.display = 'flex';
+        }
+        function chiudiColori() {
+            document.getElementById('coloriOverlay').style.display = 'none';
+        }
+        function renderColori() {
+            const custom = getColors();
+            document.getElementById('coloriList').innerHTML = [...document.querySelectorAll('#menuGrid [data-id]')].map(el => `
+                <div onclick="apriPalette('${el.dataset.id}')" style="display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid #f0f0f0;cursor:pointer">
+                    <div style="width:38px;height:38px;border-radius:11px;border:3px solid ${coloreSezione(el)};display:flex;align-items:center;justify-content:center;flex-shrink:0">${iconaSezione(el, 20)}</div>
+                    <div style="flex:1;font-weight:700;font-size:15px;color:#111">${labelSezione(el)}</div>
+                    ${custom[el.dataset.id] ? '<span style="font-size:11px;font-weight:800;color:#888">PERSONALIZZATO</span>' : ''}
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                </div>
+            `).join('');
+            document.getElementById('coloriResetAll').style.display = Object.keys(custom).length ? '' : 'none';
+        }
+        function apriPalette(id) {
+            paletteId = id;
+            const el = document.querySelector(`#menuGrid [data-id="${id}"]`);
+            const attuale = coloreSezione(el).toLowerCase();
+            document.getElementById('paletteTitolo').textContent = labelSezione(el);
+            aggiornaAnteprima(el);
+            document.getElementById('paletteGrid').innerHTML = PALETTE.map(c => `
+                <button onclick="scegliColore('${c}')" aria-label="${c}" style="aspect-ratio:1;border-radius:50%;border:none;background:${c};cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:${c === attuale ? `0 0 0 3px white, 0 0 0 5px ${c}` : 'none'}">
+                    ${c === attuale ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>' : ''}
+                </button>`).join('');
+            document.getElementById('paletteCustom').value = /^#[0-9a-f]{6}$/.test(attuale) ? attuale : '#000000';
+            document.getElementById('paletteOverlay').style.display = 'flex';
+        }
+        function aggiornaAnteprima(el) {
+            const ant = document.getElementById('paletteAnteprima');
+            ant.style.borderColor = coloreSezione(el);
+            ant.innerHTML = iconaSezione(el, 26);
+        }
+        function chiudiPalette() {
+            document.getElementById('paletteOverlay').style.display = 'none';
+            renderColori();
+        }
+        // dalSelettore: il selettore libero aggiorna in tempo reale, quindi il foglio resta aperto
+        function scegliColore(c, dalSelettore) {
+            const colors = getColors();
+            if (c) colors[paletteId] = c; else delete colors[paletteId];
+            localStorage.setItem(COLORS_KEY, JSON.stringify(colors));
+            applyColors();
+            if (dalSelettore) aggiornaAnteprima(document.querySelector(`#menuGrid [data-id="${paletteId}"]`));
+            else chiudiPalette();
+        }
+        function ripristinaTuttiColori() {
+            if (!confirm('Ripristinare i colori originali di tutte le sezioni?')) return;
+            localStorage.removeItem(COLORS_KEY);
+            applyColors();
+            renderColori();
+        }
+
         // ── Ordina per ────────────────────────────────────────────────────
         const SORT_KEY   = 'listando_home_sort_'  + _email;
         const USAGE_KEY  = 'listando_home_usage_' + _email;
@@ -934,6 +1070,7 @@
 
         applyView();
         applyHidden();
+        applyColors();
 
         const sortable = Sortable.create(document.getElementById('menuGrid'), {
             animation: 200,
