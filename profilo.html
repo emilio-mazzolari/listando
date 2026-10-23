@@ -183,25 +183,6 @@
         .ftipo-btn.active { border-color:var(--accent); background:rgba(88,86,214,0.08); color:var(--accent); }
         .feedback-ta { width:100%; border:2px solid var(--grey); border-radius:14px; padding:12px 14px; font-size:14px; font-family:inherit; resize:none; outline:none; transition:border 0.15s; line-height:1.5; color:var(--dark); background:var(--white); }
         .feedback-ta:focus { border-color:var(--accent); }
-        .fb-item { padding:14px 0; border-bottom:1px solid var(--grey-light); }
-        .fb-item:last-child { border-bottom:none; }
-        .fb-item-meta { display:flex; align-items:center; gap:8px; margin-bottom:5px; flex-wrap:wrap; }
-        .fb-chip { font-size:10px; font-weight:900; padding:3px 8px; border-radius:6px; }
-        .fb-chip.suggerimento { background:#f0f9ff; color:#0ea5e9; }
-        .fb-chip.errore { background:#fff0f0; color:var(--red); }
-        .fb-from { font-size:11px; color:#888; font-weight:700; }
-        .fb-data { font-size:11px; color:#bbb; font-weight:600; margin-left:auto; }
-        .fb-text { font-size:13px; font-weight:600; color:#444; line-height:1.5; white-space:pre-wrap; }
-        .fb-actions { display:flex; gap:8px; margin-top:10px; }
-        .fb-btn { padding:7px 13px; border-radius:10px; border:none; font-size:12px; font-weight:800; cursor:pointer; font-family:inherit; transition:all 0.15s; }
-        .fb-btn.reply { background:#f0f9ff; color:#0ea5e9; }
-        .fb-btn.del   { background:#fff0f0; color:var(--red); }
-        .fb-reply-box { margin-top:10px; display:none; }
-        .fb-reply-box textarea { width:100%; border:2px solid #0ea5e9; border-radius:12px; padding:10px 12px; font-size:13px; font-family:inherit; resize:none; outline:none; line-height:1.5; box-sizing:border-box; }
-        .fb-reply-send { margin-top:6px; width:100%; padding:10px; border-radius:10px; border:none; background:#0ea5e9; color:white; font-weight:900; font-size:13px; cursor:pointer; font-family:inherit; }
-        .fb-risposta { margin-top:8px; background:#f0f9ff; border-radius:10px; padding:8px 12px; font-size:12px; color:#0369a1; font-weight:700; line-height:1.5; }
-        .sheet-backdrop { position:absolute; inset:0; cursor:pointer; }
-        .sheet-box { position:relative; z-index:1; }
     </style>
 </head>
 <body>
@@ -368,8 +349,11 @@
                     <div class="row-sub" id="subFeedbackCount">—</div>
                 </div>
                 <div class="row-right">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                    <svg id="arrowAdminFeedback" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
                 </div>
+            </div>
+            <div id="adminFeedbackPanel" style="display:none;padding:0 18px 16px">
+                <div id="adminFeedbackList"></div>
             </div>
         </div>
     </div>
@@ -458,15 +442,6 @@
     </div>
 </div>
 
-<!-- Modal: Lista feedback (solo admin) -->
-<div id="sheetAdminFeedbackBg" onclick="chiudiAdminFeedback()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:198"></div>
-<div id="sheetAdminFeedback" style="display:none;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:199;background:white;border-radius:28px;width:min(560px,92vw);max-height:80vh;overflow-y:auto;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,0.3)">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-        <div class="sheet-title" style="margin:0">📬 Feedback ricevuti</div>
-        <button onclick="chiudiAdminFeedback()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#888;padding:4px 8px;line-height:1">✕</button>
-    </div>
-    <div id="adminFeedbackList" onclick="handleFeedbackClick(event)"><div style="text-align:center;color:#aaa;padding:20px">Caricamento…</div></div>
-</div>
 
 <!-- Modal: Admin iscritti (solo admin) -->
 <div class="sheet-overlay" id="sheetAdminIscritti" onclick="if(!event.target.closest('.sheet-box'))chiudiAdminIscritti()">
@@ -980,121 +955,146 @@ async function caricaContattoFeedback() {
 }
 
 async function apriAdminFeedback() {
-    document.getElementById('sheetAdminFeedbackBg').style.display = 'block';
-    document.getElementById('sheetAdminFeedback').style.display = 'block';
-    await renderAdminFeedback();
+    const panel = document.getElementById('adminFeedbackPanel');
+    const arrow = document.getElementById('arrowAdminFeedback');
+    const open = panel.style.display !== 'none';
+    panel.style.display = open ? 'none' : 'block';
+    arrow.style.transform = open ? '' : 'rotate(90deg)';
+    if (!open) await renderAdminFeedback();
 }
 
 async function renderAdminFeedback() {
     const list = document.getElementById('adminFeedbackList');
-    list.innerHTML = '<div style="text-align:center;color:#aaa;padding:20px">Caricamento…</div>';
+    list.innerHTML = '';
+
+    const loading = document.createElement('div');
+    loading.style.cssText = 'text-align:center;color:#aaa;padding:20px';
+    loading.textContent = 'Caricamento…';
+    list.appendChild(loading);
+
     const res = await fetch(`${URL_S}/app_feedback?order=created_at.desc`, { headers: _HR });
     const items = res.ok ? await res.json() : [];
+    list.innerHTML = '';
+
     if (!items.length) {
-        list.innerHTML = '<div style="text-align:center;color:#aaa;padding:20px;font-weight:700">Nessun feedback ricevuto</div>';
+        const empty = document.createElement('div');
+        empty.style.cssText = 'text-align:center;color:#aaa;padding:20px;font-weight:700';
+        empty.textContent = 'Nessun feedback ricevuto';
+        list.appendChild(empty);
         caricaContattoFeedback();
         return;
     }
-    list.innerHTML = items.map(f => {
+
+    items.forEach(f => {
         const d = new Date(f.created_at);
-        const data = d.toLocaleDateString('it-IT', { day:'2-digit', month:'2-digit', year:'2-digit' }) +
-                     ' ' + d.toLocaleTimeString('it-IT', { hour:'2-digit', minute:'2-digit' });
-        const rispostaHtml = f.risposta
-            ? `<div class="fb-risposta">↩ Risposta inviata: ${f.risposta.replace(/</g,'&lt;')}</div>`
-            : '';
-        return `<div class="fb-item" id="fbi-${f.id}" data-id="${f.id}" data-email="${f.email_utente.replace(/"/g,'&quot;')}">
-            <div class="fb-item-meta">
-                <span class="fb-chip ${f.tipo}">${f.tipo === 'errore' ? '🐛 Errore' : '💡 Suggerimento'}</span>
-                <span class="fb-from">${f.email_utente}</span>
-                <span class="fb-data">${data}</span>
-            </div>
-            <div class="fb-text">${f.testo.replace(/</g,'&lt;')}</div>
-            ${rispostaHtml}
-            <div class="fb-actions">
-                <button class="fb-btn reply" data-action="reply">↩ Rispondi</button>
-                <button class="fb-btn del" data-action="del">🗑 Elimina</button>
-            </div>
-            <div class="fb-reply-box" id="fbr-${f.id}" style="display:none">
-                <textarea rows="3" placeholder="Scrivi la tua risposta…" id="fbrt-${f.id}"></textarea>
-                <button class="fb-reply-send" data-action="send">Invia risposta</button>
-            </div>
-        </div>`;
-    }).join('');
+        const dataStr = d.toLocaleDateString('it-IT', { day:'2-digit', month:'2-digit', year:'2-digit' })
+                      + ' ' + d.toLocaleTimeString('it-IT', { hour:'2-digit', minute:'2-digit' });
+
+        const item = document.createElement('div');
+        item.id = `afi-${f.id}`;
+        item.style.cssText = 'padding:14px 0;border-bottom:1px solid #f0f0f0';
+
+        // riga meta
+        const meta = document.createElement('div');
+        meta.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap';
+        const chip = document.createElement('span');
+        chip.style.cssText = 'font-size:10px;font-weight:900;padding:3px 8px;border-radius:6px;'
+            + (f.tipo === 'errore' ? 'background:#fff0f0;color:#ff3b30' : 'background:#f0f9ff;color:#0ea5e9');
+        chip.textContent = f.tipo === 'errore' ? '🐛 Errore' : '💡 Suggerimento';
+        const emailEl = document.createElement('span');
+        emailEl.style.cssText = 'font-size:11px;color:#888;font-weight:700';
+        emailEl.textContent = f.email_utente;
+        const dateEl = document.createElement('span');
+        dateEl.style.cssText = 'font-size:11px;color:#bbb;margin-left:auto';
+        dateEl.textContent = dataStr;
+        meta.append(chip, emailEl, dateEl);
+
+        // testo
+        const testoEl = document.createElement('div');
+        testoEl.style.cssText = 'font-size:13px;color:#444;line-height:1.5;white-space:pre-wrap;margin-bottom:8px';
+        testoEl.textContent = f.testo;
+
+        // risposta già inviata
+        const rispostaDiv = document.createElement('div');
+        if (f.risposta) {
+            rispostaDiv.style.cssText = 'background:#f0f9ff;border-radius:10px;padding:8px 12px;font-size:12px;color:#0369a1;font-weight:700;margin-bottom:8px';
+            rispostaDiv.textContent = '↩ Risposta inviata: ' + f.risposta;
+        }
+
+        // bottoni azione
+        const actions = document.createElement('div');
+        actions.style.cssText = 'display:flex;gap:8px;margin-bottom:4px';
+
+        const btnReply = document.createElement('button');
+        btnReply.style.cssText = 'padding:7px 13px;border-radius:10px;border:none;font-size:12px;font-weight:800;cursor:pointer;font-family:inherit;background:#f0f9ff;color:#0ea5e9';
+        btnReply.textContent = '↩ Rispondi';
+
+        const btnDel = document.createElement('button');
+        btnDel.style.cssText = 'padding:7px 13px;border-radius:10px;border:none;font-size:12px;font-weight:800;cursor:pointer;font-family:inherit;background:#fff0f0;color:#ff3b30';
+        btnDel.textContent = '🗑 Elimina';
+
+        actions.append(btnReply, btnDel);
+
+        // box risposta
+        const replyBox = document.createElement('div');
+        replyBox.style.display = 'none';
+        const ta = document.createElement('textarea');
+        ta.rows = 3;
+        ta.placeholder = 'Scrivi la tua risposta…';
+        ta.style.cssText = 'width:100%;border:2px solid #0ea5e9;border-radius:12px;padding:10px 12px;font-size:13px;font-family:inherit;resize:none;outline:none;line-height:1.5;box-sizing:border-box';
+        const btnSend = document.createElement('button');
+        btnSend.style.cssText = 'margin-top:6px;width:100%;padding:10px;border-radius:10px;border:none;background:#0ea5e9;color:white;font-weight:900;font-size:13px;cursor:pointer;font-family:inherit';
+        btnSend.textContent = 'Invia risposta';
+        replyBox.append(ta, btnSend);
+
+        item.append(meta, testoEl, rispostaDiv, actions, replyBox);
+        list.appendChild(item);
+
+        // listener direttamente sull'elemento DOM — nessun innerHTML con onclick
+        btnReply.addEventListener('click', function() {
+            const aperto = replyBox.style.display !== 'none';
+            replyBox.style.display = aperto ? 'none' : 'block';
+            if (!aperto) ta.focus();
+        });
+
+        btnDel.addEventListener('click', async function() {
+            item.style.opacity = '0.4';
+            const r = await fetch(`${URL_S}/app_feedback?id=eq.${f.id}`, {
+                method: 'DELETE',
+                headers: { ..._HR, 'Prefer': 'return=minimal' }
+            });
+            if (r.ok || r.status === 204) {
+                item.remove();
+                caricaContattoFeedback();
+                toast('🗑 Feedback eliminato');
+            } else {
+                item.style.opacity = '';
+                toast('Errore eliminazione (' + r.status + ')');
+            }
+        });
+
+        btnSend.addEventListener('click', async function() {
+            const testo = ta.value.trim();
+            if (!testo) return;
+            btnSend.disabled = true; btnSend.textContent = 'Invio…';
+            try {
+                const r = await fetch('/api/feedback', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'reply', id: f.id, email: f.email_utente, risposta: testo })
+                });
+                if (r.ok) {
+                    toast('✓ Risposta inviata');
+                    replyBox.style.display = 'none';
+                    rispostaDiv.style.cssText = 'background:#f0f9ff;border-radius:10px;padding:8px 12px;font-size:12px;color:#0369a1;font-weight:700;margin-bottom:8px';
+                    rispostaDiv.textContent = '↩ Risposta inviata: ' + testo;
+                } else { toast('Errore invio risposta'); }
+            } catch(e) { toast('Errore invio risposta'); }
+            btnSend.disabled = false; btnSend.textContent = 'Invia risposta';
+        });
+    });
 
     caricaContattoFeedback();
-}
-
-function handleFeedbackClick(e) {
-    const btn = e.target.closest('button[data-action]');
-    if (!btn) return;
-    const item = btn.closest('[data-id]');
-    if (!item) return;
-    const id = parseInt(item.dataset.id);
-    const email = item.dataset.email || '';
-    const action = btn.dataset.action;
-    if (action === 'reply') toggleRisposta(id);
-    else if (action === 'del') eliminaFeedback(id);
-    else if (action === 'send') inviaRisposta(id, email);
-}
-
-function toggleRisposta(id) {
-    const box = document.getElementById(`fbr-${id}`);
-    if (!box) return;
-    const show = box.style.display !== 'block';
-    box.style.display = show ? 'block' : 'none';
-    if (show) {
-        box.querySelector('textarea').focus();
-        setTimeout(() => box.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
-    }
-}
-
-async function eliminaFeedback(id) {
-    const item = document.getElementById(`fbi-${id}`);
-    if (!item) return;
-    item.style.opacity = '0.4';
-    const res = await fetch(`${URL_S}/app_feedback?id=eq.${id}`, {
-        method: 'DELETE',
-        headers: { ..._HR, 'Prefer': 'return=minimal' }
-    });
-    if (res.ok || res.status === 204) {
-        item.remove();
-        caricaContattoFeedback();
-        toast('🗑 Feedback eliminato');
-    } else {
-        item.style.opacity = '';
-        toast('Errore eliminazione (' + res.status + ')');
-    }
-}
-
-async function inviaRisposta(id, email) {
-    const testo = document.getElementById(`fbrt-${id}`)?.value.trim();
-    if (!testo) return;
-    const btn = document.querySelector(`#fbr-${id} .fb-reply-send`);
-    btn.disabled = true; btn.textContent = 'Invio…';
-    try {
-        const res = await fetch('/api/feedback', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'reply', id, email, risposta: testo })
-        });
-        if (res.ok) {
-            toast('✓ Risposta inviata');
-            document.getElementById(`fbr-${id}`).style.display = 'none';
-            // aggiorna la riga senza ricaricare tutto
-            const existing = document.querySelector(`#fbi-${id} .fb-risposta`);
-            const html = `<div class="fb-risposta">↩ Risposta inviata: ${testo.replace(/</g,'&lt;')}</div>`;
-            if (existing) existing.outerHTML = html;
-            else document.querySelector(`#fbi-${id} .fb-text`).insertAdjacentHTML('afterend', html);
-        } else {
-            toast('Errore invio risposta');
-        }
-    } catch(e) { toast('Errore invio risposta'); }
-    btn.disabled = false; btn.textContent = 'Invia risposta';
-}
-
-function chiudiAdminFeedback() {
-    document.getElementById('sheetAdminFeedbackBg').style.display = 'none';
-    document.getElementById('sheetAdminFeedback').style.display = 'none';
 }
 
 if (userEmail === ADMIN_EMAIL) {
