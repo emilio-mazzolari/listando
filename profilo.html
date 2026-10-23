@@ -200,6 +200,8 @@
         .fb-reply-box textarea { width:100%; border:2px solid #0ea5e9; border-radius:12px; padding:10px 12px; font-size:13px; font-family:inherit; resize:none; outline:none; line-height:1.5; box-sizing:border-box; }
         .fb-reply-send { margin-top:6px; width:100%; padding:10px; border-radius:10px; border:none; background:#0ea5e9; color:white; font-weight:900; font-size:13px; cursor:pointer; font-family:inherit; }
         .fb-risposta { margin-top:8px; background:#f0f9ff; border-radius:10px; padding:8px 12px; font-size:12px; color:#0369a1; font-weight:700; line-height:1.5; }
+        .sheet-backdrop { position:absolute; inset:0; cursor:pointer; }
+        .sheet-box { position:relative; z-index:1; }
     </style>
 </head>
 <body>
@@ -440,7 +442,8 @@
 </div>
 
 <!-- Modal: Lista feedback (solo admin) -->
-<div class="sheet-overlay" id="sheetAdminFeedback" onclick="if(event.target===this)chiudiAdminFeedback()">
+<div class="sheet-overlay" id="sheetAdminFeedback">
+    <div class="sheet-backdrop" onclick="chiudiAdminFeedback()"></div>
     <div class="sheet-box">
         <div class="sheet-handle"></div>
         <div class="sheet-title">📬 Feedback ricevuti</div>
@@ -972,7 +975,8 @@ async function renderAdminFeedback() {
         const rispostaHtml = f.risposta
             ? `<div class="fb-risposta">↩ Risposta inviata: ${f.risposta.replace(/</g,'&lt;')}</div>`
             : '';
-        return `<div class="fb-item" id="fbi-${f.id}" data-id="${f.id}" data-email="${f.email_utente.replace(/"/g,'&quot;')}">
+        const emailEsc = f.email_utente.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+        return `<div class="fb-item" id="fbi-${f.id}">
             <div class="fb-item-meta">
                 <span class="fb-chip ${f.tipo}">${f.tipo === 'errore' ? '🐛 Errore' : '💡 Suggerimento'}</span>
                 <span class="fb-from">${f.email_utente}</span>
@@ -981,30 +985,15 @@ async function renderAdminFeedback() {
             <div class="fb-text">${f.testo.replace(/</g,'&lt;')}</div>
             ${rispostaHtml}
             <div class="fb-actions">
-                <button class="fb-btn reply" data-action="reply">↩ Rispondi</button>
-                <button class="fb-btn del"   data-action="del">🗑 Elimina</button>
+                <button class="fb-btn reply" onclick="toggleRisposta(${f.id})">↩ Rispondi</button>
+                <button class="fb-btn del"   onclick="eliminaFeedback(${f.id})">🗑 Elimina</button>
             </div>
             <div class="fb-reply-box" id="fbr-${f.id}">
                 <textarea rows="3" placeholder="Scrivi la tua risposta…" id="fbrt-${f.id}"></textarea>
-                <button class="fb-reply-send" data-action="send">Invia risposta</button>
+                <button class="fb-reply-send" onclick="inviaRisposta(${f.id},'${emailEsc}')">Invia risposta</button>
             </div>
         </div>`;
     }).join('');
-
-    // Event delegation — un solo listener sul container
-    list.onclick = function(e) {
-        e.stopPropagation();
-        const btn = e.target.closest('button[data-action]');
-        if (!btn) return;
-        const item = btn.closest('.fb-item');
-        if (!item) return;
-        const id    = parseInt(item.dataset.id);
-        const email = item.dataset.email;
-        const action = btn.dataset.action;
-        if (action === 'reply') toggleRisposta(id);
-        if (action === 'del')   eliminaFeedback(id);
-        if (action === 'send')  inviaRisposta(id, email);
-    };
 
     caricaContattoFeedback();
 }
