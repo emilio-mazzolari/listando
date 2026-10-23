@@ -374,6 +374,23 @@
         </div>
     </div>
 
+    <!-- Admin (solo emilio) -->
+    <div class="settings-group" id="adminGroup" style="display:none">
+        <div class="group-label">Admin</div>
+        <div class="group-card">
+            <div class="row" style="cursor:pointer" onclick="apriAdminIscritti()">
+                <div class="row-icon" style="background:#f0f0ff">👥</div>
+                <div class="row-body">
+                    <div class="row-label">Iscritti a Listando</div>
+                    <div class="row-sub" id="subIscritti">—</div>
+                </div>
+                <div class="row-right">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Backup -->
     <div class="settings-group">
         <div class="group-label">Backup dati</div>
@@ -448,6 +465,16 @@
         <div class="sheet-handle"></div>
         <div class="sheet-title">📬 Feedback ricevuti</div>
         <div id="adminFeedbackList"><div style="text-align:center;color:#aaa;padding:20px">Caricamento…</div></div>
+    </div>
+</div>
+
+<!-- Modal: Admin iscritti (solo admin) -->
+<div class="sheet-overlay" id="sheetAdminIscritti">
+    <div class="sheet-backdrop" onclick="chiudiAdminIscritti()"></div>
+    <div class="sheet-box">
+        <div class="sheet-handle"></div>
+        <div class="sheet-title">👥 Iscritti a Listando</div>
+        <div id="adminIscrittiList"><div style="text-align:center;color:#aaa;padding:20px">Caricamento…</div></div>
     </div>
 </div>
 
@@ -1060,7 +1087,56 @@ function chiudiAdminFeedback() {
 if (userEmail === ADMIN_EMAIL) {
     document.getElementById('rowAdminFeedback').style.display = '';
     document.getElementById('rowInviaFeedback').style.display = 'none';
+    document.getElementById('adminGroup').style.display = '';
     caricaContattoFeedback();
+    caricaConteggiIscritti();
+}
+
+async function caricaConteggiIscritti() {
+    const res = await fetch(`${URL_S}/profili?select=email_utente`, { headers: _HR });
+    if (res.ok) {
+        const items = await res.json();
+        const n = Array.isArray(items) ? items.length : 0;
+        document.getElementById('subIscritti').textContent = `${n} ${n === 1 ? 'utente registrato' : 'utenti registrati'}`;
+    }
+}
+
+function apriAdminIscritti() {
+    document.getElementById('sheetAdminIscritti').classList.add('open');
+    renderAdminIscritti();
+}
+
+function chiudiAdminIscritti() {
+    document.getElementById('sheetAdminIscritti').classList.remove('open');
+}
+
+async function renderAdminIscritti() {
+    const list = document.getElementById('adminIscrittiList');
+    list.innerHTML = '<div style="text-align:center;color:#aaa;padding:20px">Caricamento…</div>';
+    const res = await fetch(`${URL_S}/profili?select=email_utente,nome,cognome,foto,created_at&order=created_at.desc`, { headers: _HR });
+    const items = res.ok ? await res.json() : [];
+    if (!items.length) {
+        list.innerHTML = '<div style="text-align:center;color:#aaa;padding:20px;font-weight:700">Nessun iscritto</div>';
+        return;
+    }
+    list.innerHTML = items.map(u => {
+        const nome = [u.nome, u.cognome].filter(Boolean).join(' ') || u.email_utente.split('@')[0];
+        const ini  = nome.split(' ').map(p => p[0]).slice(0,2).join('').toUpperCase() || '?';
+        const avatarBg = u.foto
+            ? `background-image:url(${u.foto});background-size:cover;background-position:center;`
+            : 'background:#eef2ff;';
+        const dataStr = u.created_at
+            ? new Date(u.created_at).toLocaleDateString('it-IT', { day:'numeric', month:'short', year:'numeric' })
+            : '';
+        return `<div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--grey-light)">
+            <div style="width:40px;height:40px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;color:#5856d6;${avatarBg}">${u.foto ? '' : ini}</div>
+            <div style="flex:1;min-width:0">
+                <div style="font-weight:800;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${nome}</div>
+                <div style="font-size:12px;color:#888;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${u.email_utente}</div>
+            </div>
+            ${dataStr ? `<div style="font-size:11px;color:#bbb;font-weight:700;flex-shrink:0">${dataStr}</div>` : ''}
+        </div>`;
+    }).join('');
 }
 </script>
 </body>
