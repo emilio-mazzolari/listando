@@ -12,10 +12,6 @@
       "path": "/api/notify-birthday",
       "schedule": "30 7 * * *"
     },
-    {
-      "path": "/api/notify-viaggio-saldi",
-      "schedule": "0 10 * * *"
-    }
   ],
   "rewrites": [
     {
