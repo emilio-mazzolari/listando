@@ -956,22 +956,23 @@ async function apriAdminFeedback() {
 }
 
 async function renderAdminFeedback() {
-    document.getElementById('adminFeedbackList').innerHTML = '<div style="text-align:center;color:#aaa;padding:20px">Caricamento…</div>';
+    const list = document.getElementById('adminFeedbackList');
+    list.innerHTML = '<div style="text-align:center;color:#aaa;padding:20px">Caricamento…</div>';
     const res = await fetch(`${URL_S}/app_feedback?order=created_at.desc`, { headers: _HR });
     const items = res.ok ? await res.json() : [];
     if (!items.length) {
-        document.getElementById('adminFeedbackList').innerHTML = '<div style="text-align:center;color:#aaa;padding:20px;font-weight:700">Nessun feedback ricevuto</div>';
+        list.innerHTML = '<div style="text-align:center;color:#aaa;padding:20px;font-weight:700">Nessun feedback ricevuto</div>';
         caricaContattoFeedback();
         return;
     }
-    document.getElementById('adminFeedbackList').innerHTML = items.map(f => {
+    list.innerHTML = items.map(f => {
         const d = new Date(f.created_at);
         const data = d.toLocaleDateString('it-IT', { day:'2-digit', month:'2-digit', year:'2-digit' }) +
                      ' ' + d.toLocaleTimeString('it-IT', { hour:'2-digit', minute:'2-digit' });
         const rispostaHtml = f.risposta
             ? `<div class="fb-risposta">↩ Risposta inviata: ${f.risposta.replace(/</g,'&lt;')}</div>`
             : '';
-        return `<div class="fb-item" id="fbi-${f.id}">
+        return `<div class="fb-item" id="fbi-${f.id}" data-id="${f.id}" data-email="${f.email_utente.replace(/"/g,'&quot;')}">
             <div class="fb-item-meta">
                 <span class="fb-chip ${f.tipo}">${f.tipo === 'errore' ? '🐛 Errore' : '💡 Suggerimento'}</span>
                 <span class="fb-from">${f.email_utente}</span>
@@ -980,15 +981,31 @@ async function renderAdminFeedback() {
             <div class="fb-text">${f.testo.replace(/</g,'&lt;')}</div>
             ${rispostaHtml}
             <div class="fb-actions">
-                <button class="fb-btn reply" onclick="event.stopPropagation();toggleRisposta(${f.id})">↩ Rispondi</button>
-                <button class="fb-btn del" onclick="event.stopPropagation();eliminaFeedback(${f.id})">🗑 Elimina</button>
+                <button class="fb-btn reply" data-action="reply">↩ Rispondi</button>
+                <button class="fb-btn del"   data-action="del">🗑 Elimina</button>
             </div>
             <div class="fb-reply-box" id="fbr-${f.id}">
                 <textarea rows="3" placeholder="Scrivi la tua risposta…" id="fbrt-${f.id}"></textarea>
-                <button class="fb-reply-send" onclick="event.stopPropagation();inviaRisposta(${f.id},'${f.email_utente.replace(/'/g,"\\'")}')">Invia risposta</button>
+                <button class="fb-reply-send" data-action="send">Invia risposta</button>
             </div>
         </div>`;
     }).join('');
+
+    // Event delegation — un solo listener sul container
+    list.onclick = function(e) {
+        e.stopPropagation();
+        const btn = e.target.closest('button[data-action]');
+        if (!btn) return;
+        const item = btn.closest('.fb-item');
+        if (!item) return;
+        const id    = parseInt(item.dataset.id);
+        const email = item.dataset.email;
+        const action = btn.dataset.action;
+        if (action === 'reply') toggleRisposta(id);
+        if (action === 'del')   eliminaFeedback(id);
+        if (action === 'send')  inviaRisposta(id, email);
+    };
+
     caricaContattoFeedback();
 }
 
