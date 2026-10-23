@@ -151,7 +151,7 @@
         .no-chat { text-align:center; color:#bbb; font-weight:700; font-size:14px; padding:30px 0; }
 
         .empty-msg { text-align:center; padding:60px 24px; color:#bbb; font-weight:700; font-size:15px; grid-column:span 2; }
-        .toast { position:fixed; bottom:90px; left:50%; transform:translateX(-50%) translateY(20px); background:rgba(0,0,0,.85); color:white; padding:12px 20px; border-radius:14px; font-weight:700; font-size:14px; opacity:0; transition:all .25s; z-index:9999; pointer-events:none; white-space:nowrap; }
+        .toast { position:fixed; bottom:90px; left:50%; transform:translateX(-50%) translateY(20px); background:rgba(0,0,0,.85); color:white; padding:12px 20px; border-radius:14px; font-weight:700; font-size:14px; opacity:0; transition:all .25s; z-index:9999; pointer-events:none; max-width:calc(100% - 32px); width:max-content; text-align:center; }
         .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
         .spin-ov { display:none; position:fixed; inset:0; z-index:9998; background:rgba(0,0,0,.35); align-items:center; justify-content:center; }
         .spin-ov.open { display:flex; }
@@ -264,7 +264,7 @@ const SUPABASE_URL = "https://eejdpophfxsrqdvsucye.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlamRwb3BoZnhzcnFkdnN1Y3llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2NTMzMDQsImV4cCI6MjA5MzIyOTMwNH0.mpxbwlJyIdZgqKIdutHbLd85JR1P11yiglbYeApi17k";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const userEmail = localStorage.getItem('userEmail');
-if (!userEmail) location.href = 'login.html';
+if (!userEmail) { localStorage.setItem('pendingUrl', location.pathname + location.search); location.href = 'login.html'; }
 
 const CONDIZIONI = ['Nuovo','Ottimo','Buono','Discreto'];
 const CATEGORIE  = ['Elettronica','Abbigliamento','Casa','Sport','Auto/Moto','Libri','Giochi','Altro'];
@@ -442,6 +442,7 @@ function buildDetailHtml(a) {
         <div class="detail-meta">${condBadge}${catBadge}${statoBadge}</div>
         ${a.descrizione ? `<div class="detail-desc">${esc(a.descrizione)}</div>` : ''}
         ${sellerHtml}
+        ${a.visibilita === 'pubblico' ? `<button class="btn-outline" onclick="condividiAnnuncio()">📤  Condividi annuncio</button>` : ''}
         ${actionsHtml}
     </div>`;
 }
@@ -674,75 +675,135 @@ async function salva() {
     const prezzo = document.getElementById('fPrezzo').value.trim();
     const desc = document.getElementById('fDesc').value.trim();
 
-    spin(true);
-    try {
-        const row = {
-            email_utente: userEmail,
-            titolo,
-            descrizione: desc || null,
-            prezzo: prezzo ? parseFloat(prezzo) : null,
-            condizione: fCond,
-            categoria: fCat,
-            visibilita: fVis,
-            updated_at: new Date().toISOString()
-        };
+    const row = {
+        email_utente: userEmail,
+        titolo,
+        descrizione: desc || null,
+        prezzo: prezzo ? parseFloat(prezzo) : null,
+        condizione: fCond,
+        categoria: fCat,
+        visibilita: fVis,
+        updated_at: new Date().toISOString()
+    };
 
-        let annuncioId = editId;
+    spin(true);
+    const isNew = !editId;
+    let annuncioId = editId;
+    try {
         if (editId) {
-            await sb.from('vendita_annunci').update(row).eq('id', editId);
+            const { error } = await sb.from('vendita_annunci').update(row).eq('id', editId);
+            if (error) throw error;
         } else {
             const { data, error } = await sb.from('vendita_annunci').insert({ ...row, stato: 'attivo' }).select().single();
-            if (error) { toast('Errore: ' + error.message); spin(false); return; }
+            if (error) throw error;
             annuncioId = data.id;
+            // Da qui l'annuncio esiste: un nuovo PUBBLICA dopo un errore lo aggiorna invece di duplicarlo
+            editId = annuncioId;
         }
+    } catch (e) {
+        toast('Errore: ' + errMsg(e));
+        spin(false);
+        return;
+    }
 
-        // Handle photos
-        if (editId) {
-            // Delete removed existing photos
-            const keptIds = photoSlots.filter(s => s?.type === 'existing').map(s => s.id);
-            const { data: allFoto } = await sb.from('vendita_foto').select('id,url').eq('annuncio_id', editId);
-            for (const f of (allFoto || [])) {
-                if (!keptIds.includes(f.id)) {
-                    // Delete from storage
-                    const path = storagePathFromUrl(f.url);
-                    if (path) await sb.storage.from('vendita-foto').remove([path]);
-                    await sb.from('vendita_foto').delete().eq('id', f.id);
-                }
+    // L'annuncio è salvato: foto e accessi sono passi secondari, gli errori vengono raccolti
+    const problemi = [];
+
+    if (!isNew) {
+        // Delete removed existing photos
+        const keptIds = photoSlots.filter(s => s?.type === 'existing').map(s => s.id);
+        const { data: allFoto } = await sb.from('vendita_foto').select('id,url').eq('annuncio_id', annuncioId);
+        for (const f of (allFoto || [])) {
+            if (!keptIds.includes(f.id)) {
+                const path = storagePathFromUrl(f.url);
+                if (path) await sb.storage.from('vendita-foto').remove([path]);
+                await sb.from('vendita_foto').delete().eq('id', f.id);
             }
         }
+    }
 
-        // Upload new photos via server proxy (bypasses storage policies + RLS)
-        let ordine = photoSlots.filter(s => s?.type === 'existing').length;
-        for (const slot of photoSlots) {
-            if (slot?.type === 'new') {
-                const base64 = await fileToBase64(slot.file);
-                const resp = await fetch('/api/upload-foto', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ file: base64, fileName: slot.file.name, annuncioId, email: userEmail, ordine })
-                });
-                const result = await resp.json();
-                if (!resp.ok) { toast('Errore foto: ' + (result.error || resp.status)); continue; }
-                ordine++;
-            }
+    // Upload new photos via server proxy (bypasses storage policies + RLS)
+    let ordine = photoSlots.filter(s => s?.type === 'existing').length;
+    for (let i = 0; i < photoSlots.length; i++) {
+        const slot = photoSlots[i];
+        if (slot?.type !== 'new') continue;
+        try {
+            await uploadFoto(slot.file, annuncioId, ordine);
+            ordine++;
+            photoSlots[i] = null; // già caricata: non ricaricarla se si ripete il salvataggio
+        } catch (e) {
+            problemi.push('foto: ' + errMsg(e));
         }
+    }
 
-        // Handle selezionati access list
-        if (fVis === 'selezionati') {
-            await sb.from('vendita_accesso').delete().eq('annuncio_id', annuncioId);
-            if (selEmails.length) {
-                await sb.from('vendita_accesso').insert(selEmails.map(email => ({ annuncio_id: annuncioId, email_utente: email })));
-            }
-        } else {
-            await sb.from('vendita_accesso').delete().eq('annuncio_id', annuncioId);
-        }
+    // Handle selezionati access list
+    const { error: delErr } = await sb.from('vendita_accesso').delete().eq('annuncio_id', annuncioId);
+    if (delErr) problemi.push('accessi: ' + errMsg(delErr));
+    if (fVis === 'selezionati' && selEmails.length) {
+        const { error: accErr } = await sb.from('vendita_accesso')
+            .insert(selEmails.map(email => ({ annuncio_id: annuncioId, email_utente: email })));
+        if (accErr) problemi.push('accessi: ' + errMsg(accErr));
+    }
 
-        document.getElementById('modaleAnnuncio').classList.remove('open');
-        toast(editId ? '✓ Annuncio aggiornato' : '✓ Annuncio pubblicato');
-        if (selectedAnnuncio?.id === editId) chiudiDettaglio();
-        await carica();
-    } catch(e) { toast('Errore: ' + e.message); }
+    document.getElementById('modaleAnnuncio').classList.remove('open');
+    if (problemi.length) {
+        console.error('salva annuncio:', problemi);
+        toast(`⚠️ Annuncio salvato, ma ${problemi[0]}`, 4500);
+    } else {
+        toast(isNew ? '✓ Annuncio pubblicato' : '✓ Annuncio aggiornato');
+    }
+    if (selectedAnnuncio?.id === annuncioId) chiudiDettaglio();
+    await carica();
     spin(false);
+}
+
+// Ridimensiona e invia la foto: le foto del telefono superano il limite di 4,5 MB
+// delle funzioni Vercel e la risposta di errore non è JSON
+async function uploadFoto(file, annuncioId, ordine) {
+    const blob = await compressImage(file);
+    const base64 = await fileToBase64(blob);
+    const resp = await fetch('/api/upload-foto', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ file: base64, fileName: 'foto.jpg', annuncioId, email: userEmail, ordine })
+    });
+    const text = await resp.text();
+    let result = {};
+    try { result = JSON.parse(text); } catch {}
+    if (!resp.ok) {
+        if (resp.status === 413) throw new Error('immagine troppo grande');
+        throw new Error(result.error || `errore server ${resp.status}`);
+    }
+    return result;
+}
+
+function compressImage(file) {
+    return new Promise(resolve => {
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+        img.onload = () => {
+            URL.revokeObjectURL(url);
+            const MAX = 1600;
+            let w = img.naturalWidth, h = img.naturalHeight;
+            if (w > MAX || h > MAX) {
+                const r = Math.min(MAX / w, MAX / h);
+                w = Math.round(w * r); h = Math.round(h * r);
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = w; canvas.height = h;
+            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+            canvas.toBlob(blob => resolve(blob || file), 'image/jpeg', 0.82);
+        };
+        // Formato non decodificabile dal browser: si invia l'originale
+        img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+        img.src = url;
+    });
+}
+
+function errMsg(e) {
+    if (!e) return 'errore sconosciuto';
+    if (typeof e === 'string') return e;
+    return e.message || e.error_description || e.details || e.hint || e.code || 'errore sconosciuto';
 }
 
 function storagePathFromUrl(url) {
@@ -768,6 +829,25 @@ async function eliminaAnnuncio() {
     toast('Annuncio eliminato');
     await carica();
     spin(false);
+}
+
+// ── Condivisione esterna ──────────────────────────────────
+async function condividiAnnuncio() {
+    const a = selectedAnnuncio;
+    if (!a) return;
+    const url = `${location.origin}/annuncio/${a.id}`;
+    const prezzo = a.prezzo != null ? `€ ${Number(a.prezzo).toFixed(2).replace('.', ',')}` : 'Prezzo libero';
+    const testo = `${a.titolo} — ${prezzo}`;
+    if (navigator.share) {
+        try { await navigator.share({ title: a.titolo, text: testo, url }); return; }
+        catch (e) { if (e.name === 'AbortError') return; }
+    }
+    try {
+        await navigator.clipboard.writeText(`${testo}\n${url}`);
+        toast('✓ Link copiato');
+    } catch {
+        prompt('Copia il link dell\'annuncio:', url);
+    }
 }
 
 // ── Chat (buyer) ──────────────────────────────────────────
@@ -886,17 +966,24 @@ function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').re
 function ucFirst(s) { return s ? s[0].toUpperCase() + s.slice(1) : s; }
 
 let toastTimer;
-function toast(msg) {
+function toast(msg, ms = 2500) {
     const t = document.getElementById('toast');
     t.textContent = msg; t.classList.add('show');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+    toastTimer = setTimeout(() => t.classList.remove('show'), ms);
 }
 
 function spin(on) { document.getElementById('spinOv').classList.toggle('open', on); }
 
 // ── Init ──────────────────────────────────────────────────
-carica();
+(async () => {
+    await carica();
+    const linkId = parseInt(new URLSearchParams(location.search).get('annuncio'));
+    if (!linkId) return;
+    if (!annunci.some(a => a.id === linkId)) await caricaMiei();
+    if ([...annunci, ...miei].some(a => a.id === linkId)) apriDettaglio(linkId);
+    else toast('Annuncio non disponibile');
+})();
 </script>
 </body>
 </html>

@@ -1,5 +1,5 @@
-const CACHE_NAME = "lista-spesa-cache-v125";
-const API_CACHE  = "lista-spesa-api-v125";
+const CACHE_NAME = "lista-spesa-cache-v126";
+const API_CACHE  = "lista-spesa-api-v126";
 
 const FILES = [
   "/manifest.json",
@@ -61,6 +61,12 @@ self.addEventListener("activate", (event) => {
 /* FETCH */
 self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
+
+  // POST/PATCH/DELETE e API Vercel: nessuna intercettazione (non sono cacheabili)
+  if (event.request.method !== 'GET' ||
+      (url.hostname === self.location.hostname && (url.pathname.startsWith('/api/') || url.pathname.startsWith('/annuncio/')))) {
+    return;
+  }
 
   // Supabase REST API — GET: network first, cache come fallback offline
   if (url.hostname === 'eejdpophfxsrqdvsucye.supabase.co' &&
