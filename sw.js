@@ -1,5 +1,5 @@
-const CACHE_NAME = "lista-spesa-cache-v136";
-const API_CACHE  = "lista-spesa-api-v136";
+const CACHE_NAME = "lista-spesa-cache-v137";
+const API_CACHE  = "lista-spesa-api-v137";
 
 const FILES = [
   "/manifest.json",
@@ -36,14 +36,18 @@ const FILES = [
   "/vendita.html",
 ];
 
-/* INSTALL */
+/* INSTALL — cache: 'reload' bypassa HTTP cache e prende i file freschi dalla rete */
 self.addEventListener("install", (event) => {
   self.skipWaiting();
 
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      return cache.addAll(FILES);
-    })
+    caches.open(CACHE_NAME).then(cache =>
+      Promise.all(FILES.map(url =>
+        fetch(new Request(url, { cache: 'reload' }))
+          .then(r => { if (r.ok) cache.put(url, r); })
+          .catch(() => {})
+      ))
+    )
   );
 });
 
