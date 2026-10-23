@@ -1000,8 +1000,7 @@ async function renderAdminFeedback() {
         const rispostaHtml = f.risposta
             ? `<div class="fb-risposta">↩ Risposta inviata: ${f.risposta.replace(/</g,'&lt;')}</div>`
             : '';
-        const emailEsc = f.email_utente.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-        return `<div class="fb-item" id="fbi-${f.id}">
+        return `<div class="fb-item" id="fbi-${f.id}" data-id="${f.id}" data-email="${f.email_utente.replace(/"/g,'&quot;')}">
             <div class="fb-item-meta">
                 <span class="fb-chip ${f.tipo}">${f.tipo === 'errore' ? '🐛 Errore' : '💡 Suggerimento'}</span>
                 <span class="fb-from">${f.email_utente}</span>
@@ -1010,15 +1009,24 @@ async function renderAdminFeedback() {
             <div class="fb-text">${f.testo.replace(/</g,'&lt;')}</div>
             ${rispostaHtml}
             <div class="fb-actions">
-                <button class="fb-btn reply" onclick="toggleRisposta(${f.id})">↩ Rispondi</button>
-                <button class="fb-btn del"   onclick="eliminaFeedback(${f.id})">🗑 Elimina</button>
+                <button class="fb-btn reply">↩ Rispondi</button>
+                <button class="fb-btn del">🗑 Elimina</button>
             </div>
-            <div class="fb-reply-box" id="fbr-${f.id}">
+            <div class="fb-reply-box" id="fbr-${f.id}" style="display:none">
                 <textarea rows="3" placeholder="Scrivi la tua risposta…" id="fbrt-${f.id}"></textarea>
-                <button class="fb-reply-send" onclick="inviaRisposta(${f.id},'${emailEsc}')">Invia risposta</button>
+                <button class="fb-reply-send">Invia risposta</button>
             </div>
         </div>`;
     }).join('');
+
+    // Wiring bottoni con addEventListener (evita qualsiasi problema di interception)
+    list.querySelectorAll('.fb-item').forEach(item => {
+        const id = parseInt(item.dataset.id);
+        const email = item.dataset.email;
+        item.querySelector('.fb-btn.reply').addEventListener('click', e => { e.stopPropagation(); toggleRisposta(id); });
+        item.querySelector('.fb-btn.del').addEventListener('click',   e => { e.stopPropagation(); eliminaFeedback(id); });
+        item.querySelector('.fb-reply-send').addEventListener('click', e => { e.stopPropagation(); inviaRisposta(id, email); });
+    });
 
     caricaContattoFeedback();
 }
@@ -1091,12 +1099,18 @@ if (userEmail === ADMIN_EMAIL) {
 }
 
 async function caricaConteggiIscritti() {
-    const res = await fetch(`${URL_S}/profili?select=email_utente`, { headers: _HR });
-    if (res.ok) {
-        const items = await res.json();
-        const n = Array.isArray(items) ? items.length : 0;
-        document.getElementById('subIscritti').textContent = `${n} ${n === 1 ? 'utente registrato' : 'utenti registrati'}`;
-    }
+    const [rP, rS] = await Promise.all([
+        fetch(`${URL_S}/profili?select=email_utente`, { headers: _HR }),
+        fetch(`${URL_S}/push_subscriptions?select=email`, { headers: _HR })
+    ]);
+    const profili = rP.ok ? await rP.json() : [];
+    const subs    = rS.ok ? await rS.json() : [];
+    const tutteEmail = new Set([
+        ...profili.map(p => p.email_utente),
+        ...subs.map(s => s.email)
+    ]);
+    const n = tutteEmail.size;
+    document.getElementById('subIscritti').textContent = `${n} ${n === 1 ? 'utente' : 'utenti'}`;
 }
 
 function apriAdminIscritti() {

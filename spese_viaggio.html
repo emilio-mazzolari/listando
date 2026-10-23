@@ -2032,10 +2032,10 @@ function renderSaldi() {
         const _righeStorico = storicoVoci.map(s => {
             const { pag, dest, dataFmt, importo } = rigaStorico(s);
             const isPag = s.categoria === '💸';
-            // 💸: pag=pagatore, dest=ricevente | 🤝: pag=debitore, dest=creditore che ha abbuonato
+            // 💸: pag=pagatore, dest=ricevente | 🤝: pag=debitore, dest=creditore
             const testo = isPag
                 ? `${pag?.nome || '?'} ha pagato ${dest?.nome || '?'}`
-                : `${dest?.nome || '?'} ha abbuonato ${pag?.nome || '?'}`;
+                : `${dest?.nome || '?'} e ${pag?.nome || '?'} sono a posto`;
             return `<div class="storico-riga">
                 <span class="storico-icon">${s.categoria}</span>
                 <div class="storico-body">

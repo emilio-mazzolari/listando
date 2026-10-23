@@ -1,4 +1,4 @@
-const CACHE_NAME = "lista-spesa-cache-v138";
+const CACHE_NAME = "lista-spesa-cache-v140";
 const API_CACHE  = "lista-spesa-api-v137";
 
 const FILES = [
