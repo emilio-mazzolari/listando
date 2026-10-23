@@ -2020,7 +2020,7 @@ function renderSaldi() {
     }
 
     // Storico pareggi
-    const storicoVoci = speseAttuali.filter(s => s.categoria === '🤝' || s.categoria === '💸');
+    const storicoVoci = speseAttuali.filter(s => s.categoria === '💸');
     if (storicoVoci.length) {
         const rigaStorico = (s) => {
             const pag = partecipantiAttuali.find(p => p.id == s.pagato_da);
@@ -2031,13 +2031,10 @@ function renderSaldi() {
         };
         const _righeStorico = storicoVoci.map(s => {
             const { pag, dest, dataFmt, importo } = rigaStorico(s);
-            const testo = s.categoria === '💸'
-                ? `${pag?.nome || '?'} ha pagato ${dest?.nome || '?'}`
-                : `${dest?.nome || '?'} ha abbuonato ${pag?.nome || '?'}`;
             return `<div class="storico-riga">
-                <span class="storico-icon">${s.categoria}</span>
+                <span class="storico-icon">💸</span>
                 <div class="storico-body">
-                    <div class="storico-testo">${testo}</div>
+                    <div class="storico-testo">${pag?.nome || '?'} ha pagato ${dest?.nome || '?'}</div>
                     ${dataFmt ? `<div class="storico-data">${dataFmt}</div>` : ''}
                 </div>
                 <span class="storico-importo">${cur}${importo.toFixed(2)}</span>
