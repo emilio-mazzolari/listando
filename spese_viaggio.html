@@ -102,6 +102,17 @@
         .storico-testo { font-size: 13px; font-weight: 700; color: var(--dark); }
         .storico-data { font-size: 11px; color: #bbb; font-weight: 600; margin-top: 2px; }
         .storico-importo { font-size: 13px; font-weight: 900; color: #888; flex-shrink: 0; }
+        .saldo-ind { font-size: 13px; font-weight: 900; }
+        .saldo-ind.out { color: var(--red); }
+        .saldo-ind.in  { color: var(--green); }
+        .storico-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .storico-col { background: var(--white); border-radius: 14px; overflow: hidden; box-shadow: var(--shadow); }
+        .storico-col-hdr { font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.6px; padding: 9px 14px 8px; border-bottom: 1.5px solid var(--grey-light); color: #aaa; }
+        .storico-col-item { padding: 9px 14px; border-bottom: 1.5px solid var(--grey-light); }
+        .storico-col-item:last-child { border-bottom: none; }
+        .storico-col-nome { font-size: 12px; font-weight: 700; color: var(--dark); line-height: 1.4; }
+        .storico-col-sub { font-size: 11px; color: #aaa; font-weight: 600; margin-top: 2px; }
+        .storico-col-empty { padding: 10px 14px; font-size: 12px; color: #ccc; font-weight: 600; }
         .transazione-top { display: flex; align-items: center; gap: 6px; width: 100%; }
         .transazione-card .da { color: var(--red); font-weight: 900; }
         .transazione-card .a { color: var(--green); font-weight: 900; }
@@ -1948,9 +1959,9 @@ function renderSaldi() {
         const valStr = netto > 0.01 ? `+${cur}${netto.toFixed(2)}` : netto < -0.01 ? `-${cur}${Math.abs(netto).toFixed(2)}` : `${cur}0`;
         let dettaglio = '';
         if (algoConfermato) {
-            if (debitiDi[p.id].length) dettaglio = debitiDi[p.id].map(d => `📤 Deve <strong>${cur}${d.importo.toFixed(2)}</strong> a ${d.a}`).join('<br>');
-            else if (creditiDa[p.id].length) dettaglio = creditiDa[p.id].map(c => `📥 Riceve <strong>${cur}${c.importo.toFixed(2)}</strong> da ${c.da}`).join('<br>');
-            else if (speseAttuali.length > 0) dettaglio = '✅ In pari';
+            if (debitiDi[p.id].length) dettaglio = debitiDi[p.id].map(d => `<span class="saldo-ind out">→</span> Deve pagare <strong>${cur}${d.importo.toFixed(2)}</strong> a ${d.a}`).join('<br>');
+            else if (creditiDa[p.id].length) dettaglio = creditiDa[p.id].map(c => `<span class="saldo-ind in">←</span> Deve ricevere <strong>${cur}${c.importo.toFixed(2)}</strong> da ${c.da}`).join('<br>');
+            else if (speseAttuali.length > 0) dettaglio = '✓ In pari';
         }
         return `<div class="saldo-card ${cls}">
             ${avatarHtml(p.nome, fp?.foto || null, 38)}
@@ -1997,26 +2008,44 @@ function renderSaldi() {
     // Storico pareggi
     const storicoVoci = speseAttuali.filter(s => s.categoria === '🤝' || s.categoria === '💸');
     if (storicoVoci.length) {
-        html += `<div class="sezione-titolo">Storico pareggi</div><div class="items-wrap">`;
-        html += storicoVoci.map(s => {
-            const pagatore = partecipantiAttuali.find(p => p.id == s.pagato_da);
-            const divisione = JSON.parse(s.divisione || '[]');
-            const destinatario = partecipantiAttuali.find(p => divisione.includes(p.id));
-            const dataFmt = s.data ? new Date(s.data).toLocaleDateString('it-IT', { day:'numeric', month:'short', year:'numeric' }) : '';
-            const isAbbuono = s.categoria === '🤝';
-            const testo = isAbbuono
-                ? `${pagatore?.nome || '?'} — debito abbuonato${destinatario ? ` da ${destinatario.nome}` : ''}`
-                : `${pagatore?.nome || '?'} ha rimborsato ${destinatario?.nome || '?'}`;
-            return `<div class="storico-riga">
-                <span class="storico-icon">${s.categoria}</span>
-                <div class="storico-body">
-                    <div class="storico-testo">${testo}</div>
-                    ${dataFmt ? `<div class="storico-data">${dataFmt}</div>` : ''}
-                </div>
-                <span class="storico-importo">${cur}${parseFloat(s.importo).toFixed(2)}</span>
+        const pagati   = storicoVoci.filter(s => s.categoria === '💸');
+        const ricevuti = storicoVoci.filter(s => s.categoria === '🤝');
+
+        const rigaStorico = (s) => {
+            const pag = partecipantiAttuali.find(p => p.id == s.pagato_da);
+            const div = JSON.parse(s.divisione || '[]');
+            const dest = partecipantiAttuali.find(p => div.includes(p.id));
+            const dataFmt = s.data ? new Date(s.data).toLocaleDateString('it-IT', { day:'numeric', month:'short' }) : '';
+            return { pag, dest, dataFmt, importo: parseFloat(s.importo) };
+        };
+
+        const colPagati = pagati.map(s => {
+            const { pag, dest, dataFmt, importo } = rigaStorico(s);
+            return `<div class="storico-col-item">
+                <div class="storico-col-nome">${pag?.nome || '?'} ha pagato ${dest?.nome || '?'}</div>
+                <div class="storico-col-sub">${dataFmt ? dataFmt + ' · ' : ''}${cur}${importo.toFixed(2)}</div>
             </div>`;
-        }).join('');
-        html += `</div>`;
+        }).join('') || `<div class="storico-col-empty">Nessun pagamento</div>`;
+
+        const colRicevuti = ricevuti.map(s => {
+            const { pag, dest, dataFmt, importo } = rigaStorico(s);
+            return `<div class="storico-col-item">
+                <div class="storico-col-nome">${dest?.nome || '?'} ha ricevuto da ${pag?.nome || '?'}</div>
+                <div class="storico-col-sub">${dataFmt ? dataFmt + ' · ' : ''}${cur}${importo.toFixed(2)}</div>
+            </div>`;
+        }).join('') || `<div class="storico-col-empty">Nessuno</div>`;
+
+        html += `<div class="sezione-titolo">Storico pareggi</div>
+        <div class="storico-cols">
+            <div class="storico-col">
+                <div class="storico-col-hdr">Pagato</div>
+                ${colPagati}
+            </div>
+            <div class="storico-col">
+                <div class="storico-col-hdr">Ricevuto</div>
+                ${colRicevuti}
+            </div>
+        </div>`;
     }
 
     el.innerHTML = html;
