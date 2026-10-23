@@ -762,7 +762,7 @@ async function salva() {
 async function uploadFoto(file, annuncioId, ordine) {
     const blob = await compressImage(file);
     const base64 = await fileToBase64(blob);
-    const resp = await fetch('/api/upload-foto', {
+    const resp = await fetch('/api/vendita', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ file: base64, fileName: 'foto.jpg', annuncioId, email: userEmail, ordine })

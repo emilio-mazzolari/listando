@@ -16,7 +16,7 @@
   "rewrites": [
     {
       "source": "/annuncio/:id",
-      "destination": "/api/annuncio?id=:id"
+      "destination": "/api/vendita?id=:id"
     }
   ]
 }
