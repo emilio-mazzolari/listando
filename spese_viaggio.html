@@ -305,6 +305,12 @@
         .algo-change-btn { font-size: 11px; font-weight: 800; padding: 5px 10px; border-radius: 8px; border: 1.5px solid var(--grey); background: var(--white); cursor: pointer; color: #888; font-family: inherit; }
         .algo-waiting { background: #fffbeb; border: 1.5px solid #fcd34d; border-radius: 14px; padding: 14px 16px; margin-bottom: 14px; font-size: 13px; font-weight: 700; color: #92400e; line-height: 1.5; }
 
+        /* Collapsible saldi sections */
+        .sezione-collaps-hdr { display:flex; align-items:center; justify-content:space-between; font-size:11px; font-weight:900; color:#aaa; text-transform:uppercase; letter-spacing:0.6px; margin:18px 0 8px; cursor:pointer; padding:4px 2px; user-select:none; -webkit-user-select:none; -webkit-tap-highlight-color:transparent; }
+        .sezione-collaps-hdr:active { opacity:0.7; }
+        .sezione-chevron { font-size:13px; transition:transform 0.25s; display:inline-block; }
+        .sezione-body-collapsed { display:none; }
+
         /* full emoji picker */
         .emoji-cat-tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 10px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
         .emoji-cat-tabs::-webkit-scrollbar { display: none; }
@@ -493,7 +499,10 @@
         <button class="btn-back" onclick="tornaALista()">
             <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
         </button>
-        <div class="header-title" id="titoloViaggio">✈️ Viaggio</div>
+        <div style="flex:1;min-width:0">
+            <div class="header-title" id="titoloViaggio">✈️ Viaggio</div>
+            <div id="subtitleViaggio" style="font-size:11px;color:#888;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px"></div>
+        </div>
         <button class="btn-icon-hdr" onclick="apriConverter()" title="Converti valuta">💱</button>
         <button class="btn-icon-hdr" onclick="apriModalEditViaggio()" title="Modifica viaggio">✏️</button>
     </div>
@@ -1221,6 +1230,7 @@ let filtroTesto = '', filtroPagatore = '';
 let convCurA = 'EUR', convCurB = 'USD', convSearchSide = 'A';
 let pianificazioneAttuale = [], budgetAttuale = [];
 let _collapsedDays = {};
+const _saldiSezioni = { saldi: false, pareggiare: false, storico: true };
 let pianoItemEditId = null, budgetItemEditId = null;
 let _invitePartId = null;
 let pianoTipoScelto = 'auto', budgetCatScelta = 'altro', budgetStatoScelto = 'prevista';
@@ -1662,6 +1672,7 @@ async function apriViaggio(id) {
     const v = viaggi.find(x => x.id === id);
     viaggioCorrenteValuta = v?.valuta || 'EUR';
     document.getElementById('titoloViaggio').textContent = `${v.emoji || '✈️'} ${v.nome}`;
+    document.getElementById('subtitleViaggio').textContent = formatTripDates(v?.data_inizio, v?.data_fine) || '';
     filtroTesto = ''; filtroPagatore = '';
     partecipantiAttuali = []; _speseGrezze = []; speseAttuali = []; saldiServer = null; vediComeId = null;
     sessionStorage.setItem('sv_vid', id);
@@ -1950,7 +1961,7 @@ function renderSaldi() {
     }
 
     const cur = symb(viaggioCorrenteValuta);
-    let html = partecipantiAttuali.map(p => {
+    const _saldiCards = partecipantiAttuali.map(p => {
         const netto = Math.round((bilanci[p.id] || 0) * 100) / 100;
         const pag = Math.round((pagati[p.id] || 0) * 100) / 100;
         const q = Math.round((quote[p.id] || 0) * 100) / 100;
@@ -1973,11 +1984,13 @@ function renderSaldi() {
             <div class="saldo-val">${valStr}</div>
         </div>`;
     }).join('');
+    const _chev0 = _saldiSezioni.saldi ? ' style="transform:rotate(-90deg)"' : '';
+    let html = `<div class="sezione-collaps-hdr" onclick="toggleSezioneS('saldi')">SALDI <span class="sezione-chevron" id="sezione-chev-saldi"${_chev0}>▾</span></div><div id="sezione-body-saldi"${_saldiSezioni.saldi ? ' class="sezione-body-collapsed"' : ''}>${_saldiCards}</div>`;
 
     if (algoConfermato && transazioni.length) {
         const mioNome = partecipantiAttuali.find(p => (p.email_collegata || '').toLowerCase() === _me())?.nome || null;
-        html += `<div class="sezione-titolo">Come pareggiare</div>`;
-        html += transazioni.map((t, idx) => {
+        const _chev1 = _saldiSezioni.pareggiare ? ' style="transform:rotate(-90deg)"' : '';
+        const _transCard = transazioni.map((t, idx) => {
             const sonoDebitore  = mioNome === t.da;
             const sonoCreditor  = mioNome === t.a;
             let btns = '';
@@ -2001,6 +2014,7 @@ function renderSaldi() {
                 ${btns}
             </div>`;
         }).join('');
+        html += `<div class="sezione-collaps-hdr" onclick="toggleSezioneS('pareggiare')">COME PAREGGIARE <span class="sezione-chevron" id="sezione-chev-pareggiare"${_chev1}>▾</span></div><div id="sezione-body-pareggiare"${_saldiSezioni.pareggiare ? ' class="sezione-body-collapsed"' : ''}>${_transCard}</div>`;
     } else if (algoConfermato && speseAttuali.length > 0) {
         html += `<div class="sezione-titolo">Tutto in pari! ✓</div>`;
     }
@@ -2008,9 +2022,6 @@ function renderSaldi() {
     // Storico pareggi
     const storicoVoci = speseAttuali.filter(s => s.categoria === '🤝' || s.categoria === '💸');
     if (storicoVoci.length) {
-        const pagati   = storicoVoci.filter(s => s.categoria === '💸');
-        const ricevuti = storicoVoci.filter(s => s.categoria === '🤝');
-
         const rigaStorico = (s) => {
             const pag = partecipantiAttuali.find(p => p.id == s.pagato_da);
             const div = JSON.parse(s.divisione || '[]');
@@ -2018,37 +2029,33 @@ function renderSaldi() {
             const dataFmt = s.data ? new Date(s.data).toLocaleDateString('it-IT', { day:'numeric', month:'short' }) : '';
             return { pag, dest, dataFmt, importo: parseFloat(s.importo) };
         };
-
-        const colPagati = pagati.map(s => {
+        const _righeStorico = storicoVoci.map(s => {
             const { pag, dest, dataFmt, importo } = rigaStorico(s);
-            return `<div class="storico-col-item">
-                <div class="storico-col-nome">${pag?.nome || '?'} ha pagato ${dest?.nome || '?'}</div>
-                <div class="storico-col-sub">${dataFmt ? dataFmt + ' · ' : ''}${cur}${importo.toFixed(2)}</div>
+            const testo = s.categoria === '💸'
+                ? `${pag?.nome || '?'} ha pagato ${dest?.nome || '?'}`
+                : `${dest?.nome || '?'} ha abbuonato ${pag?.nome || '?'}`;
+            return `<div class="storico-riga">
+                <span class="storico-icon">${s.categoria}</span>
+                <div class="storico-body">
+                    <div class="storico-testo">${testo}</div>
+                    ${dataFmt ? `<div class="storico-data">${dataFmt}</div>` : ''}
+                </div>
+                <span class="storico-importo">${cur}${importo.toFixed(2)}</span>
             </div>`;
-        }).join('') || `<div class="storico-col-empty">Nessun pagamento</div>`;
-
-        const colRicevuti = ricevuti.map(s => {
-            const { pag, dest, dataFmt, importo } = rigaStorico(s);
-            return `<div class="storico-col-item">
-                <div class="storico-col-nome">${dest?.nome || '?'} ha ricevuto da ${pag?.nome || '?'}</div>
-                <div class="storico-col-sub">${dataFmt ? dataFmt + ' · ' : ''}${cur}${importo.toFixed(2)}</div>
-            </div>`;
-        }).join('') || `<div class="storico-col-empty">Nessuno</div>`;
-
-        html += `<div class="sezione-titolo">Storico pareggi</div>
-        <div class="storico-cols">
-            <div class="storico-col">
-                <div class="storico-col-hdr">Pagato</div>
-                ${colPagati}
-            </div>
-            <div class="storico-col">
-                <div class="storico-col-hdr">Ricevuto</div>
-                ${colRicevuti}
-            </div>
-        </div>`;
+        }).join('');
+        const _chev2 = _saldiSezioni.storico ? ' style="transform:rotate(-90deg)"' : '';
+        html += `<div class="sezione-collaps-hdr" onclick="toggleSezioneS('storico')">STORICO PAREGGI <span class="sezione-chevron" id="sezione-chev-storico"${_chev2}>▾</span></div><div id="sezione-body-storico"${_saldiSezioni.storico ? ' class="sezione-body-collapsed"' : ''}><div style="background:var(--white);border-radius:14px;overflow:hidden;box-shadow:var(--shadow)">${_righeStorico}</div></div>`;
     }
 
     el.innerHTML = html;
+}
+
+function toggleSezioneS(key) {
+    _saldiSezioni[key] = !_saldiSezioni[key];
+    const body = document.getElementById('sezione-body-' + key);
+    const chev = document.getElementById('sezione-chev-' + key);
+    if (body) body.classList.toggle('sezione-body-collapsed', _saldiSezioni[key]);
+    if (chev) chev.style.transform = _saldiSezioni[key] ? 'rotate(-90deg)' : '';
 }
 
 async function confermaAlgo() {
