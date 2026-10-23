@@ -171,6 +171,7 @@ const STATEMENTS = [
     `ALTER TABLE profili ADD COLUMN IF NOT EXISTS iban text`,
     `ALTER TABLE profili ADD COLUMN IF NOT EXISTS paypal text`,
     `ALTER TABLE profili ADD COLUMN IF NOT EXISTS satispay text`,
+    `ALTER TABLE profili ADD COLUMN IF NOT EXISTS home_colori jsonb`,
     `ALTER TABLE app_feedback ADD COLUMN IF NOT EXISTS risposta text`,
     `ALTER TABLE sv_viaggi ADD COLUMN IF NOT EXISTS settl_algo text`,
     `ALTER TABLE vendita_annunci ADD COLUMN IF NOT EXISTS consegna text default 'ritiro'`,

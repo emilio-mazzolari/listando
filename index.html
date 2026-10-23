@@ -973,13 +973,51 @@
             if (c) colors[paletteId] = c; else delete colors[paletteId];
             localStorage.setItem(COLORS_KEY, JSON.stringify(colors));
             applyColors();
+            salvaColoriProfilo();
             if (dalSelettore) aggiornaAnteprima(document.querySelector(`#menuGrid [data-id="${paletteId}"]`));
             else chiudiPalette();
         }
+        // Sincronizzazione col profilo Supabase (colonna profili.home_colori), così i colori
+        // seguono l'account su tutti i dispositivi. localStorage resta la copia immediata/offline.
+        let salvaColoriTimer = null;
+        function salvaColoriProfilo() {
+            clearTimeout(salvaColoriTimer); // il selettore libero chiama di continuo: si salva a fine scelta
+            salvaColoriTimer = setTimeout(async () => {
+                const email = localStorage.getItem('userEmail');
+                if (!email) return;
+                const home_colori = getColors();
+                try {
+                    const { data, error } = await supabaseClient.from('profili')
+                        .update({ home_colori }).eq('email_utente', email).select('email_utente');
+                    if (error) throw error;
+                    if (!data?.length) {
+                        const { error: insErr } = await supabaseClient.from('profili').insert({ email_utente: email, home_colori });
+                        if (insErr) throw insErr;
+                    }
+                } catch (e) { console.warn('Colori non salvati nel profilo:', e?.message || e); }
+            }, 600);
+        }
+        async function caricaColoriProfilo() {
+            const email = localStorage.getItem('userEmail');
+            if (!email) return;
+            try {
+                const { data, error } = await supabaseClient.from('profili')
+                    .select('home_colori').eq('email_utente', email).limit(1).maybeSingle();
+                if (error) throw error;
+                if (data?.home_colori && typeof data.home_colori === 'object') {
+                    localStorage.setItem(COLORS_KEY, JSON.stringify(data.home_colori));
+                    applyColors();
+                } else if (Object.keys(getColors()).length) {
+                    salvaColoriProfilo(); // colori scelti prima della sincronizzazione: li porta nel profilo
+                }
+            } catch (e) { console.warn('Colori dal profilo non disponibili:', e?.message || e); }
+        }
+
         function ripristinaTuttiColori() {
             if (!confirm('Ripristinare i colori originali di tutte le sezioni?')) return;
             localStorage.removeItem(COLORS_KEY);
             applyColors();
+            salvaColoriProfilo();
             renderColori();
         }
 
@@ -1071,6 +1109,7 @@
         applyView();
         applyHidden();
         applyColors();
+        caricaColoriProfilo();
 
         const sortable = Sortable.create(document.getElementById('menuGrid'), {
             animation: 200,
