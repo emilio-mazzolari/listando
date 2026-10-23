@@ -465,7 +465,7 @@
             <div class="sheet-title" style="margin:0">📬 Feedback ricevuti</div>
             <button onclick="chiudiAdminFeedback()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#888;padding:4px 8px;line-height:1">✕</button>
         </div>
-        <div id="adminFeedbackList"><div style="text-align:center;color:#aaa;padding:20px">Caricamento…</div></div>
+        <div id="adminFeedbackList" onclick="handleFeedbackClick(event)"><div style="text-align:center;color:#aaa;padding:20px">Caricamento…</div></div>
     </div>
 </div>
 
@@ -1011,17 +1011,30 @@ async function renderAdminFeedback() {
             <div class="fb-text">${f.testo.replace(/</g,'&lt;')}</div>
             ${rispostaHtml}
             <div class="fb-actions">
-                <button class="fb-btn reply" onclick="toggleRisposta(${f.id})">↩ Rispondi</button>
-                <button class="fb-btn del" onclick="eliminaFeedback(${f.id})">🗑 Elimina</button>
+                <button class="fb-btn reply" data-action="reply">↩ Rispondi</button>
+                <button class="fb-btn del" data-action="del">🗑 Elimina</button>
             </div>
             <div class="fb-reply-box" id="fbr-${f.id}" style="display:none">
                 <textarea rows="3" placeholder="Scrivi la tua risposta…" id="fbrt-${f.id}"></textarea>
-                <button class="fb-reply-send" onclick="inviaRisposta(${f.id},'${f.email_utente.replace(/'/g,"\\'")}')">Invia risposta</button>
+                <button class="fb-reply-send" data-action="send">Invia risposta</button>
             </div>
         </div>`;
     }).join('');
 
     caricaContattoFeedback();
+}
+
+function handleFeedbackClick(e) {
+    const btn = e.target.closest('button[data-action]');
+    if (!btn) return;
+    const item = btn.closest('[data-id]');
+    if (!item) return;
+    const id = parseInt(item.dataset.id);
+    const email = item.dataset.email || '';
+    const action = btn.dataset.action;
+    if (action === 'reply') toggleRisposta(id);
+    else if (action === 'del') eliminaFeedback(id);
+    else if (action === 'send') inviaRisposta(id, email);
 }
 
 function toggleRisposta(id) {
