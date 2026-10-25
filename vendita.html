@@ -114,6 +114,9 @@
         .cat-select:focus { border-color:var(--teal); }
         .cat-select option { padding:9px 14px; font-size:14px; }
         .cat-select option:checked { background:var(--teal); color:white; }
+        .luogo-opt { padding:11px 14px; cursor:pointer; border-bottom:1px solid #f0f0f0; font-size:14px; }
+        .luogo-opt:last-child { border-bottom:none; }
+        .luogo-opt:hover { background:#f5f5f5; }
 
         /* Photo slots */
         .photo-row { display:flex; gap:8px; margin:4px 0 10px; }
@@ -227,6 +230,14 @@
         <label class="form-label">Titolo *</label>
         <input class="form-input" id="fTitolo" placeholder="Cosa vendi?" type="text">
 
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;cursor:pointer;margin-top:10px;color:#555">
+            <input type="checkbox" id="fPerConto" style="width:17px;height:17px;accent-color:var(--teal);cursor:pointer">
+            Vendo per conto di un'altra persona
+        </label>
+        <div id="perContoWrap" style="display:none;margin-top:6px">
+            <input class="form-input" id="fPerContoNome" placeholder="Nome del proprietario" type="text">
+        </div>
+
         <label class="form-label">Prezzo (€)</label>
         <div style="display:flex;gap:10px;align-items:center;margin-bottom:2px">
             <input class="form-input" id="fPrezzo" type="number" min="0" step="0.01" style="flex:1;margin-bottom:0">
@@ -259,7 +270,10 @@
         <div class="pill-row" id="consRow"></div>
 
         <label class="form-label" id="fLuogoLbl">Luogo di ritiro</label>
-        <input class="form-input" id="fLuogo" placeholder="Città e CAP — es. Brescia 25121" type="text">
+        <div style="position:relative">
+            <input class="form-input" id="fLuogo" placeholder="Città…" type="text" autocomplete="off" oninput="onLuogoInput(this.value)" onblur="setTimeout(chiudiLuogoDropdown,180)">
+            <div id="luogoDropdown" style="display:none;position:absolute;left:0;right:0;top:calc(100% + 4px);background:white;border-radius:14px;box-shadow:0 4px 18px rgba(0,0,0,.15);z-index:999;overflow:hidden;max-height:220px;overflow-y:auto"></div>
+        </div>
 
         <div id="spedWrap" style="display:none">
             <div class="form-grid">
@@ -340,7 +354,7 @@ const SPEDIAMO_URL = 'https://www.spediamo.it/';
 let annunci = [], miei = [], currentTab = 'scopri';
 let selectedAnnuncio = null;
 let editId = null;
-let fCond = 'buono', fCat = 'Altro', fVis = 'pubblico', fCons = 'ritiro', fTrattabile = false;
+let fCond = 'buono', fCat = 'Altro', fVis = 'pubblico', fCons = 'ritiro', fTrattabile = false, fPerConto = false;
 let photoSlots = [null, null, null, null]; // { type:'existing'|'new', url, file, id }
 let selEmails = [];
 let chatAnnuncioId = null, chatPartner = null, chatRealtime = null;
@@ -635,6 +649,9 @@ function apriNuovo() {
     document.getElementById('fMisure').value = '';
     document.getElementById('fPesoOgg').value = '';
     document.getElementById('fTrattabile').checked = false;
+    document.getElementById('fPerConto').checked = false;
+    document.getElementById('fPerContoNome').value = '';
+    document.getElementById('perContoWrap').style.display = 'none';
     document.getElementById('btnDelAnnuncio').style.display = 'none';
     document.getElementById('modaleTitolo').textContent = 'Nuovo annuncio';
     buildFormUI();
@@ -655,6 +672,9 @@ function apriModifica() {
     document.getElementById('fMisure').value = a.misure || '';
     document.getElementById('fPesoOgg').value = a.peso_oggetto || '';
     document.getElementById('fTrattabile').checked = !!a.trattabile;
+    document.getElementById('fPerConto').checked = !!a.per_conto;
+    document.getElementById('fPerContoNome').value = a.per_conto_nome || '';
+    document.getElementById('perContoWrap').style.display = a.per_conto ? '' : 'none';
     document.getElementById('btnDelAnnuncio').style.display = '';
     document.getElementById('modaleTitolo').textContent = 'Modifica annuncio';
     // Load existing photos
@@ -761,9 +781,51 @@ function removePhoto(idx) {
     buildPhotoRow();
 }
 
+// ── Autocomplete luogo (Nominatim) ────────────────────────────────
+let _luogoTimer = null;
+function onLuogoInput(val) {
+    clearTimeout(_luogoTimer);
+    if (val.length < 2) { chiudiLuogoDropdown(); return; }
+    _luogoTimer = setTimeout(() => cercaLuogo(val), 350);
+}
+async function cercaLuogo(q) {
+    const dd = document.getElementById('luogoDropdown');
+    try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&addressdetails=1&limit=6&countrycodes=it`, {
+            headers: { 'Accept-Language': 'it' }
+        });
+        const data = await res.json();
+        if (!data.length) { chiudiLuogoDropdown(); return; }
+        dd.innerHTML = data.map(r => {
+            const a = r.address || {};
+            const city = a.city || a.town || a.village || a.municipality || a.county || r.display_name.split(',')[0];
+            const province = a.state || '';
+            const cap = a.postcode || '';
+            const label = [city, cap, province].filter(Boolean).join(' ');
+            return `<div class="luogo-opt" onmousedown="scegliLuogo('${label.replace(/'/g,"\\'")}')">
+                <span style="font-weight:700">${city}</span>
+                <span style="color:#aaa;font-size:12px;margin-left:6px">${[cap, province].filter(Boolean).join(' · ')}</span>
+            </div>`;
+        }).join('');
+        dd.style.display = 'block';
+    } catch(e) { chiudiLuogoDropdown(); }
+}
+function scegliLuogo(val) {
+    document.getElementById('fLuogo').value = val;
+    chiudiLuogoDropdown();
+}
+function chiudiLuogoDropdown() {
+    document.getElementById('luogoDropdown').style.display = 'none';
+}
+
 function toggleSelWrap() {
     document.getElementById('selWrap').classList.toggle('open', fVis === 'selezionati');
 }
+
+document.getElementById('fPerConto').addEventListener('change', function() {
+    document.getElementById('perContoWrap').style.display = this.checked ? '' : 'none';
+    if (!this.checked) document.getElementById('fPerContoNome').value = '';
+});
 
 document.getElementById('selInput').addEventListener('keydown', e => {
     if (e.key === 'Enter' || e.key === ',') {
@@ -809,6 +871,8 @@ async function salva() {
         trattabile: document.getElementById('fTrattabile').checked,
         misure: document.getElementById('fMisure').value.trim() || null,
         peso_oggetto: document.getElementById('fPesoOgg').value.trim() || null,
+        per_conto: document.getElementById('fPerConto').checked,
+        per_conto_nome: document.getElementById('fPerConto').checked ? (document.getElementById('fPerContoNome').value.trim() || null) : null,
         condizione: fCond,
         categoria: fCat,
         visibilita: fVis,
