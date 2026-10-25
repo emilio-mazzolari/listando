@@ -64,6 +64,35 @@
         .avatar-name { font-size: 20px; font-weight: 900; color: white; }
         .avatar-email { font-size: 13px; color: rgba(255,255,255,0.75); font-weight: 600; }
 
+        /* Barra completamento */
+        .completamento-wrap {
+            background: var(--accent); padding: 0 20px 22px;
+            display: flex; flex-direction: column; align-items: center; gap: 8px;
+        }
+        .completamento-label {
+            font-size: 12px; font-weight: 800; color: rgba(255,255,255,0.85);
+            letter-spacing: 0.3px;
+        }
+        .completamento-bar-bg {
+            width: 100%; max-width: 320px; height: 8px;
+            background: rgba(255,255,255,0.25); border-radius: 99px; overflow: hidden;
+        }
+        .completamento-bar-fill {
+            height: 100%; border-radius: 99px;
+            background: white; transition: width 0.5s ease;
+        }
+        .completamento-steps {
+            display: flex; gap: 10px; align-items: center;
+        }
+        .comp-step {
+            font-size: 11px; font-weight: 700;
+            color: rgba(255,255,255,0.5);
+            display: flex; align-items: center; gap: 3px;
+        }
+        .comp-step.done { color: rgba(255,255,255,0.95); }
+        .comp-step.done::before { content: '✓'; font-size: 10px; }
+        .comp-step:not(.done)::before { content: '○'; font-size: 10px; }
+
         /* Settings groups */
         .content { padding: 20px 16px 120px; display: flex; flex-direction: column; gap: 24px; }
 
@@ -202,6 +231,14 @@
     <input type="file" id="fotoInput" accept="image/*" style="display:none" onchange="onFotoChange(this)">
     <div class="avatar-name" id="avatarName">—</div>
     <div class="avatar-email" id="avatarEmail"></div>
+</div>
+
+<div class="completamento-wrap">
+    <div class="completamento-bar-bg">
+        <div class="completamento-bar-fill" id="compBarFill" style="width:0%"></div>
+    </div>
+    <div class="completamento-label" id="compLabel">Profilo 0% completato</div>
+    <div class="completamento-steps" id="compSteps"></div>
 </div>
 
 <div class="content">
@@ -563,6 +600,24 @@ function aggiornaAvatar() {
         circle.textContent = ini;
     }
     document.getElementById('avatarName').textContent = nomeCompleto !== userEmail ? nomeCompleto : userEmail.split('@')[0];
+    aggiornaCompletamento();
+}
+
+function aggiornaCompletamento() {
+    const steps = [
+        { label: 'Foto',      done: !!fotoBase64 },
+        { label: 'Nome',      done: !!document.getElementById('fNome').value.trim() },
+        { label: 'Cognome',   done: !!document.getElementById('fCognome').value.trim() },
+        { label: 'Nascita',   done: !!document.getElementById('fDataNascita').value },
+        { label: 'Pagamenti', done: !!(document.getElementById('fIban').value.trim() || document.getElementById('fPaypal').value.trim() || document.getElementById('fSatispay').value.trim()) },
+    ];
+    const fatti = steps.filter(s => s.done).length;
+    const pct = Math.round(fatti / steps.length * 100);
+    document.getElementById('compBarFill').style.width = pct + '%';
+    document.getElementById('compLabel').textContent = pct === 100 ? '✓ Profilo completo' : `Profilo ${pct}% completato`;
+    document.getElementById('compSteps').innerHTML = steps.map(s =>
+        `<span class="comp-step${s.done ? ' done' : ''}">${s.label}</span>`
+    ).join('');
 }
 
 function onCampoChange() {
