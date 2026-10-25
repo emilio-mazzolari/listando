@@ -34,7 +34,7 @@
         .search-bar:focus { border-color:var(--teal); }
 
         /* Grid */
-        .listings-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:10px; }
+        .listings-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); gap:10px; padding:10px; max-width:1400px; margin:0 auto; }
         .listing-card { background:var(--white); border-radius:16px; overflow:hidden; box-shadow:0 1px 5px rgba(0,0,0,.09); cursor:pointer; position:relative; transition:transform .12s; }
         .listing-card:active { transform:scale(0.96); }
         .listing-photo { width:100%; aspect-ratio:1; object-fit:cover; background:#eee; display:block; }
