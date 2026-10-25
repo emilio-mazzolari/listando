@@ -804,21 +804,23 @@
         // Per aggiungere una promo: copia un oggetto nell'array e modifica i campi.
         const PROMOS = [
             {
-                emoji: '💸',
-                sfondo: '#e8192c',
+                logo: '/satispay-logo.webp',
+                sfondo: '#fff0ee',
                 brand: 'Satispay',
                 titolo: 'Ancora non hai Satispay?',
                 desc: 'Scarica l\'app e ottieni 5 € di benvenuto.',
                 cta: 'Ottieni 5 €',
+                ctaColor: '#e8192c',
                 url: 'https://web.satispay.com/promocode/ef24e897-9b02-4814-9284-e87a33e80bf8',
             },
             {
                 emoji: '🚗',
-                sfondo: '#004b93',
+                sfondo: '#e8f0fb',
                 brand: 'Linear',
                 titolo: 'Assicurazione auto? Paga meno.',
                 desc: '5% sulla RC Auto · 10% su Assistenza Stradale e Tutela Giudiziaria.',
                 cta: 'Ottieni sconto',
+                ctaColor: '#004b93',
                 url: 'INSERISCI_QUI_IL_LINK_LINEAR',
             },
             // { emoji:'🛒', sfondo:'#ff6600', brand:'Altro', titolo:'...', desc:'...', cta:'...', url:'...' },
@@ -830,18 +832,22 @@
             if (!PROMOS.length) { el.style.display = 'none'; return; }
             el.innerHTML =
                 `<div style="font-size:11px;font-weight:800;color:#aaa;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:10px;padding:0 2px">Promozioni per te</div>` +
-                PROMOS.map(p => `
+                PROMOS.map(p => {
+                    const logoHtml = p.logo
+                        ? `<img src="${p.logo}" alt="${p.brand}" style="width:38px;height:38px;object-fit:contain">`
+                        : `<span style="font-size:24px">${p.emoji}</span>`;
+                    return `
                     <a href="${p.url}" target="_blank" rel="noopener" class="promo-card">
-                        <div class="promo-logo" style="background:${p.sfondo}20">
-                            <span>${p.emoji}</span>
+                        <div class="promo-logo" style="background:${p.sfondo}">
+                            ${logoHtml}
                         </div>
                         <div class="promo-body">
                             <div class="promo-titolo">${p.titolo}</div>
                             <div class="promo-desc">${p.desc}</div>
                         </div>
-                        <div class="promo-cta" style="background:${p.sfondo}">${p.cta}</div>
-                    </a>`
-                ).join('');
+                        <div class="promo-cta" style="background:${p.ctaColor || p.sfondo}">${p.cta}</div>
+                    </a>`;
+                }).join('');
         }
         renderPromos();
 
