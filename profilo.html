@@ -567,16 +567,19 @@ function aggiornaAvatar() {
 
 function onCampoChange() {
     aggiornaAvatar();
+    const nomeVal    = document.getElementById('fNome').value.trim();
+    const cognomeVal = document.getElementById('fCognome').value.trim();
     const diverso =
-        document.getElementById('fNome').value.trim()      !== originali.nome ||
-        document.getElementById('fCognome').value.trim()   !== originali.cognome ||
+        nomeVal      !== originali.nome ||
+        cognomeVal   !== originali.cognome ||
         document.getElementById('fDataNascita').value      !== originali.dataNascita ||
         document.getElementById('fIban').value.trim()      !== (originali.iban || '') ||
         document.getElementById('fPaypal').value.trim()    !== (originali.paypal || '') ||
         document.getElementById('fSatispay').value.trim()  !== (originali.satispay || '') ||
         fotoCambiata;
-    document.getElementById('btnSalva').disabled  = !diverso;
-    document.getElementById('btnSalva2').disabled = !diverso;
+    const abilita = diverso && nomeVal.length > 0 && cognomeVal.length > 0;
+    document.getElementById('btnSalva').disabled  = !abilita;
+    document.getElementById('btnSalva2').disabled = !abilita;
 }
 
 function onFotoChange(input) {
@@ -609,6 +612,7 @@ function onFotoChange(input) {
 async function salvaProfilo() {
     const nome        = document.getElementById('fNome').value.trim();
     const cognome     = document.getElementById('fCognome').value.trim();
+    if (!nome || !cognome) { toast('⚠️ Nome e cognome sono obbligatori'); return; }
     const dataNascita = document.getElementById('fDataNascita').value || null;
     const iban        = document.getElementById('fIban').value.trim();
     const paypal      = document.getElementById('fPaypal').value.trim();
