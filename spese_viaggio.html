@@ -1971,7 +1971,7 @@ function renderSaldi() {
         const valStr = netto > 0.01 ? `+${cur}${netto.toFixed(2)}` : netto < -0.01 ? `-${cur}${Math.abs(netto).toFixed(2)}` : `${cur}0`;
         const diffColor = diff > 0.01 ? 'var(--green)' : diff < -0.01 ? 'var(--red)' : '#aaa';
         const diffStr = diff > 0.01 ? `+${cur}${diff.toFixed(2)}` : diff < -0.01 ? `-${cur}${Math.abs(diff).toFixed(2)}` : `${cur}0`;
-        const diffHtml = (pag > 0 || q > 0) ? ` · <span style="color:${diffColor}">Differenza ${diffStr}</span>` : '';
+        const diffHtml = (pag > 0 || q > 0) ? `<span style="color:${diffColor}">Differenza ${diffStr}</span>` : '';
         let dettaglio = '';
         if (algoConfermato) {
             if (debitiDi[p.id].length) dettaglio = debitiDi[p.id].map(d => `<span class="saldo-ind out">→</span> Deve pagare <strong>${cur}${d.importo.toFixed(2)}</strong> a ${d.a}`).join('<br>');
@@ -1982,7 +1982,9 @@ function renderSaldi() {
             ${avatarHtml(p.nome, fp?.foto || null, 38)}
             <div class="saldo-body">
                 <div class="saldo-nome">${p.nome}</div>
-                <div class="saldo-budget">Anticipato ${cur}${pag.toFixed(2)} · Totale tue spese ${cur}${q.toFixed(2)}${diffHtml}</div>
+                ${(pag > 0 || q > 0) ? `<div class="saldo-budget">Spese anticipate <strong>${cur}${pag.toFixed(2)}</strong></div>
+                <div class="saldo-budget">Le tue spese totali <strong>${cur}${q.toFixed(2)}</strong></div>
+                ${diffHtml ? `<div class="saldo-budget">${diffHtml}</div>` : ''}` : ''}
                 ${dettaglio ? `<div class="saldo-debiti">${dettaglio}</div>` : ''}
             </div>
             <div class="saldo-val">${valStr}</div>
