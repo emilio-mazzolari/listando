@@ -1207,7 +1207,7 @@ const CURRENCY_LIST = [
   {code:'LRD',name:'Dollaro liberiano',flag:'🇱🇷'},{code:'CDF',name:'Franco congolese',flag:'🇨🇩'},
 ];
 const CUR_SYMBOLS = {EUR:'€',USD:'$',GBP:'£',JPY:'¥',CHF:'Fr',CAD:'C$',AUD:'A$',NZD:'NZ$',INR:'₹',CNY:'¥',HKD:'HK$',TWD:'NT$',SGD:'S$',KRW:'₩',THB:'฿',IDR:'Rp',PHP:'₱',VND:'₫',BRL:'R$',MXN:'$',ARS:'$',CLP:'$',COP:'$',TRY:'₺',RUB:'₽',ILS:'₪',NGN:'₦',GHS:'₵',KES:'KSh',ZAR:'R',SAR:'﷼',AED:'د.إ',KWD:'د.ك',PKR:'₨',BDT:'৳',EGP:'E£'};
-function symb(c) { return CUR_SYMBOLS[c] || c; }
+function symb(c) { return (CUR_SYMBOLS[c] || c) + ' '; }
 
 function populateCurrencySelects(...ids) {
     const opts = CURRENCY_LIST.map(c => `<option value="${c.code}">${c.flag} ${c.code} — ${c.name}</option>`).join('');
@@ -1965,9 +1965,13 @@ function renderSaldi() {
         const netto = Math.round((bilanci[p.id] || 0) * 100) / 100;
         const pag = Math.round((pagati[p.id] || 0) * 100) / 100;
         const q = Math.round((quote[p.id] || 0) * 100) / 100;
+        const diff = Math.round((pag - q) * 100) / 100;
         const cls = netto > 0.01 ? 'positivo' : netto < -0.01 ? 'negativo' : 'pari';
         const fp = p.email_collegata ? fotoProfili[p.email_collegata] : null;
         const valStr = netto > 0.01 ? `+${cur}${netto.toFixed(2)}` : netto < -0.01 ? `-${cur}${Math.abs(netto).toFixed(2)}` : `${cur}0`;
+        const diffColor = diff > 0.01 ? 'var(--green)' : diff < -0.01 ? 'var(--red)' : '#aaa';
+        const diffStr = diff > 0.01 ? `+${cur}${diff.toFixed(2)}` : diff < -0.01 ? `-${cur}${Math.abs(diff).toFixed(2)}` : `${cur}0`;
+        const diffHtml = (pag > 0 || q > 0) ? ` · <span style="color:${diffColor}">Differenza ${diffStr}</span>` : '';
         let dettaglio = '';
         if (algoConfermato) {
             if (debitiDi[p.id].length) dettaglio = debitiDi[p.id].map(d => `<span class="saldo-ind out">→</span> Deve pagare <strong>${cur}${d.importo.toFixed(2)}</strong> a ${d.a}`).join('<br>');
@@ -1978,7 +1982,7 @@ function renderSaldi() {
             ${avatarHtml(p.nome, fp?.foto || null, 38)}
             <div class="saldo-body">
                 <div class="saldo-nome">${p.nome}</div>
-                <div class="saldo-budget">Pagato ${cur}${pag.toFixed(2)} · Quota ${cur}${q.toFixed(2)}</div>
+                <div class="saldo-budget">Anticipato ${cur}${pag.toFixed(2)} · Totale tue spese ${cur}${q.toFixed(2)}${diffHtml}</div>
                 ${dettaglio ? `<div class="saldo-debiti">${dettaglio}</div>` : ''}
             </div>
             <div class="saldo-val">${valStr}</div>

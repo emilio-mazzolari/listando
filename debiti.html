@@ -220,29 +220,29 @@
     <div class="balance-row">
         <div class="balance-item">
             <div class="balance-label">Devo</div>
-            <div class="balance-val debito" id="totDebiti">€0</div>
+            <div class="balance-val debito" id="totDebiti"> € 0</div>
         </div>
         <div class="balance-divider"></div>
         <div class="balance-item">
             <div class="balance-label">Mi devono</div>
-            <div class="balance-val credito" id="totCrediti">€0</div>
+            <div class="balance-val credito" id="totCrediti"> € 0</div>
         </div>
         <div class="balance-divider"></div>
         <div class="balance-item">
             <div class="balance-label">Saldo</div>
-            <div class="balance-val saldo-zero" id="saldoNetto">€0</div>
+            <div class="balance-val saldo-zero" id="saldoNetto"> € 0</div>
         </div>
     </div>
     <div class="balance-sep"></div>
     <div class="balance-row mini">
         <div class="balance-item">
             <div class="balance-label">Da pagare</div>
-            <div class="balance-val pagare" id="totPagare">€0</div>
+            <div class="balance-val pagare" id="totPagare"> € 0</div>
         </div>
         <div class="balance-divider"></div>
         <div class="balance-item">
             <div class="balance-label">Da ricevere</div>
-            <div class="balance-val ricevere" id="totRicevere">€0</div>
+            <div class="balance-val ricevere" id="totRicevere"> € 0</div>
         </div>
     </div>
 </div>
@@ -343,12 +343,12 @@ function aggiornaBilancio() {
     const totP = attive.filter(v => v.tipo === 'pagare').reduce((s, v) => s + Number(v.importo), 0);
     const totR = attive.filter(v => v.tipo === 'ricevere').reduce((s, v) => s + Number(v.importo), 0);
     const saldo = totC - totD;
-    document.getElementById('totDebiti').textContent = '€' + totD.toFixed(2);
-    document.getElementById('totCrediti').textContent = '€' + totC.toFixed(2);
-    document.getElementById('totPagare').textContent = '€' + totP.toFixed(2);
-    document.getElementById('totRicevere').textContent = '€' + totR.toFixed(2);
+    document.getElementById('totDebiti').textContent = '€ ' + totD.toFixed(2);
+    document.getElementById('totCrediti').textContent = '€ ' + totC.toFixed(2);
+    document.getElementById('totPagare').textContent = '€ ' + totP.toFixed(2);
+    document.getElementById('totRicevere').textContent = '€ ' + totR.toFixed(2);
     const el = document.getElementById('saldoNetto');
-    el.textContent = (saldo >= 0 ? '+' : '') + '€' + saldo.toFixed(2);
+    el.textContent = (saldo >= 0 ? '+' : '') + '€ ' + saldo.toFixed(2);
     el.className = 'balance-val ' + (saldo > 0 ? 'saldo-pos' : saldo < 0 ? 'saldo-neg' : 'saldo-zero');
 }
 
