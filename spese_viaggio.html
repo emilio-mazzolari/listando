@@ -1625,7 +1625,7 @@ async function caricaViaggi() {
         const allViaggioIds = viaggi.map(v => v.id);
         const [allPart, allSpese] = await Promise.all([
             apiGetArr(`/sv_partecipanti?viaggio_id=in.(${allViaggioIds.join(',')})&select=id,viaggio_id,nome,email_collegata`),
-            apiGetArr(`/sv_spese?viaggio_id=in.(${allViaggioIds.join(',')})&select=viaggio_id,importo,pagato_da,divisione,email_utente,tipo_divisione,quote_divisione`)
+            apiGetArr(`/sv_spese?viaggio_id=in.(${allViaggioIds.join(',')})&select=viaggio_id,importo,pagato_da,divisione,email_utente,tipo_divisione,quote_divisione,categoria`)
         ]);
 
         // Ripristina stato dopo refresh
@@ -1647,14 +1647,19 @@ async function caricaViaggi() {
                 vPart.filter(p => (p.email_collegata || '').toLowerCase() === userEmail.toLowerCase())
                      .map(p => String(p.id))
             );
+            const _CONT = new Set(['🤝', '💸']);
             let miaTot = 0;
             if (mioPartIds.size > 0) {
                 for (const s of vSpese) {
+                    if (_CONT.has(_catEmoji(s))) continue;
+                    const div = JSON.parse(s.divisione || '[]');
+                    const isPersonale = div.length > 0 && div.every(id => String(id) === String(s.pagato_da));
+                    if (isPersonale && !mioPartIds.has(String(s.pagato_da))) continue;
                     const qp = calcolaQuotePer(s);
                     mioPartIds.forEach(pid => { miaTot += qp[pid] || 0; });
                 }
             } else {
-                miaTot = vSpese.reduce((a, s) => a + parseFloat(s.importo || 0), 0);
+                miaTot = vSpese.filter(s => !_CONT.has(_catEmoji(s))).reduce((a, s) => a + parseFloat(s.importo || 0), 0);
             }
             const numPart = vPart.length;
             const partStr = numPart === 1 ? '1 partecipante' : `${numPart} partecipanti`;
