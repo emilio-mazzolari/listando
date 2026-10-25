@@ -110,6 +110,10 @@
         .pill-row { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:2px; }
         .pill { padding:8px 14px; border-radius:20px; border:2px solid var(--grey); font-size:13px; font-weight:700; cursor:pointer; background:var(--white); font-family:inherit; }
         .pill.on { border-color:var(--teal); background:var(--teal); color:white; }
+        .cat-select { width:100%; border:2px solid rgba(0,0,0,.12); border-radius:14px; font-size:14px; font-family:inherit; font-weight:600; background:#fafafa; outline:none; padding:4px 0; margin-bottom:2px; cursor:pointer; }
+        .cat-select:focus { border-color:var(--teal); }
+        .cat-select option { padding:9px 14px; font-size:14px; }
+        .cat-select option:checked { background:var(--teal); color:white; }
 
         /* Photo slots */
         .photo-row { display:flex; gap:8px; margin:4px 0 10px; }
@@ -218,22 +222,38 @@
 
         <label class="form-label">Foto (max 4)</label>
         <div class="photo-row" id="photoRow"></div>
-        <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="onFileChange(this)">
+        <input type="file" id="fileInput" accept="image/*" multiple style="display:none" onchange="onFileChange(this)">
 
         <label class="form-label">Titolo *</label>
         <input class="form-input" id="fTitolo" placeholder="Cosa vendi?" type="text">
 
         <label class="form-label">Prezzo (€)</label>
-        <input class="form-input" id="fPrezzo" placeholder="0.00 — lascia vuoto se trattabile" type="number" min="0" step="0.01">
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:2px">
+            <input class="form-input" id="fPrezzo" type="number" min="0" step="0.01" style="flex:1;margin-bottom:0">
+            <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;white-space:nowrap;cursor:pointer;flex-shrink:0">
+                <input type="checkbox" id="fTrattabile" style="width:17px;height:17px;accent-color:var(--teal);cursor:pointer"> Trattabile
+            </label>
+        </div>
 
         <label class="form-label">Descrizione</label>
         <textarea class="form-textarea" id="fDesc" placeholder="Descrivi il prodotto…"></textarea>
+
+        <div class="form-grid" style="margin-top:4px">
+            <div>
+                <label class="form-label">Misure oggetto</label>
+                <input class="form-input" id="fMisure" placeholder="es. 30×20×10 cm" type="text">
+            </div>
+            <div>
+                <label class="form-label">Peso oggetto</label>
+                <input class="form-input" id="fPesoOgg" placeholder="es. 1.5 kg" type="text">
+            </div>
+        </div>
 
         <label class="form-label">Condizione</label>
         <div class="pill-row" id="condRow"></div>
 
         <label class="form-label">Categoria</label>
-        <div class="pill-row" id="catRow"></div>
+        <select class="cat-select" id="catSelect" size="6" onchange="fCat=this.value"></select>
 
         <label class="form-label">Consegna</label>
         <div class="pill-row" id="consRow"></div>
@@ -302,7 +322,17 @@ const userEmail = localStorage.getItem('userEmail');
 if (!userEmail) { localStorage.setItem('pendingUrl', location.pathname + location.search); location.href = 'login.html'; }
 
 const CONDIZIONI = ['Nuovo','Ottimo','Buono','Discreto'];
-const CATEGORIE  = ['Elettronica','Abbigliamento','Casa','Sport','Auto/Moto','Libri','Giochi','Altro'];
+const CATEGORIE  = [
+    'Abbigliamento','Accessori & Borse','Antichità & Collezionismo',
+    'Arte & Artigianato','Auto / Moto / Veicoli','Bambini & Neonati',
+    'Biciclette','Casa & Arredamento','Cucina & Elettrodomestici',
+    'Elettronica & Informatica','Fotografia','Giardinaggio & Outdoor',
+    'Giochi & Giocattoli','Libri & Riviste','Materiale scolastico',
+    'Musica & Strumenti musicali','Occhiali & Ottica','Orologi & Gioielli',
+    'Profumi & Cosmetici','Scarpe','Sport & Fitness',
+    'Telefoni & Smartphone','Utensili & Bricolage','Videogiochi & Console',
+    'Viaggi & Valigie','Altro'
+];
 const VIS_LABELS = { privato:'🔒 Solo io', selezionati:'👥 Selezionati', pubblico:'🌍 Tutti' };
 const CONS_LABELS = { ritiro:'🤝 Ritiro a mano', spedizione:'📦 Spedizione', entrambi:'🤝📦 Entrambi' };
 const SPEDIAMO_URL = 'https://www.spediamo.it/';
@@ -310,7 +340,7 @@ const SPEDIAMO_URL = 'https://www.spediamo.it/';
 let annunci = [], miei = [], currentTab = 'scopri';
 let selectedAnnuncio = null;
 let editId = null;
-let fCond = 'buono', fCat = 'Altro', fVis = 'pubblico', fCons = 'ritiro';
+let fCond = 'buono', fCat = 'Altro', fVis = 'pubblico', fCons = 'ritiro', fTrattabile = false;
 let photoSlots = [null, null, null, null]; // { type:'existing'|'new', url, file, id }
 let selEmails = [];
 let chatAnnuncioId = null, chatPartner = null, chatRealtime = null;
@@ -595,13 +625,16 @@ function apriNuovo() {
     editId = null;
     photoSlots = [null, null, null, null];
     selEmails = [];
-    fCond = 'buono'; fCat = 'Altro'; fVis = 'pubblico'; fCons = 'ritiro';
+    fCond = 'buono'; fCat = 'Altro'; fVis = 'pubblico'; fCons = 'ritiro'; fTrattabile = false;
     document.getElementById('fLuogo').value = '';
     document.getElementById('fPeso').value = '';
     document.getElementById('fDim').value = '';
     document.getElementById('fTitolo').value = '';
     document.getElementById('fPrezzo').value = '';
     document.getElementById('fDesc').value = '';
+    document.getElementById('fMisure').value = '';
+    document.getElementById('fPesoOgg').value = '';
+    document.getElementById('fTrattabile').checked = false;
     document.getElementById('btnDelAnnuncio').style.display = 'none';
     document.getElementById('modaleTitolo').textContent = 'Nuovo annuncio';
     buildFormUI();
@@ -612,13 +645,16 @@ function apriModifica() {
     if (!selectedAnnuncio) return;
     const a = selectedAnnuncio;
     editId = a.id;
-    fCond = a.condizione || 'buono'; fCat = a.categoria || 'Altro'; fVis = a.visibilita || 'pubblico'; fCons = a.consegna || 'ritiro';
+    fCond = a.condizione || 'buono'; fCat = a.categoria || 'Altro'; fVis = a.visibilita || 'pubblico'; fCons = a.consegna || 'ritiro'; fTrattabile = !!a.trattabile;
     document.getElementById('fLuogo').value = a.luogo || '';
     document.getElementById('fPeso').value = a.sped_peso != null ? a.sped_peso : '';
     document.getElementById('fDim').value = a.sped_dimensioni || '';
     document.getElementById('fTitolo').value = a.titolo || '';
     document.getElementById('fPrezzo').value = a.prezzo != null ? a.prezzo : '';
     document.getElementById('fDesc').value = a.descrizione || '';
+    document.getElementById('fMisure').value = a.misure || '';
+    document.getElementById('fPesoOgg').value = a.peso_oggetto || '';
+    document.getElementById('fTrattabile').checked = !!a.trattabile;
     document.getElementById('btnDelAnnuncio').style.display = '';
     document.getElementById('modaleTitolo').textContent = 'Modifica annuncio';
     // Load existing photos
@@ -666,11 +702,10 @@ function renderCondRow() {
 }
 
 function renderCatRow() {
-    const row = document.getElementById('catRow');
-    if (!row) return;
-    row.innerHTML = CATEGORIE.map(c =>
-        `<button class="pill${c === fCat ? ' on' : ''}" onclick="setPill('cat','${c}')">${c}</button>`
-    ).join('');
+    const sel = document.getElementById('catSelect');
+    if (!sel) return;
+    sel.innerHTML = CATEGORIE.map(c => `<option value="${c}">${c}</option>`).join('');
+    sel.value = fCat;
 }
 
 function renderVisRow() {
@@ -693,6 +728,7 @@ function renderConsRow() {
 
 function buildPhotoRow() {
     const row = document.getElementById('photoRow');
+    const hasEmpty = photoSlots.some(s => !s);
     row.innerHTML = photoSlots.map((slot, i) => {
         if (slot) {
             return `<div class="photo-slot">
@@ -700,26 +736,28 @@ function buildPhotoRow() {
                 <button class="rm" onclick="removePhoto(${i})">✕</button>
             </div>`;
         }
-        return `<div class="photo-slot" onclick="pickPhoto(${i})"><div class="photo-add-icon">+</div></div>`;
-    }).join('');
+        return '';
+    }).join('') + (hasEmpty ? `<div class="photo-slot" onclick="pickPhoto()"><div class="photo-add-icon">+</div></div>` : '');
 }
 
-function pickPhoto(idx) {
-    document.getElementById('fileInput').dataset.idx = idx;
-    document.getElementById('fileInput').value = '';
-    document.getElementById('fileInput').click();
+function pickPhoto() {
+    const input = document.getElementById('fileInput');
+    input.value = '';
+    input.click();
 }
 
 function onFileChange(input) {
-    const idx = parseInt(input.dataset.idx);
-    const file = input.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = e => {
-        photoSlots[idx] = { type: 'new', url: e.target.result, file };
-        buildPhotoRow();
-    };
-    reader.readAsDataURL(file);
+    Array.from(input.files).forEach(file => {
+        const emptyIdx = photoSlots.findIndex(s => !s);
+        if (emptyIdx === -1) return;
+        photoSlots[emptyIdx] = { type: 'new', url: null, file };
+        const reader = new FileReader();
+        reader.onload = e => {
+            photoSlots[emptyIdx] = { type: 'new', url: e.target.result, file };
+            buildPhotoRow();
+        };
+        reader.readAsDataURL(file);
+    });
 }
 
 function removePhoto(idx) {
@@ -772,6 +810,9 @@ async function salva() {
         titolo,
         descrizione: desc || null,
         prezzo: prezzo ? parseFloat(prezzo) : null,
+        trattabile: document.getElementById('fTrattabile').checked,
+        misure: document.getElementById('fMisure').value.trim() || null,
+        peso_oggetto: document.getElementById('fPesoOgg').value.trim() || null,
         condizione: fCond,
         categoria: fCat,
         visibilita: fVis,
