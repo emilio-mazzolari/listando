@@ -836,29 +836,39 @@
             // { emoji:'🛒', sfondo:'#ff6600', brand:'Altro', titolo:'...', desc:'...', cta:'...', url:'...' },
         ];
 
+        let _promoAperta = false;
+
         function renderPromos() {
             const el = document.getElementById('promoSection');
             if (!el) return;
             if (!PROMOS.length) { el.style.display = 'none'; return; }
+            const cards = PROMOS.map(p => {
+                const logoHtml = p.logo
+                    ? `<img src="${p.logo}" alt="${p.brand}" style="width:38px;height:38px;object-fit:contain">`
+                    : `<span style="font-size:24px">${p.emoji}</span>`;
+                return `
+                <a href="${p.url}" target="_blank" rel="noopener" class="promo-card">
+                    <div class="promo-logo" style="background:${p.sfondo}">${logoHtml}</div>
+                    <div class="promo-body">
+                        <div class="promo-titolo">${p.titolo}</div>
+                        <div class="promo-desc">${p.desc}</div>
+                    </div>
+                    <div class="promo-cta" style="background:${p.ctaColor || p.sfondo}">${p.cta}</div>
+                </a>`;
+            }).join('');
             el.innerHTML =
-                `<div style="font-size:11px;font-weight:800;color:#aaa;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:10px;padding:0 2px">Promozioni per te</div>` +
-                PROMOS.map(p => {
-                    const logoHtml = p.logo
-                        ? `<img src="${p.logo}" alt="${p.brand}" style="width:38px;height:38px;object-fit:contain">`
-                        : `<span style="font-size:24px">${p.emoji}</span>`;
-                    return `
-                    <a href="${p.url}" target="_blank" rel="noopener" class="promo-card">
-                        <div class="promo-logo" style="background:${p.sfondo}">
-                            ${logoHtml}
-                        </div>
-                        <div class="promo-body">
-                            <div class="promo-titolo">${p.titolo}</div>
-                            <div class="promo-desc">${p.desc}</div>
-                        </div>
-                        <div class="promo-cta" style="background:${p.ctaColor || p.sfondo}">${p.cta}</div>
-                    </a>`;
-                }).join('');
+                `<div onclick="togglePromo()" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:0 2px;margin-bottom:${_promoAperta ? '10px' : '0'}">
+                    <span style="font-size:11px;font-weight:800;color:#aaa;text-transform:uppercase;letter-spacing:0.6px">Promozioni per te</span>
+                    <svg id="promoChevron" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#bbb" stroke-width="2.5" stroke-linecap="round" style="transition:transform 0.25s;transform:rotate(${_promoAperta ? '0' : '-90'}deg)"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+                <div id="promoCards" style="display:${_promoAperta ? 'block' : 'none'}">${cards}</div>`;
         }
+
+        function togglePromo() {
+            _promoAperta = !_promoAperta;
+            renderPromos();
+        }
+
         renderPromos();
 
         // ── Drag to reorder (per-user) ────────────────────────────────────
