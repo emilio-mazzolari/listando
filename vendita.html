@@ -939,17 +939,23 @@ async function salva() {
         }
     }
 
-    // Upload new photos via server proxy (bypasses storage policies + RLS)
-    let ordine = photoSlots.filter(s => s?.type === 'existing').length;
+    // Salva foto rispettando l'ordine attuale dei photoSlots
+    let ordine = 0;
     for (let i = 0; i < photoSlots.length; i++) {
         const slot = photoSlots[i];
-        if (slot?.type !== 'new') continue;
-        try {
-            await uploadFoto(slot.file, annuncioId, ordine);
+        if (!slot) continue;
+        if (slot.type === 'existing') {
+            // Aggiorna l'ordine nel DB (gestisce il riordinamento)
+            await sb.from('vendita_foto').update({ ordine }).eq('id', slot.id);
             ordine++;
-            photoSlots[i] = null; // già caricata: non ricaricarla se si ripete il salvataggio
-        } catch (e) {
-            problemi.push('foto: ' + errMsg(e));
+        } else if (slot.type === 'new') {
+            try {
+                await uploadFoto(slot.file, annuncioId, ordine);
+                ordine++;
+                photoSlots[i] = null;
+            } catch (e) {
+                problemi.push('foto: ' + errMsg(e));
+            }
         }
     }
 
