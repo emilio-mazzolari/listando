@@ -1983,7 +1983,7 @@ function renderSaldi() {
             <div class="saldo-body">
                 <div class="saldo-nome">${p.nome}</div>
                 ${(pag > 0 || q > 0) ? `<div class="saldo-budget">Spese anticipate <strong>${cur}${pag.toFixed(2)}</strong></div>
-                <div class="saldo-budget">Le tue spese totali <strong>${cur}${q.toFixed(2)}</strong></div>
+                <div class="saldo-budget" style="color:#111">Le tue spese totali <strong>${cur}${q.toFixed(2)}</strong></div>
                 ${diffHtml ? `<div class="saldo-budget">${diffHtml}</div>` : ''}` : ''}
                 ${dettaglio ? `<div class="saldo-debiti">${dettaglio}</div>` : ''}
             </div>
