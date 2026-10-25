@@ -1625,7 +1625,7 @@ async function caricaViaggi() {
         const allViaggioIds = viaggi.map(v => v.id);
         const [allPart, allSpese] = await Promise.all([
             apiGetArr(`/sv_partecipanti?viaggio_id=in.(${allViaggioIds.join(',')})&select=id,viaggio_id,nome,email_collegata`),
-            apiGetArr(`/sv_spese?viaggio_id=in.(${allViaggioIds.join(',')})&select=viaggio_id,importo,pagato_da,divisione,email_utente`)
+            apiGetArr(`/sv_spese?viaggio_id=in.(${allViaggioIds.join(',')})&select=viaggio_id,importo,pagato_da,divisione,email_utente,tipo_divisione,quote_divisione`)
         ]);
 
         // Ripristina stato dopo refresh
@@ -1640,21 +1640,32 @@ async function caricaViaggi() {
         elLista.innerHTML = viaggi.map(v => {
             const isCondiviso = !propri.find(p => p.id === v.id);
             const vPart = allPart.filter(p => p.viaggio_id == v.id);
-            // Totale calcolato solo sulle spese che l'utente vede
-            const tot = allSpese.filter(s => s.viaggio_id == v.id && spesaVisibile(s, vPart, v)).reduce((a, s) => a + parseFloat(s.importo || 0), 0);
             const cur = v.valuta || 'EUR';
-            const nomi2 = vPart.slice(0, 2).map(p => p.nome).join(', ');
-            const extra = vPart.length > 2 ? ` +${vPart.length - 2}` : '';
-            const partStr = vPart.length ? `${nomi2}${extra}` : '—';
-            const sub = `${partStr} · ${symb(cur)}${tot.toFixed(2)}`;
+            const vSpese = allSpese.filter(s => s.viaggio_id == v.id);
+            // Calcola le spese di competenza dell'utente loggato
+            const mioPartIds = new Set(
+                vPart.filter(p => (p.email_collegata || '').toLowerCase() === userEmail.toLowerCase())
+                     .map(p => String(p.id))
+            );
+            let miaTot = 0;
+            if (mioPartIds.size > 0) {
+                for (const s of vSpese) {
+                    const qp = calcolaQuotePer(s);
+                    mioPartIds.forEach(pid => { miaTot += qp[pid] || 0; });
+                }
+            } else {
+                miaTot = vSpese.reduce((a, s) => a + parseFloat(s.importo || 0), 0);
+            }
+            const numPart = vPart.length;
+            const partStr = numPart === 1 ? '1 partecipante' : `${numPart} partecipanti`;
             const dateStr = formatTripDates(v.data_inizio, v.data_fine);
             const badge = isCondiviso ? `<div class="viaggio-badge">👥 Condiviso</div>` : '';
             return `<div class="viaggio-card${isCondiviso ? ' condiviso' : ''}" onclick="apriViaggio(${v.id})">
                 <div class="viaggio-emoji">${v.emoji || '✈️'}</div>
                 <div class="viaggio-info">
                     <div class="viaggio-nome">${v.nome}</div>
-                    <div class="viaggio-sub">${sub}</div>
                     ${dateStr ? `<div class="viaggio-date">${dateStr}</div>` : ''}
+                    <div class="viaggio-sub">${partStr} · ${symb(cur)}${miaTot.toFixed(2)}</div>
                     ${badge}
                 </div>
                 ${!isCondiviso ? `<button class="btn-del-viaggio" onclick="event.stopPropagation(); eliminaViaggio(${v.id})">
@@ -1969,7 +1980,8 @@ function renderSaldi() {
         const cls = netto > 0.01 ? 'positivo' : netto < -0.01 ? 'negativo' : 'pari';
         const fp = p.email_collegata ? fotoProfili[p.email_collegata] : null;
         const valStr = netto > 0.01 ? `+${cur}${netto.toFixed(2)}` : netto < -0.01 ? `-${cur}${Math.abs(netto).toFixed(2)}` : `${cur}0`;
-        const diffColor = diff > 0.01 ? 'var(--green)' : diff < -0.01 ? 'var(--red)' : '#aaa';
+        const inPari = Math.abs(netto) < 0.01;
+        const diffColor = inPari ? '#ccc' : (diff > 0.01 ? 'var(--green)' : diff < -0.01 ? 'var(--red)' : '#ccc');
         const diffStr = diff > 0.01 ? `+${cur}${diff.toFixed(2)}` : diff < -0.01 ? `-${cur}${Math.abs(diff).toFixed(2)}` : `${cur}0`;
         const diffHtml = (pag > 0 || q > 0) ? `<span style="color:${diffColor}">Differenza ${diffStr}</span>` : '';
         let dettaglio = '';
