@@ -1149,17 +1149,32 @@
             _searchTimer = setTimeout(async () => {
                 const email = localStorage.getItem('userEmail');
                 if (!email) return;
-                const [r1, r2, r3, r4] = await Promise.all([
-                    supabaseClient.from('sv_viaggi').select('id,nome').eq('email_utente', email).ilike('nome', `%${q}%`).limit(6),
-                    supabaseClient.from('spesa_lista').select('id,nome').eq('email_utente', email).ilike('nome', `%${q}%`).limit(6),
-                    supabaseClient.from('todo').select('id,titolo').eq('email_utente', email).ilike('titolo', `%${q}%`).limit(6),
-                    supabaseClient.from('luoghi').select('id,nome').eq('email_utente', email).ilike('nome', `%${q}%`).limit(6),
+                const H = { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY };
+                const enc = encodeURIComponent(`%${q}%`);
+                const eml = encodeURIComponent(email);
+
+                const [rMiei, rPart, rSpesa, rTodo, rLuoghi] = await Promise.all([
+                    fetch(`${SUPABASE_URL}/rest/v1/sv_viaggi?email_utente=eq.${eml}&nome=ilike.${enc}&select=id,nome&limit=8`, { headers: H }).then(r => r.ok ? r.json() : []),
+                    fetch(`${SUPABASE_URL}/rest/v1/sv_partecipanti?or=(email_collegata.eq.${eml},email_utente.eq.${eml})&select=viaggio_id&limit=50`, { headers: H }).then(r => r.ok ? r.json() : []),
+                    fetch(`${SUPABASE_URL}/rest/v1/spesa_lista?email_utente=eq.${eml}&nome=ilike.${enc}&select=id,nome&limit=6`, { headers: H }).then(r => r.ok ? r.json() : []),
+                    fetch(`${SUPABASE_URL}/rest/v1/todo?email_utente=eq.${eml}&titolo=ilike.${enc}&select=id,titolo&limit=6`, { headers: H }).then(r => r.ok ? r.json() : []),
+                    fetch(`${SUPABASE_URL}/rest/v1/luoghi?email_utente=eq.${eml}&nome=ilike.${enc}&select=id,nome&limit=6`, { headers: H }).then(r => r.ok ? r.json() : []),
                 ]);
+
+                // Viaggi: miei + quelli in cui partecipo (deduplicati)
+                let rViaggi = [...rMiei];
+                const mieiIds = new Set(rMiei.map(v => v.id));
+                const partIds = [...new Set((rPart).map(p => p.viaggio_id))].filter(id => !mieiIds.has(id));
+                if (partIds.length) {
+                    const extra = await fetch(`${SUPABASE_URL}/rest/v1/sv_viaggi?id=in.(${partIds.join(',')})&nome=ilike.${enc}&select=id,nome&limit=6`, { headers: H }).then(r => r.ok ? r.json() : []);
+                    rViaggi = [...rViaggi, ...extra];
+                }
+
                 const groups = [
-                    { emoji: '✈️', label: 'Viaggi',  items: r1.data || [], url: 'spese_viaggio.html', key: 'nome' },
-                    { emoji: '🛒', label: 'Spesa',   items: r2.data || [], url: 'spesa.html',         key: 'nome' },
-                    { emoji: '✓',  label: 'Da fare', items: r3.data || [], url: 'todo.html',          key: 'titolo' },
-                    { emoji: '📍', label: 'Luoghi',  items: r4.data || [], url: 'luoghi.html',        key: 'nome' },
+                    { emoji: '✈️', label: 'Viaggi',  items: rViaggi, url: 'spese_viaggio.html', key: 'nome' },
+                    { emoji: '🛒', label: 'Spesa',   items: rSpesa,  url: 'spesa.html',         key: 'nome' },
+                    { emoji: '✓',  label: 'Da fare', items: rTodo,   url: 'todo.html',          key: 'titolo' },
+                    { emoji: '📍', label: 'Luoghi',  items: rLuoghi, url: 'luoghi.html',        key: 'nome' },
                 ].filter(g => g.items.length > 0);
 
                 if (!groups.length) {
