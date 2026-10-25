@@ -222,7 +222,7 @@
 
         <label class="form-label">Foto (max 4)</label>
         <div class="photo-row" id="photoRow"></div>
-        <input type="file" id="fileInput" accept="image/*" multiple style="display:none" onchange="onFileChange(this)">
+        <input type="file" id="fileInput" accept="image/*" multiple style="position:absolute;width:0;height:0;opacity:0;pointer-events:none" onchange="onFileChange(this)">
 
         <label class="form-label">Titolo *</label>
         <input class="form-input" id="fTitolo" placeholder="Cosa vendi?" type="text">
@@ -729,21 +729,17 @@ function renderConsRow() {
 function buildPhotoRow() {
     const row = document.getElementById('photoRow');
     const hasEmpty = photoSlots.some(s => !s);
+    // reset il value dell'input così onchange scatta anche ri-selezionando gli stessi file
+    if (hasEmpty) document.getElementById('fileInput').value = '';
     row.innerHTML = photoSlots.map((slot, i) => {
-        if (slot) {
+        if (slot && slot.url) {
             return `<div class="photo-slot">
                 <img src="${slot.url}" alt="">
                 <button class="rm" onclick="removePhoto(${i})">✕</button>
             </div>`;
         }
         return '';
-    }).join('') + (hasEmpty ? `<div class="photo-slot" onclick="pickPhoto()"><div class="photo-add-icon">+</div></div>` : '');
-}
-
-function pickPhoto() {
-    const input = document.getElementById('fileInput');
-    input.value = '';
-    input.click();
+    }).join('') + (hasEmpty ? `<label class="photo-slot" for="fileInput"><div class="photo-add-icon">+</div></label>` : '');
 }
 
 function onFileChange(input) {
