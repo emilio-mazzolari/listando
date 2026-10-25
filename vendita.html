@@ -748,18 +748,30 @@ function renderConsRow() {
 
 function buildPhotoRow() {
     const row = document.getElementById('photoRow');
-    const hasEmpty = photoSlots.some(s => !s);
-    // reset il value dell'input così onchange scatta anche ri-selezionando gli stessi file
+    const filled = photoSlots.filter(s => s && s.url);
+    const hasEmpty = filled.length < 4;
     if (hasEmpty) document.getElementById('fileInput').value = '';
     row.innerHTML = photoSlots.map((slot, i) => {
-        if (slot && slot.url) {
-            return `<div class="photo-slot">
-                <img src="${slot.url}" alt="">
-                <button class="rm" onclick="removePhoto(${i})">✕</button>
-            </div>`;
-        }
-        return '';
+        if (!slot || !slot.url) return '';
+        const realIdx = photoSlots.indexOf(slot);
+        const prevFilled = photoSlots.slice(0, realIdx).filter(s => s && s.url).length > 0;
+        const nextFilled = photoSlots.slice(realIdx + 1).filter(s => s && s.url).length > 0;
+        return `<div class="photo-slot" style="position:relative">
+            <img src="${slot.url}" alt="">
+            <button class="rm" onclick="removePhoto(${realIdx})">✕</button>
+            <div style="position:absolute;bottom:3px;left:50%;transform:translateX(-50%);display:flex;gap:3px">
+                ${prevFilled ? `<button onclick="spostaFoto(${realIdx},-1)" style="background:rgba(0,0,0,.55);border:none;border-radius:6px;color:white;font-size:11px;padding:2px 6px;cursor:pointer;line-height:1">‹</button>` : ''}
+                ${nextFilled ? `<button onclick="spostaFoto(${realIdx},+1)" style="background:rgba(0,0,0,.55);border:none;border-radius:6px;color:white;font-size:11px;padding:2px 6px;cursor:pointer;line-height:1">›</button>` : ''}
+            </div>
+        </div>`;
     }).join('') + (hasEmpty ? `<label class="photo-slot" for="fileInput"><div class="photo-add-icon">+</div></label>` : '');
+}
+
+function spostaFoto(idx, dir) {
+    const targetIdx = idx + dir;
+    if (targetIdx < 0 || targetIdx >= photoSlots.length) return;
+    [photoSlots[idx], photoSlots[targetIdx]] = [photoSlots[targetIdx], photoSlots[idx]];
+    buildPhotoRow();
 }
 
 function onFileChange(input) {
