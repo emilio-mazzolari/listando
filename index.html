@@ -858,7 +858,7 @@
             }).join('');
             el.innerHTML =
                 `<div onclick="togglePromo()" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:0 2px;margin-bottom:${_promoAperta ? '10px' : '0'}">
-                    <span style="font-size:11px;font-weight:800;color:#aaa;text-transform:uppercase;letter-spacing:0.6px">Promozioni per te</span>
+                    <span style="font-size:11px;font-weight:800;color:#111;text-transform:uppercase;letter-spacing:0.6px">Promozioni per te</span>
                     <svg id="promoChevron" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#bbb" stroke-width="2.5" stroke-linecap="round" style="transition:transform 0.25s;transform:rotate(${_promoAperta ? '0' : '-90'}deg)"><polyline points="6 9 12 15 18 9"/></svg>
                 </div>
                 <div id="promoCards" style="display:${_promoAperta ? 'block' : 'none'}">${cards}</div>`;
