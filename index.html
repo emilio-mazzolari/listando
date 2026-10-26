@@ -773,6 +773,17 @@
 
         window.addEventListener('load', () => setTimeout(initSW, 800));
 
+        // Prefetch silenzioso password_vault → mantiene la cache offline aggiornata
+        window.addEventListener('load', () => {
+            const email = localStorage.getItem('userEmail');
+            if (!email) return;
+            supabaseClient.from('password_vault').select('*').eq('email_utente', email).order('titolo')
+                .then(({ data }) => {
+                    if (data) localStorage.setItem('listando_passwords_' + email, JSON.stringify(data));
+                })
+                .catch(() => {});
+        });
+
         // ── Popup domenicale Sostieni ────────────────────────────────────
 
         function isSunday() { return new Date().getDay() === 0; }
