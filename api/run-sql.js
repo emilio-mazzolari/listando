@@ -179,6 +179,43 @@ const STATEMENTS = [
     `ALTER TABLE vendita_annunci ADD COLUMN IF NOT EXISTS luogo text`,
     `ALTER TABLE vendita_annunci ADD COLUMN IF NOT EXISTS sped_peso numeric(6,2)`,
     `ALTER TABLE vendita_annunci ADD COLUMN IF NOT EXISTS sped_dimensioni text`,
+    `CREATE TABLE IF NOT EXISTS lista_regali (
+        id bigint generated always as identity primary key,
+        created_at timestamptz default now(),
+        email_utente text not null,
+        nome text not null,
+        destinatario text,
+        prezzo numeric,
+        link text,
+        note text,
+        comprato boolean default false
+    )`,
+    `ALTER TABLE IF EXISTS lista_regali DISABLE ROW LEVEL SECURITY`,
+    `CREATE TABLE IF NOT EXISTS abbonamenti (
+        id bigint generated always as identity primary key,
+        created_at timestamptz default now(),
+        email_utente text not null,
+        icona text,
+        nome text not null,
+        costo numeric,
+        frequenza text default 'mensile',
+        categoria text default 'Altro',
+        data_rinnovo date,
+        note text,
+        attivo boolean default true
+    )`,
+    `ALTER TABLE IF EXISTS abbonamenti DISABLE ROW LEVEL SECURITY`,
+    `CREATE TABLE IF NOT EXISTS scadenze (
+        id bigint generated always as identity primary key,
+        created_at timestamptz default now(),
+        email_utente text not null,
+        titolo text not null,
+        categoria text default 'Altro',
+        data_scadenza date not null,
+        note text,
+        gestita boolean default false
+    )`,
+    `ALTER TABLE IF EXISTS scadenze DISABLE ROW LEVEL SECURITY`,
     `DO $$ BEGIN
         IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='objects' AND schemaname='storage' AND policyname='allow upload vendita-foto') THEN
             CREATE POLICY "allow upload vendita-foto" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'vendita-foto');
