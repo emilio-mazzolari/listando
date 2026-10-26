@@ -164,6 +164,11 @@
     </div>
 
     <div id="status"></div>
+    <div id="offlinePasswordLink" style="display:none;margin-top:20px;padding-top:18px;border-top:2px solid var(--grey)">
+        <a href="password.html" style="display:flex;align-items:center;justify-content:center;gap:8px;color:#888;font-size:13px;font-weight:800;text-decoration:none;">
+            🔐 Vedi password offline
+        </a>
+    </div>
 </div>
 
 <script>
@@ -190,6 +195,9 @@ async function bioSupportato() {
 
 // ── Inizializzazione ────────────────────────────────────────────────
 window.addEventListener('load', async () => {
+    if (localStorage.getItem('listando_pwd_enc'))
+        document.getElementById('offlinePasswordLink').style.display = '';
+
     // Se c'è già una sessione Supabase valida, vai direttamente all'app
     const { data: { session } } = await supabaseClient.auth.getSession();
     if (session) {
