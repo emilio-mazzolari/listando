@@ -761,10 +761,32 @@ function buildPhotoRow() {
             <button class="rm" onclick="removePhoto(${realIdx})">✕</button>
             <div style="position:absolute;bottom:3px;left:50%;transform:translateX(-50%);display:flex;gap:3px">
                 ${prevFilled ? `<button onclick="spostaFoto(${realIdx},-1)" style="background:rgba(0,0,0,.55);border:none;border-radius:6px;color:white;font-size:11px;padding:2px 6px;cursor:pointer;line-height:1">‹</button>` : ''}
+                <button onclick="ruotaFoto(${realIdx})" style="background:rgba(0,0,0,.55);border:none;border-radius:6px;color:white;font-size:11px;padding:2px 6px;cursor:pointer;line-height:1">↻</button>
                 ${nextFilled ? `<button onclick="spostaFoto(${realIdx},+1)" style="background:rgba(0,0,0,.55);border:none;border-radius:6px;color:white;font-size:11px;padding:2px 6px;cursor:pointer;line-height:1">›</button>` : ''}
             </div>
         </div>`;
     }).join('') + (hasEmpty ? `<label class="photo-slot" for="fileInput"><div class="photo-add-icon">+</div></label>` : '');
+}
+
+async function ruotaFoto(idx) {
+    const slot = photoSlots[idx];
+    if (!slot || !slot.url) return;
+    const img = new Image();
+    img.src = slot.url;
+    await new Promise(r => { img.onload = r; });
+    const canvas = document.createElement('canvas');
+    canvas.width = img.naturalHeight;
+    canvas.height = img.naturalWidth;
+    const ctx = canvas.getContext('2d');
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+    ctx.rotate(Math.PI / 2);
+    ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
+    canvas.toBlob(blob => {
+        const file = new File([blob], 'foto.jpg', { type: 'image/jpeg' });
+        const url = canvas.toDataURL('image/jpeg', 0.9);
+        photoSlots[idx] = { type: 'new', url, file };
+        buildPhotoRow();
+    }, 'image/jpeg', 0.9);
 }
 
 function spostaFoto(idx, dir) {
