@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Listando - Abbonamenti</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/icon-pwa-512.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Listando">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            color-scheme: light;
+            --accent: #6c5ce7;
+            --accent-bg: rgba(108,92,231,0.08);
+            --green: #0fba8d; --red: #ff3b30; --orange: #ff9500;
+            --grey: #d8dddc; --grey-light: #f2f2f7;
+            --dark: #111; --bg: #f5f6f8; --white: #fff;
+        }
+        * { box-sizing: border-box; }
+        html, body { overflow-x: hidden; max-width: 100%; margin: 0; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--dark); }
+
+        .page-header { position: sticky; top: 0; z-index: 100; background: var(--white); border-bottom: 2px solid var(--grey-light); padding: 14px 16px; padding-top: max(14px, env(safe-area-inset-top, 14px)); }
+        .header-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .btn-back { width: 40px; height: 40px; border-radius: 12px; border: 2.5px solid var(--grey); background: var(--white); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+        .btn-back svg { width: 18px; height: 18px; stroke: var(--dark); fill: none; stroke-width: 2.5; }
+        .header-title { font-weight: 900; font-size: 18px; flex: 1; }
+        .btn-add-hdr { width: 40px; height: 40px; border-radius: 12px; border: none; background: var(--accent); color: white; font-size: 22px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+        .totali-bar { display: flex; gap: 8px; padding: 10px 16px 0; flex-wrap: wrap; }
+        .tot-card { flex: 1; min-width: 120px; background: var(--white); border-radius: 14px; padding: 12px 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .tot-label { font-size: 11px; font-weight: 700; color: #aaa; text-transform: uppercase; letter-spacing: 0.5px; }
+        .tot-val { font-size: 20px; font-weight: 900; margin-top: 2px; color: var(--accent); }
+
+        .cat-scroll { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 10px 16px 0; }
+        .cat-scroll::-webkit-scrollbar { display: none; }
+        .cat-chip { flex-shrink: 0; padding: 6px 14px; border-radius: 20px; border: 2px solid var(--grey); background: white; font-weight: 800; font-size: 12px; cursor: pointer; color: #888; transition: all 0.15s; }
+        .cat-chip.active { border-color: var(--accent); background: var(--accent-bg); color: var(--accent); }
+
+        .list-body { padding: 10px 16px 110px; }
+        .empty-msg { text-align: center; padding: 64px 24px; color: #bbb; font-weight: 700; font-size: 15px; }
+
+        .card { background: var(--white); border-radius: 18px; margin-bottom: 8px; padding: 14px 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); display: flex; align-items: center; gap: 12px; cursor: pointer; border-left: 5px solid var(--accent); }
+        .card.scade-presto { border-left-color: var(--orange); }
+        .card.scaduto { border-left-color: var(--red); }
+        .card.inattivo { opacity: 0.55; border-left-color: var(--grey); }
+
+        .card-icon { width: 44px; height: 44px; border-radius: 12px; background: var(--accent-bg); display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+        .card-body { flex: 1; min-width: 0; }
+        .card-title { font-weight: 900; font-size: 15px; }
+        .card-meta { display: flex; gap: 6px; margin-top: 5px; flex-wrap: wrap; align-items: center; }
+        .badge { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 8px; }
+        .badge-cat { background: var(--accent-bg); color: var(--accent); }
+        .badge-rinnovo { background: var(--grey-light); color: #555; }
+        .badge-scade-presto { background: rgba(255,149,0,0.12); color: var(--orange); }
+        .badge-scaduto { background: rgba(255,59,48,0.12); color: var(--red); }
+        .card-prezzo { font-size: 16px; font-weight: 900; color: var(--accent); flex-shrink: 0; text-align: right; }
+        .card-prezzo span { display: block; font-size: 10px; font-weight: 700; color: #aaa; }
+
+        .modal-overlay { display: none; position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.5); align-items: flex-end; justify-content: center; }
+        .modal-overlay.open { display: flex; }
+        .modal-box { background: var(--white); border-radius: 28px 28px 0 0; padding: 24px 20px; padding-bottom: max(24px, env(safe-area-inset-bottom, 24px)); width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; }
+        .modal-handle { width: 40px; height: 4px; background: var(--grey); border-radius: 4px; margin: 0 auto 20px; }
+        .modal-title { font-weight: 900; font-size: 18px; margin-bottom: 18px; }
+        .form-group { margin-bottom: 12px; }
+        .form-label { font-size: 12px; font-weight: 800; color: #666; margin-bottom: 5px; display: block; text-transform: uppercase; letter-spacing: 0.4px; }
+        .form-input { width: 100%; padding: 12px 14px; border-radius: 14px; border: 2.5px solid var(--grey); font-size: 15px; font-family: inherit; outline: none; transition: border-color 0.2s; }
+        .form-input:focus { border-color: var(--accent); }
+        .form-row { display: flex; gap: 8px; }
+        .form-row .form-group { flex: 1; }
+
+        .attivo-toggle { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 14px; border: 2.5px solid var(--grey); cursor: pointer; user-select: none; transition: all 0.15s; }
+        .attivo-toggle.on { border-color: var(--green); background: rgba(15,186,141,0.06); }
+        .attivo-toggle-label { font-weight: 800; font-size: 15px; flex: 1; }
+        .attivo-toggle-check { width: 26px; height: 26px; border-radius: 8px; border: 2.5px solid var(--grey); display: flex; align-items: center; justify-content: center; font-size: 15px; transition: all 0.15s; background: white; }
+        .attivo-toggle.on .attivo-toggle-check { background: var(--green); border-color: var(--green); color: white; }
+
+        .btn-save-modal { width: 100%; padding: 16px; border-radius: 18px; border: none; background: var(--accent); color: white; font-weight: 900; font-size: 16px; cursor: pointer; font-family: inherit; margin-top: 8px; }
+        .btn-delete-modal { width: 100%; padding: 14px; border-radius: 18px; border: none; background: #fff0f0; color: var(--red); font-weight: 800; font-size: 14px; cursor: pointer; font-family: inherit; margin-top: 8px; }
+
+        .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 70px; background: white; display: flex; justify-content: space-around; align-items: center; border-top: 2px solid var(--grey-light); padding-bottom: env(safe-area-inset-bottom); z-index: 100; }
+        .tab-item { flex: 1; text-align: center; font-size: 11px; color: var(--dark); text-decoration: none; font-weight: 800; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .icon-tab { width: 24px; height: 24px; stroke-width: 2.5px; stroke: var(--dark); fill: none; }
+        .toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--dark); color: white; padding: 12px 20px; border-radius: 14px; font-weight: 700; font-size: 14px; opacity: 0; transition: all 0.25s; white-space: nowrap; z-index: 999; pointer-events: none; }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    
+        /* ── Feedback fab ── */
+        .fab-feedback { position: fixed; bottom: 88px; right: 18px; width: 46px; height: 46px; border-radius: 50%; background: #fff; border: 2.5px solid #e0e0e0; box-shadow: 0 2px 10px rgba(0,0,0,.12); display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 200; }
+        .fab-feedback svg { width: 20px; height: 20px; stroke: #777; fill: none; stroke-width: 2; }
+        .fb-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 999; display: none; align-items: flex-end; justify-content: center; padding-bottom: env(safe-area-inset-bottom,0); }
+        .fb-overlay.open { display: flex; }
+        .fb-sheet { background: #fff; border-radius: 24px 24px 0 0; padding: 24px 20px 40px; width: 100%; max-width: 520px; }
+        .fb-sheet h3 { margin: 0 0 16px; font-size: 17px; font-weight: 800; }
+        .fb-tipo { display: flex; gap: 10px; margin-bottom: 14px; }
+        .fb-tipo input[type=radio] { display: none; }
+        .fb-tipo label { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px; border-radius: 12px; border: 2px solid #e0e0e0; font-size: 14px; font-weight: 600; cursor: pointer; transition: all .15s; }
+        .fb-tipo input[type=radio]:checked + label { border-color: var(--accent,#5856d6); background: color-mix(in srgb,var(--accent,#5856d6) 12%,#fff); color: var(--accent,#5856d6); }
+        .fb-textarea { width: 100%; padding: 12px 14px; border-radius: 14px; border: 2.5px solid #e0e0e0; font-size: 15px; font-family: inherit; resize: none; outline: none; box-sizing: border-box; }
+        .fb-textarea:focus { border-color: var(--accent,#5856d6); }
+        .fb-send { width: 100%; margin-top: 14px; padding: 14px; border-radius: 14px; background: var(--accent,#5856d6); color: #fff; font-size: 16px; font-weight: 700; border: none; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div class="page-header">
+    <div class="header-row">
+        <button class="btn-back" onclick="history.back()">
+            <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div class="header-title">🔄 ABBONAMENTI</div>
+        <button class="btn-add-hdr" onclick="apriModale()">+</button>
+    </div>
+</div>
+
+<div class="totali-bar" id="totaliBar"></div>
+
+<div class="cat-scroll" id="catScroll"></div>
+
+<div class="list-body" id="listBody"></div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modale">
+    <div class="modal-box">
+        <div class="modal-handle"></div>
+        <div class="modal-title" id="modalTitle">Nuovo abbonamento</div>
+
+        <div class="form-row">
+            <div class="form-group" style="flex:0 0 64px">
+                <label class="form-label">Icona</label>
+                <input class="form-input" id="fIcona" placeholder="🔄" style="text-align:center;font-size:22px;padding:8px">
+            </div>
+            <div class="form-group" style="flex:1">
+                <label class="form-label">Nome *</label>
+                <input class="form-input" id="fNome" placeholder="es. Netflix, Spotify…" type="text">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label">Costo (€)</label>
+                <input class="form-input" id="fCosto" placeholder="9,99" type="number" min="0" step="0.01">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Frequenza</label>
+                <select class="form-input" id="fFrequenza">
+                    <option value="mensile">Mensile</option>
+                    <option value="annuale">Annuale</option>
+                    <option value="trimestrale">Trimestrale</option>
+                    <option value="semestrale">Semestrale</option>
+                    <option value="settimanale">Settimanale</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label">Categoria</label>
+                <select class="form-input" id="fCategoria">
+                    <option value="Streaming">📺 Streaming</option>
+                    <option value="Musica">🎵 Musica</option>
+                    <option value="Sport">⚽ Sport</option>
+                    <option value="Software">💻 Software</option>
+                    <option value="Assicurazione">🛡️ Assicurazione</option>
+                    <option value="Utilities">⚡ Utilities</option>
+                    <option value="Altro" selected>🔄 Altro</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Prossimo rinnovo</label>
+                <input class="form-input" id="fRinnovo" type="date">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Note</label>
+            <input class="form-input" id="fNote" placeholder="Account condiviso, piano, ecc." type="text">
+        </div>
+
+        <div class="form-group">
+            <div class="attivo-toggle on" id="ativoToggle" onclick="toggleAttivo()">
+                <span class="attivo-toggle-label">✅ Abbonamento attivo</span>
+                <div class="attivo-toggle-check" id="ativoCheck">✓</div>
+            </div>
+        </div>
+
+        <button class="btn-save-modal" onclick="salva()">SALVA</button>
+        <button class="btn-delete-modal" id="btnElimina" style="display:none" onclick="elimina()">ELIMINA</button>
+    </div>
+</div>
+
+<div class="tab-bar">
+    <a href="index.html" class="tab-item">
+        <svg class="icon-tab" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 15 22"/></svg>
+        HOME
+    </a>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = "https://eejdpophfxsrqdvsucye.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlamRwb3BoZnhzcnFkdnN1Y3llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2NTMzMDQsImV4cCI6MjA5MzIyOTMwNH0.mpxbwlJyIdZgqKIdutHbLd85JR1P11yiglbYeApi17k";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const userEmail = localStorage.getItem('userEmail');
+if (!userEmail) location.href = 'login.html';
+
+const FREQ_MESI = { settimanale: 0.25, mensile: 1, trimestrale: 3, semestrale: 6, annuale: 12 };
+const CAT_EMOJI = { Streaming:'📺', Musica:'🎵', Sport:'⚽', Software:'💻', Assicurazione:'🛡️', Utilities:'⚡', Altro:'🔄' };
+
+let items = [];
+let catFiltro = 'Tutti';
+let ativoCorrente = true;
+let editId = null;
+
+async function carica() {
+    const { data, error } = await sb.from('abbonamenti').select('*')
+        .eq('email_utente', userEmail).order('nome');
+    if (error) { toast('Errore: ' + error.message); return; }
+    items = data || [];
+    renderCats();
+    render();
+}
+
+function costoMensile(item) {
+    const m = FREQ_MESI[item.frequenza] || 1;
+    return (parseFloat(item.costo) || 0) / m;
+}
+
+function statoRinnovo(item) {
+    if (!item.data_rinnovo) return 'ok';
+    const diff = Math.ceil((new Date(item.data_rinnovo) - new Date()) / 86400000);
+    if (diff < 0) return 'scaduto';
+    if (diff <= 30) return 'presto';
+    return 'ok';
+}
+
+function renderCats() {
+    const cats = ['Tutti', ...new Set(items.map(i => i.categoria).filter(Boolean))];
+    document.getElementById('catScroll').innerHTML = cats.map(c =>
+        `<button class="cat-chip${catFiltro === c ? ' active' : ''}" onclick="setCat('${c.replace(/'/g,"\\'")}')">
+            ${CAT_EMOJI[c] || ''} ${c}
+         </button>`
+    ).join('');
+}
+function setCat(c) { catFiltro = c; renderCats(); render(); }
+
+function render() {
+    let filtered = [...items];
+    if (catFiltro !== 'Tutti') filtered = filtered.filter(i => i.categoria === catFiltro);
+
+    const attivi = items.filter(i => i.attivo !== false);
+    const totMensile = attivi.reduce((s, i) => s + costoMensile(i), 0);
+    const totAnnuale = totMensile * 12;
+    document.getElementById('totaliBar').innerHTML = `
+        <div class="tot-card"><div class="tot-label">Al mese</div><div class="tot-val">€${totMensile.toFixed(2)}</div></div>
+        <div class="tot-card"><div class="tot-label">All'anno</div><div class="tot-val">€${totAnnuale.toFixed(0)}</div></div>
+        <div class="tot-card"><div class="tot-label">Attivi</div><div class="tot-val">${attivi.length}</div></div>
+    `;
+
+    const body = document.getElementById('listBody');
+    if (!filtered.length) { body.innerHTML = '<div class="empty-msg">🔄 Nessun abbonamento</div>'; return; }
+
+    body.innerHTML = filtered.map(i => {
+        const stato = statoRinnovo(i);
+        const inattivo = i.attivo === false;
+        let cls = 'card';
+        if (inattivo) cls += ' inattivo';
+        else if (stato === 'scaduto') cls += ' scaduto';
+        else if (stato === 'presto') cls += ' scade-presto';
+        const icon = i.icona || CAT_EMOJI[i.categoria] || '🔄';
+        const freqLabel = i.frequenza || 'mensile';
+        const rinnovoHtml = i.data_rinnovo ? (() => {
+            const diff = Math.ceil((new Date(i.data_rinnovo) - new Date()) / 86400000);
+            const label = diff < 0 ? `scaduto ${Math.abs(diff)}gg fa` : diff === 0 ? 'scade oggi' : `rinnovo tra ${diff}gg`;
+            const cls2 = diff < 0 ? 'badge badge-scaduto' : diff <= 30 ? 'badge badge-scade-presto' : 'badge badge-rinnovo';
+            return `<span class="${cls2}">${label}</span>`;
+        })() : '';
+        return `<div class="${cls}" onclick="apriModifica(${i.id})">
+            <div class="card-icon">${icon}</div>
+            <div class="card-body">
+                <div class="card-title">${i.nome}${inattivo ? ' <span style="color:#aaa;font-weight:600;font-size:12px">(inattivo)</span>' : ''}</div>
+                <div class="card-meta">
+                    <span class="badge badge-cat">${i.categoria || 'Altro'}</span>
+                    <span class="badge badge-rinnovo">${freqLabel}</span>
+                    ${rinnovoHtml}
+                </div>
+            </div>
+            <div class="card-prezzo">€${parseFloat(i.costo||0).toFixed(2)}<span>${freqLabel}</span></div>
+        </div>`;
+    }).join('');
+}
+
+function toggleAttivo() {
+    ativoCorrente = !ativoCorrente;
+    document.getElementById('ativoToggle').className = 'attivo-toggle' + (ativoCorrente ? ' on' : '');
+    document.getElementById('ativoCheck').textContent = ativoCorrente ? '✓' : '';
+    document.querySelector('#ativoToggle .attivo-toggle-label').textContent =
+        ativoCorrente ? '✅ Abbonamento attivo' : '⏸ Abbonamento sospeso';
+}
+
+function apriModale() {
+    editId = null; ativoCorrente = true;
+    document.getElementById('modalTitle').textContent = 'Nuovo abbonamento';
+    ['fIcona','fNome','fCosto','fNote'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('fFrequenza').value = 'mensile';
+    document.getElementById('fCategoria').value = 'Altro';
+    document.getElementById('fRinnovo').value = '';
+    document.getElementById('btnElimina').style.display = 'none';
+    document.getElementById('ativoToggle').className = 'attivo-toggle on';
+    document.getElementById('ativoCheck').textContent = '✓';
+    document.querySelector('#ativoToggle .attivo-toggle-label').textContent = '✅ Abbonamento attivo';
+    document.getElementById('modale').classList.add('open');
+}
+
+function apriModifica(id) {
+    const i = items.find(x => x.id === id);
+    if (!i) return;
+    editId = id; ativoCorrente = i.attivo !== false;
+    document.getElementById('modalTitle').textContent = 'Modifica abbonamento';
+    document.getElementById('fIcona').value = i.icona || '';
+    document.getElementById('fNome').value = i.nome || '';
+    document.getElementById('fCosto').value = i.costo || '';
+    document.getElementById('fFrequenza').value = i.frequenza || 'mensile';
+    document.getElementById('fCategoria').value = i.categoria || 'Altro';
+    document.getElementById('fRinnovo').value = i.data_rinnovo || '';
+    document.getElementById('fNote').value = i.note || '';
+    document.getElementById('btnElimina').style.display = '';
+    document.getElementById('ativoToggle').className = 'attivo-toggle' + (ativoCorrente ? ' on' : '');
+    document.getElementById('ativoCheck').textContent = ativoCorrente ? '✓' : '';
+    document.querySelector('#ativoToggle .attivo-toggle-label').textContent =
+        ativoCorrente ? '✅ Abbonamento attivo' : '⏸ Abbonamento sospeso';
+    document.getElementById('modale').classList.add('open');
+}
+
+async function salva() {
+    const nome = document.getElementById('fNome').value.trim();
+    if (!nome) { toast('Inserisci il nome'); return; }
+    const row = {
+        email_utente: userEmail,
+        icona: document.getElementById('fIcona').value.trim() || null,
+        nome,
+        costo: parseFloat(document.getElementById('fCosto').value) || null,
+        frequenza: document.getElementById('fFrequenza').value,
+        categoria: document.getElementById('fCategoria').value,
+        data_rinnovo: document.getElementById('fRinnovo').value || null,
+        note: document.getElementById('fNote').value.trim() || null,
+        attivo: ativoCorrente,
+    };
+    let err;
+    if (editId) {
+        ({ error: err } = await sb.from('abbonamenti').update(row).eq('id', editId));
+        if (err) { toast('Errore: ' + err.message); return; }
+        toast('✓ Aggiornato');
+    } else {
+        ({ error: err } = await sb.from('abbonamenti').insert(row));
+        if (err) { toast('Errore: ' + err.message); return; }
+        toast('✓ Aggiunto');
+    }
+    document.getElementById('modale').classList.remove('open');
+    await carica();
+}
+
+async function elimina() {
+    if (!editId || !confirm('Eliminare questo abbonamento?')) return;
+    await sb.from('abbonamenti').delete().eq('id', editId);
+    document.getElementById('modale').classList.remove('open');
+    toast('Eliminato');
+    await carica();
+}
+
+document.getElementById('modale').addEventListener('click', e => {
+    if (e.target === document.getElementById('modale')) document.getElementById('modale').classList.remove('open');
+});
+
+let toastTimer;
+function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+carica();
+
+    function _fbApri() { document.getElementById('fbOverlay').classList.add('open'); document.getElementById('fbTesto').focus(); }
+    function _fbChiudi() { document.getElementById('fbOverlay').classList.remove('open'); document.getElementById('fbTesto').value = ''; }
+    async function _fbInvia() {
+        const testo = document.getElementById('fbTesto').value.trim();
+        if (!testo) return;
+        const tipo = document.querySelector('input[name="fbTipo"]:checked').value;
+        const email = (typeof userEmail !== 'undefined' && userEmail) ? userEmail : (localStorage.getItem('userEmail') || 'anonimo');
+        const btn = document.getElementById('fbSendBtn');
+        btn.disabled = true; btn.textContent = 'Invio…';
+        try {
+            const r = await fetch('/api/feedback', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ email, tipo, testo }) });
+            if (r.ok) {
+                _fbChiudi();
+                if (typeof toast === 'function') toast('Feedback inviato, grazie! 🙏');
+            }
+        } catch(e) {}
+        finally { btn.disabled = false; btn.textContent = 'Invia'; }
+    }
+</script>
+
+<!-- feedback -->
+<button class="fab-feedback" onclick="_fbApri()" title="Invia feedback">
+    <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+</button>
+<div class="fb-overlay" id="fbOverlay" onclick="if(event.target===this)_fbChiudi()">
+    <div class="fb-sheet">
+        <h3>💬 Feedback a Emilio</h3>
+        <div class="fb-tipo">
+            <input type="radio" name="fbTipo" id="fbSug" value="suggerimento" checked>
+            <label for="fbSug">💡 Suggerimento</label>
+            <input type="radio" name="fbTipo" id="fbErr" value="errore">
+            <label for="fbErr">🐛 Segnala errore</label>
+        </div>
+        <textarea class="fb-textarea" id="fbTesto" rows="4" placeholder="Descrivi il problema o il suggerimento…"></textarea>
+        <button class="fb-send" id="fbSendBtn" onclick="_fbInvia()">Invia</button>
+    </div>
+</div>
+</body>
+</html>

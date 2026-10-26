@@ -1,5 +1,5 @@
-const CACHE_NAME = "lista-spesa-cache-v174";
-const API_CACHE  = "lista-spesa-api-v174";
+const CACHE_NAME = "lista-spesa-cache-v176";
+const API_CACHE  = "lista-spesa-api-v176";
 
 const FILES = [
   "/manifest.json",
@@ -37,6 +37,9 @@ const FILES = [
   "/linear-logo.png",
   "/bestshopping-logo.png",
   "/vendita.html",
+  "/regali.html",
+  "/abbonamenti.html",
+  "/scadenze.html",
 ];
 
 /* INSTALL — cache: 'reload' bypassa HTTP cache e prende i file freschi dalla rete */

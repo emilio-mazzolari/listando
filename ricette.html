@@ -17,6 +17,7 @@
         :root {
             color-scheme: light;
             --accent: #ff6b35;
+            --accent-bg: rgba(255,107,53,0.08);
             --grey: #d8dddc; --grey-light: #f2f2f7;
             --dark: #111; --bg: #f5f6f8; --white: #fff;
         }
@@ -27,9 +28,9 @@
         .page-header {
             position: sticky; top: 0; z-index: 100;
             background: var(--white); border-bottom: 2px solid var(--grey-light);
-            display: flex; align-items: center; gap: 10px;
-            padding: 14px 20px; padding-top: max(14px, env(safe-area-inset-top, 14px));
+            padding: 14px 16px; padding-top: max(14px, env(safe-area-inset-top, 14px));
         }
+        .header-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
         .btn-back {
             width: 40px; height: 40px; border-radius: 12px;
             border: 2.5px solid var(--grey); background: var(--white);
@@ -44,39 +45,49 @@
             display: flex; align-items: center; justify-content: center;
         }
 
-        .search-bar { padding: 12px 16px 0; }
+        .search-bar { padding: 0 0 8px; }
         .search-input {
-            width: 100%; padding: 12px 16px; border-radius: 14px;
+            width: 100%; padding: 11px 14px; border-radius: 14px;
             border: 2.5px solid var(--grey); font-size: 15px; font-family: inherit;
             outline: none; background: var(--white);
         }
         .search-input:focus { border-color: var(--accent); }
-        .chips-scroll { display: flex; gap: 8px; padding: 10px 16px 0; overflow-x: auto; scrollbar-width: none; }
+        .chips-scroll { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
         .chips-scroll::-webkit-scrollbar { display: none; }
         .chip {
-            flex-shrink: 0; padding: 7px 16px; border-radius: 20px;
-            border: 2px solid var(--grey); font-size: 13px; font-weight: 800;
-            cursor: pointer; background: var(--white); white-space: nowrap;
+            flex-shrink: 0; padding: 6px 14px; border-radius: 20px;
+            border: 2px solid var(--grey); font-size: 12px; font-weight: 800;
+            cursor: pointer; background: var(--white); white-space: nowrap; color: #888;
         }
-        .chip.active { border-color: var(--accent); color: var(--accent); background: #fff5f0; }
+        .chip.active { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
 
         .recipe-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 14px 16px 100px; }
         .recipe-card {
             background: var(--white); border-radius: 20px; cursor: pointer;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-            overflow: hidden; border-top: 4px solid transparent;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+            overflow: hidden;
             transition: transform 0.1s;
         }
         .recipe-card:active { transform: scale(0.97); }
-        .recipe-thumb { width: 100%; height: 110px; object-fit: cover; display: block; }
-        .recipe-thumb-placeholder { width: 100%; height: 80px; display: flex; align-items: center; justify-content: center; font-size: 32px; background: var(--grey-light); }
-        .recipe-body { padding: 12px; display: flex; flex-direction: column; gap: 6px; }
-        .recipe-cat-row { display: flex; align-items: center; gap: 5px; }
-        .recipe-cat-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-        .recipe-cat-label { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.4px; }
+        .recipe-thumb { width: 100%; height: 120px; object-fit: cover; display: block; }
+        .recipe-thumb-placeholder {
+            width: 100%; height: 90px; display: flex; align-items: center;
+            justify-content: center; font-size: 36px;
+            background: linear-gradient(135deg, #fff5f0 0%, #ffe8dc 100%);
+        }
+        .recipe-body { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 5px; }
+        .recipe-cat-badge {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 2px 8px; border-radius: 8px;
+            font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.3px;
+            align-self: flex-start;
+        }
         .recipe-title { font-size: 13px; font-weight: 900; line-height: 1.3; }
-        .recipe-meta-row { display: flex; gap: 8px; flex-wrap: wrap; }
-        .recipe-meta-item { font-size: 10px; color: #888; font-weight: 700; }
+        .recipe-meta-row { display: flex; gap: 6px; flex-wrap: wrap; }
+        .recipe-meta-item {
+            font-size: 10px; color: #888; font-weight: 700;
+            background: var(--grey-light); padding: 2px 7px; border-radius: 6px;
+        }
         .empty-msg { text-align: center; padding: 48px 24px; color: #aaa; font-weight: 700; font-size: 15px; grid-column: 1/-1; }
 
         /* Detail overlay */
@@ -87,12 +98,12 @@
         .detail-overlay.open { display: flex; }
         .detail-header {
             display: flex; align-items: center; gap: 12px;
-            padding: 14px 20px; padding-top: max(14px, env(safe-area-inset-top, 14px));
+            padding: 14px 16px; padding-top: max(14px, env(safe-area-inset-top, 14px));
             background: var(--white); border-bottom: 2px solid var(--grey-light); flex-shrink: 0;
         }
         .detail-body { flex: 1; overflow-y: auto; padding: 0 0 120px; }
-        .detail-cover { width: 100%; max-height: 240px; object-fit: cover; display: block; }
-        .detail-cover-video { width: 100%; max-height: 240px; display: block; }
+        .detail-cover { width: 100%; max-height: 260px; object-fit: cover; display: block; border-radius: 0 0 24px 24px; }
+        .detail-cover-video { width: 100%; max-height: 260px; display: block; border-radius: 0 0 24px 24px; }
         .detail-content { padding: 20px; }
         .detail-cat-row { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 6px; cursor: pointer; padding: 4px 8px 4px 4px; border-radius: 20px; border: 1.5px solid transparent; transition: border-color 0.15s; }
         .detail-cat-row:hover { border-color: var(--grey); }
@@ -282,22 +293,38 @@
         .icon-tab { width: 24px; height: 24px; stroke-width: 2.5px; stroke: var(--dark); fill: none; }
         .toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--dark); color: white; padding: 12px 20px; border-radius: 14px; font-weight: 700; font-size: 14px; opacity: 0; transition: all 0.25s; white-space: nowrap; z-index: 999; pointer-events: none; }
         .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    
+        /* ── Feedback fab ── */
+        .fab-feedback { position: fixed; bottom: 88px; right: 18px; width: 46px; height: 46px; border-radius: 50%; background: #fff; border: 2.5px solid #e0e0e0; box-shadow: 0 2px 10px rgba(0,0,0,.12); display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 200; }
+        .fab-feedback svg { width: 20px; height: 20px; stroke: #777; fill: none; stroke-width: 2; }
+        .fb-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 999; display: none; align-items: flex-end; justify-content: center; padding-bottom: env(safe-area-inset-bottom,0); }
+        .fb-overlay.open { display: flex; }
+        .fb-sheet { background: #fff; border-radius: 24px 24px 0 0; padding: 24px 20px 40px; width: 100%; max-width: 520px; }
+        .fb-sheet h3 { margin: 0 0 16px; font-size: 17px; font-weight: 800; }
+        .fb-tipo { display: flex; gap: 10px; margin-bottom: 14px; }
+        .fb-tipo input[type=radio] { display: none; }
+        .fb-tipo label { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px; border-radius: 12px; border: 2px solid #e0e0e0; font-size: 14px; font-weight: 600; cursor: pointer; transition: all .15s; }
+        .fb-tipo input[type=radio]:checked + label { border-color: var(--accent,#5856d6); background: color-mix(in srgb,var(--accent,#5856d6) 12%,#fff); color: var(--accent,#5856d6); }
+        .fb-textarea { width: 100%; padding: 12px 14px; border-radius: 14px; border: 2.5px solid #e0e0e0; font-size: 15px; font-family: inherit; resize: none; outline: none; box-sizing: border-box; }
+        .fb-textarea:focus { border-color: var(--accent,#5856d6); }
+        .fb-send { width: 100%; margin-top: 14px; padding: 14px; border-radius: 14px; background: var(--accent,#5856d6); color: #fff; font-size: 16px; font-weight: 700; border: none; cursor: pointer; }
     </style>
 </head>
 <body>
 
 <div class="page-header">
-    <button class="btn-back" onclick="history.back()">
-        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
-    </button>
-    <div class="header-title">RICETTE</div>
-    <button class="btn-add-hdr" onclick="apriModale()">+</button>
+    <div class="header-row">
+        <button class="btn-back" onclick="history.back()">
+            <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div class="header-title">🍳 RICETTE</div>
+        <button class="btn-add-hdr" onclick="apriModale()">+</button>
+    </div>
+    <div class="search-bar">
+        <input class="search-input" id="searchInput" type="search" placeholder="Cerca ricetta…" oninput="render()">
+    </div>
+    <div class="chips-scroll" id="chipsRow"></div>
 </div>
-
-<div class="search-bar">
-    <input class="search-input" id="searchInput" type="search" placeholder="Cerca ricetta…" oninput="render()">
-</div>
-<div class="chips-scroll" id="chipsRow"></div>
 <div class="recipe-grid" id="recipeGrid"></div>
 
 <!-- Detail overlay -->
@@ -678,15 +705,12 @@ function render() {
                 ? `<video class="recipe-thumb" src="${r.media_url}" muted playsinline preload="metadata"></video>`
                 : `<img class="recipe-thumb" src="${r.media_url}" loading="lazy">`)
             : `<div class="recipe-thumb-placeholder">${emoji}</div>`;
-        return `<div class="recipe-card" onclick="apriDettaglio(${r.id})" style="border-top-color:${col}">
+        return `<div class="recipe-card" onclick="apriDettaglio(${r.id})">
             ${thumb}
             <div class="recipe-body">
-                <div class="recipe-cat-row">
-                    <div class="recipe-cat-dot" style="background:${col}"></div>
-                    <div class="recipe-cat-label" style="color:${col}">${r.categoria||'Altro'}</div>
-                </div>
+                <div class="recipe-cat-badge" style="background:${col}22;color:${col}">${emoji} ${r.categoria||'Altro'}</div>
                 <div class="recipe-title">${r.titolo}</div>
-                ${meta ? `<div class="recipe-meta-row"><span class="recipe-meta-item">${meta}</span></div>` : ''}
+                ${meta ? `<div class="recipe-meta-row">${meta.split(' · ').map(m=>`<span class="recipe-meta-item">${m}</span>`).join('')}</div>` : ''}
             </div>
         </div>`;
     }).join('');
@@ -1151,6 +1175,43 @@ carica().then(() => {
     const savedRicId = parseInt(sessionStorage.getItem('ric_id'));
     if (savedRicId && ricette.find(r => r.id === savedRicId)) apriDettaglio(savedRicId);
 });
+
+    function _fbApri() { document.getElementById('fbOverlay').classList.add('open'); document.getElementById('fbTesto').focus(); }
+    function _fbChiudi() { document.getElementById('fbOverlay').classList.remove('open'); document.getElementById('fbTesto').value = ''; }
+    async function _fbInvia() {
+        const testo = document.getElementById('fbTesto').value.trim();
+        if (!testo) return;
+        const tipo = document.querySelector('input[name="fbTipo"]:checked').value;
+        const email = (typeof userEmail !== 'undefined' && userEmail) ? userEmail : (localStorage.getItem('userEmail') || 'anonimo');
+        const btn = document.getElementById('fbSendBtn');
+        btn.disabled = true; btn.textContent = 'Invio…';
+        try {
+            const r = await fetch('/api/feedback', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ email, tipo, testo }) });
+            if (r.ok) {
+                _fbChiudi();
+                if (typeof toast === 'function') toast('Feedback inviato, grazie! 🙏');
+            }
+        } catch(e) {}
+        finally { btn.disabled = false; btn.textContent = 'Invia'; }
+    }
 </script>
+
+<!-- feedback -->
+<button class="fab-feedback" onclick="_fbApri()" title="Invia feedback">
+    <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+</button>
+<div class="fb-overlay" id="fbOverlay" onclick="if(event.target===this)_fbChiudi()">
+    <div class="fb-sheet">
+        <h3>💬 Feedback a Emilio</h3>
+        <div class="fb-tipo">
+            <input type="radio" name="fbTipo" id="fbSug" value="suggerimento" checked>
+            <label for="fbSug">💡 Suggerimento</label>
+            <input type="radio" name="fbTipo" id="fbErr" value="errore">
+            <label for="fbErr">🐛 Segnala errore</label>
+        </div>
+        <textarea class="fb-textarea" id="fbTesto" rows="4" placeholder="Descrivi il problema o il suggerimento…"></textarea>
+        <button class="fb-send" id="fbSendBtn" onclick="_fbInvia()">Invia</button>
+    </div>
+</div>
 </body>
 </html>
