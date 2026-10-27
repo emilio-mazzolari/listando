@@ -585,9 +585,10 @@ function chiudiBarcode() {
 }
 
 function bcModifica() {
+    const id = bcCurrentId;
     chiudiBarcode();
-    if (bcCurrentId) {
-        const t = tessere.find(x => x.id === bcCurrentId);
+    if (id) {
+        const t = tessere.find(x => x.id === id);
         if (t) apriModale(t);
     }
 }
