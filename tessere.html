@@ -98,9 +98,12 @@
         .btn-scan { width: 48px; height: 48px; border-radius: 14px; border: 2.5px solid var(--grey); background: var(--white); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
         .btn-scan svg { width: 20px; height: 20px; stroke: #666; fill: none; stroke-width: 2; }
 
-        .color-picker { display: flex; gap: 10px; flex-wrap: wrap; }
-        .color-dot { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; transition: transform 0.15s, border-color 0.15s; flex-shrink: 0; }
-        .color-dot.selected { border-color: var(--dark); transform: scale(1.15); }
+        .color-picker { display: flex; align-items: center; gap: 12px; }
+        .color-picker input[type=color] { -webkit-appearance: none; appearance: none; width: 48px; height: 48px; border: none; border-radius: 50%; padding: 0; cursor: pointer; background: none; }
+        .color-picker input[type=color]::-webkit-color-swatch-wrapper { padding: 0; border-radius: 50%; }
+        .color-picker input[type=color]::-webkit-color-swatch { border: none; border-radius: 50%; }
+        .color-picker input[type=color]::-moz-color-swatch { border: none; border-radius: 50%; }
+        .color-preview-strip { height: 24px; flex: 1; border-radius: 12px; transition: background 0.2s; }
 
         .tipo-row { display: flex; gap: 8px; }
         .tipo-btn { flex: 1; padding: 10px 6px; border-radius: 12px; border: 2px solid var(--grey); background: var(--white); font-weight: 800; font-size: 12px; cursor: pointer; text-align: center; color: #888; transition: all 0.15s; font-family: inherit; }
@@ -216,7 +219,10 @@
 
         <div class="form-group">
             <label class="form-label">Colore tessera</label>
-            <div class="color-picker" id="colorPicker"></div>
+            <div class="color-picker">
+                <input type="color" id="colorInput" value="#f59e0b" oninput="selColore(this.value)">
+                <div class="color-preview-strip" id="colorPreviewStrip" style="background:#f59e0b"></div>
+            </div>
         </div>
 
         <div class="form-group">
@@ -279,12 +285,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const userEmail = localStorage.getItem('userEmail');
 if (!userEmail) location.href = 'login.html';
 
-const COLORI = [
-    '#f59e0b','#ef4444','#10b981','#3b82f6','#8b5cf6','#ec4899','#f97316','#14b8a6','#6366f1','#64748b',
-    '#eab308','#f472b6','#fb7185','#84cc16','#06b6d4','#a16207','#d946ef','#7f1d1d',
-    '#dc2626','#b91c1c','#ff4444','#ff6b6b',
-];
-let tessere = [], editId = null, tipoCorrente = 'auto', coloreCorrente = COLORI[0];
+let tessere = [], editId = null, tipoCorrente = 'auto', coloreCorrente = '#f59e0b';
 let wakeLock = null, bcCurrentId = null;
 
 // ── Toast ─────────────────────────────────────────────
@@ -296,16 +297,13 @@ function toast(msg) {
 
 // ── Color picker ──────────────────────────────────────
 function buildColorPicker() {
-    const wrap = document.getElementById('colorPicker');
-    wrap.innerHTML = COLORI.map(c =>
-        `<div class="color-dot${c===coloreCorrente?' selected':''}" style="background:${c}" onclick="selColore('${c}',this)"></div>`
-    ).join('');
+    document.getElementById('colorInput').value = coloreCorrente;
+    document.getElementById('colorPreviewStrip').style.background = coloreCorrente;
 }
 
-function selColore(c, el) {
+function selColore(c) {
     coloreCorrente = c;
-    document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('selected'));
-    el.classList.add('selected');
+    document.getElementById('colorPreviewStrip').style.background = c;
 }
 
 function selTipo(t, el) {
@@ -597,7 +595,7 @@ function bcModifica() {
 function apriModale(t = null) {
     editId = t ? t.id : null;
     tipoCorrente = t?.tipo || 'auto';
-    coloreCorrente = t?.colore || COLORI[0];
+    coloreCorrente = t?.colore || '#f59e0b';
     document.getElementById('modalTitle').textContent = t ? 'Modifica tessera' : 'Nuova tessera';
     document.getElementById('fNome').value = t?.nome || '';
     document.getElementById('fCodice').value = t?.codice || '';
