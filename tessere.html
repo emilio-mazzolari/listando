@@ -177,14 +177,14 @@
             <label class="form-label">Nome negozio *</label>
             <div style="display:flex;gap:10px;align-items:center">
                 <input class="form-input" id="fNome" placeholder="Es. Esselunga, Coop, Zara…" type="text" oninput="cercaLogo()" style="flex:1">
-                <div id="logoPreviewWrap" style="width:48px;height:48px;border-radius:12px;border:2.5px solid var(--grey);background:#f5f6f8;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;position:relative;cursor:pointer" onclick="document.getElementById('logoFileInput').click()">
-                    <img id="logoPreviewImg" style="width:100%;height:100%;object-fit:contain;display:none" onerror="this.style.display='none';document.getElementById('logoPlaceholder').style.display='flex'">
-                    <div id="logoPlaceholder" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px">
+                <label id="logoPreviewWrap" style="width:48px;height:48px;border-radius:12px;border:2.5px solid var(--grey);background:#f5f6f8;display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative;cursor:pointer">
+                    <img id="logoPreviewImg" style="width:100%;height:100%;object-fit:contain;border-radius:10px;display:none" onerror="this.style.display='none';document.getElementById('logoPlaceholder').style.display='flex'">
+                    <div id="logoPlaceholder" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;pointer-events:none">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                         <span style="font-size:8px;color:#ccc;font-weight:700">LOGO</span>
                     </div>
-                    <input type="file" id="logoFileInput" accept="image/*" style="display:none" onchange="caricaLogoCustom(event)">
-                </div>
+                    <input type="file" id="logoFileInput" accept="image/*" onchange="caricaLogoCustom(event)" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;border-radius:10px">
+                </label>
             </div>
             <div id="logoSuggest" style="display:none;margin-top:8px;gap:8px;flex-wrap:wrap"></div>
             <div style="font-size:11px;color:#aaa;margin-top:6px">
