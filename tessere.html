@@ -175,8 +175,15 @@
 
         <div class="form-group">
             <label class="form-label">Nome negozio *</label>
-            <input class="form-input" id="fNome" placeholder="Es. Esselunga, Coop, Zara…" type="text" oninput="cercaLogo()">
+            <div style="display:flex;gap:10px;align-items:center">
+                <input class="form-input" id="fNome" placeholder="Es. Esselunga, Coop, Zara…" type="text" oninput="cercaLogo()" style="flex:1">
+                <div id="logoPreviewWrap" style="width:48px;height:48px;border-radius:12px;border:2.5px solid var(--grey);background:#f5f6f8;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;cursor:pointer" onclick="document.getElementById('fDominio').focus()">
+                    <img id="logoPreviewImg" style="width:36px;height:36px;object-fit:contain;display:none" onerror="this.style.display='none';document.getElementById('logoPlaceholder').style.display='block'">
+                    <span id="logoPlaceholder" style="font-size:20px;color:#ccc">🌐</span>
+                </div>
+            </div>
             <div id="logoSuggest" style="display:none;margin-top:8px;gap:8px;flex-wrap:wrap"></div>
+            <div style="font-size:11px;color:#aaa;margin-top:6px">Logo rilevato in automatico · correggi il dominio: <input id="fDominio" type="text" placeholder="es. esselunga.it" oninput="anteprimaLogo()" style="border:none;border-bottom:1.5px solid var(--grey);font-size:11px;font-family:inherit;outline:none;color:#888;width:120px;background:transparent"></div>
         </div>
 
         <div class="form-group">
@@ -202,18 +209,6 @@
         <div class="form-group">
             <label class="form-label">Colore tessera</label>
             <div class="color-picker" id="colorPicker"></div>
-        </div>
-
-        <div class="form-group">
-            <label class="form-label">Logo brand (sito web)</label>
-            <div class="input-with-btn">
-                <input class="form-input" id="fDominio" placeholder="es. esselunga.it, zara.com…" type="text" oninput="anteprimaLogo()">
-                <div id="logoPreviewWrap" style="width:48px;height:48px;border-radius:12px;border:2.5px solid var(--grey);background:#f5f6f8;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden">
-                    <img id="logoPreviewImg" style="width:36px;height:36px;object-fit:contain;display:none" onerror="this.style.display='none';document.getElementById('logoPlaceholder').style.display='block'">
-                    <span id="logoPlaceholder" style="font-size:20px;color:#ccc">🌐</span>
-                </div>
-            </div>
-            <div style="font-size:11px;color:#aaa;margin-top:5px">Rilevato automaticamente dal nome — puoi correggerlo qui</div>
         </div>
 
         <div class="form-group">
@@ -276,7 +271,10 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const userEmail = localStorage.getItem('userEmail');
 if (!userEmail) location.href = 'login.html';
 
-const COLORI = ['#f59e0b','#ef4444','#10b981','#3b82f6','#8b5cf6','#ec4899','#f97316','#14b8a6','#6366f1','#64748b'];
+const COLORI = [
+    '#f59e0b','#ef4444','#10b981','#3b82f6','#8b5cf6','#ec4899','#f97316','#14b8a6','#6366f1','#64748b',
+    '#eab308','#f472b6','#fb7185','#84cc16','#06b6d4','#a16207','#d946ef','#7f1d1d'
+];
 let tessere = [], editId = null, tipoCorrente = 'auto', coloreCorrente = COLORI[0];
 let wakeLock = null, bcCurrentId = null;
 
