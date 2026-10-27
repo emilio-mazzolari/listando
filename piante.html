@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Listando - Piante</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/icon-pwa-512.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Listando">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            color-scheme: light;
+            --accent: #22c55e;
+            --accent-dark: #15803d;
+            --accent-bg: rgba(34,197,94,0.09);
+            --grey: #d8dddc;
+            --grey-light: #f2f2f7;
+            --dark: #111;
+            --bg: #f5f6f8;
+            --white: #fff;
+        }
+        * { box-sizing: border-box; }
+        html, body { overflow-x: hidden; max-width: 100%; margin: 0; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--dark); }
+
+        /* Header */
+        .page-header { position: sticky; top: 0; z-index: 100; background: var(--white); border-bottom: 2px solid var(--grey-light); padding: 14px 16px 0; padding-top: max(14px, env(safe-area-inset-top, 14px)); }
+        .header-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .btn-back { width: 40px; height: 40px; border-radius: 12px; border: 2.5px solid var(--grey); background: var(--white); display: flex; align-items: center; justify-content: center; cursor: pointer; text-decoration: none; flex-shrink: 0; }
+        .btn-back svg { width: 18px; height: 18px; stroke: var(--dark); fill: none; stroke-width: 2.5; }
+        .header-title { font-weight: 900; font-size: 18px; flex: 1; }
+        .btn-add-hdr { width: 40px; height: 40px; border-radius: 12px; border: none; background: var(--accent); color: white; font-size: 24px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+        /* Tabs */
+        .tabs { display: flex; border-bottom: 2px solid var(--grey-light); }
+        .tab-btn { flex: 1; padding: 10px 4px 9px; background: none; border: none; border-bottom: 3px solid transparent; margin-bottom: -2px; font-family: inherit; font-weight: 800; font-size: 12px; cursor: pointer; color: #aaa; transition: all 0.15s; }
+        .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+        /* Filter chips */
+        .filter-row { display: flex; gap: 8px; padding: 10px 16px; overflow-x: auto; scrollbar-width: none; }
+        .filter-row::-webkit-scrollbar { display: none; }
+        .chip { padding: 6px 14px; border-radius: 20px; border: 2px solid var(--grey); background: var(--white); font-weight: 800; font-size: 12px; cursor: pointer; white-space: nowrap; transition: all 0.15s; }
+        .chip.active { border-color: var(--accent); background: var(--accent-bg); color: var(--accent-dark); }
+
+        /* Tab sections */
+        .tab-section { display: none; }
+        .tab-section.active { display: block; }
+
+        /* Plant grid */
+        .plant-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 14px 16px 110px; }
+        .plant-card { background: var(--white); border-radius: 18px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.08); cursor: pointer; transition: transform 0.1s; }
+        .plant-card:active { transform: scale(0.97); }
+        .plant-card-img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; }
+        .plant-card-placeholder { width: 100%; aspect-ratio: 1; background: linear-gradient(135deg, #d1fae5, #bbf7d0); display: flex; align-items: center; justify-content: center; font-size: 44px; }
+        .plant-card-body { padding: 10px 12px 14px; }
+        .plant-card-name { font-weight: 900; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .plant-card-species { font-size: 11px; color: #888; font-style: italic; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+
+        /* Feed */
+        .feed { display: flex; flex-direction: column; gap: 10px; padding: 10px 16px 110px; }
+        .feed-card { background: var(--white); border-radius: 18px; padding: 14px 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); cursor: pointer; transition: transform 0.1s; }
+        .feed-card:active { transform: scale(0.99); }
+        .feed-card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .user-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--accent-bg); display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 13px; color: var(--accent-dark); flex-shrink: 0; }
+        .user-name { font-weight: 800; font-size: 13px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .feed-date { font-size: 11px; color: #bbb; flex-shrink: 0; }
+        .tipo-badge { display: inline-block; padding: 3px 10px; border-radius: 8px; font-weight: 800; font-size: 11px; }
+        .badge-seme { background: #fef3c7; color: #92400e; }
+        .badge-talea { background: #d1fae5; color: #065f46; }
+        .badge-pianta { background: #dcfce7; color: #15803d; }
+        .badge-domanda { background: #eff6ff; color: #1d4ed8; }
+        .badge-consiglio { background: #f0fdf4; color: #15803d; }
+        .my-label { font-size: 11px; color: #bbb; font-weight: 700; margin-left: 6px; }
+        .feed-title { font-weight: 900; font-size: 15px; margin: 6px 0 4px; }
+        .feed-body { font-size: 13px; color: #555; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .feed-footer { display: flex; align-items: center; gap: 12px; margin-top: 8px; font-size: 12px; color: #999; font-weight: 700; }
+        .feed-card-img { width: 100%; border-radius: 12px; margin-top: 10px; object-fit: cover; max-height: 180px; display: block; }
+
+        /* Detail / Thread overlay */
+        .full-overlay { display: none; position: fixed; inset: 0; z-index: 400; background: var(--bg); flex-direction: column; }
+        .full-overlay.open { display: flex; }
+        .full-overlay-header { background: var(--white); padding: 14px 16px; padding-top: max(14px, env(safe-area-inset-top,14px)); border-bottom: 2px solid var(--grey-light); display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+        .full-overlay-title { font-weight: 900; font-size: 17px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .full-overlay-body { flex: 1; overflow-y: auto; padding: 16px; padding-bottom: 100px; }
+        .detail-card { background: var(--white); border-radius: 18px; padding: 16px; margin-bottom: 12px; }
+        .detail-img { width: 100%; border-radius: 14px; margin: 12px 0; object-fit: cover; max-height: 260px; display: block; }
+        .detail-body-text { font-size: 14px; color: #444; line-height: 1.55; margin: 10px 0; }
+        .detail-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+        .detail-tag { display: flex; align-items: center; gap: 5px; background: var(--grey-light); border-radius: 10px; padding: 6px 12px; font-size: 12px; font-weight: 700; color: #555; }
+        .cerca-box { background: var(--accent-bg); border-radius: 12px; padding: 10px 14px; margin-top: 10px; font-size: 13px; color: var(--accent-dark); font-weight: 700; }
+
+        /* Sticky bottom bar (detail) */
+        .sticky-bottom { position: fixed; bottom: 0; left: 0; right: 0; background: var(--white); padding: 12px 16px; padding-bottom: max(12px, env(safe-area-inset-bottom,12px)); border-top: 2px solid var(--grey-light); z-index: 401; }
+        .btn-contact { width: 100%; padding: 15px; border-radius: 18px; border: none; background: var(--accent); color: white; font-weight: 900; font-size: 15px; cursor: pointer; font-family: inherit; }
+
+        /* Thread reply bar */
+        .reply-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--white); padding: 10px 16px; padding-bottom: max(10px, env(safe-area-inset-bottom,10px)); border-top: 2px solid var(--grey-light); display: flex; gap: 8px; z-index: 401; }
+        .reply-input { flex: 1; padding: 10px 14px; border-radius: 22px; border: 2px solid var(--grey); font-size: 14px; font-family: inherit; outline: none; }
+        .reply-input:focus { border-color: var(--accent); }
+        .reply-send { background: var(--accent); border: none; border-radius: 22px; padding: 10px 18px; color: white; font-weight: 900; font-size: 14px; cursor: pointer; font-family: inherit; white-space: nowrap; }
+
+        /* Comments */
+        .comments-label { font-weight: 800; font-size: 12px; color: #aaa; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; }
+        .comment-item { background: var(--white); border-radius: 14px; padding: 11px 14px; margin-bottom: 8px; }
+        .comment-user { font-weight: 800; font-size: 12px; color: var(--accent-dark); margin-bottom: 3px; }
+        .comment-testo { font-size: 14px; color: #333; line-height: 1.4; }
+        .comment-date { font-size: 11px; color: #bbb; margin-top: 3px; }
+
+        /* Modal */
+        .modal-overlay { display: none; position: fixed; inset: 0; z-index: 500; background: rgba(0,0,0,0.5); align-items: flex-end; justify-content: center; }
+        .modal-overlay.open { display: flex; }
+        .modal-box { background: var(--white); border-radius: 28px 28px 0 0; padding: 24px 20px; padding-bottom: max(24px, env(safe-area-inset-bottom,24px)); width: 100%; max-width: 500px; max-height: 92vh; overflow-y: auto; }
+        .modal-handle { width: 40px; height: 4px; background: var(--grey); border-radius: 4px; margin: 0 auto 20px; }
+        .modal-title { font-weight: 900; font-size: 18px; margin-bottom: 18px; }
+        .form-group { margin-bottom: 14px; }
+        .form-label { font-size: 12px; font-weight: 800; color: #666; margin-bottom: 5px; display: block; text-transform: uppercase; letter-spacing: 0.4px; }
+        .form-input { width: 100%; padding: 12px 14px; border-radius: 14px; border: 2.5px solid var(--grey); font-size: 15px; font-family: inherit; outline: none; transition: border-color 0.2s; background: var(--white); }
+        .form-input:focus { border-color: var(--accent); }
+        .form-textarea { resize: vertical; min-height: 80px; }
+        .cura-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .tipo-row { display: flex; gap: 8px; }
+        .tipo-btn { flex: 1; padding: 10px 6px; border-radius: 12px; border: 2px solid var(--grey); background: var(--white); font-weight: 800; font-size: 12px; cursor: pointer; text-align: center; color: #888; transition: all 0.15s; font-family: inherit; }
+        .tipo-btn.active { border-color: var(--accent); color: var(--accent-dark); background: var(--accent-bg); }
+        .btn-save { width: 100%; padding: 16px; border-radius: 18px; border: none; background: var(--accent); color: white; font-weight: 900; font-size: 16px; cursor: pointer; font-family: inherit; margin-top: 8px; }
+        .btn-delete { width: 100%; padding: 14px; border-radius: 18px; border: none; background: #fff0f0; color: #ff3b30; font-weight: 800; font-size: 14px; cursor: pointer; font-family: inherit; margin-top: 8px; }
+        .btn-annulla { width: 100%; padding: 12px; border: none; background: none; color: #888; font-weight: 700; font-size: 14px; cursor: pointer; margin-top: 4px; font-family: inherit; }
+        .btn-edit-hdr { background: var(--grey-light); border: none; border-radius: 10px; padding: 7px 14px; font-weight: 800; font-size: 12px; cursor: pointer; font-family: inherit; flex-shrink: 0; }
+
+        /* Photo upload area */
+        .foto-area { position: relative; width: 100%; border-radius: 14px; border: 2.5px dashed var(--grey); overflow: hidden; cursor: pointer; background: #f8fffe; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; }
+        .foto-area.square { aspect-ratio: 1; }
+        .foto-area.wide { aspect-ratio: 16/9; }
+        .foto-area img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: none; }
+        .foto-placeholder { display: flex; flex-direction: column; align-items: center; gap: 6px; pointer-events: none; padding: 24px; }
+        .foto-placeholder svg { width: 28px; height: 28px; stroke: #ccc; fill: none; stroke-width: 1.5; }
+        .foto-placeholder span { font-size: 12px; color: #bbb; font-weight: 700; text-align: center; }
+        .foto-area input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+        .foto-rm { position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.55); border: none; border-radius: 50%; width: 28px; height: 28px; color: white; font-size: 14px; cursor: pointer; display: none; align-items: center; justify-content: center; z-index: 1; }
+
+        /* Empty + Toast */
+        .empty-msg { text-align: center; padding: 60px 24px; color: #bbb; font-weight: 700; font-size: 15px; line-height: 1.6; }
+        .toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--dark); color: white; padding: 12px 20px; border-radius: 14px; font-weight: 700; font-size: 14px; opacity: 0; transition: all 0.25s; white-space: nowrap; z-index: 9999; pointer-events: none; }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        /* Feedback */
+        .fab-feedback { position: fixed; bottom: 88px; right: 18px; width: 46px; height: 46px; border-radius: 50%; background: #fff; border: 2.5px solid #e0e0e0; box-shadow: 0 2px 10px rgba(0,0,0,.12); display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 200; }
+        .fab-feedback svg { width: 20px; height: 20px; stroke: #777; fill: none; stroke-width: 2; }
+        .fb-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 999; display: none; align-items: flex-end; justify-content: center; padding-bottom: env(safe-area-inset-bottom,0); }
+        .fb-overlay.open { display: flex; }
+        .fb-sheet { background: #fff; border-radius: 24px 24px 0 0; padding: 24px 20px 40px; width: 100%; max-width: 520px; }
+        .fb-sheet h3 { margin: 0 0 16px; font-size: 17px; font-weight: 800; }
+        .fb-tipo { display: flex; gap: 10px; margin-bottom: 14px; }
+        .fb-tipo input[type=radio] { display: none; }
+        .fb-tipo label { flex: 1; text-align: center; padding: 8px; border-radius: 12px; border: 2px solid #e0e0e0; font-weight: 700; font-size: 13px; cursor: pointer; }
+        .fb-tipo input:checked + label { border-color: #333; background: #f5f5f5; }
+        .fb-textarea { width: 100%; min-height: 100px; padding: 12px; border-radius: 14px; border: 2px solid #e0e0e0; font-family: inherit; font-size: 14px; resize: vertical; outline: none; }
+        .fb-send { width: 100%; padding: 14px; border-radius: 16px; border: none; background: #111; color: #fff; font-weight: 800; font-size: 15px; cursor: pointer; margin-top: 12px; font-family: inherit; }
+    </style>
+</head>
+<body>
+
+<!-- ── Header ─────────────────────────────────────── -->
+<div class="page-header">
+    <div class="header-row">
+        <a href="/" class="btn-back">
+            <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+        </a>
+        <span class="header-title">PIANTE</span>
+        <button class="btn-add-hdr" id="btnAdd" onclick="apriAggiungi()">+</button>
+    </div>
+    <div class="tabs">
+        <button class="tab-btn active" data-tab="0" onclick="selTab(0,this)">🌿 Le mie</button>
+        <button class="tab-btn" data-tab="1" onclick="selTab(1,this)">🔄 Scambi</button>
+        <button class="tab-btn" data-tab="2" onclick="selTab(2,this)">💬 Community</button>
+    </div>
+</div>
+
+<!-- ── Tab 0: Le mie piante ──────────────────────── -->
+<div class="tab-section active" id="section0">
+    <div class="plant-grid" id="plantGrid"></div>
+</div>
+
+<!-- ── Tab 1: Scambi ─────────────────────────────── -->
+<div class="tab-section" id="section1">
+    <div class="filter-row">
+        <div class="chip active" data-f="tutti" onclick="filtroScambi('tutti',this)">Tutti</div>
+        <div class="chip" data-f="seme" onclick="filtroScambi('seme',this)">🌱 Semi</div>
+        <div class="chip" data-f="talea" onclick="filtroScambi('talea',this)">✂️ Talee</div>
+        <div class="chip" data-f="pianta" onclick="filtroScambi('pianta',this)">🌳 Piante intere</div>
+    </div>
+    <div class="feed" id="scambiFeed"></div>
+</div>
+
+<!-- ── Tab 2: Community ──────────────────────────── -->
+<div class="tab-section" id="section2">
+    <div class="filter-row">
+        <div class="chip active" data-f="tutti" onclick="filtroPost('tutti',this)">Tutti</div>
+        <div class="chip" data-f="domanda" onclick="filtroPost('domanda',this)">❓ Domande</div>
+        <div class="chip" data-f="consiglio" onclick="filtroPost('consiglio',this)">💡 Consigli</div>
+    </div>
+    <div class="feed" id="communityFeed"></div>
+</div>
+
+<!-- ── Modale: Nuova/modifica pianta ────────────── -->
+<div class="modal-overlay" id="modalePianta">
+    <div class="modal-box">
+        <div class="modal-handle"></div>
+        <div class="modal-title" id="modalePiantaTitle">Nuova pianta</div>
+
+        <div class="form-group">
+            <label class="form-label">Foto</label>
+            <label class="foto-area square" id="fotoWrapP">
+                <img id="fotoPImg">
+                <div class="foto-placeholder" id="fotoPPh">
+                    <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                    <span>Tocca per aggiungere una foto</span>
+                </div>
+                <input type="file" accept="image/*" id="fotoPInput" onchange="handleFoto('P',event)">
+                <button class="foto-rm" id="fotoPRm" onclick="event.preventDefault();rimuoviFoto('P')">✕</button>
+            </label>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Nome comune *</label>
+            <input class="form-input" id="pNome" placeholder="Es. Monstera, Ficus, Lavanda…">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Specie botanica</label>
+            <input class="form-input" id="pSpecie" placeholder="Es. Monstera deliciosa">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Descrizione</label>
+            <textarea class="form-input form-textarea" id="pDesc" placeholder="Storia, provenienza, caratteristiche…"></textarea>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Cura</label>
+            <div class="cura-grid">
+                <input class="form-input" id="pAcqua" placeholder="💧 Annaffiatura" style="font-size:13px">
+                <input class="form-input" id="pLuce" placeholder="☀️ Luce" style="font-size:13px">
+                <input class="form-input" id="pTemp" placeholder="🌡️ Temperatura" style="font-size:13px">
+                <input class="form-input" id="pFert" placeholder="🌱 Fertilizzante" style="font-size:13px">
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Note</label>
+            <textarea class="form-input form-textarea" id="pNote" placeholder="Appunti liberi…" style="min-height:60px"></textarea>
+        </div>
+
+        <button class="btn-save" onclick="salvaPianta()">Salva</button>
+        <button class="btn-delete" id="btnDelP" style="display:none" onclick="eliminaPianta()">Elimina pianta</button>
+        <button class="btn-annulla" onclick="chiudi('modalePianta')">Annulla</button>
+    </div>
+</div>
+
+<!-- ── Modale: Nuovo/modifica scambio ───────────── -->
+<div class="modal-overlay" id="modaleScambio">
+    <div class="modal-box">
+        <div class="modal-handle"></div>
+        <div class="modal-title" id="modaleScambioTitle">Nuovo annuncio</div>
+
+        <div class="form-group">
+            <label class="form-label">Cosa offri</label>
+            <div class="tipo-row">
+                <button class="tipo-btn" data-tipo="seme" onclick="selTipo('S',this)">🌱 Seme</button>
+                <button class="tipo-btn active" data-tipo="talea" onclick="selTipo('S',this)">✂️ Talea</button>
+                <button class="tipo-btn" data-tipo="pianta" onclick="selTipo('S',this)">🌳 Pianta intera</button>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Foto</label>
+            <label class="foto-area wide" id="fotoWrapS">
+                <img id="fotoSImg">
+                <div class="foto-placeholder" id="fotoPSPh">
+                    <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                    <span>Foto (facoltativa)</span>
+                </div>
+                <input type="file" accept="image/*" id="fotoSInput" onchange="handleFoto('S',event)">
+                <button class="foto-rm" id="fotoSRm" onclick="event.preventDefault();rimuoviFoto('S')">✕</button>
+            </label>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Titolo *</label>
+            <input class="form-input" id="sTitolo" placeholder="Es. Talee di Monstera disponibili">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Descrizione</label>
+            <textarea class="form-input form-textarea" id="sDesc" placeholder="Stato della pianta, quantità, condizioni…"></textarea>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Cerco in cambio</label>
+            <input class="form-input" id="sCerca" placeholder="Es. succulente, cactus, offerta libera…">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Zona</label>
+            <input class="form-input" id="sZona" placeholder="Es. Milano, Roma Nord…">
+        </div>
+
+        <button class="btn-save" onclick="salvaScambio()">Pubblica annuncio</button>
+        <button class="btn-delete" id="btnDelS" style="display:none" onclick="eliminaScambio()">Elimina annuncio</button>
+        <button class="btn-annulla" onclick="chiudi('modaleScambio')">Annulla</button>
+    </div>
+</div>
+
+<!-- ── Modale: Nuovo/modifica post ──────────────── -->
+<div class="modal-overlay" id="modalePost">
+    <div class="modal-box">
+        <div class="modal-handle"></div>
+        <div class="modal-title" id="modalePostTitle">Nuovo post</div>
+
+        <div class="form-group">
+            <label class="form-label">Tipo</label>
+            <div class="tipo-row">
+                <button class="tipo-btn active" data-tipo="domanda" onclick="selTipo('PT',this)">❓ Domanda</button>
+                <button class="tipo-btn" data-tipo="consiglio" onclick="selTipo('PT',this)">💡 Consiglio</button>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Titolo *</label>
+            <input class="form-input" id="ptTitolo" placeholder="Di cosa hai bisogno?">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Contenuto</label>
+            <textarea class="form-input form-textarea" id="ptContenuto" placeholder="Descrivi la tua domanda o il tuo consiglio…" style="min-height:100px"></textarea>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Foto</label>
+            <label class="foto-area wide">
+                <img id="fotoPTImg">
+                <div class="foto-placeholder" id="fotoPTPh">
+                    <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                    <span>Foto (facoltativa)</span>
+                </div>
+                <input type="file" accept="image/*" id="fotoPTInput" onchange="handleFoto('PT',event)">
+                <button class="foto-rm" id="fotoPTRm" onclick="event.preventDefault();rimuoviFoto('PT')">✕</button>
+            </label>
+        </div>
+
+        <button class="btn-save" onclick="salvaPost()">Pubblica</button>
+        <button class="btn-delete" id="btnDelPT" style="display:none" onclick="eliminaPost()">Elimina post</button>
+        <button class="btn-annulla" onclick="chiudi('modalePost')">Annulla</button>
+    </div>
+</div>
+
+<!-- ── Detail overlay: Scambio ──────────────────── -->
+<div class="full-overlay" id="scambioDetail">
+    <div class="full-overlay-header">
+        <button class="btn-back" onclick="chiudiOverlay('scambioDetail')">
+            <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <span class="full-overlay-title" id="sdTitle"></span>
+        <button class="btn-edit-hdr" id="sdEditBtn" style="display:none" onclick="modificaScambioCorrente()">Modifica</button>
+    </div>
+    <div class="full-overlay-body" id="sdBody"></div>
+    <div class="sticky-bottom" id="sdFooter"></div>
+</div>
+
+<!-- ── Thread overlay: Community post ───────────── -->
+<div class="full-overlay" id="threadOverlay">
+    <div class="full-overlay-header">
+        <button class="btn-back" onclick="chiudiThread()">
+            <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <span class="full-overlay-title" id="threadTitle"></span>
+        <button class="btn-edit-hdr" id="threadEditBtn" style="display:none" onclick="modificaPostCorrente()">Modifica</button>
+    </div>
+    <div class="full-overlay-body" id="threadBody"></div>
+    <div class="reply-bar">
+        <input class="reply-input" id="replyInput" placeholder="Scrivi una risposta…">
+        <button class="reply-send" onclick="inviaRisposta()">Invia</button>
+    </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Feedback FAB -->
+<button class="fab-feedback" onclick="_fbApri()" title="Invia feedback">
+    <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+</button>
+<div class="fb-overlay" id="fbOverlay" onclick="if(event.target===this)_fbChiudi()">
+    <div class="fb-sheet">
+        <h3>💬 Dai il tuo feedback</h3>
+        <div class="fb-tipo">
+            <input type="radio" name="fbTipo" id="fbR1" value="suggerimento" checked><label for="fbR1">💡 Suggerimento</label>
+            <input type="radio" name="fbTipo" id="fbR2" value="errore"><label for="fbR2">🐛 Errore</label>
+        </div>
+        <textarea class="fb-textarea" id="fbTesto" placeholder="Scrivi qui…"></textarea>
+        <button class="fb-send" id="fbSendBtn" onclick="_fbInvia()">Invia</button>
+    </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://eejdpophfxsrqdvsucye.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlamRwb3BoZnhzcnFkdnN1Y3llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2NTMzMDQsImV4cCI6MjA5MzIyOTMwNH0.mpxbwlJyIdZgqKIdutHbLd85JR1P11yiglbYeApi17k';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let userEmail = null;
+let tabCorrente = 0;
+let piante = [], scambi = [], posts = [];
+let editPId = null, editSId = null, editPTId = null;
+let tipoS = 'talea', tipoPT = 'domanda';
+let fileP = null, fileS = null, filePT = null;
+let fotoUrlP = null, fotoUrlS = null, fotoUrlPT = null;
+let scambioAperto = null, postAperto = null;
+let filtroS = 'tutti', filtroPT = 'tutti';
+
+// ── Auth ─────────────────────────────────────────
+async function init() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { location.href = '/login.html'; return; }
+    userEmail = session.user.email;
+    await Promise.all([caricaPiante(), caricaScambi(), caricaPost()]);
+}
+
+// ── Tabs ─────────────────────────────────────────
+function selTab(idx, el) {
+    tabCorrente = idx;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
+    document.getElementById('section' + idx).classList.add('active');
+}
+
+function apriAggiungi() {
+    if (tabCorrente === 0) apriModalePianta();
+    else if (tabCorrente === 1) apriModaleScambio();
+    else apriModalePost();
+}
+
+// ── Toast ─────────────────────────────────────────
+function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ── Helpers ───────────────────────────────────────
+function chiudi(id) { document.getElementById(id).classList.remove('open'); }
+function chiudiOverlay(id) { document.getElementById(id).classList.remove('open'); }
+
+function formatData(iso) {
+    if (!iso) return '';
+    const d = new Date(iso), now = new Date();
+    const diff = Math.floor((now - d) / 1000);
+    if (diff < 60) return 'ora';
+    if (diff < 3600) return Math.floor(diff / 60) + ' min fa';
+    if (diff < 86400) return Math.floor(diff / 3600) + 'h fa';
+    if (diff < 604800) return Math.floor(diff / 86400) + 'g fa';
+    return d.toLocaleDateString('it-IT', { day: 'numeric', month: 'short' });
+}
+
+function nomeUtente(email) {
+    return (email || '').split('@')[0];
+}
+
+// ── Tipo selectors ────────────────────────────────
+function selTipo(group, el) {
+    const container = group === 'S' ? '#modaleScambio .tipo-row' : '#modalePost .tipo-row';
+    document.querySelectorAll(container + ' .tipo-btn').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    if (group === 'S') tipoS = el.dataset.tipo;
+    else tipoPT = el.dataset.tipo;
+}
+
+// ── Photo upload ──────────────────────────────────
+function handleFoto(key, e) {
+    const file = e.target.files[0]; if (!file) return;
+    if (key === 'P') fileP = file;
+    else if (key === 'S') fileS = file;
+    else filePT = file;
+    const url = URL.createObjectURL(file);
+    document.getElementById('foto' + key + 'Img').src = url;
+    document.getElementById('foto' + key + 'Img').style.display = 'block';
+    document.getElementById('foto' + (key === 'P' ? 'P' : key === 'S' ? 'PS' : 'PT') + 'Ph').style.display = 'none';
+    document.getElementById('foto' + key + 'Rm').style.display = 'flex';
+    e.target.value = '';
+}
+
+function rimuoviFoto(key) {
+    if (key === 'P') { fileP = null; fotoUrlP = null; }
+    else if (key === 'S') { fileS = null; fotoUrlS = null; }
+    else { filePT = null; fotoUrlPT = null; }
+    document.getElementById('foto' + key + 'Img').src = '';
+    document.getElementById('foto' + key + 'Img').style.display = 'none';
+    document.getElementById('foto' + (key === 'P' ? 'P' : key === 'S' ? 'PS' : 'PT') + 'Ph').style.display = 'flex';
+    document.getElementById('foto' + key + 'Rm').style.display = 'none';
+}
+
+async function uploadFoto(file, path) {
+    const { error } = await sb.storage.from('piante-foto').upload(path, file, { upsert: true, contentType: file.type });
+    if (error) throw error;
+    const { data } = sb.storage.from('piante-foto').getPublicUrl(path);
+    return data.publicUrl;
+}
+
+function impostaFotoPreview(key, url) {
+    const img = document.getElementById('foto' + key + 'Img');
+    const ph = document.getElementById('foto' + (key === 'P' ? 'P' : key === 'S' ? 'PS' : 'PT') + 'Ph');
+    const rm = document.getElementById('foto' + key + 'Rm');
+    if (url) {
+        img.src = url; img.style.display = 'block';
+        ph.style.display = 'none'; rm.style.display = 'flex';
+    } else {
+        img.src = ''; img.style.display = 'none';
+        ph.style.display = 'flex'; rm.style.display = 'none';
+    }
+}
+
+// ── LE MIE PIANTE ─────────────────────────────────
+async function caricaPiante() {
+    const { data } = await sb.from('piante').select('*').eq('email_utente', userEmail).order('created_at', { ascending: false });
+    piante = data || [];
+    renderPiante();
+}
+
+function renderPiante() {
+    const grid = document.getElementById('plantGrid');
+    if (!piante.length) {
+        grid.innerHTML = '<div class="empty-msg" style="grid-column:1/-1">Nessuna pianta ancora.<br>Aggiungine una! 🌱</div>';
+        return;
+    }
+    grid.innerHTML = piante.map(p => `
+        <div class="plant-card" onclick="apriModalePianta(${p.id})">
+            ${p.foto_url
+                ? `<img class="plant-card-img" src="${p.foto_url}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+                : ''
+            }
+            <div class="plant-card-placeholder" style="${p.foto_url ? 'display:none' : ''}">🌿</div>
+            <div class="plant-card-body">
+                <div class="plant-card-name">${p.nome}</div>
+                <div class="plant-card-species">${p.specie || ''}</div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function apriModalePianta(idOrObj = null) {
+    const p = typeof idOrObj === 'number' ? piante.find(x => x.id === idOrObj) : null;
+    editPId = p ? p.id : null;
+    fileP = null; fotoUrlP = p?.foto_url || null;
+    document.getElementById('modalePiantaTitle').textContent = p ? 'Modifica pianta' : 'Nuova pianta';
+    document.getElementById('pNome').value = p?.nome || '';
+    document.getElementById('pSpecie').value = p?.specie || '';
+    document.getElementById('pDesc').value = p?.descrizione || '';
+    document.getElementById('pAcqua').value = p?.annaffiatura || '';
+    document.getElementById('pLuce').value = p?.luce || '';
+    document.getElementById('pTemp').value = p?.temperatura || '';
+    document.getElementById('pFert').value = p?.fertilizzante || '';
+    document.getElementById('pNote').value = p?.note || '';
+    impostaFotoPreview('P', p?.foto_url || null);
+    document.getElementById('btnDelP').style.display = p ? 'block' : 'none';
+    document.getElementById('modalePianta').classList.add('open');
+}
+
+async function salvaPianta() {
+    const nome = document.getElementById('pNome').value.trim();
+    if (!nome) { toast('Inserisci il nome'); return; }
+    const btn = document.querySelector('#modalePianta .btn-save');
+    btn.textContent = 'Salvo…'; btn.disabled = true;
+    try {
+        if (fileP) fotoUrlP = await uploadFoto(fileP, `piante/${userEmail}/${Date.now()}.${fileP.name.split('.').pop()}`);
+        const rec = {
+            email_utente: userEmail, nome,
+            specie: document.getElementById('pSpecie').value.trim() || null,
+            descrizione: document.getElementById('pDesc').value.trim() || null,
+            annaffiatura: document.getElementById('pAcqua').value.trim() || null,
+            luce: document.getElementById('pLuce').value.trim() || null,
+            temperatura: document.getElementById('pTemp').value.trim() || null,
+            fertilizzante: document.getElementById('pFert').value.trim() || null,
+            note: document.getElementById('pNote').value.trim() || null,
+            foto_url: fotoUrlP, updated_at: new Date().toISOString()
+        };
+        if (editPId) await sb.from('piante').update(rec).eq('id', editPId);
+        else await sb.from('piante').insert(rec);
+        chiudi('modalePianta');
+        await caricaPiante();
+        toast('Pianta salvata!');
+    } catch(e) { toast('Errore: ' + e.message); }
+    btn.textContent = 'Salva'; btn.disabled = false;
+}
+
+async function eliminaPianta() {
+    if (!confirm('Eliminare questa pianta?')) return;
+    await sb.from('piante').delete().eq('id', editPId);
+    chiudi('modalePianta');
+    await caricaPiante();
+    toast('Eliminata');
+}
+
+// ── SCAMBI ────────────────────────────────────────
+async function caricaScambi() {
+    const { data } = await sb.from('piante_scambi').select('*').order('created_at', { ascending: false });
+    scambi = data || [];
+    renderScambi();
+}
+
+function filtroScambi(tipo, el) {
+    filtroS = tipo;
+    document.querySelectorAll('#section1 .chip').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+    renderScambi();
+}
+
+function renderScambi() {
+    const feed = document.getElementById('scambiFeed');
+    const list = filtroS === 'tutti' ? scambi : scambi.filter(s => s.tipo === filtroS);
+    if (!list.length) { feed.innerHTML = '<div class="empty-msg">Nessun annuncio di scambio.<br>Sii il primo! 🔄</div>'; return; }
+    const bc = { seme: 'badge-seme', talea: 'badge-talea', pianta: 'badge-pianta' };
+    const tl = { seme: '🌱 Seme', talea: '✂️ Talea', pianta: '🌳 Pianta' };
+    feed.innerHTML = list.map(s => `
+        <div class="feed-card" onclick="apriScambio(${s.id})">
+            <div class="feed-card-header">
+                <div class="user-avatar">${s.email_utente[0].toUpperCase()}</div>
+                <span class="user-name">${nomeUtente(s.email_utente)}</span>
+                <span class="feed-date">${formatData(s.created_at)}</span>
+            </div>
+            <div>
+                <span class="tipo-badge ${bc[s.tipo] || 'badge-talea'}">${tl[s.tipo] || s.tipo}</span>
+                ${s.email_utente === userEmail ? '<span class="my-label">• mio</span>' : ''}
+            </div>
+            <div class="feed-title">${s.titolo}</div>
+            ${s.descrizione ? `<div class="feed-body">${s.descrizione}</div>` : ''}
+            ${s.foto_url ? `<img class="feed-card-img" src="${s.foto_url}">` : ''}
+            <div class="feed-footer">
+                ${s.zona ? `<span>📍 ${s.zona}</span>` : ''}
+                ${s.cerca ? `<span>🔍 ${s.cerca}</span>` : ''}
+            </div>
+        </div>
+    `).join('');
+}
+
+function apriScambio(id) {
+    const s = scambi.find(x => x.id === id); if (!s) return;
+    scambioAperto = id;
+    const bc = { seme: 'badge-seme', talea: 'badge-talea', pianta: 'badge-pianta' };
+    const tl = { seme: '🌱 Seme', talea: '✂️ Talea', pianta: '🌳 Pianta' };
+    const isOwn = s.email_utente === userEmail;
+    document.getElementById('sdTitle').textContent = s.titolo;
+    document.getElementById('sdEditBtn').style.display = isOwn ? 'block' : 'none';
+    document.getElementById('sdBody').innerHTML = `
+        <div class="detail-card">
+            <div class="feed-card-header" style="margin-bottom:12px">
+                <div class="user-avatar" style="width:40px;height:40px;font-size:16px">${s.email_utente[0].toUpperCase()}</div>
+                <div>
+                    <div style="font-weight:800;font-size:14px">${nomeUtente(s.email_utente)}</div>
+                    <div style="font-size:11px;color:#aaa">${formatData(s.created_at)}</div>
+                </div>
+            </div>
+            <span class="tipo-badge ${bc[s.tipo] || 'badge-talea'}">${tl[s.tipo] || s.tipo}</span>
+            ${s.foto_url ? `<img class="detail-img" src="${s.foto_url}">` : ''}
+            ${s.descrizione ? `<p class="detail-body-text">${s.descrizione}</p>` : ''}
+            <div class="detail-tags">
+                ${s.zona ? `<div class="detail-tag">📍 ${s.zona}</div>` : ''}
+            </div>
+            ${s.cerca ? `<div class="cerca-box">🔍 Cerca in cambio: <strong>${s.cerca}</strong></div>` : ''}
+        </div>
+    `;
+    document.getElementById('sdFooter').innerHTML = isOwn
+        ? `<p style="text-align:center;color:#aaa;font-size:13px;font-weight:700;margin:0">È il tuo annuncio</p>`
+        : `<button class="btn-contact" onclick="mailto('${s.email_utente}')">✉️ Contatta ${nomeUtente(s.email_utente)}</button>`;
+    document.getElementById('scambioDetail').classList.add('open');
+}
+
+function mailto(email) { window.location.href = 'mailto:' + email; }
+function chiudiScambioDetail() { chiudiOverlay('scambioDetail'); scambioAperto = null; }
+
+function modificaScambioCorrente() {
+    const s = scambi.find(x => x.id === scambioAperto);
+    chiudiScambioDetail();
+    if (s) apriModaleScambio(s);
+}
+
+function apriModaleScambio(s = null) {
+    editSId = s ? s.id : null;
+    fileS = null; fotoUrlS = s?.foto_url || null;
+    tipoS = s?.tipo || 'talea';
+    document.getElementById('modaleScambioTitle').textContent = s ? 'Modifica annuncio' : 'Nuovo annuncio';
+    document.getElementById('sTitolo').value = s?.titolo || '';
+    document.getElementById('sDesc').value = s?.descrizione || '';
+    document.getElementById('sCerca').value = s?.cerca || '';
+    document.getElementById('sZona').value = s?.zona || '';
+    document.querySelectorAll('#modaleScambio .tipo-btn').forEach(b => b.classList.toggle('active', b.dataset.tipo === tipoS));
+    impostaFotoPreview('S', s?.foto_url || null);
+    document.getElementById('btnDelS').style.display = s ? 'block' : 'none';
+    document.getElementById('modaleScambio').classList.add('open');
+}
+
+async function salvaScambio() {
+    const titolo = document.getElementById('sTitolo').value.trim();
+    if (!titolo) { toast('Inserisci un titolo'); return; }
+    const btn = document.querySelector('#modaleScambio .btn-save');
+    btn.textContent = 'Pubblico…'; btn.disabled = true;
+    try {
+        if (fileS) fotoUrlS = await uploadFoto(fileS, `scambi/${userEmail}/${Date.now()}.${fileS.name.split('.').pop()}`);
+        const rec = {
+            email_utente: userEmail, tipo: tipoS, titolo,
+            descrizione: document.getElementById('sDesc').value.trim() || null,
+            cerca: document.getElementById('sCerca').value.trim() || null,
+            zona: document.getElementById('sZona').value.trim() || null,
+            foto_url: fotoUrlS, stato: 'disponibile'
+        };
+        if (editSId) await sb.from('piante_scambi').update(rec).eq('id', editSId);
+        else await sb.from('piante_scambi').insert(rec);
+        chiudi('modaleScambio');
+        await caricaScambi();
+        toast('Annuncio pubblicato!');
+    } catch(e) { toast('Errore: ' + e.message); }
+    btn.textContent = 'Pubblica annuncio'; btn.disabled = false;
+}
+
+async function eliminaScambio() {
+    if (!confirm('Eliminare questo annuncio?')) return;
+    await sb.from('piante_scambi').delete().eq('id', editSId);
+    chiudi('modaleScambio');
+    await caricaScambi();
+    toast('Eliminato');
+}
+
+// ── COMMUNITY ─────────────────────────────────────
+async function caricaPost() {
+    const { data } = await sb.from('piante_post').select('*, piante_commenti(count)').order('created_at', { ascending: false });
+    posts = data || [];
+    renderPost();
+}
+
+function filtroPost(tipo, el) {
+    filtroPT = tipo;
+    document.querySelectorAll('#section2 .chip').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+    renderPost();
+}
+
+function renderPost() {
+    const feed = document.getElementById('communityFeed');
+    const list = filtroPT === 'tutti' ? posts : posts.filter(p => p.tipo === filtroPT);
+    if (!list.length) { feed.innerHTML = '<div class="empty-msg">Nessun post ancora.<br>Fai una domanda! 💬</div>'; return; }
+    feed.innerHTML = list.map(p => {
+        const n = p.piante_commenti?.[0]?.count || 0;
+        return `
+        <div class="feed-card" onclick="apriThread(${p.id})">
+            <div class="feed-card-header">
+                <div class="user-avatar">${p.email_utente[0].toUpperCase()}</div>
+                <span class="user-name">${nomeUtente(p.email_utente)}</span>
+                <span class="feed-date">${formatData(p.created_at)}</span>
+            </div>
+            <div>
+                <span class="tipo-badge ${p.tipo === 'domanda' ? 'badge-domanda' : 'badge-consiglio'}">${p.tipo === 'domanda' ? '❓ Domanda' : '💡 Consiglio'}</span>
+                ${p.email_utente === userEmail ? '<span class="my-label">• mio</span>' : ''}
+            </div>
+            <div class="feed-title">${p.titolo}</div>
+            ${p.contenuto ? `<div class="feed-body">${p.contenuto}</div>` : ''}
+            ${p.foto_url ? `<img class="feed-card-img" src="${p.foto_url}">` : ''}
+            <div class="feed-footer"><span>💬 ${n} ${n === 1 ? 'risposta' : 'risposte'}</span></div>
+        </div>
+    `}).join('');
+}
+
+async function apriThread(id) {
+    const p = posts.find(x => x.id === id); if (!p) return;
+    postAperto = id;
+    document.getElementById('threadTitle').textContent = p.titolo;
+    document.getElementById('threadEditBtn').style.display = p.email_utente === userEmail ? 'block' : 'none';
+    document.getElementById('replyInput').value = '';
+    document.getElementById('threadOverlay').classList.add('open');
+    await renderThread();
+}
+
+async function renderThread() {
+    const p = posts.find(x => x.id === postAperto); if (!p) return;
+    const { data: commenti } = await sb.from('piante_commenti').select('*').eq('post_id', p.id).order('created_at');
+    const list = commenti || [];
+    document.getElementById('threadBody').innerHTML = `
+        <div class="detail-card">
+            <div class="feed-card-header" style="margin-bottom:10px">
+                <div class="user-avatar" style="width:38px;height:38px;font-size:15px">${p.email_utente[0].toUpperCase()}</div>
+                <div>
+                    <div style="font-weight:800;font-size:13px">${nomeUtente(p.email_utente)}</div>
+                    <div style="font-size:11px;color:#aaa">${formatData(p.created_at)}</div>
+                </div>
+                <span class="tipo-badge ${p.tipo === 'domanda' ? 'badge-domanda' : 'badge-consiglio'}" style="margin-left:auto">${p.tipo === 'domanda' ? '❓ Domanda' : '💡 Consiglio'}</span>
+            </div>
+            <div style="font-weight:900;font-size:17px;margin-bottom:8px">${p.titolo}</div>
+            ${p.contenuto ? `<div style="font-size:14px;color:#444;line-height:1.55">${p.contenuto}</div>` : ''}
+            ${p.foto_url ? `<img class="detail-img" src="${p.foto_url}">` : ''}
+        </div>
+        <div class="comments-label">${list.length} ${list.length === 1 ? 'risposta' : 'risposte'}</div>
+        ${list.map(c => `
+            <div class="comment-item">
+                <div class="comment-user">${nomeUtente(c.email_utente)}</div>
+                <div class="comment-testo">${c.testo}</div>
+                <div class="comment-date">${formatData(c.created_at)}</div>
+            </div>
+        `).join('')}
+    `;
+}
+
+async function inviaRisposta() {
+    const testo = document.getElementById('replyInput').value.trim();
+    if (!testo || !postAperto) return;
+    const btn = document.querySelector('.reply-send');
+    btn.disabled = true;
+    const { error } = await sb.from('piante_commenti').insert({ post_id: postAperto, email_utente: userEmail, testo });
+    if (!error) {
+        document.getElementById('replyInput').value = '';
+        await renderThread();
+    } else { toast('Errore invio'); }
+    btn.disabled = false;
+}
+
+function chiudiThread() {
+    chiudiOverlay('threadOverlay');
+    postAperto = null;
+    caricaPost();
+}
+
+function modificaPostCorrente() {
+    const p = posts.find(x => x.id === postAperto);
+    chiudiThread();
+    if (p) apriModalePost(p);
+}
+
+function apriModalePost(p = null) {
+    editPTId = p ? p.id : null;
+    filePT = null; fotoUrlPT = p?.foto_url || null;
+    tipoPT = p?.tipo || 'domanda';
+    document.getElementById('modalePostTitle').textContent = p ? 'Modifica post' : 'Nuovo post';
+    document.getElementById('ptTitolo').value = p?.titolo || '';
+    document.getElementById('ptContenuto').value = p?.contenuto || '';
+    document.querySelectorAll('#modalePost .tipo-btn').forEach(b => b.classList.toggle('active', b.dataset.tipo === tipoPT));
+    impostaFotoPreview('PT', p?.foto_url || null);
+    document.getElementById('btnDelPT').style.display = p ? 'block' : 'none';
+    document.getElementById('modalePost').classList.add('open');
+}
+
+async function salvaPost() {
+    const titolo = document.getElementById('ptTitolo').value.trim();
+    if (!titolo) { toast('Inserisci un titolo'); return; }
+    const btn = document.querySelector('#modalePost .btn-save');
+    btn.textContent = 'Pubblico…'; btn.disabled = true;
+    try {
+        if (filePT) fotoUrlPT = await uploadFoto(filePT, `post/${userEmail}/${Date.now()}.${filePT.name.split('.').pop()}`);
+        const rec = {
+            email_utente: userEmail, tipo: tipoPT, titolo,
+            contenuto: document.getElementById('ptContenuto').value.trim() || null,
+            foto_url: fotoUrlPT
+        };
+        if (editPTId) await sb.from('piante_post').update(rec).eq('id', editPTId);
+        else await sb.from('piante_post').insert(rec);
+        chiudi('modalePost');
+        await caricaPost();
+        toast('Pubblicato!');
+    } catch(e) { toast('Errore: ' + e.message); }
+    btn.textContent = 'Pubblica'; btn.disabled = false;
+}
+
+async function eliminaPost() {
+    if (!confirm('Eliminare questo post?')) return;
+    await sb.from('piante_post').delete().eq('id', editPTId);
+    chiudi('modalePost');
+    await caricaPost();
+    toast('Post eliminato');
+}
+
+// ── Feedback ──────────────────────────────────────
+function _fbApri() { document.getElementById('fbOverlay').classList.add('open'); document.getElementById('fbTesto').focus(); }
+function _fbChiudi() { document.getElementById('fbOverlay').classList.remove('open'); }
+async function _fbInvia() {
+    const testo = document.getElementById('fbTesto').value.trim(); if (!testo) return;
+    const tipo = document.querySelector('input[name=fbTipo]:checked')?.value || 'suggerimento';
+    document.getElementById('fbSendBtn').textContent = '…';
+    const r = await fetch('/api/feedback', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: userEmail, tipo, testo }) });
+    document.getElementById('fbSendBtn').textContent = 'Invia';
+    _fbChiudi(); document.getElementById('fbTesto').value = '';
+    toast(r.ok ? 'Grazie per il feedback!' : 'Errore invio');
+}
+
+init();
+</script>
+</body>
+</html>

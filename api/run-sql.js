@@ -244,6 +244,69 @@ const STATEMENTS = [
             CREATE POLICY "allow delete vendita-foto" ON storage.objects FOR DELETE USING (bucket_id = 'vendita-foto');
         END IF;
     END $$`,
+    `INSERT INTO storage.buckets (id, name, public) VALUES ('piante-foto', 'piante-foto', true) ON CONFLICT DO NOTHING`,
+    `DO $$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='objects' AND schemaname='storage' AND policyname='allow upload piante-foto') THEN
+            CREATE POLICY "allow upload piante-foto" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'piante-foto');
+        END IF;
+    END $$`,
+    `DO $$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='objects' AND schemaname='storage' AND policyname='allow select piante-foto') THEN
+            CREATE POLICY "allow select piante-foto" ON storage.objects FOR SELECT USING (bucket_id = 'piante-foto');
+        END IF;
+    END $$`,
+    `DO $$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='objects' AND schemaname='storage' AND policyname='allow delete piante-foto') THEN
+            CREATE POLICY "allow delete piante-foto" ON storage.objects FOR DELETE USING (bucket_id = 'piante-foto');
+        END IF;
+    END $$`,
+    `CREATE TABLE IF NOT EXISTS piante (
+        id bigint generated always as identity primary key,
+        email_utente text not null,
+        nome text not null,
+        specie text,
+        foto_url text,
+        descrizione text,
+        annaffiatura text,
+        luce text,
+        temperatura text,
+        fertilizzante text,
+        note text,
+        created_at timestamptz default now(),
+        updated_at timestamptz default now()
+    )`,
+    `ALTER TABLE IF EXISTS piante DISABLE ROW LEVEL SECURITY`,
+    `CREATE TABLE IF NOT EXISTS piante_scambi (
+        id bigint generated always as identity primary key,
+        email_utente text not null,
+        tipo text default 'talea',
+        titolo text not null,
+        descrizione text,
+        foto_url text,
+        cerca text,
+        zona text,
+        stato text default 'disponibile',
+        created_at timestamptz default now()
+    )`,
+    `ALTER TABLE IF EXISTS piante_scambi DISABLE ROW LEVEL SECURITY`,
+    `CREATE TABLE IF NOT EXISTS piante_post (
+        id bigint generated always as identity primary key,
+        email_utente text not null,
+        tipo text default 'domanda',
+        titolo text not null,
+        contenuto text,
+        foto_url text,
+        created_at timestamptz default now()
+    )`,
+    `ALTER TABLE IF EXISTS piante_post DISABLE ROW LEVEL SECURITY`,
+    `CREATE TABLE IF NOT EXISTS piante_commenti (
+        id bigint generated always as identity primary key,
+        post_id bigint not null references piante_post(id) on delete cascade,
+        email_utente text not null,
+        testo text not null,
+        created_at timestamptz default now()
+    )`,
+    `ALTER TABLE IF EXISTS piante_commenti DISABLE ROW LEVEL SECURITY`,
 ];
 
 async function runSql(serviceKey, sql) {
