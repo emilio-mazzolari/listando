@@ -201,6 +201,18 @@
         </div>
 
         <div class="form-group">
+            <label class="form-label">Logo brand (sito web)</label>
+            <div class="input-with-btn">
+                <input class="form-input" id="fDominio" placeholder="es. esselunga.it, zara.com…" type="text" oninput="anteprimaLogo()">
+                <div id="logoPreviewWrap" style="width:48px;height:48px;border-radius:12px;border:2.5px solid var(--grey);background:#f5f6f8;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden">
+                    <img id="logoPreviewImg" style="width:36px;height:36px;object-fit:contain;display:none" onerror="this.style.display='none';document.getElementById('logoPlaceholder').style.display='block'">
+                    <span id="logoPlaceholder" style="font-size:20px;color:#ccc">🌐</span>
+                </div>
+            </div>
+            <div style="font-size:11px;color:#aaa;margin-top:5px">Inserisci il dominio del brand per caricare il logo in automatico</div>
+        </div>
+
+        <div class="form-group">
             <label class="form-label">Note (punti, livello, scadenza…)</label>
             <input class="form-input" id="fNote" placeholder="Es. 1.240 punti · Gold" type="text">
         </div>
@@ -291,6 +303,32 @@ function selTipo(t, el) {
     el.classList.add('active');
 }
 
+// ── Logo ──────────────────────────────────────────────
+function cleanDomain(raw) {
+    if (!raw) return '';
+    let s = raw.trim().toLowerCase();
+    try {
+        if (!s.includes('://')) s = 'https://' + s;
+        s = new URL(s).hostname;
+    } catch(e) {}
+    return s.replace(/^www\./, '').split('/')[0];
+}
+
+function anteprimaLogo() {
+    const val = document.getElementById('fDominio').value.trim();
+    const img = document.getElementById('logoPreviewImg');
+    const placeholder = document.getElementById('logoPlaceholder');
+    const domain = cleanDomain(val);
+    if (!domain) {
+        img.style.display = 'none';
+        placeholder.style.display = 'block';
+        return;
+    }
+    img.src = `https://logo.clearbit.com/${domain}`;
+    img.style.display = 'block';
+    placeholder.style.display = 'none';
+}
+
 // ── Carica ────────────────────────────────────────────
 async function carica() {
     const { data, error } = await sb.from('tessere_fedelta').select('*')
@@ -319,17 +357,21 @@ function render() {
         list.innerHTML = `<div class="empty-msg">Nessuna tessera<br><span style="font-size:13px;font-weight:500">Tocca + per aggiungere la prima</span></div>`;
         return;
     }
-    list.innerHTML = items.map(t => `
-        <div class="loyalty-card" onclick="mostraBarcode(${t.id})">
-            <div class="card-strip" style="background:${t.colore||'#f59e0b'}">${inizialeNome(t.nome)}</div>
+    list.innerHTML = items.map(t => {
+        const logoSrc = t.logo_dominio ? `https://logo.clearbit.com/${cleanDomain(t.logo_dominio)}` : null;
+        const stripContent = logoSrc
+            ? `<img src="${logoSrc}" style="width:38px;height:38px;object-fit:contain;border-radius:8px;background:#fff;padding:2px" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><span style="display:none;font-size:22px;font-weight:900;color:rgba(255,255,255,0.95)">${inizialeNome(t.nome)}</span>`
+            : `<span style="font-size:22px;font-weight:900;color:rgba(255,255,255,0.95)">${inizialeNome(t.nome)}</span>`;
+        return `<div class="loyalty-card" onclick="mostraBarcode(${t.id})">
+            <div class="card-strip" style="background:${t.colore||'#f59e0b'}">${stripContent}</div>
             <div class="card-content">
                 <div class="card-store">${t.nome}</div>
                 <div class="card-code">${maskCodice(t.codice)}</div>
                 ${t.note ? `<div class="card-note">${t.note}</div>` : ''}
             </div>
             <div class="card-arrow"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
-        </div>
-    `).join('');
+        </div>`;
+    }).join('');
 }
 
 // ── Barcode display ───────────────────────────────────
@@ -338,8 +380,14 @@ async function mostraBarcode(id) {
     if (!t) return;
     bcCurrentId = id;
 
-    document.getElementById('bcStrip').style.background = t.colore || '#f59e0b';
-    document.getElementById('bcStrip').textContent = inizialeNome(t.nome);
+    const strip = document.getElementById('bcStrip');
+    strip.style.background = t.colore || '#f59e0b';
+    if (t.logo_dominio) {
+        const domain = cleanDomain(t.logo_dominio);
+        strip.innerHTML = `<img src="https://logo.clearbit.com/${domain}" style="width:48px;height:48px;object-fit:contain;border-radius:12px;background:#fff;padding:4px" onerror="this.outerHTML='<span style=\\'font-size:28px;font-weight:900;color:rgba(255,255,255,0.95)\\'>${inizialeNome(t.nome)}</span>'">`;
+    } else {
+        strip.textContent = inizialeNome(t.nome);
+    }
     document.getElementById('bcStore').textContent = t.nome;
     document.getElementById('bcNoteText').textContent = t.note || '';
     document.getElementById('bcCodice').textContent = t.codice || '';
@@ -438,6 +486,8 @@ function apriModale(t = null) {
     document.getElementById('fNome').value = t?.nome || '';
     document.getElementById('fCodice').value = t?.codice || '';
     document.getElementById('fNote').value = t?.note || '';
+    document.getElementById('fDominio').value = t?.logo_dominio || '';
+    anteprimaLogo();
     document.getElementById('btnElimina').style.display = t ? '' : 'none';
     document.querySelectorAll('.tipo-btn').forEach(b => {
         b.classList.toggle('active', b.dataset.tipo === tipoCorrente);
@@ -465,6 +515,7 @@ async function salva() {
         tipo: tipoCorrente,
         colore: coloreCorrente,
         note: document.getElementById('fNote').value.trim() || null,
+        logo_dominio: cleanDomain(document.getElementById('fDominio').value.trim()) || null,
     };
     let err;
     if (editId) {
