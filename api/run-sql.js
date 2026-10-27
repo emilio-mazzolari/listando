@@ -216,6 +216,17 @@ const STATEMENTS = [
         gestita boolean default false
     )`,
     `ALTER TABLE IF EXISTS scadenze DISABLE ROW LEVEL SECURITY`,
+    `CREATE TABLE IF NOT EXISTS tessere_fedelta (
+        id bigint generated always as identity primary key,
+        created_at timestamptz default now(),
+        email_utente text not null,
+        nome text not null,
+        codice text not null,
+        tipo text default 'auto',
+        colore text default '#f59e0b',
+        note text
+    )`,
+    `ALTER TABLE IF EXISTS tessere_fedelta DISABLE ROW LEVEL SECURITY`,
     `DO $$ BEGIN
         IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='objects' AND schemaname='storage' AND policyname='allow upload vendita-foto') THEN
             CREATE POLICY "allow upload vendita-foto" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'vendita-foto');

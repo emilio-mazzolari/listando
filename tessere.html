@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Listando - Tessere Fedeltà</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/icon-pwa-512.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Listando">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+    <style>
+        :root {
+            color-scheme: light;
+            --accent: #f59e0b;
+            --accent-bg: rgba(245,158,11,0.08);
+            --grey: #d8dddc; --grey-light: #f2f2f7;
+            --dark: #111; --bg: #f5f6f8; --white: #fff;
+        }
+        * { box-sizing: border-box; }
+        html, body { overflow-x: hidden; max-width: 100%; margin: 0; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--dark); }
+
+        .page-header { position: sticky; top: 0; z-index: 100; background: var(--white); border-bottom: 2px solid var(--grey-light); padding: 14px 16px; padding-top: max(14px, env(safe-area-inset-top, 14px)); }
+        .header-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .btn-back { width: 40px; height: 40px; border-radius: 12px; border: 2.5px solid var(--grey); background: var(--white); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+        .btn-back svg { width: 18px; height: 18px; stroke: var(--dark); fill: none; stroke-width: 2.5; }
+        .header-title { font-weight: 900; font-size: 18px; flex: 1; }
+        .btn-add-hdr { width: 40px; height: 40px; border-radius: 12px; border: none; background: var(--accent); color: white; font-size: 22px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+        .search-bar { padding: 0; }
+        .search-input { width: 100%; padding: 11px 14px; border-radius: 14px; border: 2.5px solid var(--grey); font-size: 15px; font-family: inherit; outline: none; }
+        .search-input:focus { border-color: var(--accent); }
+
+        .cards-list { padding: 14px 16px 110px; display: flex; flex-direction: column; gap: 10px; }
+        .empty-msg { text-align: center; padding: 64px 24px; color: #bbb; font-weight: 700; font-size: 15px; }
+
+        .loyalty-card {
+            border-radius: 18px; overflow: hidden;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.10);
+            display: flex; height: 78px; cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .loyalty-card:active { transform: scale(0.98); }
+        .card-strip {
+            width: 62px; display: flex; align-items: center; justify-content: center;
+            font-size: 22px; font-weight: 900; color: rgba(255,255,255,0.95);
+            flex-shrink: 0; text-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        .card-content { flex: 1; background: #fff; padding: 10px 14px; display: flex; flex-direction: column; justify-content: center; gap: 3px; min-width: 0; }
+        .card-store { font-weight: 900; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .card-code { font-size: 12px; color: #aaa; font-weight: 700; font-family: monospace; letter-spacing: 1px; }
+        .card-note { font-size: 11px; color: #bbb; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .card-arrow { background: #fff; display: flex; align-items: center; padding-right: 14px; }
+        .card-arrow svg { width: 18px; height: 18px; stroke: #ccc; fill: none; stroke-width: 2.5; }
+
+        /* Barcode full-screen overlay */
+        .bc-overlay {
+            display: none; position: fixed; inset: 0; z-index: 500;
+            background: #fff; flex-direction: column;
+            align-items: center; justify-content: center;
+            padding: 24px 20px; padding-top: max(24px, env(safe-area-inset-top,24px));
+            padding-bottom: max(24px, env(safe-area-inset-bottom,24px));
+        }
+        .bc-overlay.open { display: flex; }
+        .bc-close-btn { position: absolute; top: max(16px,env(safe-area-inset-top,16px)); right: 16px; width: 36px; height: 36px; border-radius: 50%; background: #f2f2f7; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .bc-close-btn svg { width: 18px; height: 18px; stroke: #555; fill: none; stroke-width: 2.5; }
+        .bc-edit-btn { position: absolute; top: max(16px,env(safe-area-inset-top,16px)); left: 16px; width: 36px; height: 36px; border-radius: 50%; background: #f2f2f7; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .bc-edit-btn svg { width: 18px; height: 18px; stroke: #555; fill: none; stroke-width: 2.5; }
+        .bc-color-strip { width: 80px; height: 80px; border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 32px; margin-bottom: 16px; }
+        .bc-store { font-weight: 900; font-size: 24px; margin-bottom: 4px; text-align: center; }
+        .bc-note { font-size: 13px; color: #888; margin-bottom: 20px; text-align: center; }
+        .bc-canvas-wrap { background: #fff; padding: 16px; border-radius: 16px; border: 2px solid #f0f0f0; max-width: 100%; }
+        #bcSvg { max-width: 100%; display: block; }
+        #bcQrCanvas { display: none; border-radius: 8px; }
+        .bc-codice { font-family: monospace; font-size: 14px; color: #999; font-weight: 700; letter-spacing: 1.5px; margin-top: 12px; }
+        .bc-err { color: #ff3b30; font-size: 13px; font-weight: 700; margin-top: 8px; }
+
+        /* Modal */
+        .modal-overlay { display: none; position: fixed; inset: 0; z-index: 300; background: rgba(0,0,0,0.5); align-items: flex-end; justify-content: center; }
+        .modal-overlay.open { display: flex; }
+        .modal-box { background: var(--white); border-radius: 28px 28px 0 0; padding: 24px 20px; padding-bottom: max(24px, env(safe-area-inset-bottom,24px)); width: 100%; max-width: 500px; max-height: 92vh; overflow-y: auto; }
+        .modal-handle { width: 40px; height: 4px; background: var(--grey); border-radius: 4px; margin: 0 auto 20px; }
+        .modal-title { font-weight: 900; font-size: 18px; margin-bottom: 18px; }
+        .form-group { margin-bottom: 14px; }
+        .form-label { font-size: 12px; font-weight: 800; color: #666; margin-bottom: 5px; display: block; text-transform: uppercase; letter-spacing: 0.4px; }
+        .form-input { width: 100%; padding: 12px 14px; border-radius: 14px; border: 2.5px solid var(--grey); font-size: 15px; font-family: inherit; outline: none; transition: border-color 0.2s; background: var(--white); }
+        .form-input:focus { border-color: var(--accent); }
+        .input-with-btn { display: flex; gap: 8px; }
+        .input-with-btn .form-input { flex: 1; }
+        .btn-scan { width: 48px; height: 48px; border-radius: 14px; border: 2.5px solid var(--grey); background: var(--white); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+        .btn-scan svg { width: 20px; height: 20px; stroke: #666; fill: none; stroke-width: 2; }
+
+        .color-picker { display: flex; gap: 10px; flex-wrap: wrap; }
+        .color-dot { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; transition: transform 0.15s, border-color 0.15s; flex-shrink: 0; }
+        .color-dot.selected { border-color: var(--dark); transform: scale(1.15); }
+
+        .tipo-row { display: flex; gap: 8px; }
+        .tipo-btn { flex: 1; padding: 10px 6px; border-radius: 12px; border: 2px solid var(--grey); background: var(--white); font-weight: 800; font-size: 12px; cursor: pointer; text-align: center; color: #888; transition: all 0.15s; font-family: inherit; }
+        .tipo-btn.active { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
+
+        .btn-save-modal { width: 100%; padding: 16px; border-radius: 18px; border: none; background: var(--accent); color: white; font-weight: 900; font-size: 16px; cursor: pointer; font-family: inherit; margin-top: 8px; }
+        .btn-delete-modal { width: 100%; padding: 14px; border-radius: 18px; border: none; background: #fff0f0; color: #ff3b30; font-weight: 800; font-size: 14px; cursor: pointer; font-family: inherit; margin-top: 8px; }
+
+        .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 70px; background: white; display: flex; justify-content: space-around; align-items: center; border-top: 2px solid var(--grey-light); padding-bottom: env(safe-area-inset-bottom); z-index: 100; }
+        .tab-item { flex: 1; text-align: center; font-size: 11px; color: var(--dark); text-decoration: none; font-weight: 800; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .icon-tab { width: 24px; height: 24px; stroke-width: 2.5px; stroke: var(--dark); fill: none; }
+        .toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--dark); color: white; padding: 12px 20px; border-radius: 14px; font-weight: 700; font-size: 14px; opacity: 0; transition: all 0.25s; white-space: nowrap; z-index: 999; pointer-events: none; }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        /* ── Feedback fab ── */
+        .fab-feedback { position: fixed; bottom: 88px; right: 18px; width: 46px; height: 46px; border-radius: 50%; background: #fff; border: 2.5px solid #e0e0e0; box-shadow: 0 2px 10px rgba(0,0,0,.12); display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 200; }
+        .fab-feedback svg { width: 20px; height: 20px; stroke: #777; fill: none; stroke-width: 2; }
+        .fb-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 999; display: none; align-items: flex-end; justify-content: center; padding-bottom: env(safe-area-inset-bottom,0); }
+        .fb-overlay.open { display: flex; }
+        .fb-sheet { background: #fff; border-radius: 24px 24px 0 0; padding: 24px 20px 40px; width: 100%; max-width: 520px; }
+        .fb-sheet h3 { margin: 0 0 16px; font-size: 17px; font-weight: 800; }
+        .fb-tipo { display: flex; gap: 10px; margin-bottom: 14px; }
+        .fb-tipo input[type=radio] { display: none; }
+        .fb-tipo label { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px; border-radius: 12px; border: 2px solid #e0e0e0; font-size: 14px; font-weight: 600; cursor: pointer; transition: all .15s; }
+        .fb-tipo input[type=radio]:checked + label { border-color: var(--accent,#5856d6); background: color-mix(in srgb,var(--accent,#5856d6) 12%,#fff); color: var(--accent,#5856d6); }
+        .fb-textarea { width: 100%; padding: 12px 14px; border-radius: 14px; border: 2.5px solid #e0e0e0; font-size: 15px; font-family: inherit; resize: none; outline: none; box-sizing: border-box; }
+        .fb-textarea:focus { border-color: var(--accent,#5856d6); }
+        .fb-send { width: 100%; margin-top: 14px; padding: 14px; border-radius: 14px; background: var(--accent,#5856d6); color: #fff; font-size: 16px; font-weight: 700; border: none; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div class="page-header">
+    <div class="header-row">
+        <button class="btn-back" onclick="history.back()">
+            <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div class="header-title">🎫 TESSERE FEDELTÀ</div>
+        <button class="btn-add-hdr" onclick="apriModale()">+</button>
+    </div>
+    <div class="search-bar">
+        <input class="search-input" id="searchInput" placeholder="Cerca tessera…" oninput="render()">
+    </div>
+</div>
+
+<div class="cards-list" id="cardsList"></div>
+
+<!-- Barcode overlay -->
+<div class="bc-overlay" id="bcOverlay">
+    <button class="bc-edit-btn" onclick="bcModifica()">
+        <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+    </button>
+    <button class="bc-close-btn" onclick="chiudiBarcode()">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <div class="bc-color-strip" id="bcStrip"></div>
+    <div class="bc-store" id="bcStore"></div>
+    <div class="bc-note" id="bcNoteText"></div>
+    <div class="bc-canvas-wrap">
+        <svg id="bcSvg"></svg>
+        <canvas id="bcQrCanvas"></canvas>
+    </div>
+    <div class="bc-codice" id="bcCodice"></div>
+    <div class="bc-err" id="bcErr"></div>
+</div>
+
+<!-- Add/Edit modal -->
+<div class="modal-overlay" id="modale">
+    <div class="modal-box">
+        <div class="modal-handle"></div>
+        <div class="modal-title" id="modalTitle">Nuova tessera</div>
+
+        <div class="form-group">
+            <label class="form-label">Nome negozio *</label>
+            <input class="form-input" id="fNome" placeholder="Es. Esselunga, Coop, Zara…" type="text">
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Codice *</label>
+            <div class="input-with-btn">
+                <input class="form-input" id="fCodice" placeholder="Numero sulla tessera…" type="text" inputmode="text">
+                <button class="btn-scan" onclick="avviaScan()" title="Scansiona barcode">
+                    <svg viewBox="0 0 24 24"><rect x="2" y="2" width="6" height="6"/><rect x="16" y="2" width="6" height="6"/><rect x="2" y="16" width="6" height="6"/><line x1="16" y1="16" x2="16" y2="22"/><line x1="16" y1="16" x2="22" y2="16"/><line x1="22" y1="22" x2="16" y2="22"/><line x1="22" y1="16" x2="22" y2="22"/></svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Tipo codice</label>
+            <div class="tipo-row" id="tipoRow">
+                <button class="tipo-btn active" data-tipo="auto" onclick="selTipo('auto',this)">Auto</button>
+                <button class="tipo-btn" data-tipo="CODE128" onclick="selTipo('CODE128',this)">Barcode</button>
+                <button class="tipo-btn" data-tipo="EAN13" onclick="selTipo('EAN13',this)">EAN-13</button>
+                <button class="tipo-btn" data-tipo="qr" onclick="selTipo('qr',this)">QR Code</button>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Colore tessera</label>
+            <div class="color-picker" id="colorPicker"></div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Note (punti, livello, scadenza…)</label>
+            <input class="form-input" id="fNote" placeholder="Es. 1.240 punti · Gold" type="text">
+        </div>
+
+        <button class="btn-save-modal" onclick="salva()">SALVA</button>
+        <button class="btn-delete-modal" id="btnElimina" style="display:none" onclick="elimina()">ELIMINA</button>
+    </div>
+</div>
+
+<!-- Scan overlay (camera) -->
+<div class="modal-overlay" id="scanOverlay">
+    <div class="modal-box" style="padding-bottom:24px">
+        <div class="modal-handle"></div>
+        <div class="modal-title">📷 Scansiona tessera</div>
+        <p style="font-size:14px;color:#888;margin-bottom:14px">Scatta una foto al codice a barre della tessera</p>
+        <div style="position:relative;overflow:hidden;border-radius:16px;background:#000;margin-bottom:12px">
+            <video id="scanVideo" style="width:100%;display:block;border-radius:16px" autoplay playsinline muted></video>
+        </div>
+        <div id="scanStatus" style="font-size:13px;font-weight:700;color:var(--accent);text-align:center;padding:6px 0"></div>
+        <button style="width:100%;padding:14px;border-radius:14px;border:2px solid var(--grey);background:var(--white);font-weight:800;font-size:15px;cursor:pointer;font-family:inherit;color:#888;margin-top:8px" onclick="fermaScan()">Annulla</button>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="tab-bar">
+    <a href="index.html" class="tab-item">
+        <svg class="icon-tab" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 15 22"/></svg>
+        HOME
+    </a>
+</div>
+
+<!-- feedback -->
+<button class="fab-feedback" onclick="_fbApri()" title="Invia feedback">
+    <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+</button>
+<div class="fb-overlay" id="fbOverlay" onclick="if(event.target===this)_fbChiudi()">
+    <div class="fb-sheet">
+        <h3>💬 Dai il tuo feedback</h3>
+        <div class="fb-tipo">
+            <input type="radio" name="fbTipo" id="fbSug" value="suggerimento" checked>
+            <label for="fbSug">💡 Suggerimento</label>
+            <input type="radio" name="fbTipo" id="fbErr" value="errore">
+            <label for="fbErr">🐛 Segnala errore</label>
+        </div>
+        <textarea class="fb-textarea" id="fbTesto" rows="4" placeholder="Descrivi il problema o il suggerimento…"></textarea>
+        <button class="fb-send" id="fbSendBtn" onclick="_fbInvia()">Invia</button>
+    </div>
+</div>
+
+<input type="file" id="scanInput" accept="image/*" capture="environment" style="display:none" onchange="scanFromPhoto(event)">
+
+<script>
+const SUPABASE_URL = 'https://eejdpophfxsrqdvsucye.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlamRwb3BoZnhzcnFkdnN1Y3llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2NTMzMDQsImV4cCI6MjA5MzIyOTMwNH0.mpxbwlJyIdZgqKIdutHbLd85JR1P11yiglbYeApi17k';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const userEmail = localStorage.getItem('userEmail');
+if (!userEmail) location.href = 'login.html';
+
+const COLORI = ['#f59e0b','#ef4444','#10b981','#3b82f6','#8b5cf6','#ec4899','#f97316','#14b8a6','#6366f1','#64748b'];
+let tessere = [], editId = null, tipoCorrente = 'auto', coloreCorrente = COLORI[0];
+let wakeLock = null, bcCurrentId = null;
+
+// ── Toast ─────────────────────────────────────────────
+function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ── Color picker ──────────────────────────────────────
+function buildColorPicker() {
+    const wrap = document.getElementById('colorPicker');
+    wrap.innerHTML = COLORI.map(c =>
+        `<div class="color-dot${c===coloreCorrente?' selected':''}" style="background:${c}" onclick="selColore('${c}',this)"></div>`
+    ).join('');
+}
+
+function selColore(c, el) {
+    coloreCorrente = c;
+    document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('selected'));
+    el.classList.add('selected');
+}
+
+function selTipo(t, el) {
+    tipoCorrente = t;
+    document.querySelectorAll('.tipo-btn').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+}
+
+// ── Carica ────────────────────────────────────────────
+async function carica() {
+    const { data, error } = await sb.from('tessere_fedelta').select('*')
+        .eq('email_utente', userEmail).order('nome');
+    if (error) { toast('Errore: ' + error.message); return; }
+    tessere = data || [];
+    render();
+}
+
+function inizialeNome(nome) {
+    return nome ? nome.charAt(0).toUpperCase() : '?';
+}
+
+function maskCodice(cod) {
+    if (!cod) return '';
+    if (cod.length <= 4) return cod;
+    return '···' + cod.slice(-4);
+}
+
+function render() {
+    const q = document.getElementById('searchInput').value.toLowerCase();
+    const list = document.getElementById('cardsList');
+    let items = tessere;
+    if (q) items = items.filter(t => (t.nome||'').toLowerCase().includes(q) || (t.codice||'').includes(q));
+    if (!items.length) {
+        list.innerHTML = `<div class="empty-msg">Nessuna tessera<br><span style="font-size:13px;font-weight:500">Tocca + per aggiungere la prima</span></div>`;
+        return;
+    }
+    list.innerHTML = items.map(t => `
+        <div class="loyalty-card" onclick="mostraBarcode(${t.id})">
+            <div class="card-strip" style="background:${t.colore||'#f59e0b'}">${inizialeNome(t.nome)}</div>
+            <div class="card-content">
+                <div class="card-store">${t.nome}</div>
+                <div class="card-code">${maskCodice(t.codice)}</div>
+                ${t.note ? `<div class="card-note">${t.note}</div>` : ''}
+            </div>
+            <div class="card-arrow"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+        </div>
+    `).join('');
+}
+
+// ── Barcode display ───────────────────────────────────
+async function mostraBarcode(id) {
+    const t = tessere.find(x => x.id === id);
+    if (!t) return;
+    bcCurrentId = id;
+
+    document.getElementById('bcStrip').style.background = t.colore || '#f59e0b';
+    document.getElementById('bcStrip').textContent = inizialeNome(t.nome);
+    document.getElementById('bcStore').textContent = t.nome;
+    document.getElementById('bcNoteText').textContent = t.note || '';
+    document.getElementById('bcCodice').textContent = t.codice || '';
+    document.getElementById('bcErr').textContent = '';
+
+    const svg = document.getElementById('bcSvg');
+    const canvas = document.getElementById('bcQrCanvas');
+    svg.style.display = 'block';
+    canvas.style.display = 'none';
+    svg.innerHTML = '';
+
+    const formato = detectFormat(t.codice, t.tipo || 'auto');
+
+    if (formato === 'qr') {
+        svg.style.display = 'none';
+        canvas.style.display = 'block';
+        try {
+            await renderQR(canvas, t.codice);
+        } catch(e) {
+            document.getElementById('bcErr').textContent = 'Errore rendering QR';
+        }
+    } else {
+        try {
+            JsBarcode(svg, t.codice, {
+                format: formato,
+                width: 2.5,
+                height: 90,
+                displayValue: false,
+                margin: 0,
+            });
+        } catch(e) {
+            try {
+                JsBarcode(svg, t.codice, { format: 'CODE128', width: 2.5, height: 90, displayValue: false, margin: 0 });
+            } catch(e2) {
+                document.getElementById('bcErr').textContent = 'Impossibile generare il codice';
+            }
+        }
+    }
+
+    document.getElementById('bcOverlay').classList.add('open');
+
+    // Keep screen on
+    if ('wakeLock' in navigator) {
+        try { wakeLock = await navigator.wakeLock.request('screen'); } catch(e) {}
+    }
+}
+
+function detectFormat(codice, tipo) {
+    if (tipo === 'qr') return 'qr';
+    if (tipo === 'CODE128' || tipo === 'EAN13') return tipo;
+    const d = (codice || '').replace(/[\s-]/g, '');
+    if (/^\d{12,13}$/.test(d)) return 'EAN13';
+    return 'CODE128';
+}
+
+function renderQR(canvas, text) {
+    return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js';
+        script.onload = () => {
+            QRCode.toCanvas(canvas, text, { width: 240, margin: 2 }, err => {
+                if (err) reject(err); else resolve();
+            });
+        };
+        script.onerror = reject;
+        if (window.QRCode) {
+            QRCode.toCanvas(canvas, text, { width: 240, margin: 2 }, err => {
+                if (err) reject(err); else resolve();
+            });
+        } else {
+            document.head.appendChild(script);
+        }
+    });
+}
+
+function chiudiBarcode() {
+    document.getElementById('bcOverlay').classList.remove('open');
+    if (wakeLock) { wakeLock.release(); wakeLock = null; }
+    bcCurrentId = null;
+}
+
+function bcModifica() {
+    chiudiBarcode();
+    if (bcCurrentId) {
+        const t = tessere.find(x => x.id === bcCurrentId);
+        if (t) apriModale(t);
+    }
+}
+
+// ── Modal ─────────────────────────────────────────────
+function apriModale(t = null) {
+    editId = t ? t.id : null;
+    tipoCorrente = t?.tipo || 'auto';
+    coloreCorrente = t?.colore || COLORI[0];
+    document.getElementById('modalTitle').textContent = t ? 'Modifica tessera' : 'Nuova tessera';
+    document.getElementById('fNome').value = t?.nome || '';
+    document.getElementById('fCodice').value = t?.codice || '';
+    document.getElementById('fNote').value = t?.note || '';
+    document.getElementById('btnElimina').style.display = t ? '' : 'none';
+    document.querySelectorAll('.tipo-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.tipo === tipoCorrente);
+    });
+    buildColorPicker();
+    document.getElementById('modale').classList.add('open');
+}
+
+function chiudiModale() {
+    document.getElementById('modale').classList.remove('open');
+}
+document.getElementById('modale').addEventListener('click', e => {
+    if (e.target === document.getElementById('modale')) chiudiModale();
+});
+
+async function salva() {
+    const nome = document.getElementById('fNome').value.trim();
+    const codice = document.getElementById('fCodice').value.trim();
+    if (!nome) { toast('Inserisci il nome del negozio'); return; }
+    if (!codice) { toast('Inserisci il codice della tessera'); return; }
+    const row = {
+        email_utente: userEmail,
+        nome: nome.charAt(0).toUpperCase() + nome.slice(1),
+        codice,
+        tipo: tipoCorrente,
+        colore: coloreCorrente,
+        note: document.getElementById('fNote').value.trim() || null,
+    };
+    let err;
+    if (editId) {
+        ({ error: err } = await sb.from('tessere_fedelta').update(row).eq('id', editId));
+    } else {
+        ({ error: err } = await sb.from('tessere_fedelta').insert(row));
+    }
+    if (err) { toast('Errore: ' + err.message); return; }
+    chiudiModale();
+    toast(editId ? 'Tessera aggiornata' : 'Tessera aggiunta! 🎫');
+    carica();
+}
+
+async function elimina() {
+    if (!editId || !confirm('Eliminare questa tessera?')) return;
+    await sb.from('tessere_fedelta').delete().eq('id', editId);
+    chiudiModale();
+    toast('Tessera eliminata');
+    carica();
+}
+
+// ── Scan ─────────────────────────────────────────────
+let scanStream = null;
+
+async function avviaScan() {
+    if ('BarcodeDetector' in window) {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+            scanStream = stream;
+            const video = document.getElementById('scanVideo');
+            video.srcObject = stream;
+            document.getElementById('scanOverlay').classList.add('open');
+            document.getElementById('scanStatus').textContent = 'Avvicina il codice alla fotocamera…';
+            scanLoop(video);
+            return;
+        } catch(e) {}
+    }
+    // Fallback: foto da rullino
+    document.getElementById('scanInput').click();
+}
+
+async function scanLoop(video) {
+    const detector = new BarcodeDetector();
+    const loop = async () => {
+        if (!scanStream) return;
+        try {
+            const codes = await detector.detect(video);
+            if (codes.length) {
+                const code = codes[0];
+                document.getElementById('fCodice').value = code.rawValue;
+                if (code.format === 'qr_code') selTipo('qr', document.querySelector('[data-tipo="qr"]'));
+                else if (code.format === 'ean_13') selTipo('EAN13', document.querySelector('[data-tipo="EAN13"]'));
+                else selTipo('CODE128', document.querySelector('[data-tipo="CODE128"]'));
+                fermaScan();
+                toast('Codice rilevato! ✅');
+                return;
+            }
+        } catch(e) {}
+        requestAnimationFrame(loop);
+    };
+    requestAnimationFrame(loop);
+}
+
+function fermaScan() {
+    if (scanStream) { scanStream.getTracks().forEach(t => t.stop()); scanStream = null; }
+    document.getElementById('scanOverlay').classList.remove('open');
+}
+
+async function scanFromPhoto(e) {
+    const file = e.target.files[0];
+    if (!file || !('BarcodeDetector' in window)) {
+        toast('Scansione non supportata su questo browser');
+        return;
+    }
+    const img = await createImageBitmap(file);
+    const detector = new BarcodeDetector();
+    const codes = await detector.detect(img).catch(() => []);
+    if (codes.length) {
+        document.getElementById('fCodice').value = codes[0].rawValue;
+        toast('Codice rilevato! ✅');
+    } else {
+        toast('Nessun codice trovato nella foto');
+    }
+    e.target.value = '';
+}
+
+// ── Feedback ─────────────────────────────────────────
+function _fbApri() { document.getElementById('fbOverlay').classList.add('open'); document.getElementById('fbTesto').focus(); }
+function _fbChiudi() { document.getElementById('fbOverlay').classList.remove('open'); document.getElementById('fbTesto').value = ''; }
+async function _fbInvia() {
+    const testo = document.getElementById('fbTesto').value.trim();
+    if (!testo) return;
+    const tipo = document.querySelector('input[name="fbTipo"]:checked').value;
+    const btn = document.getElementById('fbSendBtn');
+    btn.disabled = true; btn.textContent = 'Invio…';
+    try {
+        const r = await fetch('/api/feedback', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ email: userEmail, tipo, testo }) });
+        if (r.ok) { _fbChiudi(); toast('Feedback inviato, grazie! 🙏'); }
+    } catch(e) {}
+    finally { btn.disabled = false; btn.textContent = 'Invia'; }
+}
+
+carica();
+</script>
+</body>
+</html>
