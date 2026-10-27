@@ -57,6 +57,9 @@
         .card-note { font-size: 11px; color: #bbb; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .card-edit-btn { background: #f2f2f7; border: none; border-radius: 10px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; margin: auto 12px auto 0; color: #888; }
         .card-edit-btn svg { width: 15px; height: 15px; }
+        .logo-suggest-chip { display: flex; align-items: center; gap: 6px; padding: 6px 12px 6px 8px; border-radius: 12px; border: 2px solid var(--grey); background: #fff; cursor: pointer; transition: all .15s; font-size: 13px; font-weight: 700; }
+        .logo-suggest-chip:hover, .logo-suggest-chip.selected { border-color: var(--accent); background: var(--accent-bg); }
+        .logo-suggest-chip img { width: 22px; height: 22px; object-fit: contain; border-radius: 4px; }
 
         /* Barcode full-screen overlay */
         .bc-overlay {
@@ -172,7 +175,8 @@
 
         <div class="form-group">
             <label class="form-label">Nome negozio *</label>
-            <input class="form-input" id="fNome" placeholder="Es. Esselunga, Coop, Zara…" type="text">
+            <input class="form-input" id="fNome" placeholder="Es. Esselunga, Coop, Zara…" type="text" oninput="cercaLogo()">
+            <div id="logoSuggest" style="display:none;margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"></div>
         </div>
 
         <div class="form-group">
@@ -209,7 +213,7 @@
                     <span id="logoPlaceholder" style="font-size:20px;color:#ccc">🌐</span>
                 </div>
             </div>
-            <div style="font-size:11px;color:#aaa;margin-top:5px">Inserisci il dominio del brand per caricare il logo in automatico</div>
+            <div style="font-size:11px;color:#aaa;margin-top:5px">Rilevato automaticamente dal nome — puoi correggerlo qui</div>
         </div>
 
         <div class="form-group">
@@ -301,6 +305,42 @@ function selTipo(t, el) {
     tipoCorrente = t;
     document.querySelectorAll('.tipo-btn').forEach(b => b.classList.remove('active'));
     el.classList.add('active');
+}
+
+// ── Logo auto-search ──────────────────────────────────
+let _logoTimer = null;
+function cercaLogo() {
+    clearTimeout(_logoTimer);
+    const q = document.getElementById('fNome').value.trim();
+    const wrap = document.getElementById('logoSuggest');
+    if (q.length < 2) { wrap.style.display = 'none'; return; }
+    _logoTimer = setTimeout(async () => {
+        try {
+            const res = await fetch(`https://autocomplete.clearbit.com/v1/companies/suggest?query=${encodeURIComponent(q)}`);
+            if (!res.ok) return;
+            const list = await res.json();
+            if (!list.length) { wrap.style.display = 'none'; return; }
+            const top = list.slice(0, 4);
+            wrap.innerHTML = top.map(c =>
+                `<div class="logo-suggest-chip" onclick="selezionaLogo('${c.domain}','${c.name.replace(/'/g,"\\'")}',this)">
+                    <img src="${c.logo}" onerror="this.style.display='none'">
+                    ${c.name}
+                </div>`
+            ).join('');
+            wrap.style.display = 'flex';
+            // auto-seleziona il primo se il dominio non è già impostato
+            if (!document.getElementById('fDominio').value.trim()) {
+                selezionaLogo(top[0].domain, top[0].name, wrap.firstElementChild);
+            }
+        } catch(e) {}
+    }, 400);
+}
+
+function selezionaLogo(domain, name, el) {
+    document.getElementById('fDominio').value = domain;
+    document.querySelectorAll('.logo-suggest-chip').forEach(c => c.classList.remove('selected'));
+    el?.classList.add('selected');
+    anteprimaLogo();
 }
 
 // ── Logo ──────────────────────────────────────────────
@@ -489,6 +529,7 @@ function apriModale(t = null) {
     document.getElementById('fCodice').value = t?.codice || '';
     document.getElementById('fNote').value = t?.note || '';
     document.getElementById('fDominio').value = t?.logo_dominio || '';
+    document.getElementById('logoSuggest').style.display = 'none';
     anteprimaLogo();
     document.getElementById('btnElimina').style.display = t ? '' : 'none';
     document.querySelectorAll('.tipo-btn').forEach(b => {
