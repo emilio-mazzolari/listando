@@ -228,6 +228,7 @@ const STATEMENTS = [
     )`,
     `ALTER TABLE IF EXISTS tessere_fedelta DISABLE ROW LEVEL SECURITY`,
     `ALTER TABLE IF EXISTS tessere_fedelta ADD COLUMN IF NOT EXISTS logo_dominio text`,
+    `ALTER TABLE IF EXISTS tessere_fedelta ADD COLUMN IF NOT EXISTS logo_custom text`,
     `DO $$ BEGIN
         IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='objects' AND schemaname='storage' AND policyname='allow upload vendita-foto') THEN
             CREATE POLICY "allow upload vendita-foto" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'vendita-foto');

@@ -177,13 +177,21 @@
             <label class="form-label">Nome negozio *</label>
             <div style="display:flex;gap:10px;align-items:center">
                 <input class="form-input" id="fNome" placeholder="Es. Esselunga, Coop, Zara…" type="text" oninput="cercaLogo()" style="flex:1">
-                <div id="logoPreviewWrap" style="width:48px;height:48px;border-radius:12px;border:2.5px solid var(--grey);background:#f5f6f8;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;cursor:pointer" onclick="document.getElementById('fDominio').focus()">
-                    <img id="logoPreviewImg" style="width:36px;height:36px;object-fit:contain;display:none" onerror="this.style.display='none';document.getElementById('logoPlaceholder').style.display='block'">
-                    <span id="logoPlaceholder" style="font-size:20px;color:#ccc">🌐</span>
+                <div id="logoPreviewWrap" style="width:48px;height:48px;border-radius:12px;border:2.5px solid var(--grey);background:#f5f6f8;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;position:relative;cursor:pointer" onclick="document.getElementById('logoFileInput').click()">
+                    <img id="logoPreviewImg" style="width:100%;height:100%;object-fit:contain;display:none" onerror="this.style.display='none';document.getElementById('logoPlaceholder').style.display='flex'">
+                    <div id="logoPlaceholder" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        <span style="font-size:8px;color:#ccc;font-weight:700">LOGO</span>
+                    </div>
+                    <input type="file" id="logoFileInput" accept="image/*" style="display:none" onchange="caricaLogoCustom(event)">
                 </div>
             </div>
             <div id="logoSuggest" style="display:none;margin-top:8px;gap:8px;flex-wrap:wrap"></div>
-            <div style="font-size:11px;color:#aaa;margin-top:6px">Logo rilevato in automatico · correggi il dominio: <input id="fDominio" type="text" placeholder="es. esselunga.it" oninput="anteprimaLogo()" style="border:none;border-bottom:1.5px solid var(--grey);font-size:11px;font-family:inherit;outline:none;color:#888;width:120px;background:transparent"></div>
+            <div style="font-size:11px;color:#aaa;margin-top:6px">
+                Tocca 📤 per caricare il tuo logo, oppure digita il dominio:
+                <input id="fDominio" type="text" placeholder="es. esselunga.it" oninput="anteprimaLogo()" style="border:none;border-bottom:1.5px solid var(--grey);font-size:11px;font-family:inherit;outline:none;color:#888;width:110px;background:transparent">
+                <button id="btnRimuoviLogo" onclick="rimuoviLogo()" style="display:none;border:none;background:none;color:#ff3b30;font-size:11px;font-weight:800;cursor:pointer;margin-left:6px">✕ rimuovi</button>
+            </div>
         </div>
 
         <div class="form-group">
@@ -273,7 +281,8 @@ if (!userEmail) location.href = 'login.html';
 
 const COLORI = [
     '#f59e0b','#ef4444','#10b981','#3b82f6','#8b5cf6','#ec4899','#f97316','#14b8a6','#6366f1','#64748b',
-    '#eab308','#f472b6','#fb7185','#84cc16','#06b6d4','#a16207','#d946ef','#7f1d1d'
+    '#eab308','#f472b6','#fb7185','#84cc16','#06b6d4','#a16207','#d946ef','#7f1d1d',
+    '#dc2626','#b91c1c','#ff4444','#ff6b6b',
 ];
 let tessere = [], editId = null, tipoCorrente = 'auto', coloreCorrente = COLORI[0];
 let wakeLock = null, bcCurrentId = null;
@@ -372,19 +381,65 @@ function cleanDomain(raw) {
     return s.replace(/^www\./, '').split('/')[0];
 }
 
+let _logoCustomBase64 = null;
+
+function caricaLogoCustom(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = 64; canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, 64, 64);
+            const s = Math.min(img.width, img.height);
+            const ox = (img.width - s) / 2, oy = (img.height - s) / 2;
+            ctx.drawImage(img, ox, oy, s, s, 0, 0, 64, 64);
+            _logoCustomBase64 = canvas.toDataURL('image/png');
+            _mostraLogoPreview(_logoCustomBase64);
+            document.getElementById('fDominio').value = '';
+            document.getElementById('btnRimuoviLogo').style.display = 'inline';
+        };
+        img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+}
+
+function rimuoviLogo() {
+    _logoCustomBase64 = null;
+    document.getElementById('fDominio').value = '';
+    document.getElementById('logoPreviewImg').style.display = 'none';
+    document.getElementById('logoPlaceholder').style.display = 'flex';
+    document.getElementById('btnRimuoviLogo').style.display = 'none';
+}
+
+function _mostraLogoPreview(src) {
+    const img = document.getElementById('logoPreviewImg');
+    img.src = src;
+    img.style.display = 'block';
+    document.getElementById('logoPlaceholder').style.display = 'none';
+    document.getElementById('btnRimuoviLogo').style.display = 'inline';
+}
+
 function anteprimaLogo() {
+    if (_logoCustomBase64) return;
     const val = document.getElementById('fDominio').value.trim();
     const img = document.getElementById('logoPreviewImg');
     const placeholder = document.getElementById('logoPlaceholder');
     const domain = cleanDomain(val);
     if (!domain) {
         img.style.display = 'none';
-        placeholder.style.display = 'block';
+        placeholder.style.display = 'flex';
+        document.getElementById('btnRimuoviLogo').style.display = 'none';
         return;
     }
     img.src = `https://logo.clearbit.com/${domain}`;
     img.style.display = 'block';
     placeholder.style.display = 'none';
+    document.getElementById('btnRimuoviLogo').style.display = 'inline';
 }
 
 // ── Carica ────────────────────────────────────────────
@@ -416,7 +471,7 @@ function render() {
         return;
     }
     list.innerHTML = items.map(t => {
-        const logoSrc = t.logo_dominio ? `https://logo.clearbit.com/${cleanDomain(t.logo_dominio)}` : null;
+        const logoSrc = t.logo_custom || (t.logo_dominio ? `https://logo.clearbit.com/${cleanDomain(t.logo_dominio)}` : null);
         const stripContent = logoSrc
             ? `<img src="${logoSrc}" style="width:38px;height:38px;object-fit:contain;border-radius:8px;background:#fff;padding:2px" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><span style="display:none;font-size:22px;font-weight:900;color:rgba(255,255,255,0.95)">${inizialeNome(t.nome)}</span>`
             : `<span style="font-size:22px;font-weight:900;color:rgba(255,255,255,0.95)">${inizialeNome(t.nome)}</span>`;
@@ -442,9 +497,9 @@ async function mostraBarcode(id) {
 
     const strip = document.getElementById('bcStrip');
     strip.style.background = t.colore || '#f59e0b';
-    if (t.logo_dominio) {
-        const domain = cleanDomain(t.logo_dominio);
-        strip.innerHTML = `<img src="https://logo.clearbit.com/${domain}" style="width:48px;height:48px;object-fit:contain;border-radius:12px;background:#fff;padding:4px" onerror="this.outerHTML='<span style=\\'font-size:28px;font-weight:900;color:rgba(255,255,255,0.95)\\'>${inizialeNome(t.nome)}</span>'">`;
+    const bcLogoSrc = t.logo_custom || (t.logo_dominio ? `https://logo.clearbit.com/${cleanDomain(t.logo_dominio)}` : null);
+    if (bcLogoSrc) {
+        strip.innerHTML = `<img src="${bcLogoSrc}" style="width:48px;height:48px;object-fit:contain;border-radius:12px;background:#fff;padding:4px" onerror="this.outerHTML='<span style=\\'font-size:28px;font-weight:900;color:rgba(255,255,255,0.95)\\'>${inizialeNome(t.nome)}</span>'">`;
     } else {
         strip.textContent = inizialeNome(t.nome);
     }
@@ -546,9 +601,17 @@ function apriModale(t = null) {
     document.getElementById('fNome').value = t?.nome || '';
     document.getElementById('fCodice').value = t?.codice || '';
     document.getElementById('fNote').value = t?.note || '';
+    _logoCustomBase64 = t?.logo_custom || null;
     document.getElementById('fDominio').value = t?.logo_dominio || '';
     document.getElementById('logoSuggest').style.display = 'none';
-    anteprimaLogo();
+    document.getElementById('btnRimuoviLogo').style.display = 'none';
+    if (_logoCustomBase64) {
+        _mostraLogoPreview(_logoCustomBase64);
+    } else {
+        document.getElementById('logoPreviewImg').style.display = 'none';
+        document.getElementById('logoPlaceholder').style.display = 'flex';
+        anteprimaLogo();
+    }
     document.getElementById('btnElimina').style.display = t ? '' : 'none';
     document.querySelectorAll('.tipo-btn').forEach(b => {
         b.classList.toggle('active', b.dataset.tipo === tipoCorrente);
@@ -576,7 +639,8 @@ async function salva() {
         tipo: tipoCorrente,
         colore: coloreCorrente,
         note: document.getElementById('fNote').value.trim() || null,
-        logo_dominio: cleanDomain(document.getElementById('fDominio').value.trim()) || null,
+        logo_dominio: _logoCustomBase64 ? null : (cleanDomain(document.getElementById('fDominio').value.trim()) || null),
+        logo_custom: _logoCustomBase64 || null,
     };
     let err;
     if (editId) {
