@@ -14,284 +14,375 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
-            color-scheme: light;
-            --accent: #3b82f6;
-            --accent-dark: #1d4ed8;
-            --accent-bg: rgba(59,130,246,0.08);
-            --grey: #d8dddc;
-            --grey-light: #f2f2f7;
-            --dark: #111;
-            --bg: #f5f6f8;
-            --white: #fff;
+            --grey: #e5e7eb; --grey-light: #f3f4f6; --dark: #111827;
+            --bg: #f9fafb; --white: #fff;
+            --c: #3b82f6; /* overridden per discipline */
         }
-        * { box-sizing: border-box; }
-        html, body { overflow-x: hidden; max-width: 100%; margin: 0; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { overflow-x: hidden; max-width: 100%; }
         body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--dark); }
 
-        /* Header */
-        .page-header { position: sticky; top: 0; z-index: 100; background: var(--white); border-bottom: 2px solid var(--grey-light); padding: 14px 16px; padding-top: max(14px, env(safe-area-inset-top, 14px)); display: flex; align-items: center; gap: 10px; }
-        .btn-back { width: 40px; height: 40px; border-radius: 12px; border: 2.5px solid var(--grey); background: var(--white); display: flex; align-items: center; justify-content: center; cursor: pointer; text-decoration: none; flex-shrink: 0; }
-        .btn-back svg { width: 18px; height: 18px; stroke: var(--dark); fill: none; stroke-width: 2.5; }
-        .header-title { font-weight: 900; font-size: 18px; flex: 1; }
-        .btn-add-hdr { width: 40px; height: 40px; border-radius: 12px; border: none; background: var(--accent); color: white; font-size: 24px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        /* ── HOME ─────────────────────────────────── */
+        .home-header {
+            position: sticky; top: 0; z-index: 10;
+            background: var(--white); border-bottom: 1.5px solid var(--grey);
+            padding: 14px 20px; padding-top: max(14px, env(safe-area-inset-top,14px));
+            display: flex; align-items: center; gap: 12px;
+        }
+        .btn-back { width: 38px; height: 38px; border-radius: 10px; border: 1.5px solid var(--grey); background: var(--white); display: flex; align-items: center; justify-content: center; cursor: pointer; text-decoration: none; flex-shrink: 0; }
+        .btn-back svg { width: 17px; height: 17px; stroke: var(--dark); fill: none; stroke-width: 2.5; }
+        .home-title { font-size: 20px; font-weight: 900; flex: 1; letter-spacing: -0.3px; }
+        .btn-nuova-disc { background: var(--dark); color: white; border: none; border-radius: 10px; padding: 8px 16px; font-weight: 800; font-size: 13px; cursor: pointer; font-family: inherit; }
 
-        /* Discipline grid */
-        .disc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 16px 16px 110px; }
-        .disc-card { background: var(--white); border-radius: 20px; padding: 20px 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); cursor: pointer; transition: transform 0.1s; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; position: relative; overflow: hidden; }
-        .disc-card:active { transform: scale(0.97); }
-        .disc-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 5px; border-radius: 20px 20px 0 0; }
-        .disc-emoji { font-size: 36px; line-height: 1; }
-        .disc-nome { font-weight: 900; font-size: 15px; }
-        .disc-count { font-size: 12px; color: #aaa; font-weight: 700; }
-        .disc-edit-btn { position: absolute; top: 10px; right: 10px; width: 30px; height: 30px; border-radius: 8px; background: rgba(0,0,0,0.06); border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; }
-        .disc-edit-btn svg { width: 13px; height: 13px; stroke: #888; fill: none; stroke-width: 2; }
+        .disc-list { padding: 20px 20px 120px; display: flex; flex-direction: column; gap: 14px; }
 
-        /* Empty */
-        .empty-msg { text-align: center; padding: 64px 24px; color: #bbb; font-weight: 700; font-size: 15px; line-height: 1.6; }
+        .disc-card {
+            background: var(--white); border-radius: 20px;
+            overflow: hidden; cursor: pointer;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.07), 0 4px 16px rgba(0,0,0,0.05);
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+        .disc-card:active { transform: scale(0.985); box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
+        .disc-card-banner {
+            height: 8px;
+        }
+        .disc-card-body { padding: 18px 18px 16px; display: flex; align-items: center; gap: 16px; }
+        .disc-emoji-wrap { width: 60px; height: 60px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 30px; flex-shrink: 0; }
+        .disc-info { flex: 1; min-width: 0; }
+        .disc-nome { font-weight: 900; font-size: 18px; letter-spacing: -0.2px; }
+        .disc-stats-row { display: flex; gap: 14px; margin-top: 6px; }
+        .disc-stat { display: flex; flex-direction: column; }
+        .disc-stat-val { font-size: 16px; font-weight: 900; }
+        .disc-stat-lbl { font-size: 10px; color: #9ca3af; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; }
+        .disc-chevron { flex-shrink: 0; }
+        .disc-chevron svg { width: 18px; height: 18px; stroke: #d1d5db; fill: none; stroke-width: 2.5; }
+        .disc-edit-chip { background: none; border: 1.5px solid var(--grey); border-radius: 8px; padding: 4px 10px; font-size: 11px; font-weight: 700; cursor: pointer; font-family: inherit; color: #6b7280; margin-left: auto; }
 
-        /* Discipline detail overlay */
-        .disc-overlay { display: none; position: fixed; inset: 0; z-index: 200; background: var(--bg); flex-direction: column; }
+        /* Empty home */
+        .home-empty { text-align: center; padding: 80px 24px; }
+        .home-empty-icon { font-size: 56px; margin-bottom: 16px; }
+        .home-empty-title { font-weight: 900; font-size: 20px; margin-bottom: 8px; }
+        .home-empty-sub { color: #9ca3af; font-size: 14px; line-height: 1.5; margin-bottom: 28px; }
+        .btn-cta { background: var(--dark); color: white; border: none; border-radius: 14px; padding: 14px 28px; font-weight: 900; font-size: 15px; cursor: pointer; font-family: inherit; }
+
+        /* ── DISCIPLINE OVERLAY ───────────────────── */
+        .disc-overlay { display: none; position: fixed; inset: 0; z-index: 100; background: var(--bg); flex-direction: column; }
         .disc-overlay.open { display: flex; }
-        .disc-overlay-header { background: var(--white); padding: 14px 16px; padding-top: max(14px, env(safe-area-inset-top,14px)); border-bottom: 2px solid var(--grey-light); display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
-        .disc-overlay-title { font-weight: 900; font-size: 18px; flex: 1; }
-        .disc-overlay-body { flex: 1; overflow-y: auto; }
 
-        /* Filter chips */
-        .filter-row { display: flex; gap: 8px; padding: 10px 16px; overflow-x: auto; scrollbar-width: none; background: var(--white); border-bottom: 2px solid var(--grey-light); flex-shrink: 0; }
-        .filter-row::-webkit-scrollbar { display: none; }
-        .chip { padding: 6px 14px; border-radius: 20px; border: 2px solid var(--grey); background: var(--white); font-weight: 800; font-size: 12px; cursor: pointer; white-space: nowrap; transition: all 0.15s; }
-        .chip.active { border-color: var(--disc-color, var(--accent)); background: color-mix(in srgb, var(--disc-color, var(--accent)) 10%, white); color: var(--disc-color, var(--accent-dark)); }
+        .disc-hero {
+            background: var(--c); color: white;
+            padding: 0 20px 20px; padding-top: max(14px, env(safe-area-inset-top,14px));
+            flex-shrink: 0;
+        }
+        .disc-hero-top { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+        .disc-hero-back { width: 36px; height: 36px; border-radius: 10px; background: rgba(255,255,255,0.2); border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .disc-hero-back svg { width: 17px; height: 17px; stroke: white; fill: none; stroke-width: 2.5; }
+        .disc-hero-title { font-size: 20px; font-weight: 900; flex: 1; }
+        .disc-hero-edit { background: rgba(255,255,255,0.2); border: none; border-radius: 8px; padding: 6px 12px; color: white; font-size: 12px; font-weight: 800; cursor: pointer; font-family: inherit; }
+        .disc-hero-add { background: white; border: none; border-radius: 10px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-size: 22px; line-height: 1; cursor: pointer; font-weight: 900; }
 
-        /* Elements list */
-        .elem-list { padding: 10px 16px 110px; display: flex; flex-direction: column; gap: 10px; }
+        .disc-hero-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .hero-stat { background: rgba(255,255,255,0.15); border-radius: 14px; padding: 12px; text-align: center; }
+        .hero-stat-val { font-size: 22px; font-weight: 900; }
+        .hero-stat-lbl { font-size: 10px; opacity: 0.8; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; margin-top: 2px; }
 
-        /* Element cards */
-        .elem-card { background: var(--white); border-radius: 16px; padding: 14px 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); cursor: pointer; transition: transform 0.1s; position: relative; overflow: hidden; }
-        .elem-card:active { transform: scale(0.99); }
-        .elem-card-left-bar { position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }
-        .elem-tipo-badge { display: inline-block; padding: 3px 10px; border-radius: 8px; font-weight: 800; font-size: 11px; margin-bottom: 6px; }
-        .elem-titolo { font-weight: 900; font-size: 15px; margin-bottom: 4px; }
-        .elem-desc { font-size: 13px; color: #555; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-        .elem-meta { display: flex; align-items: center; gap: 10px; margin-top: 8px; font-size: 12px; color: #aaa; font-weight: 700; flex-wrap: wrap; }
-        .elem-edit-btn { position: absolute; top: 10px; right: 10px; width: 32px; height: 32px; border-radius: 9px; background: var(--grey-light); border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; }
-        .elem-edit-btn svg { width: 14px; height: 14px; stroke: #888; fill: none; stroke-width: 2; }
+        .disc-tabs { display: flex; background: var(--white); border-bottom: 1.5px solid var(--grey); flex-shrink: 0; }
+        .disc-tab { flex: 1; padding: 12px 4px; background: none; border: none; border-bottom: 3px solid transparent; margin-bottom: -1.5px; font-family: inherit; font-weight: 800; font-size: 12px; color: #9ca3af; cursor: pointer; transition: all 0.15s; }
+        .disc-tab.active { color: var(--c); border-bottom-color: var(--c); }
 
-        /* Video thumbnail */
-        .yt-thumb { width: 100%; border-radius: 10px; margin-top: 8px; object-fit: cover; max-height: 140px; display: block; background: #000; }
-        .yt-play-overlay { position: relative; }
-        .yt-play-overlay::after { content: '▶'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 28px; color: white; text-shadow: 0 2px 8px rgba(0,0,0,0.7); }
+        .disc-content { flex: 1; overflow-y: auto; }
 
-        /* Difficoltà badge */
+        /* ── ALLENAMENTI TAB ─────────────────────── */
+        .allenamenti-list { padding: 14px 20px 100px; display: flex; flex-direction: column; gap: 10px; }
+
+        .session-card { background: var(--white); border-radius: 16px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+        .session-card-top { display: flex; align-items: center; gap: 12px; padding: 14px 16px; }
+        .session-date-block { background: var(--grey-light); border-radius: 10px; width: 46px; height: 46px; display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0; }
+        .session-date-day { font-size: 20px; font-weight: 900; line-height: 1; }
+        .session-date-mon { font-size: 9px; font-weight: 800; text-transform: uppercase; color: #9ca3af; letter-spacing: 0.5px; }
+        .session-info { flex: 1; min-width: 0; }
+        .session-dur { font-weight: 900; font-size: 15px; }
+        .session-note-preview { font-size: 12px; color: #6b7280; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+        .session-action { display: flex; gap: 8px; }
+        .session-edit-btn { background: var(--grey-light); border: none; border-radius: 8px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .session-edit-btn svg { width: 14px; height: 14px; stroke: #6b7280; fill: none; stroke-width: 2; }
+        .session-note-full { padding: 0 16px 14px; font-size: 13px; color: #4b5563; line-height: 1.5; border-top: 1px solid var(--grey-light); padding-top: 10px; display: none; }
+        .session-card.expanded .session-note-full { display: block; }
+
+        /* ── LIBRERIA TAB ────────────────────────── */
+        .libreria-top { position: sticky; top: 0; background: var(--white); padding: 10px 16px; border-bottom: 1.5px solid var(--grey); z-index: 5; }
+        .search-bar { display: flex; align-items: center; gap: 8px; background: var(--grey-light); border-radius: 12px; padding: 8px 12px; }
+        .search-bar svg { width: 16px; height: 16px; stroke: #9ca3af; fill: none; stroke-width: 2; flex-shrink: 0; }
+        .search-bar input { border: none; background: none; font-size: 14px; outline: none; flex: 1; font-family: inherit; color: var(--dark); }
+        .filter-chips { display: flex; gap: 6px; margin-top: 8px; overflow-x: auto; scrollbar-width: none; }
+        .filter-chips::-webkit-scrollbar { display: none; }
+        .fchip { padding: 5px 12px; border-radius: 20px; border: 1.5px solid var(--grey); background: var(--white); font-weight: 800; font-size: 11px; cursor: pointer; white-space: nowrap; transition: all 0.15s; }
+        .fchip.active { border-color: var(--c); background: color-mix(in srgb, var(--c) 10%, white); color: var(--c); }
+
+        .libreria-grid { padding: 12px 16px 100px; display: flex; flex-direction: column; gap: 10px; }
+
+        .lib-card { background: var(--white); border-radius: 14px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.06); cursor: pointer; transition: transform 0.1s; display: flex; }
+        .lib-card:active { transform: scale(0.99); }
+        .lib-card-accent { width: 4px; flex-shrink: 0; }
+        .lib-card-body { flex: 1; padding: 12px 14px; min-width: 0; }
+        .lib-card-header { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 4px; }
+        .lib-tipo-pill { font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 6px; white-space: nowrap; flex-shrink: 0; }
+        .lib-diff-pill { font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 6px; white-space: nowrap; }
         .diff-facile { background: #d1fae5; color: #065f46; }
         .diff-media { background: #fef3c7; color: #92400e; }
         .diff-difficile { background: #fee2e2; color: #991b1b; }
+        .lib-titolo { font-weight: 900; font-size: 14px; line-height: 1.3; }
+        .lib-desc { font-size: 12px; color: #6b7280; margin-top: 3px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .lib-card-edit { background: none; border: none; padding: 8px; cursor: pointer; flex-shrink: 0; align-self: center; }
+        .lib-card-edit svg { width: 14px; height: 14px; stroke: #d1d5db; fill: none; stroke-width: 2; }
 
-        /* Obiettivo completato */
-        .elem-card.completato { opacity: 0.6; }
-        .completato-badge { text-decoration: line-through; }
+        /* Video card */
+        .lib-card.video-card { flex-direction: column; }
+        .lib-card.video-card .lib-card-body { padding: 0; }
+        .yt-thumb-wrap { position: relative; width: 100%; aspect-ratio: 16/9; background: #000; }
+        .yt-thumb-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .yt-play-btn { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+        .yt-play-btn svg { width: 52px; height: 52px; drop-shadow: 0 2px 8px rgba(0,0,0,0.5); filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5)); }
+        .video-card-info { padding: 10px 14px 12px; }
+        .video-card-title { font-weight: 900; font-size: 14px; }
+        .video-card-desc { font-size: 12px; color: #6b7280; margin-top: 3px; }
+        .video-card-actions { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+        .btn-open-yt { background: #ff0000; color: white; border: none; border-radius: 8px; padding: 5px 12px; font-size: 11px; font-weight: 800; cursor: pointer; font-family: inherit; text-decoration: none; display: inline-block; }
 
-        /* Allenamento rating */
-        .stars { color: #f59e0b; font-size: 13px; }
+        /* ── OBIETTIVI TAB ───────────────────────── */
+        .obiettivi-list { padding: 14px 20px 100px; display: flex; flex-direction: column; gap: 10px; }
 
-        /* Modal */
-        .modal-overlay { display: none; position: fixed; inset: 0; z-index: 500; background: rgba(0,0,0,0.5); align-items: flex-end; justify-content: center; }
-        .modal-overlay.open { display: flex; }
-        .modal-box { background: var(--white); border-radius: 28px 28px 0 0; padding: 24px 20px; padding-bottom: max(24px, env(safe-area-inset-bottom,24px)); width: 100%; max-width: 500px; max-height: 92vh; overflow-y: auto; }
-        .modal-handle { width: 40px; height: 4px; background: var(--grey); border-radius: 4px; margin: 0 auto 20px; }
-        .modal-title { font-weight: 900; font-size: 18px; margin-bottom: 18px; }
-        .form-group { margin-bottom: 14px; }
-        .form-label { font-size: 12px; font-weight: 800; color: #666; margin-bottom: 5px; display: block; text-transform: uppercase; letter-spacing: 0.4px; }
-        .form-input { width: 100%; padding: 12px 14px; border-radius: 14px; border: 2.5px solid var(--grey); font-size: 15px; font-family: inherit; outline: none; transition: border-color 0.2s; background: var(--white); }
-        .form-input:focus { border-color: var(--accent); }
-        .form-textarea { resize: vertical; min-height: 80px; }
-        .tipo-row { display: flex; gap: 6px; flex-wrap: wrap; }
-        .tipo-btn { padding: 8px 12px; border-radius: 12px; border: 2px solid var(--grey); background: var(--white); font-weight: 800; font-size: 12px; cursor: pointer; color: #888; transition: all 0.15s; font-family: inherit; white-space: nowrap; }
-        .tipo-btn.active { border-color: var(--accent); color: var(--accent-dark); background: var(--accent-bg); }
-        .btn-save { width: 100%; padding: 16px; border-radius: 18px; border: none; background: var(--accent); color: white; font-weight: 900; font-size: 16px; cursor: pointer; font-family: inherit; margin-top: 8px; }
-        .btn-delete { width: 100%; padding: 14px; border-radius: 18px; border: none; background: #fff0f0; color: #ff3b30; font-weight: 800; font-size: 14px; cursor: pointer; font-family: inherit; margin-top: 8px; }
-        .btn-annulla { width: 100%; padding: 12px; border: none; background: none; color: #888; font-weight: 700; font-size: 14px; cursor: pointer; margin-top: 4px; font-family: inherit; }
+        .goal-card { background: var(--white); border-radius: 14px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); display: flex; gap: 12px; align-items: flex-start; }
+        .goal-check { width: 24px; height: 24px; border-radius: 50%; border: 2.5px solid var(--grey); background: var(--white); cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.2s; margin-top: 1px; }
+        .goal-check.done { background: #22c55e; border-color: #22c55e; }
+        .goal-check.done::after { content: '✓'; color: white; font-size: 13px; font-weight: 900; }
+        .goal-body { flex: 1; min-width: 0; }
+        .goal-titolo { font-weight: 800; font-size: 15px; }
+        .goal-titolo.done { text-decoration: line-through; color: #9ca3af; }
+        .goal-desc { font-size: 13px; color: #6b7280; margin-top: 3px; line-height: 1.4; }
+        .goal-scadenza { font-size: 11px; color: #9ca3af; font-weight: 700; margin-top: 6px; }
+        .goal-edit-btn { background: none; border: none; cursor: pointer; padding: 4px; }
+        .goal-edit-btn svg { width: 14px; height: 14px; stroke: #d1d5db; fill: none; stroke-width: 2; }
 
-        /* Emoji picker per disciplina */
-        .emoji-grid { display: flex; flex-wrap: wrap; gap: 8px; }
-        .emoji-opt { width: 42px; height: 42px; border-radius: 12px; border: 2.5px solid var(--grey); background: var(--white); font-size: 22px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
-        .emoji-opt.selected { border-color: var(--accent); background: var(--accent-bg); }
-
-        /* Color picker disciplina */
-        .color-picker-disc { display: flex; align-items: center; gap: 10px; }
-        .color-picker-disc input[type=color] { -webkit-appearance: none; width: 44px; height: 44px; border: none; border-radius: 50%; padding: 0; cursor: pointer; background: none; flex-shrink: 0; }
-        .color-picker-disc input[type=color]::-webkit-color-swatch-wrapper { padding: 0; border-radius: 50%; }
-        .color-picker-disc input[type=color]::-webkit-color-swatch { border: none; border-radius: 50%; }
-        .color-preview-bar { height: 20px; flex: 1; border-radius: 10px; transition: background 0.2s; }
-
-        /* Detail full-screen elem */
+        /* ── ELEM DETAIL ─────────────────────────── */
         .elem-detail { display: none; position: fixed; inset: 0; z-index: 300; background: var(--bg); flex-direction: column; overflow: hidden; }
         .elem-detail.open { display: flex; }
-        .elem-detail-header { background: var(--white); padding: 14px 16px; padding-top: max(14px, env(safe-area-inset-top,14px)); border-bottom: 2px solid var(--grey-light); display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
-        .elem-detail-body { flex: 1; overflow-y: auto; padding: 20px 16px 40px; }
-        .elem-detail-title { font-weight: 900; font-size: 22px; margin-bottom: 6px; }
-        .elem-detail-desc { font-size: 15px; color: #444; line-height: 1.6; margin: 12px 0; }
-        .info-row { display: flex; flex-direction: column; gap: 8px; margin: 14px 0; }
-        .info-pill { display: flex; align-items: center; gap: 8px; background: var(--white); border-radius: 12px; padding: 10px 14px; font-size: 14px; font-weight: 700; }
-        .info-pill a { color: var(--accent); text-decoration: none; word-break: break-all; }
-        .yt-embed { width: 100%; aspect-ratio: 16/9; border-radius: 14px; border: none; margin: 12px 0; }
-        .obiettivo-check { width: 100%; padding: 14px; border-radius: 16px; border: 2.5px solid var(--grey); background: var(--white); font-weight: 800; font-size: 14px; cursor: pointer; font-family: inherit; margin-top: 8px; }
-        .obiettivo-check.done { border-color: #22c55e; background: #f0fdf4; color: #15803d; }
+        .elem-detail-hdr { background: var(--white); padding: 14px 20px; padding-top: max(14px, env(safe-area-inset-top,14px)); border-bottom: 1.5px solid var(--grey); display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+        .elem-detail-hdr-title { font-weight: 900; font-size: 16px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .btn-edit-hdr { background: var(--grey-light); border: none; border-radius: 9px; padding: 7px 14px; font-weight: 800; font-size: 12px; cursor: pointer; font-family: inherit; flex-shrink: 0; }
+        .elem-detail-body { flex: 1; overflow-y: auto; padding: 24px 20px 60px; }
+        .detail-tipo-label { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: #9ca3af; margin-bottom: 8px; }
+        .detail-title { font-size: 24px; font-weight: 900; letter-spacing: -0.3px; margin-bottom: 12px; line-height: 1.2; }
+        .detail-desc { font-size: 15px; color: #4b5563; line-height: 1.65; white-space: pre-wrap; margin-bottom: 16px; }
+        .detail-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+        .detail-pill { background: var(--grey-light); border-radius: 10px; padding: 8px 14px; font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+        .yt-iframe { width: 100%; aspect-ratio: 16/9; border-radius: 14px; border: none; display: block; margin-bottom: 16px; }
+        .btn-toggle-goal { width: 100%; padding: 14px; border-radius: 14px; border: 2px solid var(--grey); background: var(--white); font-weight: 800; font-size: 15px; cursor: pointer; font-family: inherit; margin-top: 8px; transition: all 0.2s; }
+        .btn-toggle-goal.done { border-color: #22c55e; background: #f0fdf4; color: #15803d; }
+        .external-link { display: flex; align-items: center; gap: 8px; background: var(--grey-light); border-radius: 12px; padding: 12px 16px; text-decoration: none; color: var(--dark); font-weight: 700; font-size: 14px; margin-bottom: 12px; word-break: break-all; }
+
+        /* ── MODAL ───────────────────────────────── */
+        .modal-overlay { display: none; position: fixed; inset: 0; z-index: 600; background: rgba(0,0,0,0.45); align-items: flex-end; justify-content: center; }
+        .modal-overlay.open { display: flex; }
+        .modal-box { background: var(--white); border-radius: 28px 28px 0 0; padding: 24px 20px; padding-bottom: max(28px, env(safe-area-inset-bottom,28px)); width: 100%; max-width: 500px; max-height: 92vh; overflow-y: auto; }
+        .modal-handle { width: 40px; height: 4px; background: var(--grey); border-radius: 4px; margin: 0 auto 20px; }
+        .modal-title { font-weight: 900; font-size: 20px; margin-bottom: 20px; letter-spacing: -0.3px; }
+        .form-group { margin-bottom: 16px; }
+        .form-label { font-size: 11px; font-weight: 800; color: #6b7280; margin-bottom: 6px; display: block; text-transform: uppercase; letter-spacing: 0.4px; }
+        .form-input { width: 100%; padding: 13px 16px; border-radius: 14px; border: 1.5px solid var(--grey); font-size: 15px; font-family: inherit; outline: none; transition: border-color 0.2s; background: var(--white); color: var(--dark); }
+        .form-input:focus { border-color: var(--c, #3b82f6); }
+        .form-textarea { resize: vertical; min-height: 90px; }
+        .seg-row { display: flex; background: var(--grey-light); border-radius: 12px; padding: 3px; gap: 2px; }
+        .seg-btn { flex: 1; padding: 8px 4px; border-radius: 9px; border: none; background: none; font-family: inherit; font-weight: 800; font-size: 12px; cursor: pointer; color: #9ca3af; transition: all 0.15s; text-align: center; }
+        .seg-btn.active { background: var(--white); color: var(--dark); box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+        .btn-primary { width: 100%; padding: 16px; border-radius: 16px; border: none; background: var(--c, #3b82f6); color: white; font-weight: 900; font-size: 16px; cursor: pointer; font-family: inherit; margin-top: 8px; }
+        .btn-danger { width: 100%; padding: 14px; border-radius: 16px; border: none; background: #fef2f2; color: #dc2626; font-weight: 800; font-size: 14px; cursor: pointer; font-family: inherit; margin-top: 8px; }
+        .btn-ghost { width: 100%; padding: 12px; border: none; background: none; color: #9ca3af; font-weight: 700; font-size: 14px; cursor: pointer; margin-top: 4px; font-family: inherit; }
+
+        /* Emoji picker */
+        .emoji-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+        .emoji-opt { width: 40px; height: 40px; border-radius: 10px; border: 1.5px solid var(--grey); background: var(--white); font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+        .emoji-opt.active { border-color: var(--c, #3b82f6); background: color-mix(in srgb, var(--c, #3b82f6) 10%, white); }
+        .color-row { display: flex; align-items: center; gap: 10px; }
+        .color-row input[type=color] { -webkit-appearance: none; width: 44px; height: 44px; border: none; border-radius: 50%; padding: 0; cursor: pointer; background: none; flex-shrink: 0; }
+        .color-row input[type=color]::-webkit-color-swatch-wrapper { padding: 0; border-radius: 50%; }
+        .color-row input[type=color]::-webkit-color-swatch { border: none; border-radius: 50%; }
+        .color-bar { height: 18px; flex: 1; border-radius: 9px; transition: background 0.2s; }
+
+        /* Empty */
+        .tab-empty { text-align: center; padding: 60px 24px; color: #9ca3af; }
+        .tab-empty-icon { font-size: 40px; margin-bottom: 10px; }
+        .tab-empty-txt { font-weight: 700; font-size: 14px; line-height: 1.5; }
 
         /* Toast */
         .toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--dark); color: white; padding: 12px 20px; border-radius: 14px; font-weight: 700; font-size: 14px; opacity: 0; transition: all 0.25s; white-space: nowrap; z-index: 9999; pointer-events: none; }
         .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
+        /* FAB */
+        .fab { position: fixed; bottom: 24px; right: 20px; width: 56px; height: 56px; border-radius: 50%; background: var(--dark); color: white; border: none; font-size: 26px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 16px rgba(0,0,0,0.2); z-index: 50; transition: transform 0.1s; }
+        .fab:active { transform: scale(0.93); }
+
         /* Feedback */
-        .fab-feedback { position: fixed; bottom: 88px; right: 18px; width: 46px; height: 46px; border-radius: 50%; background: #fff; border: 2.5px solid #e0e0e0; box-shadow: 0 2px 10px rgba(0,0,0,.12); display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 200; }
-        .fab-feedback svg { width: 20px; height: 20px; stroke: #777; fill: none; stroke-width: 2; }
-        .fb-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 999; display: none; align-items: flex-end; justify-content: center; padding-bottom: env(safe-area-inset-bottom,0); }
+        .fab-feedback { position: fixed; bottom: 88px; right: 18px; width: 44px; height: 44px; border-radius: 50%; background: var(--white); border: 1.5px solid var(--grey); box-shadow: 0 2px 8px rgba(0,0,0,.1); display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 49; }
+        .fab-feedback svg { width: 18px; height: 18px; stroke: #9ca3af; fill: none; stroke-width: 2; }
+        .fb-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 999; display: none; align-items: flex-end; justify-content: center; padding-bottom: env(safe-area-inset-bottom,0); }
         .fb-overlay.open { display: flex; }
-        .fb-sheet { background: #fff; border-radius: 24px 24px 0 0; padding: 24px 20px 40px; width: 100%; max-width: 520px; }
+        .fb-sheet { background: white; border-radius: 24px 24px 0 0; padding: 24px 20px 40px; width: 100%; max-width: 520px; }
         .fb-sheet h3 { margin: 0 0 16px; font-size: 17px; font-weight: 800; }
         .fb-tipo { display: flex; gap: 10px; margin-bottom: 14px; }
         .fb-tipo input[type=radio] { display: none; }
         .fb-tipo label { flex: 1; text-align: center; padding: 8px; border-radius: 12px; border: 2px solid #e0e0e0; font-weight: 700; font-size: 13px; cursor: pointer; }
         .fb-tipo input:checked + label { border-color: #333; background: #f5f5f5; }
-        .fb-textarea { width: 100%; min-height: 100px; padding: 12px; border-radius: 14px; border: 2px solid #e0e0e0; font-family: inherit; font-size: 14px; resize: vertical; outline: none; }
-        .fb-send { width: 100%; padding: 14px; border-radius: 16px; border: none; background: #111; color: #fff; font-weight: 800; font-size: 15px; cursor: pointer; margin-top: 12px; font-family: inherit; }
+        .fb-textarea { width: 100%; min-height: 90px; padding: 12px; border-radius: 14px; border: 2px solid #e0e0e0; font-family: inherit; font-size: 14px; resize: vertical; outline: none; }
+        .fb-send { width: 100%; padding: 14px; border-radius: 16px; border: none; background: #111; color: white; font-weight: 800; font-size: 15px; cursor: pointer; margin-top: 12px; font-family: inherit; }
     </style>
 </head>
 <body>
 
-<!-- ── Header ─────────────────────────────────────── -->
-<div class="page-header">
-    <a href="/" class="btn-back">
-        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
-    </a>
-    <span class="header-title">SPORT</span>
-    <button class="btn-add-hdr" onclick="apriModaleDisc()">+</button>
+<!-- ═══ HOME ═══════════════════════════════════════ -->
+<div class="home-header">
+    <a href="/" class="btn-back"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></a>
+    <span class="home-title">Sport</span>
+    <button class="btn-nuova-disc" onclick="apriModaleDisc()">+ Nuova</button>
 </div>
+<div id="discList" class="disc-list"></div>
 
-<!-- ── Griglia discipline ─────────────────────────── -->
-<div class="disc-grid" id="discGrid"></div>
-
-<!-- ── Overlay disciplina ─────────────────────────── -->
+<!-- ═══ DISCIPLINE OVERLAY ══════════════════════════ -->
 <div class="disc-overlay" id="discOverlay">
-    <div class="disc-overlay-header" id="discOverlayHdr">
-        <button class="btn-back" onclick="chiudiDisc()">
-            <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
-        </button>
-        <span class="disc-overlay-title" id="discOverlayTitle"></span>
-        <button class="btn-add-hdr" id="discOverlayAddBtn" onclick="apriModaleElem()">+</button>
+    <div class="disc-hero" id="discHero">
+        <div class="disc-hero-top">
+            <button class="disc-hero-back" onclick="chiudiDisc()"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>
+            <span class="disc-hero-title" id="discHeroTitle"></span>
+            <button class="disc-hero-edit" onclick="apriModaleDisc(discAperta?.id)">Modifica</button>
+            <button class="disc-hero-add" id="discHeroAdd" onclick="apriModaleElemConTipo()">+</button>
+        </div>
+        <div class="disc-hero-stats">
+            <div class="hero-stat"><div class="hero-stat-val" id="statSessioni">0</div><div class="hero-stat-lbl">Sessioni</div></div>
+            <div class="hero-stat"><div class="hero-stat-val" id="statOre">0h</div><div class="hero-stat-lbl">Tempo tot.</div></div>
+            <div class="hero-stat"><div class="hero-stat-val" id="statTecniche">0</div><div class="hero-stat-lbl">Tecniche</div></div>
+        </div>
     </div>
-    <div class="filter-row" id="discFilterRow">
-        <div class="chip active" data-f="tutti" onclick="filtroElem('tutti',this)">Tutti</div>
-        <div class="chip" data-f="figura" onclick="filtroElem('figura',this)">🎯 Figure</div>
-        <div class="chip" data-f="video" onclick="filtroElem('video',this)">📹 Video</div>
-        <div class="chip" data-f="nota" onclick="filtroElem('nota',this)">📝 Note</div>
-        <div class="chip" data-f="allenamento" onclick="filtroElem('allenamento',this)">🏃 Allenamenti</div>
-        <div class="chip" data-f="obiettivo" onclick="filtroElem('obiettivo',this)">✅ Obiettivi</div>
+    <div class="disc-tabs">
+        <button class="disc-tab active" onclick="selTab('allenamenti',this)">🏃 Diario</button>
+        <button class="disc-tab" onclick="selTab('libreria',this)">📚 Libreria</button>
+        <button class="disc-tab" onclick="selTab('obiettivi',this)">🎯 Obiettivi</button>
     </div>
-    <div class="elem-list" id="elemList"></div>
+    <div class="disc-content">
+        <div id="tabAllenamenti"><div class="allenamenti-list" id="allenamentiList"></div></div>
+        <div id="tabLibreria" style="display:none">
+            <div class="libreria-top">
+                <div class="search-bar">
+                    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input id="libSearch" placeholder="Cerca…" oninput="renderLibreria()">
+                </div>
+                <div class="filter-chips">
+                    <div class="fchip active" data-f="tutti" onclick="selLibFiltro('tutti',this)">Tutti</div>
+                    <div class="fchip" data-f="figura" onclick="selLibFiltro('figura',this)">🎯 Figure</div>
+                    <div class="fchip" data-f="video" onclick="selLibFiltro('video',this)">📹 Video</div>
+                    <div class="fchip" data-f="nota" onclick="selLibFiltro('nota',this)">📝 Note</div>
+                </div>
+            </div>
+            <div class="libreria-grid" id="liberiaGrid"></div>
+        </div>
+        <div id="tabObiettivi" style="display:none"><div class="obiettivi-list" id="obiettiviList"></div></div>
+    </div>
 </div>
 
-<!-- ── Elemento detail overlay ───────────────────── -->
+<!-- ═══ ELEMENT DETAIL ══════════════════════════════ -->
 <div class="elem-detail" id="elemDetail">
-    <div class="elem-detail-header">
-        <button class="btn-back" onclick="chiudiElemDetail()">
-            <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
-        </button>
-        <span style="font-weight:900;font-size:16px;flex:1" id="elemDetailTipoLabel"></span>
-        <button style="background:var(--grey-light);border:none;border-radius:10px;padding:7px 14px;font-weight:800;font-size:12px;cursor:pointer;font-family:inherit" onclick="modificaElemCorrente()">Modifica</button>
+    <div class="elem-detail-hdr">
+        <button class="btn-back" onclick="chiudiElemDetail()"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>
+        <span class="elem-detail-hdr-title" id="elemDetailHdrTitle"></span>
+        <button class="btn-edit-hdr" onclick="modificaElemCorrente()">Modifica</button>
     </div>
     <div class="elem-detail-body" id="elemDetailBody"></div>
 </div>
 
-<!-- ── Modale: Nuova/modifica disciplina ─────────── -->
+<!-- ═══ MODALE DISCIPLINA ═══════════════════════════ -->
 <div class="modal-overlay" id="modaleDisc">
     <div class="modal-box">
         <div class="modal-handle"></div>
         <div class="modal-title" id="modaleDiscTitle">Nuova disciplina</div>
-
         <div class="form-group">
-            <label class="form-label">Emoji</label>
+            <div class="form-label">Emoji</div>
             <div class="emoji-grid" id="emojiGrid"></div>
-            <input class="form-input" id="dEmoji" placeholder="Oppure scrivi un'emoji" style="margin-top:8px;font-size:20px;text-align:center" maxlength="2">
         </div>
         <div class="form-group">
-            <label class="form-label">Nome *</label>
+            <div class="form-label">Nome *</div>
             <input class="form-input" id="dNome" placeholder="Es. Lindy Hop, Tennis, Nuoto…">
         </div>
         <div class="form-group">
-            <label class="form-label">Colore</label>
-            <div class="color-picker-disc">
+            <div class="form-label">Colore</div>
+            <div class="color-row">
                 <input type="color" id="dColore" value="#3b82f6" oninput="document.getElementById('dColorBar').style.background=this.value">
-                <div class="color-preview-bar" id="dColorBar" style="background:#3b82f6"></div>
+                <div class="color-bar" id="dColorBar" style="background:#3b82f6"></div>
             </div>
         </div>
-
-        <button class="btn-save" onclick="salvaDisc()">Salva</button>
-        <button class="btn-delete" id="btnDelDisc" style="display:none" onclick="eliminaDisc()">Elimina disciplina</button>
-        <button class="btn-annulla" onclick="chiudi('modaleDisc')">Annulla</button>
+        <button class="btn-primary" onclick="salvaDisc()">Salva</button>
+        <button class="btn-danger" id="btnDelDisc" style="display:none" onclick="eliminaDisc()">Elimina disciplina</button>
+        <button class="btn-ghost" onclick="chiudi('modaleDisc')">Annulla</button>
     </div>
 </div>
 
-<!-- ── Modale: Nuovo/modifica elemento ───────────── -->
+<!-- ═══ MODALE ELEMENTO ══════════════════════════════ -->
 <div class="modal-overlay" id="modaleElem">
     <div class="modal-box">
         <div class="modal-handle"></div>
-        <div class="modal-title" id="modaleElemTitle">Nuovo elemento</div>
+        <div class="modal-title" id="modaleElemTitle">Aggiungi</div>
 
-        <div class="form-group">
-            <label class="form-label">Tipo</label>
-            <div class="tipo-row">
-                <button class="tipo-btn" data-tipo="figura" onclick="selTipoElem(this)">🎯 Figura</button>
-                <button class="tipo-btn active" data-tipo="video" onclick="selTipoElem(this)">📹 Video</button>
-                <button class="tipo-btn" data-tipo="nota" onclick="selTipoElem(this)">📝 Nota</button>
-                <button class="tipo-btn" data-tipo="allenamento" onclick="selTipoElem(this)">🏃 Allenamento</button>
-                <button class="tipo-btn" data-tipo="obiettivo" onclick="selTipoElem(this)">✅ Obiettivo</button>
+        <div class="form-group" id="eTipoGroup">
+            <div class="form-label">Tipo</div>
+            <div class="seg-row" id="tipoSeg">
+                <button class="seg-btn" data-tipo="allenamento" onclick="selTipoElem(this)">🏃 Sessione</button>
+                <button class="seg-btn" data-tipo="figura" onclick="selTipoElem(this)">🎯 Figura</button>
+                <button class="seg-btn" data-tipo="video" onclick="selTipoElem(this)">📹 Video</button>
+                <button class="seg-btn" data-tipo="nota" onclick="selTipoElem(this)">📝 Nota</button>
+                <button class="seg-btn" data-tipo="obiettivo" onclick="selTipoElem(this)">✅ Obiettivo</button>
             </div>
         </div>
 
         <div class="form-group">
-            <label class="form-label" id="eTitoloLabel">Titolo *</label>
+            <div class="form-label" id="eTitoloLbl">Titolo *</div>
             <input class="form-input" id="eTitolo" placeholder="">
         </div>
         <div class="form-group" id="eDescGroup">
-            <label class="form-label">Descrizione / Note</label>
+            <div class="form-label">Note</div>
             <textarea class="form-input form-textarea" id="eDesc" placeholder=""></textarea>
         </div>
-        <div class="form-group" id="eUrlGroup">
-            <label class="form-label">Link video YouTube</label>
+        <div class="form-group" id="eUrlGroup" style="display:none">
+            <div class="form-label">Link YouTube *</div>
             <input class="form-input" id="eUrl" placeholder="https://youtu.be/…" type="url">
         </div>
         <div class="form-group" id="eDiffGroup" style="display:none">
-            <label class="form-label">Difficoltà</label>
-            <div class="tipo-row">
-                <button class="tipo-btn" data-diff="facile" onclick="selDiff(this)">🟢 Facile</button>
-                <button class="tipo-btn active" data-diff="media" onclick="selDiff(this)">🟡 Media</button>
-                <button class="tipo-btn" data-diff="difficile" onclick="selDiff(this)">🔴 Difficile</button>
+            <div class="form-label">Difficoltà</div>
+            <div class="seg-row">
+                <button class="seg-btn" data-diff="facile" onclick="selDiff(this)">🟢 Facile</button>
+                <button class="seg-btn active" data-diff="media" onclick="selDiff(this)">🟡 Media</button>
+                <button class="seg-btn" data-diff="difficile" onclick="selDiff(this)">🔴 Difficile</button>
             </div>
         </div>
         <div class="form-group" id="eDataGroup" style="display:none">
-            <label class="form-label">Data</label>
+            <div class="form-label">Data</div>
             <input class="form-input" id="eData" type="date">
         </div>
         <div class="form-group" id="eDurataGroup" style="display:none">
-            <label class="form-label">Durata (minuti)</label>
+            <div class="form-label">Durata (minuti)</div>
             <input class="form-input" id="eDurata" type="number" placeholder="60" min="1">
         </div>
         <div class="form-group" id="eScadenzaGroup" style="display:none">
-            <label class="form-label">Entro il (facoltativo)</label>
+            <div class="form-label">Entro il (facoltativo)</div>
             <input class="form-input" id="eScadenza" type="date">
         </div>
 
-        <button class="btn-save" onclick="salvaElem()">Salva</button>
-        <button class="btn-delete" id="btnDelElem" style="display:none" onclick="eliminaElem()">Elimina</button>
-        <button class="btn-annulla" onclick="chiudi('modaleElem')">Annulla</button>
+        <button class="btn-primary" id="btnSalvaElem" onclick="salvaElem()">Salva</button>
+        <button class="btn-danger" id="btnDelElem" style="display:none" onclick="eliminaElem()">Elimina</button>
+        <button class="btn-ghost" onclick="chiudi('modaleElem')">Annulla</button>
     </div>
 </div>
 
-<!-- Toast -->
 <div class="toast" id="toast"></div>
 
-<!-- Feedback FAB -->
-<button class="fab-feedback" onclick="_fbApri()" title="Invia feedback">
+<button class="fab-feedback" onclick="_fbApri()">
     <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
 </button>
 <div class="fb-overlay" id="fbOverlay" onclick="if(event.target===this)_fbChiudi()">
@@ -311,24 +402,29 @@ const SUPABASE_URL = 'https://eejdpophfxsrqdvsucye.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlamRwb3BoZnhzcnFkdnN1Y3llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2NTMzMDQsImV4cCI6MjA5MzIyOTMwNH0.mpxbwlJyIdZgqKIdutHbLd85JR1P11yiglbYeApi17k';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+const EMOJIS = ['💃','🕺','⚽','🏀','🎾','🏊','🚴','🥊','🏋️','🤸','🏄','🧗','🤺','🥋','🏌️','🎿','🏒','🚣','🏇','⛷️','🏃','🎯','🎱','🏸','🏐'];
+
+const TIPO = {
+    allenamento: { label: '🏃 Sessione', color: '#22c55e' },
+    figura:      { label: '🎯 Figura',   color: '#8b5cf6' },
+    video:       { label: '📹 Video',    color: '#ef4444' },
+    nota:        { label: '📝 Nota',     color: '#f59e0b' },
+    obiettivo:   { label: '✅ Obiettivo',color: '#3b82f6' },
+};
+
 let userEmail = null;
 let discipline = [], elementi = [];
 let discAperta = null;
 let editDiscId = null, editElemId = null;
-let tipoElemCorrente = 'video', diffCorrente = 'media';
-let filtroCorrente = 'tutti';
-let elemDetailCorrente = null;
+let tipoElemCorrente = 'allenamento', diffCorrente = 'media';
+let tabCorrente = 'allenamenti', libFiltro = 'tutti';
+let elemDetailCorrenteId = null;
+let dEmojiCorrente = '🏃';
 
-const EMOJIS = ['🏃','⚽','🏀','🎾','🏊','🚴','🥊','🏋️','🤸','💃','🕺','🎯','🏄','🧗','🤾','🏇','🤺','🥋','🏌️','🎿','🏒','⛷️','🏂','🤽','🚣'];
-const TIPO_INFO = {
-    figura:      { label: '🎯 Figura',      colore: '#8b5cf6', bg: '#f3e8ff', text: '#6d28d9' },
-    video:       { label: '📹 Video',       colore: '#ef4444', bg: '#fee2e2', text: '#991b1b' },
-    nota:        { label: '📝 Nota',        colore: '#f59e0b', bg: '#fef3c7', text: '#92400e' },
-    allenamento: { label: '🏃 Allenamento', colore: '#22c55e', bg: '#d1fae5', text: '#065f46' },
-    obiettivo:   { label: '✅ Obiettivo',   colore: '#3b82f6', bg: '#dbeafe', text: '#1e40af' },
-};
+const MESI = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
+const GIORNI = ['dom','lun','mar','mer','gio','ven','sab'];
 
-// ── Auth ─────────────────────────────────────────
+// ── Init ─────────────────────────────────────────
 async function init() {
     const { data: { session } } = await sb.auth.getSession();
     if (!session) { location.href = '/login.html'; return; }
@@ -337,7 +433,6 @@ async function init() {
     await caricaDisc();
 }
 
-// ── Toast ─────────────────────────────────────────
 function toast(msg) {
     const t = document.getElementById('toast');
     t.textContent = msg; t.classList.add('show');
@@ -348,39 +443,56 @@ function chiudi(id) { document.getElementById(id).classList.remove('open'); }
 // ── Emoji grid ────────────────────────────────────
 function buildEmojiGrid() {
     document.getElementById('emojiGrid').innerHTML = EMOJIS.map(e =>
-        `<div class="emoji-opt" onclick="selEmoji('${e}',this)">${e}</div>`
+        `<div class="emoji-opt${e===dEmojiCorrente?' active':''}" onclick="selEmoji('${e}',this)">${e}</div>`
     ).join('');
 }
 function selEmoji(e, el) {
-    document.querySelectorAll('.emoji-opt').forEach(x => x.classList.remove('selected'));
-    el.classList.add('selected');
-    document.getElementById('dEmoji').value = e;
+    dEmojiCorrente = e;
+    document.querySelectorAll('.emoji-opt').forEach(x => x.classList.remove('active'));
+    el.classList.add('active');
 }
 
 // ── DISCIPLINE ────────────────────────────────────
 async function caricaDisc() {
-    const { data } = await sb.from('sport_discipline').select('*, sport_elementi(count)').eq('email_utente', userEmail).order('created_at');
+    const { data } = await sb.from('sport_discipline')
+        .select('*, sport_elementi(count)')
+        .eq('email_utente', userEmail)
+        .order('created_at');
     discipline = data || [];
     renderDisc();
 }
 
 function renderDisc() {
-    const grid = document.getElementById('discGrid');
+    const list = document.getElementById('discList');
     if (!discipline.length) {
-        grid.innerHTML = '<div class="empty-msg" style="grid-column:1/-1">Nessuna disciplina ancora.<br>Aggiungine una! 🏃</div>';
+        list.innerHTML = `
+            <div class="home-empty">
+                <div class="home-empty-icon">🏃</div>
+                <div class="home-empty-title">Nessuna disciplina</div>
+                <div class="home-empty-sub">Aggiungi il tuo primo sport, arte marziale o ballo.<br>Tieni il diario, impara tecniche, salva video.</div>
+                <button class="btn-cta" onclick="apriModaleDisc()">+ Aggiungi disciplina</button>
+            </div>`;
         return;
     }
-    grid.innerHTML = discipline.map(d => {
-        const n = d.sport_elementi?.[0]?.count || 0;
+    list.innerHTML = discipline.map(d => {
+        const tot = d.sport_elementi?.[0]?.count || 0;
         return `
-        <div class="disc-card" onclick="apriDisc(${d.id})" style="--disc-c:${d.colore}">
-            <div style="position:absolute;top:0;left:0;right:0;height:5px;background:${d.colore};border-radius:20px 20px 0 0"></div>
-            <button class="disc-edit-btn" onclick="event.stopPropagation();apriModaleDisc(${d.id})">
-                <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-            </button>
-            <div class="disc-emoji">${d.emoji || '🏃'}</div>
-            <div class="disc-nome">${d.nome}</div>
-            <div class="disc-count">${n} element${n === 1 ? 'o' : 'i'}</div>
+        <div class="disc-card" onclick="apriDisc(${d.id})">
+            <div class="disc-card-banner" style="background:${d.colore}"></div>
+            <div class="disc-card-body">
+                <div class="disc-emoji-wrap" style="background:${d.colore}1a">${d.emoji || '🏃'}</div>
+                <div class="disc-info">
+                    <div class="disc-nome">${d.nome}</div>
+                    <div class="disc-stats-row">
+                        <div class="disc-stat">
+                            <div class="disc-stat-val" style="color:${d.colore}">${tot}</div>
+                            <div class="disc-stat-lbl">elementi</div>
+                        </div>
+                    </div>
+                </div>
+                <button class="disc-edit-chip" onclick="event.stopPropagation();apriModaleDisc(${d.id})">Modifica</button>
+                <div class="disc-chevron"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+            </div>
         </div>`;
     }).join('');
 }
@@ -388,12 +500,12 @@ function renderDisc() {
 function apriModaleDisc(id = null) {
     const d = id ? discipline.find(x => x.id === id) : null;
     editDiscId = id || null;
+    dEmojiCorrente = d?.emoji || '🏃';
     document.getElementById('modaleDiscTitle').textContent = d ? 'Modifica disciplina' : 'Nuova disciplina';
     document.getElementById('dNome').value = d?.nome || '';
-    document.getElementById('dEmoji').value = d?.emoji || '';
     document.getElementById('dColore').value = d?.colore || '#3b82f6';
     document.getElementById('dColorBar').style.background = d?.colore || '#3b82f6';
-    document.querySelectorAll('.emoji-opt').forEach(x => x.classList.toggle('selected', x.textContent === (d?.emoji || '')));
+    buildEmojiGrid();
     document.getElementById('btnDelDisc').style.display = id ? 'block' : 'none';
     document.getElementById('modaleDisc').classList.add('open');
 }
@@ -401,33 +513,45 @@ function apriModaleDisc(id = null) {
 async function salvaDisc() {
     const nome = document.getElementById('dNome').value.trim();
     if (!nome) { toast('Inserisci il nome'); return; }
-    const emoji = document.getElementById('dEmoji').value || '🏃';
-    const colore = document.getElementById('dColore').value;
-    const rec = { email_utente: userEmail, nome, emoji, colore };
+    const rec = { email_utente: userEmail, nome, emoji: dEmojiCorrente, colore: document.getElementById('dColore').value };
     if (editDiscId) await sb.from('sport_discipline').update(rec).eq('id', editDiscId);
     else await sb.from('sport_discipline').insert(rec);
     chiudi('modaleDisc');
+    if (discAperta?.id === editDiscId) {
+        discAperta = { ...discAperta, ...rec };
+        aggiornaCssDisc(rec.colore);
+    }
     await caricaDisc();
     toast('Salvato!');
 }
 
 async function eliminaDisc() {
-    if (!confirm('Eliminare questa disciplina e tutti i suoi elementi?')) return;
+    if (!confirm(`Eliminare "${discAperta?.nome || 'questa disciplina'}" e tutti i suoi elementi?`)) return;
     await sb.from('sport_discipline').delete().eq('id', editDiscId);
     chiudi('modaleDisc');
+    chiudiDisc();
     await caricaDisc();
     toast('Eliminata');
 }
 
-// ── OVERLAY DISCIPLINA ────────────────────────────
+// ── DISCIPLINE OVERLAY ────────────────────────────
+function aggiornaCssDisc(colore) {
+    document.getElementById('discHero').style.background = colore;
+    document.getElementById('discOverlay').style.setProperty('--c', colore);
+    document.querySelectorAll('.disc-tab').forEach(t => t.style.setProperty('--c', colore));
+}
+
 async function apriDisc(id) {
     discAperta = discipline.find(x => x.id === id);
     if (!discAperta) return;
-    filtroCorrente = 'tutti';
-    document.getElementById('discOverlayTitle').textContent = discAperta.emoji + ' ' + discAperta.nome;
-    document.getElementById('discOverlayAddBtn').style.background = discAperta.colore;
-    document.getElementById('discFilterRow').style.setProperty('--disc-color', discAperta.colore);
-    document.querySelectorAll('#discFilterRow .chip').forEach(c => c.classList.toggle('active', c.dataset.f === 'tutti'));
+    document.getElementById('discHeroTitle').textContent = discAperta.emoji + ' ' + discAperta.nome;
+    aggiornaCssDisc(discAperta.colore);
+    tabCorrente = 'allenamenti';
+    libFiltro = 'tutti';
+    document.querySelectorAll('.disc-tab').forEach((t,i) => t.classList.toggle('active', i===0));
+    ['tabAllenamenti','tabLibreria','tabObiettivi'].forEach((id,i) => document.getElementById(id).style.display = i===0 ? '' : 'none');
+    document.getElementById('libSearch').value = '';
+    document.querySelectorAll('.fchip').forEach(c => c.classList.toggle('active', c.dataset.f==='tutti'));
     document.getElementById('discOverlay').classList.add('open');
     await caricaElem();
 }
@@ -440,16 +564,82 @@ function chiudiDisc() {
 
 async function caricaElem() {
     if (!discAperta) return;
-    const { data } = await sb.from('sport_elementi').select('*').eq('disciplina_id', discAperta.id).order('created_at', { ascending: false });
+    const { data } = await sb.from('sport_elementi')
+        .select('*')
+        .eq('disciplina_id', discAperta.id)
+        .order('created_at', { ascending: false });
     elementi = data || [];
-    renderElem();
+    aggiornaStats();
+    renderAllenamenti();
+    renderLibreria();
+    renderObiettivi();
 }
 
-function filtroElem(tipo, el) {
-    filtroCorrente = tipo;
-    document.querySelectorAll('#discFilterRow .chip').forEach(c => c.classList.remove('active'));
+function aggiornaStats() {
+    const sess = elementi.filter(e => e.tipo === 'allenamento');
+    const totMin = sess.reduce((s, e) => s + (e.durata_min || 0), 0);
+    const ore = totMin >= 60 ? Math.round(totMin / 60) + 'h' : (totMin ? totMin + 'm' : '0h');
+    const tecniche = elementi.filter(e => e.tipo === 'figura').length;
+    document.getElementById('statSessioni').textContent = sess.length;
+    document.getElementById('statOre').textContent = ore;
+    document.getElementById('statTecniche').textContent = tecniche;
+}
+
+function selTab(nome, el) {
+    tabCorrente = nome;
+    document.querySelectorAll('.disc-tab').forEach(t => t.classList.remove('active'));
     el.classList.add('active');
-    renderElem();
+    document.getElementById('tabAllenamenti').style.display = nome === 'allenamenti' ? '' : 'none';
+    document.getElementById('tabLibreria').style.display = nome === 'libreria' ? '' : 'none';
+    document.getElementById('tabObiettivi').style.display = nome === 'obiettivi' ? '' : 'none';
+}
+
+// ── ALLENAMENTI TAB ───────────────────────────────
+function renderAllenamenti() {
+    const list = document.getElementById('allenamentiList');
+    const sess = elementi.filter(e => e.tipo === 'allenamento').sort((a,b) => (b.data||b.created_at).localeCompare(a.data||a.created_at));
+    if (!sess.length) {
+        list.innerHTML = '<div class="tab-empty"><div class="tab-empty-icon">📅</div><div class="tab-empty-txt">Nessuna sessione ancora.<br>Registra il tuo primo allenamento!</div></div>';
+        return;
+    }
+    list.innerHTML = sess.map(s => {
+        const d = s.data ? new Date(s.data + 'T12:00:00') : new Date(s.created_at);
+        const giorno = d.getDate();
+        const mese = MESI[d.getMonth()].toUpperCase();
+        const dur = s.durata_min ? (s.durata_min >= 60 ? Math.floor(s.durata_min/60) + 'h ' + (s.durata_min%60 ? s.durata_min%60 + 'm' : '') : s.durata_min + ' min') : '';
+        return `
+        <div class="session-card" id="sc${s.id}" onclick="toggleSession(${s.id})">
+            <div class="session-card-top">
+                <div class="session-date-block">
+                    <div class="session-date-day">${giorno}</div>
+                    <div class="session-date-mon">${mese}</div>
+                </div>
+                <div class="session-info">
+                    <div class="session-dur">${s.titolo || (dur ? dur + ' di allenamento' : 'Sessione')}</div>
+                    ${s.descrizione ? `<div class="session-note-preview">${s.descrizione}</div>` : ''}
+                </div>
+                <div class="session-action">
+                    ${dur ? `<span style="background:var(--grey-light);border-radius:8px;padding:4px 10px;font-size:12px;font-weight:800;color:#374151">⏱ ${dur}</span>` : ''}
+                    <button class="session-edit-btn" onclick="event.stopPropagation();apriModaleElem(${s.id})">
+                        <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    </button>
+                </div>
+            </div>
+            ${s.descrizione ? `<div class="session-note-full">${s.descrizione.replace(/\n/g,'<br>')}</div>` : ''}
+        </div>`;
+    }).join('');
+}
+
+function toggleSession(id) {
+    document.getElementById('sc' + id)?.classList.toggle('expanded');
+}
+
+// ── LIBRERIA TAB ──────────────────────────────────
+function selLibFiltro(f, el) {
+    libFiltro = f;
+    document.querySelectorAll('.fchip').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+    renderLibreria();
 }
 
 function ytId(url) {
@@ -458,71 +648,127 @@ function ytId(url) {
     return m ? m[1] : null;
 }
 
-function renderElem() {
-    const list = document.getElementById('elemList');
-    const filtered = filtroCorrente === 'tutti' ? elementi : elementi.filter(e => e.tipo === filtroCorrente);
-    if (!filtered.length) {
-        list.innerHTML = '<div class="empty-msg">Nessun elemento.<br>Aggiungine uno con +</div>';
+function renderLibreria() {
+    const grid = document.getElementById('liberiaGrid');
+    const q = (document.getElementById('libSearch')?.value || '').toLowerCase();
+    let items = elementi.filter(e => e.tipo !== 'allenamento' && e.tipo !== 'obiettivo');
+    if (libFiltro !== 'tutti') items = items.filter(e => e.tipo === libFiltro);
+    if (q) items = items.filter(e => (e.titolo + (e.descrizione||'')).toLowerCase().includes(q));
+
+    if (!items.length) {
+        grid.innerHTML = '<div class="tab-empty"><div class="tab-empty-icon">📚</div><div class="tab-empty-txt">Nessun elemento.<br>Aggiungi figure, video o note!</div></div>';
         return;
     }
-    list.innerHTML = filtered.map(el => {
-        const info = TIPO_INFO[el.tipo] || TIPO_INFO.nota;
+
+    grid.innerHTML = items.map(el => {
+        const info = TIPO[el.tipo] || TIPO.nota;
         const vid = ytId(el.url);
-        const isComplete = el.tipo === 'obiettivo' && el.completato;
         const diffClass = { facile: 'diff-facile', media: 'diff-media', difficile: 'diff-difficile' }[el.difficolta] || '';
-        return `
-        <div class="elem-card${isComplete ? ' completato' : ''}" onclick="apriElemDetail(${el.id})">
-            <div class="elem-card-left-bar" style="background:${info.colore}"></div>
-            <div style="padding-left:4px">
-                <span class="elem-tipo-badge" style="background:${info.bg};color:${info.text}">${info.label}</span>
-                ${el.difficolta ? `<span class="elem-tipo-badge ${diffClass}" style="margin-left:4px">${el.difficolta}</span>` : ''}
-                <div class="elem-titolo${isComplete ? ' completato-badge' : ''}">${el.titolo}</div>
-                ${el.descrizione ? `<div class="elem-desc">${el.descrizione}</div>` : ''}
-                ${vid ? `
-                    <div class="yt-play-overlay" style="position:relative;margin-top:8px">
-                        <img src="https://img.youtube.com/vi/${vid}/mqdefault.jpg" class="yt-thumb" onerror="this.style.display='none'">
-                    </div>` : ''}
-                <div class="elem-meta">
-                    ${el.data ? `<span>📅 ${el.data}</span>` : ''}
-                    ${el.durata_min ? `<span>⏱ ${el.durata_min} min</span>` : ''}
-                    ${el.scadenza ? `<span>🎯 Entro ${el.scadenza}</span>` : ''}
-                    ${el.url && !vid ? `<span>🔗 Link</span>` : ''}
+
+        if (el.tipo === 'video' && vid) {
+            return `
+            <div class="lib-card video-card" onclick="apriElemDetail(${el.id})">
+                <div class="lib-card-body">
+                    <div class="yt-thumb-wrap">
+                        <img src="https://img.youtube.com/vi/${vid}/mqdefault.jpg" onerror="this.src='https://img.youtube.com/vi/${vid}/default.jpg'">
+                        <div class="yt-play-btn">
+                            <svg viewBox="0 0 68 48" width="68" height="48">
+                                <rect rx="10" ry="10" width="68" height="48" fill="rgba(0,0,0,0.6)"/>
+                                <polygon points="27,15 27,33 45,24" fill="white"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="video-card-info">
+                        <div class="video-card-title">${el.titolo}</div>
+                        ${el.descrizione ? `<div class="video-card-desc">${el.descrizione}</div>` : ''}
+                        <div class="video-card-actions">
+                            <a class="btn-open-yt" href="${el.url}" target="_blank" onclick="event.stopPropagation()" rel="noopener">YouTube ↗</a>
+                            <button class="session-edit-btn" onclick="event.stopPropagation();apriModaleElem(${el.id})">
+                                <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                            </button>
+                        </div>
+                    </div>
                 </div>
+            </div>`;
+        }
+
+        return `
+        <div class="lib-card" onclick="apriElemDetail(${el.id})">
+            <div class="lib-card-accent" style="background:${info.color}"></div>
+            <div class="lib-card-body">
+                <div class="lib-card-header">
+                    <span class="lib-tipo-pill" style="background:${info.color}18;color:${info.color}">${info.label}</span>
+                    ${el.difficolta ? `<span class="lib-diff-pill ${diffClass}">${el.difficolta}</span>` : ''}
+                </div>
+                <div class="lib-titolo">${el.titolo}</div>
+                ${el.descrizione ? `<div class="lib-desc">${el.descrizione}</div>` : ''}
+                ${el.url && !vid ? `<div style="font-size:11px;color:#9ca3af;font-weight:700;margin-top:4px">🔗 Link allegato</div>` : ''}
             </div>
-            <button class="elem-edit-btn" onclick="event.stopPropagation();apriModaleElem(${el.id})">
+            <button class="lib-card-edit" onclick="event.stopPropagation();apriModaleElem(${el.id})">
                 <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
             </button>
         </div>`;
     }).join('');
 }
 
+// ── OBIETTIVI TAB ─────────────────────────────────
+function renderObiettivi() {
+    const list = document.getElementById('obiettiviList');
+    const goals = elementi.filter(e => e.tipo === 'obiettivo').sort((a,b) => (a.completato?1:0)-(b.completato?1:0));
+    if (!goals.length) {
+        list.innerHTML = '<div class="tab-empty"><div class="tab-empty-icon">🎯</div><div class="tab-empty-txt">Nessun obiettivo.<br>Cosa vuoi imparare o raggiungere?</div></div>';
+        return;
+    }
+    list.innerHTML = goals.map(g => `
+        <div class="goal-card">
+            <div class="goal-check${g.completato?' done':''}" onclick="toggleObiettivo(${g.id})"></div>
+            <div class="goal-body">
+                <div class="goal-titolo${g.completato?' done':''}">${g.titolo}</div>
+                ${g.descrizione ? `<div class="goal-desc">${g.descrizione}</div>` : ''}
+                ${g.scadenza ? `<div class="goal-scadenza">🎯 Entro il ${g.scadenza}</div>` : ''}
+            </div>
+            <button class="goal-edit-btn" onclick="apriModaleElem(${g.id})">
+                <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>
+        </div>`).join('');
+}
+
+async function toggleObiettivo(id) {
+    const el = elementi.find(x => x.id === id); if (!el) return;
+    await sb.from('sport_elementi').update({ completato: !el.completato }).eq('id', id);
+    await caricaElem();
+    toast(el.completato ? 'Obiettivo riaperto' : '✅ Obiettivo completato!');
+}
+
 // ── ELEMENT DETAIL ────────────────────────────────
 function apriElemDetail(id) {
     const el = elementi.find(x => x.id === id); if (!el) return;
-    elemDetailCorrente = id;
-    const info = TIPO_INFO[el.tipo] || TIPO_INFO.nota;
+    elemDetailCorrenteId = id;
+    const info = TIPO[el.tipo] || TIPO.nota;
     const vid = ytId(el.url);
-    document.getElementById('elemDetailTipoLabel').innerHTML = `<span style="background:${info.bg};color:${info.text};padding:3px 10px;border-radius:8px;font-size:12px">${info.label}</span>`;
+    document.getElementById('elemDetailHdrTitle').textContent = el.titolo;
 
-    let html = `<div class="elem-detail-title">${el.titolo}</div>`;
-    if (el.descrizione) html += `<div class="elem-detail-desc">${el.descrizione.replace(/\n/g, '<br>')}</div>`;
+    let html = `<div class="detail-tipo-label" style="color:${info.color}">${info.label}</div>`;
+    html += `<div class="detail-title">${el.titolo}</div>`;
 
     const pills = [];
-    if (el.difficolta) pills.push(`<div class="info-pill">🎯 Difficoltà: <strong>${el.difficolta}</strong></div>`);
-    if (el.data) pills.push(`<div class="info-pill">📅 Data: <strong>${el.data}</strong></div>`);
-    if (el.durata_min) pills.push(`<div class="info-pill">⏱ Durata: <strong>${el.durata_min} minuti</strong></div>`);
-    if (el.scadenza) pills.push(`<div class="info-pill">🎯 Obiettivo entro: <strong>${el.scadenza}</strong></div>`);
-    if (pills.length) html += `<div class="info-row">${pills.join('')}</div>`;
+    if (el.difficolta) pills.push(`<div class="detail-pill">🎯 ${el.difficolta}</div>`);
+    if (el.data) pills.push(`<div class="detail-pill">📅 ${el.data}</div>`);
+    if (el.durata_min) { const h=Math.floor(el.durata_min/60),m=el.durata_min%60; pills.push(`<div class="detail-pill">⏱ ${h?h+'h ':''}${m?m+'m':''}</div>`); }
+    if (el.scadenza) pills.push(`<div class="detail-pill">🗓 Entro ${el.scadenza}</div>`);
+    if (pills.length) html += `<div class="detail-pills">${pills.join('')}</div>`;
 
     if (vid) {
-        html += `<iframe class="yt-embed" src="https://www.youtube.com/embed/${vid}" allowfullscreen allow="autoplay"></iframe>`;
+        html += `<iframe class="yt-iframe" src="https://www.youtube.com/embed/${vid}" allowfullscreen allow="autoplay; encrypted-media"></iframe>`;
     } else if (el.url) {
-        html += `<div class="info-row"><div class="info-pill">🔗 <a href="${el.url}" target="_blank" rel="noopener">${el.url}</a></div></div>`;
+        html += `<a class="external-link" href="${el.url}" target="_blank" rel="noopener">🔗 ${el.url}</a>`;
     }
+
+    if (el.descrizione) html += `<div class="detail-desc">${el.descrizione}</div>`;
 
     if (el.tipo === 'obiettivo') {
         const done = el.completato;
-        html += `<button class="obiettivo-check${done ? ' done' : ''}" onclick="toggleObiettivo(${el.id})">${done ? '✅ Completato!' : '⬜ Segna come completato'}</button>`;
+        html += `<button class="btn-toggle-goal${done?' done':''}" onclick="toggleObiettivo(${el.id})">${done ? '✅ Completato — tocca per riaprire' : '⬜ Segna come completato'}</button>`;
     }
 
     document.getElementById('elemDetailBody').innerHTML = html;
@@ -531,47 +777,42 @@ function apriElemDetail(id) {
 
 function chiudiElemDetail() {
     document.getElementById('elemDetail').classList.remove('open');
-    elemDetailCorrente = null;
+    elemDetailCorrenteId = null;
 }
 
 function modificaElemCorrente() {
+    const id = elemDetailCorrenteId;
     chiudiElemDetail();
-    if (elemDetailCorrente) apriModaleElem(elemDetailCorrente);
-}
-
-async function toggleObiettivo(id) {
-    const el = elementi.find(x => x.id === id); if (!el) return;
-    const nuovoStato = !el.completato;
-    await sb.from('sport_elementi').update({ completato: nuovoStato }).eq('id', id);
-    await caricaElem();
-    apriElemDetail(id);
-    toast(nuovoStato ? '✅ Obiettivo completato!' : 'Obiettivo riaperto');
+    if (id) apriModaleElem(id);
 }
 
 // ── MODALE ELEMENTO ───────────────────────────────
-function aggiornaCampiElem() {
-    const tipo = tipoElemCorrente;
-    const ph = { figura: 'Es. Swing Out, Charleston di base…', video: 'Es. Tutorial Swing Out', nota: 'Titolo nota', allenamento: 'Titolo sessione', obiettivo: 'Es. Imparare il Lindy Circle' };
-    document.getElementById('eTitolo').placeholder = ph[tipo] || 'Titolo';
-    document.getElementById('eDiffGroup').style.display = tipo === 'figura' ? 'block' : 'none';
-    document.getElementById('eUrlGroup').style.display = (tipo === 'figura' || tipo === 'video') ? 'block' : 'none';
-    document.getElementById('eDataGroup').style.display = tipo === 'allenamento' ? 'block' : 'none';
-    document.getElementById('eDurataGroup').style.display = tipo === 'allenamento' ? 'block' : 'none';
-    document.getElementById('eScadenzaGroup').style.display = tipo === 'obiettivo' ? 'block' : 'none';
-    document.getElementById('eDescGroup').style.display = tipo === 'video' ? 'none' : 'block';
-    if (tipo === 'video') {
-        document.getElementById('eDesc').placeholder = '';
-    } else {
-        const dp = { figura: 'Descrizione della tecnica, passi, consigli…', nota: 'Contenuto della nota…', allenamento: 'Come è andata, cosa hai lavorato…', obiettivo: 'Descrizione obiettivo…' };
-        document.getElementById('eDesc').placeholder = dp[tipo] || '';
-    }
+function apriModaleElemConTipo(tipo) {
+    tipoElemCorrente = tipo || (tabCorrente === 'allenamenti' ? 'allenamento' : tabCorrente === 'obiettivi' ? 'obiettivo' : 'figura');
+    apriModaleElem();
+}
+
+function aggiornaCampiModale() {
+    const t = tipoElemCorrente;
+    const ph = { allenamento:'Es. Tecnica sul ritmo', figura:'Es. Swing Out, Charleston di base…', video:'Titolo del video', nota:'Titolo nota', obiettivo:'Es. Imparare il Lindy Circle' };
+    document.getElementById('eTitolo').placeholder = ph[t] || 'Titolo';
+    document.getElementById('eTitoloLbl').textContent = t === 'allenamento' ? 'Titolo (facoltativo)' : 'Titolo *';
+    document.getElementById('eUrlGroup').style.display = (t === 'video' || t === 'figura') ? 'block' : 'none';
+    document.getElementById('eDiffGroup').style.display = t === 'figura' ? 'block' : 'none';
+    document.getElementById('eDataGroup').style.display = t === 'allenamento' ? 'block' : 'none';
+    document.getElementById('eDurataGroup').style.display = t === 'allenamento' ? 'block' : 'none';
+    document.getElementById('eScadenzaGroup').style.display = t === 'obiettivo' ? 'block' : 'none';
+    document.getElementById('eDescGroup').style.display = t !== 'video' ? 'block' : 'none';
+    const notePh = { allenamento:'Com\'è andata? Cosa hai lavorato?', figura:'Descrizione della tecnica, passi, consigli…', nota:'Contenuto…', obiettivo:'Descrivi l\'obiettivo…' };
+    document.getElementById('eDesc').placeholder = notePh[t] || '';
+    document.querySelector('#modaleElem .btn-primary').textContent = t === 'allenamento' ? 'Registra sessione' : 'Salva';
 }
 
 function selTipoElem(el) {
     tipoElemCorrente = el.dataset.tipo;
-    document.querySelectorAll('#modaleElem .tipo-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('#tipoSeg .seg-btn').forEach(b => b.classList.remove('active'));
     el.classList.add('active');
-    aggiornaCampiElem();
+    aggiornaCampiModale();
 }
 
 function selDiff(el) {
@@ -583,34 +824,33 @@ function selDiff(el) {
 function apriModaleElem(id = null) {
     const el = id ? elementi.find(x => x.id === id) : null;
     editElemId = id || null;
-    tipoElemCorrente = el?.tipo || filtroCorrente === 'tutti' ? 'video' : filtroCorrente;
     if (el) tipoElemCorrente = el.tipo;
     diffCorrente = el?.difficolta || 'media';
-    document.getElementById('modaleElemTitle').textContent = el ? 'Modifica elemento' : 'Nuovo elemento';
+    document.getElementById('modaleElemTitle').textContent = el ? 'Modifica' : 'Aggiungi';
     document.getElementById('eTitolo').value = el?.titolo || '';
     document.getElementById('eDesc').value = el?.descrizione || '';
     document.getElementById('eUrl').value = el?.url || '';
-    document.getElementById('eData').value = el?.data || '';
+    document.getElementById('eData').value = el?.data || (tipoElemCorrente === 'allenamento' && !el ? new Date().toISOString().slice(0,10) : '');
     document.getElementById('eDurata').value = el?.durata_min || '';
     document.getElementById('eScadenza').value = el?.scadenza || '';
-    document.querySelectorAll('#modaleElem .tipo-btn[data-tipo]').forEach(b => b.classList.toggle('active', b.dataset.tipo === tipoElemCorrente));
+    document.querySelectorAll('#tipoSeg .seg-btn').forEach(b => b.classList.toggle('active', b.dataset.tipo === tipoElemCorrente));
     document.querySelectorAll('[data-diff]').forEach(b => b.classList.toggle('active', b.dataset.diff === diffCorrente));
+    document.getElementById('eTipoGroup').style.display = el ? 'none' : 'block';
     document.getElementById('btnDelElem').style.display = id ? 'block' : 'none';
-    aggiornaCampiElem();
+    aggiornaCampiModale();
     document.getElementById('modaleElem').classList.add('open');
 }
 
 async function salvaElem() {
     const titolo = document.getElementById('eTitolo').value.trim();
-    if (!titolo) { toast('Inserisci un titolo'); return; }
+    if (!titolo && tipoElemCorrente !== 'allenamento') { toast('Inserisci un titolo'); return; }
+    if (tipoElemCorrente === 'video' && !document.getElementById('eUrl').value.trim()) { toast('Inserisci il link YouTube'); return; }
     if (!discAperta) return;
-    const btn = document.querySelector('#modaleElem .btn-save');
-    btn.textContent = 'Salvo…'; btn.disabled = true;
+    const btn = document.getElementById('btnSalvaElem');
+    btn.disabled = true; btn.textContent = '…';
     const rec = {
-        email_utente: userEmail,
-        disciplina_id: discAperta.id,
-        tipo: tipoElemCorrente,
-        titolo,
+        email_utente: userEmail, disciplina_id: discAperta.id, tipo: tipoElemCorrente,
+        titolo: titolo || (tipoElemCorrente === 'allenamento' ? 'Sessione' : 'Senza titolo'),
         descrizione: document.getElementById('eDesc').value.trim() || null,
         url: document.getElementById('eUrl').value.trim() || null,
         difficolta: tipoElemCorrente === 'figura' ? diffCorrente : null,
@@ -624,7 +864,7 @@ async function salvaElem() {
     chiudi('modaleElem');
     await caricaElem();
     toast('Salvato!');
-    btn.textContent = 'Salva'; btn.disabled = false;
+    btn.disabled = false; btn.textContent = 'Salva';
 }
 
 async function eliminaElem() {
@@ -635,6 +875,13 @@ async function eliminaElem() {
     toast('Eliminato');
 }
 
+// ── Quick add from tab ────────────────────────────
+document.getElementById('discHeroAdd').onclick = () => {
+    const tipoDefault = tabCorrente === 'allenamenti' ? 'allenamento' : tabCorrente === 'obiettivi' ? 'obiettivo' : 'figura';
+    tipoElemCorrente = tipoDefault;
+    apriModaleElem();
+};
+
 // ── Feedback ──────────────────────────────────────
 function _fbApri() { document.getElementById('fbOverlay').classList.add('open'); document.getElementById('fbTesto').focus(); }
 function _fbChiudi() { document.getElementById('fbOverlay').classList.remove('open'); }
@@ -642,7 +889,7 @@ async function _fbInvia() {
     const testo = document.getElementById('fbTesto').value.trim(); if (!testo) return;
     const tipo = document.querySelector('input[name=fbTipo]:checked')?.value || 'suggerimento';
     document.getElementById('fbSendBtn').textContent = '…';
-    const r = await fetch('/api/feedback', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: userEmail, tipo, testo }) });
+    const r = await fetch('/api/feedback', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ email: userEmail, tipo, testo }) });
     document.getElementById('fbSendBtn').textContent = 'Invia';
     _fbChiudi(); document.getElementById('fbTesto').value = '';
     toast(r.ok ? 'Grazie per il feedback!' : 'Errore invio');
