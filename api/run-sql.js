@@ -307,6 +307,32 @@ const STATEMENTS = [
         created_at timestamptz default now()
     )`,
     `ALTER TABLE IF EXISTS piante_commenti DISABLE ROW LEVEL SECURITY`,
+    `CREATE TABLE IF NOT EXISTS sport_discipline (
+        id bigint generated always as identity primary key,
+        email_utente text not null,
+        nome text not null,
+        emoji text default '🏃',
+        colore text default '#3b82f6',
+        created_at timestamptz default now()
+    )`,
+    `ALTER TABLE IF EXISTS sport_discipline DISABLE ROW LEVEL SECURITY`,
+    `CREATE TABLE IF NOT EXISTS sport_elementi (
+        id bigint generated always as identity primary key,
+        email_utente text not null,
+        disciplina_id bigint not null references sport_discipline(id) on delete cascade,
+        tipo text not null default 'nota',
+        titolo text not null,
+        descrizione text,
+        url text,
+        difficolta text,
+        data date,
+        durata_min int,
+        scadenza date,
+        completato boolean default false,
+        created_at timestamptz default now(),
+        updated_at timestamptz default now()
+    )`,
+    `ALTER TABLE IF EXISTS sport_elementi DISABLE ROW LEVEL SECURITY`,
 ];
 
 async function runSql(serviceKey, sql) {
