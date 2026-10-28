@@ -12,7 +12,6 @@
     <meta name="mobile-web-app-capable" content="yes">
     <link rel="apple-touch-icon" href="/icon-pwa-512.png">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://accounts.google.com/gsi/client" async defer onload="initGIS()"></script>
     <style>
         :root {
             color-scheme: light dark;
@@ -121,8 +120,6 @@
 
         button:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
 
-        #gSignInWrap { display: flex; justify-content: center; width: 100%; min-height: 44px; }
-        #gSignInWrap iframe { border-radius: 18px !important; }
 
         @media (min-width: 768px)  { .card { max-width: 420px; } }
         @media (min-width: 1024px) { .card { max-width: 460px; } }
@@ -160,7 +157,10 @@
                onkeydown="if(event.key==='Enter') loginManuale()">
         <button class="btn-email" id="btnEmail" onclick="loginManuale()">INVIA LINK DI ACCESSO</button>
         <div class="divider">OPPURE</div>
-        <div id="gSignInWrap"></div>
+        <button class="btn-google" onclick="loginConGoogle()">
+            <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+            Continua con Google
+        </button>
     </div>
 
     <div id="status"></div>
@@ -175,7 +175,6 @@
 const SUPABASE_URL = "https://eejdpophfxsrqdvsucye.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlamRwb3BoZnhzcnFkdnN1Y3llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2NTMzMDQsImV4cCI6MjA5MzIyOTMwNH0.mpxbwlJyIdZgqKIdutHbLd85JR1P11yiglbYeApi17k";
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-const GOOGLE_CLIENT_ID = '549698561491-705ik8oum8ag9iftd4uq944p9apihrvk.apps.googleusercontent.com';
 const statusDiv = document.getElementById('status');
 
 const BIO_KEY   = 'bioCredId';
@@ -332,42 +331,16 @@ async function loginManuale() {
     }
 }
 
-// ── Google Identity Services ────────────────────────────────────────
-let _gisNonce = null;
-
-async function initGIS() {
-    if (!GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID.startsWith('INSERISCI')) return;
-
-    // Genera nonce: raw → Supabase, SHA-256 hash → Google
-    const raw = btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32))));
-    _gisNonce = raw;
-    const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(raw));
-    const hashedNonce = Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2,'0')).join('');
-
-    google.accounts.id.initialize({
-        client_id: GOOGLE_CLIENT_ID,
-        nonce: hashedNonce,
-        callback: async (response) => {
-            statusDiv.innerHTML = 'Accesso in corso…';
-            const { error } = await supabaseClient.auth.signInWithIdToken({
-                provider: 'google',
-                token: response.credential,
-                nonce: _gisNonce
-            });
-            if (error) statusDiv.innerHTML = `<span class="error">${error.message}</span>`;
-        },
-        auto_select: false
+// ── Google OAuth (redirect via Supabase) ────────────────────────────
+async function loginConGoogle() {
+    statusDiv.innerHTML = 'Reindirizzo a Google…';
+    const { error } = await supabaseClient.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+            redirectTo: window.location.origin + '/login.html'
+        }
     });
-    const wrap = document.getElementById('gSignInWrap');
-    if (wrap) {
-        google.accounts.id.renderButton(wrap, {
-            type: 'standard',
-            size: 'large',
-            text: 'signin_with',
-            locale: 'it',
-            width: 280
-        });
-    }
+    if (error) statusDiv.innerHTML = `<span class="error">${error.message}</span>`;
 }
 
 supabaseClient.auth.onAuthStateChange(async (event, session) => {
