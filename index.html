@@ -1405,3 +1405,85 @@
         } catch(e) {}
     })();
     </script>
+
+<!-- ===== POPUP COMPLEANNO ===== -->
+<style>
+@keyframes bd-bounce { 0%,100%{transform:scale(1)} 50%{transform:scale(1.18)} }
+@keyframes bd-fadein { from{opacity:0;transform:translateY(32px)} to{opacity:1;transform:none} }
+@keyframes bd-confetti {
+    0%   { transform:translateY(-10px) rotate(0deg);   opacity:1 }
+    100% { transform:translateY(340px) rotate(720deg); opacity:0 }
+}
+#birthdayCard { animation: bd-fadein .45s cubic-bezier(.22,1,.36,1) both }
+#bdCake       { display:inline-block; animation: bd-bounce 1.3s ease-in-out infinite }
+.bd-coriandolo {
+    position:absolute;
+    border-radius:2px;
+    animation: bd-confetti linear infinite;
+    pointer-events:none;
+}
+</style>
+<div id="birthdayPopup" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.72);align-items:center;justify-content:center;padding:20px">
+    <div id="birthdayCard" style="background:#fff;border-radius:28px;padding:36px 24px 28px;max-width:320px;width:100%;text-align:center;position:relative;overflow:hidden">
+        <div style="position:absolute;top:0;left:0;right:0;height:5px;background:linear-gradient(90deg,#ff6b6b 0%,#ffd93d 25%,#6bcb77 50%,#4d96ff 75%,#c77dff 100%)"></div>
+        <span id="bdCake" style="font-size:72px;line-height:1;display:inline-block;margin-bottom:14px">🎂</span>
+        <div style="font-size:11px;font-weight:900;color:#5856d6;letter-spacing:3px;text-transform:uppercase;margin-bottom:4px">Buon Compleanno</div>
+        <div id="bdNome" style="font-size:26px;font-weight:900;color:#1a1a1a;margin-bottom:10px;word-break:break-word"></div>
+        <div style="font-size:14px;color:#888;line-height:1.65;margin-bottom:26px">Listando ti augura<br>una giornata speciale 🎉</div>
+        <div style="display:flex;align-items:center;justify-content:center;gap:7px;margin-bottom:22px;opacity:0.55">
+            <img src="/logolistando.png" style="width:20px;height:20px;border-radius:5px">
+            <span style="font-size:11px;font-weight:900;color:#5856d6;letter-spacing:1.5px">LISTANDO</span>
+        </div>
+        <button onclick="chiudiBirthday()" style="width:100%;padding:14px;border-radius:16px;border:none;background:#5856d6;color:#fff;font-weight:900;font-size:15px;cursor:pointer;font-family:inherit;letter-spacing:0.5px">Grazie! 🥳</button>
+    </div>
+</div>
+<script>
+(async function checkCompleanno() {
+    const email = localStorage.getItem('userEmail');
+    if (!email) return;
+    const anno = new Date().getFullYear();
+    if (localStorage.getItem('compleanno_visto_' + anno)) return;
+    try {
+        const SUPABASE_URL = 'https://eejdpophfxsrqdvsucye.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlamRwb3BoZnhzcnFkdnN1Y3llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2NTMzMDQsImV4cCI6MjA5MzIyOTMwNH0.mpxbwlJyIdZgqKIdutHbLd85JR1P11yiglbYeApi17k';
+        const res = await fetch(
+            `${SUPABASE_URL}/rest/v1/profili?email_utente=eq.${encodeURIComponent(email)}&select=nome,data_nascita&limit=1`,
+            { headers: { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + SUPABASE_KEY } }
+        );
+        if (!res.ok) return;
+        const [profilo] = await res.json();
+        if (!profilo?.data_nascita) return;
+        const oggi    = new Date();
+        const nascita = new Date(profilo.data_nascita + 'T00:00:00');
+        if (nascita.getMonth() !== oggi.getMonth() || nascita.getDate() !== oggi.getDate()) return;
+        const nome = profilo.nome?.trim() || email.split('@')[0];
+        document.getElementById('bdNome').textContent = nome;
+        const popup = document.getElementById('birthdayPopup');
+        popup.style.display = 'flex';
+        localStorage.setItem('compleanno_visto_' + anno, '1');
+        _bdCoriandoli(document.getElementById('birthdayCard'));
+    } catch(e) {}
+})();
+
+function chiudiBirthday() {
+    document.getElementById('birthdayPopup').style.display = 'none';
+}
+
+function _bdCoriandoli(card) {
+    const colori = ['#ff6b6b','#ffd93d','#6bcb77','#4d96ff','#c77dff','#ff9f43'];
+    for (let i = 0; i < 18; i++) {
+        const el = document.createElement('div');
+        el.className = 'bd-coriandolo';
+        el.style.cssText = [
+            `background:${colori[i % colori.length]}`,
+            `left:${(Math.random() * 100).toFixed(1)}%`,
+            `top:-10px`,
+            `animation-duration:${(1.4 + Math.random() * 1.8).toFixed(2)}s`,
+            `animation-delay:${(Math.random() * 1.2).toFixed(2)}s`,
+            `width:${(6 + Math.random() * 6).toFixed(1)}px`,
+            `height:${(6 + Math.random() * 6).toFixed(1)}px`
+        ].join(';');
+        card.appendChild(el);
+    }
+}
+</script>
