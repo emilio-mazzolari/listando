@@ -1,5 +1,5 @@
 const APP_URL     = 'https://listando.it';
-const REDIRECT_URI = `${APP_URL}/api/auth/google-callback`;
+const REDIRECT_URI = `${APP_URL}/api/google-callback`;
 
 module.exports = function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
