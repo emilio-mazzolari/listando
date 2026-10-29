@@ -177,6 +177,12 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const statusDiv = document.getElementById('status');
 
+// Mostra errore se il callback Google ha restituito un parametro di errore
+(function() {
+    const ge = new URLSearchParams(location.search).get('google_error');
+    if (ge) statusDiv.innerHTML = `<span class="error">Accesso Google fallito: ${decodeURIComponent(ge)}</span>`;
+})();
+
 const BIO_KEY   = 'bioCredId';
 const BIO_EMAIL = 'bioEmail';
 
@@ -331,16 +337,10 @@ async function loginManuale() {
     }
 }
 
-// ── Google OAuth (redirect via Supabase) ────────────────────────────
-async function loginConGoogle() {
+// ── Google OAuth (redirect via listando.it — mostra "Continua su listando.it") ──
+function loginConGoogle() {
     statusDiv.innerHTML = 'Reindirizzo a Google…';
-    const { error } = await supabaseClient.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-            redirectTo: window.location.origin + '/login.html'
-        }
-    });
-    if (error) statusDiv.innerHTML = `<span class="error">${error.message}</span>`;
+    window.location.href = '/api/auth/google-start';
 }
 
 supabaseClient.auth.onAuthStateChange(async (event, session) => {
