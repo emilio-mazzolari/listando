@@ -1,5 +1,5 @@
-const CACHE_NAME = "lista-spesa-cache-v184";
-const API_CACHE  = "lista-spesa-api-v184";
+const CACHE_NAME = "lista-spesa-cache-v185";
+const API_CACHE  = "lista-spesa-api-v185";
 
 const FILES = [
   "/manifest.json",
@@ -36,6 +36,7 @@ const FILES = [
   "/satispay-logo.webp",
   "/linear-logo.png",
   "/bestshopping-logo.png",
+  "/rigoni-logo.jpg",
   "/vendita.html",
   "/regali.html",
   "/abbonamenti.html",
