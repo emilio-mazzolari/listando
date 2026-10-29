@@ -1,5 +1,5 @@
 const APP_URL      = 'https://listando.it';
-const REDIRECT_URI = `${APP_URL}/api/google-callback`;
+const REDIRECT_URI = `${APP_URL}/api/google-auth`;
 const SUPABASE_URL = 'https://eejdpophfxsrqdvsucye.supabase.co';
 const ANON_KEY     = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlamRwb3BoZnhzcnFkdnN1Y3llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2NTMzMDQsImV4cCI6MjA5MzIyOTMwNH0.mpxbwlJyIdZgqKIdutHbLd85JR1P11yiglbYeApi17k';
 
@@ -8,14 +8,29 @@ module.exports = async function handler(req, res) {
     if (req.method === 'OPTIONS') return res.status(200).end();
 
     const { code, error } = req.query;
+    const CLIENT_ID     = process.env.GOOGLE_CLIENT_ID;
+    const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 
+    // ── START: nessun code → avvia il flusso OAuth ────────────────────
+    if (!code && !error) {
+        if (!CLIENT_ID) return res.status(500).send('GOOGLE_CLIENT_ID non configurato');
+        const params = new URLSearchParams({
+            client_id:     CLIENT_ID,
+            redirect_uri:  REDIRECT_URI,
+            response_type: 'code',
+            scope:         'openid email profile',
+            access_type:   'offline',
+            prompt:        'select_account',
+        });
+        return res.redirect(302, `https://accounts.google.com/o/oauth2/v2/auth?${params}`);
+    }
+
+    // ── CALLBACK: gestisce il codice restituito da Google ─────────────
     if (error || !code) {
         const msg = encodeURIComponent(error || 'Accesso annullato');
         return res.redirect(302, `${APP_URL}/login.html?google_error=${msg}`);
     }
 
-    const CLIENT_ID     = process.env.GOOGLE_CLIENT_ID;
-    const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
     if (!CLIENT_ID || !CLIENT_SECRET) {
         return res.redirect(302, `${APP_URL}/login.html?google_error=config_mancante`);
     }
@@ -58,7 +73,7 @@ module.exports = async function handler(req, res) {
         return res.redirect(302, `${APP_URL}/login.html?google_error=sessione_supabase_fallita`);
     }
 
-    // 3. Reindirizza a login.html con i token nel fragment — il client Supabase li rileva automaticamente
+    // 3. Reindirizza a login.html con i token nel fragment
     res.redirect(302,
         `${APP_URL}/login.html#access_token=${access_token}&refresh_token=${refresh_token}&token_type=bearer`
     );

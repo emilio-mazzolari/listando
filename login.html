@@ -340,7 +340,7 @@ async function loginManuale() {
 // ── Google OAuth (redirect via listando.it — mostra "Continua su listando.it") ──
 function loginConGoogle() {
     statusDiv.innerHTML = 'Reindirizzo a Google…';
-    window.location.href = '/api/google-start';
+    window.location.href = '/api/google-auth';
 }
 
 supabaseClient.auth.onAuthStateChange(async (event, session) => {
