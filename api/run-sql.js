@@ -333,6 +333,20 @@ const STATEMENTS = [
         updated_at timestamptz default now()
     )`,
     `ALTER TABLE IF EXISTS sport_elementi DISABLE ROW LEVEL SECURITY`,
+    `CREATE TABLE IF NOT EXISTS documenti (
+        id bigint generated always as identity primary key,
+        email_utente text not null,
+        nome text not null,
+        tipo text not null default 'altro',
+        numero text,
+        intestatario text,
+        ente_rilascio text,
+        data_rilascio date,
+        data_scadenza date,
+        note text,
+        created_at timestamptz default now()
+    )`,
+    `ALTER TABLE IF EXISTS documenti DISABLE ROW LEVEL SECURITY`,
 ];
 
 async function runSql(serviceKey, sql) {
