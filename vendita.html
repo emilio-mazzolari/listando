@@ -50,8 +50,9 @@
         .bc-discreto { background:#fce7f3; color:#9d174d; }
         .bs-venduto { background:#fee2e2; color:#991b1b; }
         .bs-riservato { background:#fef3c7; color:#92400e; }
-        .badge-mine { position:absolute; top:7px; left:7px; background:rgba(0,0,0,.6); color:white; font-size:9px; font-weight:800; padding:3px 7px; border-radius:7px; }
+        .badge-mine { position:absolute; top:7px; left:7px; background:var(--teal); color:white; font-size:9px; font-weight:900; padding:3px 8px; border-radius:7px; letter-spacing:0.3px; }
         .badge-priv { position:absolute; top:7px; right:7px; font-size:12px; }
+        .listing-card.is-mine { border:2.5px solid var(--teal); }
 
         /* FAB */
         .fab { position:fixed; bottom:max(24px,env(safe-area-inset-bottom,24px)); right:20px; z-index:100; width:56px; height:56px; border-radius:50%; border:none; background:var(--teal); color:white; font-size:28px; cursor:pointer; box-shadow:0 4px 16px rgba(16,185,129,.4); display:flex; align-items:center; justify-content:center; }
@@ -211,6 +212,7 @@
     </div>
     <div class="tab-row">
         <button class="tab-btn active" id="tabScopri" onclick="switchTab('scopri')">🔍 Scopri</button>
+        <button class="tab-btn" id="tabTutti" onclick="switchTab('tutti')">🌍 Tutti</button>
         <button class="tab-btn" id="tabMiei" onclick="switchTab('miei')">📦 I miei</button>
         <button class="tab-btn" id="tabMsg" onclick="switchTab('msg')">💬 Messaggi<span class="tab-badge" id="msgBadge"></span></button>
     </div>
@@ -385,6 +387,7 @@ let conversazioni = [];
 async function carica() {
     if (currentTab === 'scopri') await caricaScopri();
     else if (currentTab === 'miei') await caricaMiei();
+    else if (currentTab === 'tutti') { await Promise.all([caricaScopri(), caricaMiei()]); renderGrid(); }
     else await caricaMessaggi();
     aggiornaBadge();
 }
@@ -434,6 +437,7 @@ function sortFoto(a) {
 function switchTab(tab) {
     currentTab = tab;
     document.getElementById('tabScopri').classList.toggle('active', tab === 'scopri');
+    document.getElementById('tabTutti').classList.toggle('active', tab === 'tutti');
     document.getElementById('tabMiei').classList.toggle('active', tab === 'miei');
     document.getElementById('tabMsg').classList.toggle('active', tab === 'msg');
     document.getElementById('searchInput').placeholder = tab === 'msg' ? '🔍  Cerca conversazioni…' : '🔍  Cerca annunci…';
@@ -446,11 +450,21 @@ function renderGrid(q = '') {
     if (currentTab === 'msg') return renderMessaggi(q);
     const grid = document.getElementById('listingsGrid');
     const low = q.toLowerCase();
-    const list = (currentTab === 'scopri' ? annunci : miei).filter(a =>
+
+    let pool;
+    if (currentTab === 'tutti') {
+        // Merge scopri + miei deduplicando per id, i miei in cima
+        const ids = new Set(miei.map(a => a.id));
+        pool = [...miei, ...annunci.filter(a => !ids.has(a.id))];
+    } else {
+        pool = currentTab === 'scopri' ? annunci : miei;
+    }
+
+    const list = pool.filter(a =>
         !q || a.titolo.toLowerCase().includes(low) || (a.descrizione || '').toLowerCase().includes(low));
 
     if (!list.length) {
-        grid.innerHTML = `<div class="empty-msg">${currentTab === 'scopri' ? '🏪 Nessun annuncio disponibile' : '📦 Nessun annuncio — tocca + per crearne uno'}</div>`;
+        grid.innerHTML = `<div class="empty-msg">${currentTab === 'scopri' ? '🏪 Nessun annuncio disponibile' : currentTab === 'miei' ? '📦 Nessun annuncio — tocca + per crearne uno' : '🏪 Nessun annuncio disponibile'}</div>`;
         return;
     }
     grid.innerHTML = list.map(cardHtml).join('');
@@ -465,9 +479,10 @@ function cardHtml(a) {
     const cond = (a.condizione || 'buono').toLowerCase();
     const statoBadge = a.stato !== 'attivo'
         ? `<span class="badge bs-${a.stato}">${a.stato === 'venduto' ? 'Venduto' : 'Riservato'}</span>` : '';
-    const mineBadge = a.email_utente === userEmail ? `<div class="badge-mine">Mio</div>` : '';
+    const isMine = a.email_utente === userEmail;
+    const mineBadge = isMine ? `<div class="badge-mine">📦 Mio</div>` : '';
     const privBadge = a.visibilita === 'privato' ? `<div class="badge-priv">🔒</div>` : (a.visibilita === 'selezionati' ? `<div class="badge-priv">👥</div>` : '');
-    return `<div class="listing-card" onclick="apriDettaglio(${a.id})">
+    return `<div class="listing-card${isMine ? ' is-mine' : ''}" onclick="apriDettaglio(${a.id})">
         ${mineBadge}${privBadge}
         ${photoEl}
         <div class="listing-info">
