@@ -155,6 +155,10 @@
         .chat-input:focus { border-color:var(--teal); }
         .btn-send { width:44px; height:44px; border-radius:50%; border:none; background:var(--teal); color:white; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; }
         .btn-send svg { width:18px; height:18px; fill:none; stroke:white; stroke-width:2.5; }
+        .btn-chat-stato { padding:7px 13px; border-radius:12px; border:none; font-size:12px; font-weight:800; cursor:pointer; font-family:inherit; flex-shrink:0; }
+        .btn-chat-stato.attivo   { background:#dcfce7; color:#166534; }
+        .btn-chat-stato.riservato{ background:#fef3c7; color:#92400e; }
+        .btn-chat-stato.venduto  { background:#fee2e2; color:#991b1b; }
         .no-chat { text-align:center; color:#bbb; font-weight:700; font-size:14px; padding:30px 0; }
 
         .tab-badge { display:none; min-width:18px; height:18px; padding:0 5px; border-radius:9px; background:var(--red); color:white; font-size:11px; line-height:18px; margin-left:4px; }
@@ -327,6 +331,7 @@
             <div class="chat-hdr-title" id="chatTitle"></div>
             <div class="chat-hdr-sub" id="chatSub"></div>
         </div>
+        <div id="chatHdrActions"></div>
     </div>
     <div class="chat-msgs" id="chatMsgs"></div>
     <div class="quick-row" id="quickRow"></div>
@@ -1123,8 +1128,30 @@ function apriChat(annuncioId, partner) {
     chatPartner = partner;
     document.getElementById('chatTitle').textContent = titoloAnnuncio(annuncioId);
     document.getElementById('chatSub').textContent = partner;
+    renderChatHdrActions(annuncioId);
     renderQuickRow();
     apriChatComune(annuncioId, partner);
+}
+
+function renderChatHdrActions(annuncioId) {
+    const wrap = document.getElementById('chatHdrActions');
+    const a = [...annunci, ...miei].find(x => x.id === annuncioId);
+    if (!a || a.email_utente !== userEmail || a.stato === 'venduto') { wrap.innerHTML = ''; return; }
+    const stati = a.stato === 'riservato'
+        ? [{ v: 'attivo', label: '✓ Attivo' }]
+        : [{ v: 'riservato', label: '⏳ Riservato' }, { v: 'venduto', label: '✓ Venduto' }];
+    wrap.innerHTML = stati.map(s =>
+        `<button class="btn-chat-stato ${s.v}" onclick="aggiornaStatoChat('${s.v}')">${s.label}</button>`
+    ).join('');
+}
+
+async function aggiornaStatoChat(stato) {
+    const a = [...annunci, ...miei].find(x => x.id === chatAnnuncioId);
+    if (!a) return;
+    await sb.from('vendita_annunci').update({ stato }).eq('id', chatAnnuncioId);
+    a.stato = stato;
+    renderChatHdrActions(chatAnnuncioId);
+    toast(`Annuncio segnato come ${stato}`);
 }
 
 function renderQuickRow() {
