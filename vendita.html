@@ -209,12 +209,12 @@
             <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
         </button>
         <div class="header-title">VENDO E COMPRO</div>
+        <button class="fs-menu-btn" id="btnMsg" onclick="switchTab('msg')" style="position:relative;flex-shrink:0">💬<span class="tab-badge" id="msgBadge" style="position:absolute;top:-5px;right:-5px"></span></button>
     </div>
     <div class="tab-row">
-        <button class="tab-btn active" id="tabScopri" onclick="switchTab('scopri')">🔍 Scopri</button>
+        <button class="tab-btn active" id="tabMiei" onclick="switchTab('miei')">📦 Miei</button>
+        <button class="tab-btn" id="tabAltri" onclick="switchTab('altri')">👥 Altri</button>
         <button class="tab-btn" id="tabTutti" onclick="switchTab('tutti')">🌍 Tutti</button>
-        <button class="tab-btn" id="tabMiei" onclick="switchTab('miei')">📦 I miei</button>
-        <button class="tab-btn" id="tabMsg" onclick="switchTab('msg')">💬 Messaggi<span class="tab-badge" id="msgBadge"></span></button>
     </div>
 </div>
 
@@ -373,7 +373,7 @@ const VIS_LABELS = { privato:'🔒 Solo io', selezionati:'👥 Selezionati', pub
 const CONS_LABELS = { ritiro:'🤝 Ritiro a mano', spedizione:'📦 Spedizione', entrambi:'🤝📦 Entrambi' };
 const SPEDIAMO_URL = 'https://www.spediamo.it/';
 
-let annunci = [], miei = [], currentTab = 'scopri';
+let annunci = [], miei = [], currentTab = 'miei';
 let selectedAnnuncio = null;
 let editId = null;
 let fCond = 'buono', fCat = 'Altro', fVis = 'pubblico', fCons = 'ritiro', fTrattabile = false, fPerConto = false;
@@ -385,7 +385,7 @@ let conversazioni = [];
 
 // ── Data loading ──────────────────────────────────────────
 async function carica() {
-    if (currentTab === 'scopri') await caricaScopri();
+    if (currentTab === 'altri') await caricaScopri();
     else if (currentTab === 'miei') await caricaMiei();
     else if (currentTab === 'tutti') { await Promise.all([caricaScopri(), caricaMiei()]); renderGrid(); }
     else await caricaMessaggi();
@@ -436,10 +436,10 @@ function sortFoto(a) {
 // ── Tabs ──────────────────────────────────────────────────
 function switchTab(tab) {
     currentTab = tab;
-    document.getElementById('tabScopri').classList.toggle('active', tab === 'scopri');
-    document.getElementById('tabTutti').classList.toggle('active', tab === 'tutti');
     document.getElementById('tabMiei').classList.toggle('active', tab === 'miei');
-    document.getElementById('tabMsg').classList.toggle('active', tab === 'msg');
+    document.getElementById('tabAltri').classList.toggle('active', tab === 'altri');
+    document.getElementById('tabTutti').classList.toggle('active', tab === 'tutti');
+    document.getElementById('btnMsg').classList.toggle('active', tab === 'msg');
     document.getElementById('searchInput').placeholder = tab === 'msg' ? '🔍  Cerca conversazioni…' : '🔍  Cerca annunci…';
     document.getElementById('listingsGrid').innerHTML = '';
     carica();
@@ -457,14 +457,14 @@ function renderGrid(q = '') {
         const ids = new Set(miei.map(a => a.id));
         pool = [...miei, ...annunci.filter(a => !ids.has(a.id))];
     } else {
-        pool = currentTab === 'scopri' ? annunci : miei;
+        pool = currentTab === 'altri' ? annunci.filter(a => a.email_utente !== userEmail) : miei;
     }
 
     const list = pool.filter(a =>
         !q || a.titolo.toLowerCase().includes(low) || (a.descrizione || '').toLowerCase().includes(low));
 
     if (!list.length) {
-        grid.innerHTML = `<div class="empty-msg">${currentTab === 'scopri' ? '🏪 Nessun annuncio disponibile' : currentTab === 'miei' ? '📦 Nessun annuncio — tocca + per crearne uno' : '🏪 Nessun annuncio disponibile'}</div>`;
+        grid.innerHTML = `<div class="empty-msg">${currentTab === 'altri' ? '👥 Nessun annuncio degli altri' : currentTab === 'miei' ? '📦 Nessun annuncio — tocca + per crearne uno' : '🏪 Nessun annuncio disponibile'}</div>`;
         return;
     }
     grid.innerHTML = list.map(cardHtml).join('');
