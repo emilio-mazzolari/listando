@@ -350,32 +350,50 @@ const STATEMENTS = [
 ];
 
 async function runSql(serviceKey, sql) {
-    // Try project-level pg endpoint (works with service key, no PAT needed)
-    const pgResp = await fetch(`${SUPABASE_URL}/pg/query`, {
+    const headers = {
+        'Content-Type': 'application/json',
+        'apikey': serviceKey,
+        'Authorization': `Bearer ${serviceKey}`
+    };
+
+    // 1. Try rpc/exec (custom SQL executor function in the DB)
+    const rpcResp = await fetch(`${SUPABASE_URL}/rest/v1/rpc/exec`, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'apikey': serviceKey,
-            'Authorization': `Bearer ${serviceKey}`
-        },
+        headers,
         body: JSON.stringify({ query: sql })
     });
-    if (pgResp.ok) {
-        const body = await pgResp.text();
-        return { ok: true, status: pgResp.status, body: body.slice(0, 300) };
+    if (rpcResp.ok) {
+        return { ok: true, status: rpcResp.status, body: 'rpc/exec OK' };
     }
 
-    // Fall back to Management API (requires PAT — may fail with 401)
-    const resp = await fetch(`https://api.supabase.com/v1/projects/${PROJECT_REF}/database/query`, {
+    // 2. Try rpc/exec_sql (alternative name)
+    const rpcResp2 = await fetch(`${SUPABASE_URL}/rest/v1/rpc/exec_sql`, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${serviceKey}`
-        },
+        headers,
+        body: JSON.stringify({ sql_query: sql })
+    });
+    if (rpcResp2.ok) {
+        return { ok: true, status: rpcResp2.status, body: 'rpc/exec_sql OK' };
+    }
+
+    // 3. Try Management API with service key as PAT
+    const mgmtResp = await fetch(`https://api.supabase.com/v1/projects/${PROJECT_REF}/database/query`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${serviceKey}` },
         body: JSON.stringify({ query: sql })
     });
-    const text = await resp.text();
-    return { ok: resp.ok, status: resp.status, body: text.slice(0, 300) };
+    if (mgmtResp.ok) {
+        const body = await mgmtResp.text();
+        return { ok: true, status: mgmtResp.status, body: body.slice(0, 300) };
+    }
+
+    // 4. Try /pg/query
+    const pgResp = await fetch(`${SUPABASE_URL}/pg/query`, {
+        method: 'POST', headers,
+        body: JSON.stringify({ query: sql })
+    });
+    const text = await pgResp.text();
+    return { ok: pgResp.ok, status: pgResp.status, body: text.slice(0, 300) };
 }
 
 module.exports = async function handler(req, res) {
