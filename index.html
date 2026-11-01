@@ -423,8 +423,7 @@
             </div>
         </div>
 
-        <!-- ── Promozioni ── -->
-        <div id="promoSection" style="border-top:1.5px solid #e8e8e8;margin-top:20px;padding-top:16px;padding-bottom:calc(85px + env(safe-area-inset-bottom,0px))"></div>
+        <div style="padding-bottom:calc(85px + env(safe-area-inset-bottom,0px))"></div>
 
     </div>
 
@@ -651,6 +650,17 @@
         </div>
     </div>
 
+    <!-- Promozioni overlay -->
+    <div id="promoOverlay" onclick="if(event.target===this)chiudiPromo()" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,0.55);align-items:flex-end;justify-content:center">
+        <div style="width:100%;max-width:560px;max-height:88vh;overflow-y:auto;background:#f5f6f8;border-radius:24px 24px 0 0;padding:8px 16px 20px;padding-bottom:max(20px,calc(env(safe-area-inset-bottom)+16px))">
+            <div style="width:36px;height:4px;background:#ddd;border-radius:2px;margin:0 auto 18px"></div>
+            <div style="font-size:20px;font-weight:900;margin-bottom:2px">Promozioni per te 🎁</div>
+            <div style="font-size:13px;color:#888;font-weight:600;margin-bottom:18px">Offerte esclusive per gli utenti Listando</div>
+            <div id="promoOverlayCards"></div>
+            <button onclick="chiudiPromo()" style="width:100%;margin-top:6px;padding:13px;border-radius:16px;border:none;background:#e8e8e8;color:#555;font-weight:900;font-size:14px;cursor:pointer;font-family:inherit">Chiudi</button>
+        </div>
+    </div>
+
     <div class="tab-bar">
         <a href="index.html" class="tab-item tab-active">
             <svg class="icon-tab" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
@@ -659,6 +669,13 @@
             </svg>
             HOME
         </a>
+        <button class="tab-item" onclick="apriPromo()" style="background:none;border:none;cursor:pointer;color:#f97316;">
+            <svg class="icon-tab" style="stroke:#f97316" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+                <line x1="7" y1="7" x2="7.01" y2="7"/>
+            </svg>
+            PROMO
+        </button>
         <button class="tab-item" id="btnImpostazioni" onclick="apriImpostazioni()" style="background:none;border:none;cursor:pointer;">
             <svg class="icon-tab" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
@@ -884,18 +901,22 @@
                 ctaColor: '#e8192c',
                 url: 'https://web.satispay.com/promocode/ef24e897-9b02-4814-9284-e87a33e80bf8',
             },
-            // { emoji:'🛒', sfondo:'#ff6600', brand:'Altro', titolo:'...', desc:'...', cta:'...', url:'...' },
+            {
+                logo: '/wordans-logo.svg',
+                sfondo: '#1e2649',
+                brand: 'Wordans',
+                titolo: 'Wordans.',
+                desc: 'T-shirt e abbigliamento personalizzato.',
+                cta: 'Scopri',
+                ctaColor: '#1e2649',
+                url: 'https://www.wordans.it?from=emiliomazzolari',
+            },
         ];
 
-        let _promoAperta = false;
-
-        function renderPromos() {
-            const el = document.getElementById('promoSection');
-            if (!el) return;
-            if (!PROMOS.length) { el.style.display = 'none'; return; }
-            const cards = PROMOS.map(p => {
+        function _promoCards() {
+            return PROMOS.map(p => {
                 const logoHtml = p.logo
-                    ? `<img src="${p.logo}" alt="${p.brand}" style="width:38px;height:38px;object-fit:contain">`
+                    ? `<img src="${p.logo}" alt="${p.brand}" style="width:38px;height:38px;object-fit:contain;border-radius:8px">`
                     : `<span style="font-size:24px">${p.emoji}</span>`;
                 return `
                 <a href="${p.url}" target="_blank" rel="noopener" class="promo-card">
@@ -907,20 +928,15 @@
                     <div class="promo-cta" style="background:${p.ctaColor || p.sfondo}">${p.cta}</div>
                 </a>`;
             }).join('');
-            el.innerHTML =
-                `<div onclick="togglePromo()" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:0 2px;margin-bottom:${_promoAperta ? '10px' : '0'}">
-                    <span style="font-size:11px;font-weight:800;color:#111;text-transform:uppercase;letter-spacing:0.6px">Promozioni per te</span>
-                    <svg id="promoChevron" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#bbb" stroke-width="2.5" stroke-linecap="round" style="transition:transform 0.25s;transform:rotate(${_promoAperta ? '0' : '-90'}deg)"><polyline points="6 9 12 15 18 9"/></svg>
-                </div>
-                <div id="promoCards" style="display:${_promoAperta ? 'block' : 'none'}">${cards}</div>`;
         }
 
-        function togglePromo() {
-            _promoAperta = !_promoAperta;
-            renderPromos();
+        function apriPromo() {
+            document.getElementById('promoOverlayCards').innerHTML = _promoCards();
+            document.getElementById('promoOverlay').style.display = 'flex';
         }
-
-        renderPromos();
+        function chiudiPromo() {
+            document.getElementById('promoOverlay').style.display = 'none';
+        }
 
         // ── Drag to reorder (per-user) ────────────────────────────────────
         const _email = localStorage.getItem('userEmail') || 'default';

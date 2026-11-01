@@ -1,5 +1,5 @@
-const CACHE_NAME = "lista-spesa-cache-v187";
-const API_CACHE  = "lista-spesa-api-v187";
+const CACHE_NAME = "lista-spesa-cache-v188";
+const API_CACHE  = "lista-spesa-api-v188";
 
 const FILES = [
   "/manifest.json",
@@ -37,6 +37,7 @@ const FILES = [
   "/linear-logo.png",
   "/bestshopping-logo.png",
   "/rigoni-logo.jpg",
+  "/wordans-logo.svg",
   "/vendita.html",
   "/regali.html",
   "/abbonamenti.html",
