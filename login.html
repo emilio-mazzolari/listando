@@ -345,9 +345,11 @@ function loginConGoogle() {
     statusDiv.innerHTML = 'Reindirizzo a Google…';
 
     if (isPWA()) {
-        // Su PWA iOS/Android il redirect OAuth apre Safari, non la PWA.
-        // Apriamo in una nuova finestra e mostriamo il bottone di rientro.
-        window.open('/api/google-auth', '_blank');
+        // Su PWA iOS/Android il redirect OAuth apre Safari, con localStorage isolato.
+        // Usiamo un UUID state per passare i token via server (auth_state_tokens).
+        const state = crypto.randomUUID();
+        localStorage.setItem('oauth_state', state);
+        window.open(`/api/google-auth?state=${state}`, '_blank');
         statusDiv.innerHTML = '<span class="success">Completa l\'accesso Google nel browser che si è aperto.</span>';
         document.getElementById('btnRicontrolla').style.display = '';
         document.getElementById('btnGoogle').style.display = 'none';
@@ -359,11 +361,35 @@ function loginConGoogle() {
 async function ricontrollaSessione() {
     statusDiv.innerHTML = 'Verifica in corso…';
     localStorage.removeItem('google_auth_pending');
+
+    // Prima prova normale (browser non-PWA o sessione già presente)
     let { data: { session } } = await supabaseClient.auth.getSession();
     if (!session) {
         const { data: refreshed } = await supabaseClient.auth.refreshSession();
         session = refreshed?.session || null;
     }
+
+    // Flusso PWA iOS: recupera token dal server via oauth_state
+    if (!session) {
+        const state = localStorage.getItem('oauth_state');
+        if (state) {
+            try {
+                const r = await fetch(`/api/run-sql?action=auth-claim&state=${encodeURIComponent(state)}`);
+                const json = await r.json();
+                if (json.ok) {
+                    const { data } = await supabaseClient.auth.setSession({
+                        access_token: json.access_token,
+                        refresh_token: json.refresh_token
+                    });
+                    if (data?.session) {
+                        session = data.session;
+                        localStorage.removeItem('oauth_state');
+                    }
+                }
+            } catch(e) {}
+        }
+    }
+
     if (session?.user?.email) {
         localStorage.setItem('userEmail', session.user.email);
         if (!localStorage.getItem(BIO_KEY)) await registraBiometria(session.user.email);

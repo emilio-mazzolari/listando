@@ -11,6 +11,8 @@ module.exports = async function handler(req, res) {
     const CLIENT_ID     = process.env.GOOGLE_CLIENT_ID;
     const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 
+    const state = req.query.state || '';
+
     // ── START: nessun code → avvia il flusso OAuth ────────────────────
     if (!code && !error) {
         if (!CLIENT_ID) return res.status(500).send('GOOGLE_CLIENT_ID non configurato');
@@ -21,6 +23,7 @@ module.exports = async function handler(req, res) {
             scope:         'openid email profile',
             access_type:   'offline',
             prompt:        'select_account',
+            ...(state && { state }),
         });
         return res.redirect(302, `https://accounts.google.com/o/oauth2/v2/auth?${params}`);
     }
@@ -73,7 +76,31 @@ module.exports = async function handler(req, res) {
         return res.redirect(302, `${APP_URL}/login.html?google_error=sessione_supabase_fallita`);
     }
 
-    // 3. Reindirizza a login.html con i token nel fragment
+    // 3a. Flusso PWA iOS: salva token in DB, reindirizza a bridge page
+    const isStateFlow = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(state);
+    if (isStateFlow) {
+        const SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+        if (SERVICE_KEY) {
+            await fetch(`${SUPABASE_URL}/rest/v1/auth_state_tokens`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'apikey': SERVICE_KEY,
+                    'Authorization': `Bearer ${SERVICE_KEY}`,
+                    'Prefer': 'return=minimal'
+                },
+                body: JSON.stringify({
+                    state,
+                    access_token,
+                    refresh_token,
+                    expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString()
+                })
+            });
+        }
+        return res.redirect(302, `${APP_URL}/auth-bridge.html`);
+    }
+
+    // 3b. Flusso standard: reindirizza a login.html con i token nel fragment
     res.redirect(302,
         `${APP_URL}/login.html#access_token=${access_token}&refresh_token=${refresh_token}&token_type=bearer`
     );

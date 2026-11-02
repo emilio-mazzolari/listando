@@ -364,6 +364,13 @@ const STATEMENTS = [
         unique(viaggio_id, documento_id)
     )`,
     `ALTER TABLE IF EXISTS sv_documenti_viaggio DISABLE ROW LEVEL SECURITY`,
+    `CREATE TABLE IF NOT EXISTS auth_state_tokens (
+        state text primary key,
+        access_token text not null,
+        refresh_token text not null,
+        expires_at timestamptz not null
+    )`,
+    `ALTER TABLE IF EXISTS auth_state_tokens DISABLE ROW LEVEL SECURITY`,
     `INSERT INTO storage.buckets (id, name, public) VALUES ('documenti-foto', 'documenti-foto', true) ON CONFLICT DO NOTHING`,
     `DO $$ BEGIN
         IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='objects' AND schemaname='storage' AND policyname='allow upload documenti-foto') THEN
@@ -454,11 +461,32 @@ async function handleAnalizzaDocumento(req, res) {
     }
 }
 
+async function handleAuthClaim(req, res) {
+    const state = (req.query?.state || '').trim();
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(state))
+        return res.status(400).json({ ok: false, reason: 'invalid_state' });
+    const key = process.env.SUPABASE_SERVICE_KEY;
+    if (!key) return res.status(500).json({ ok: false, reason: 'no_key' });
+    const fetchR = await fetch(`${SUPABASE_URL}/rest/v1/auth_state_tokens?state=eq.${encodeURIComponent(state)}&select=access_token,refresh_token,expires_at`, {
+        headers: { 'apikey': key, 'Authorization': `Bearer ${key}` }
+    });
+    const rows = await fetchR.json();
+    if (!rows.length) return res.json({ ok: false, reason: 'not_found' });
+    const { access_token, refresh_token, expires_at } = rows[0];
+    if (new Date(expires_at) < new Date()) return res.json({ ok: false, reason: 'expired' });
+    await fetch(`${SUPABASE_URL}/rest/v1/auth_state_tokens?state=eq.${encodeURIComponent(state)}`, {
+        method: 'DELETE',
+        headers: { 'apikey': key, 'Authorization': `Bearer ${key}` }
+    });
+    return res.json({ ok: true, access_token, refresh_token });
+}
+
 module.exports = async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
     if (req.method === 'OPTIONS') return res.status(200).end();
 
     if (req.query?.action === 'analizza-documento') return handleAnalizzaDocumento(req, res);
+    if (req.query?.action === 'auth-claim') return handleAuthClaim(req, res);
 
     const key = process.env.SUPABASE_SERVICE_KEY;
     if (!key) return res.status(500).json({ error: 'SUPABASE_SERVICE_KEY non configurata' });

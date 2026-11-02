@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accesso completato — Listando</title>
+    <style>
+        body {
+            font-family: system-ui, sans-serif; margin: 0;
+            display: flex; justify-content: center; align-items: center;
+            min-height: 100vh; background: #f0faf6;
+        }
+        .card { text-align: center; padding: 48px 32px; max-width: 360px; }
+        .icon { font-size: 72px; margin-bottom: 20px; }
+        h1 { font-size: 22px; margin: 0 0 10px; color: #1c1c1e; font-weight: 900; }
+        p { color: #888; font-weight: 600; font-size: 14px; margin: 0 0 28px; line-height: 1.6; }
+        .btn {
+            background: #0fba8d; color: white; border: none;
+            padding: 16px 32px; border-radius: 18px;
+            font-size: 16px; font-weight: 800; cursor: pointer;
+            font-family: inherit; width: 100%;
+        }
+    </style>
+</head>
+<body>
+<div class="card">
+    <div class="icon">✅</div>
+    <h1>Accesso Google completato!</h1>
+    <p>Torna all'app Listando e tocca<br><strong>"Ho completato l'accesso Google"</strong>.</p>
+    <button class="btn" onclick="window.close()">Chiudi questa finestra</button>
+</div>
+<script>
+    setTimeout(() => { try { window.close(); } catch(e) {} }, 1200);
+</script>
+</body>
+</html>
