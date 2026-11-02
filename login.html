@@ -197,6 +197,9 @@ window.addEventListener('load', async () => {
 });
 
 async function tentaRipristinoSessione() {
+    // Se Google OAuth ha appena reindirizzato con token nell'hash, lascia fare a onAuthStateChange
+    if (window.location.hash.includes('access_token=')) return;
+
     // 1. Prova sessione esistente
     let { data: { session } } = await supabaseClient.auth.getSession();
 
