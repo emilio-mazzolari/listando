@@ -427,7 +427,7 @@ async function handleAnalizzaDocumento(req, res) {
     if (!imageBase64) return res.status(400).json({ error: 'imageBase64 required' });
     const prompt = `Sei un assistente che analizza documenti italiani. Guarda questa immagine e restituisci un oggetto JSON con questi campi (usa null se non visibile):\n{\n  "tipo": uno tra: carta_identita | passaporto | patente | tessera_sanitaria | codice_fiscale | cert_nascita | cert_matrimonio | diploma | rogito | libretto_auto | contratto_lavoro | altro,\n  "numero": "numero/codice del documento",\n  "intestatario": "Nome Cognome dell'intestatario",\n  "data_rilascio": "YYYY-MM-DD",\n  "data_scadenza": "YYYY-MM-DD",\n  "ente_rilascio": "Ente o Comune emittente"\n}\nRispondi SOLO con JSON, senza testo aggiuntivo.`;
     try {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`;
         const resp = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
