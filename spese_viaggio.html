@@ -802,10 +802,10 @@
             <div class="modal-title">✓ Partecipante aggiunto!</div>
             <p id="inviteShareDesc" style="font-size:13px;color:#888;font-weight:600;margin:0 0 20px;line-height:1.5"></p>
             <button id="btnShareNativo" onclick="condividiNativo()" class="btn-share-wa" style="display:none">📤 Condividi invito</button>
-            <a id="btnShareWA" href="#" target="_blank" class="btn-share-wa">
+            <button id="btnShareWA" onclick="apriWA()" class="btn-share-wa">
                 <svg viewBox="0 0 24 24" width="22" height="22" fill="white" style="flex-shrink:0"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.122 1.532 5.852L.072 23.928l6.23-1.428A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.938a9.932 9.932 0 01-5.031-1.362l-.361-.214-3.741.857.905-3.638-.235-.374A9.936 9.936 0 012.062 12C2.062 6.534 6.534 2.062 12 2.062c5.465 0 9.938 4.472 9.938 9.938 0 5.465-4.473 9.938-9.938 9.938z"/></svg>
                 WhatsApp
-            </a>
+            </button>
             <a id="btnShareEmail" href="#" class="btn-share-email">
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="white" stroke-width="2" style="flex-shrink:0"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
                 Email
@@ -1279,6 +1279,15 @@ function populateCurrencySelects(...ids) {
 
 let viaggi = [], viaggioCorrenteId = null, partecipantiAttuali = [];
 const _contactPhones = {};
+function _storePhone(nome, tel) {
+    _contactPhones[nome] = tel;
+    try { sessionStorage.setItem('sv_phone_' + nome, tel); } catch(e) {}
+}
+function _getPhone(nome) {
+    if (_contactPhones[nome]) return _contactPhones[nome];
+    try { const s = sessionStorage.getItem('sv_phone_' + nome); if (s) return s; } catch(e) {}
+    return '';
+}
 let settlAlgo = localStorage.getItem('listando_settl_algo') || '1';
 let speseAttuali = [], fotoProfili = {}, tabAttiva = 'spese';
 let saldiServer = null, _speseGrezze = [];
@@ -2694,7 +2703,7 @@ async function apriRubrica() {
             const nome = tokens.join(' ');
             const nomeCompleto = cognome ? `${nome} ${cognome}` : nome;
             const tel = (c.tel?.[0] || '').replace(/\s+/g, '').replace(/^00/, '+');
-            if (tel) _contactPhones[nomeCompleto] = tel;
+            if (tel) _storePhone(nomeCompleto, tel);
             await apiPost('/sv_partecipanti', { viaggio_id: viaggioCorrenteId, email_utente: userEmail, nome: nomeCompleto });
             aggiunti++;
         }
@@ -2801,9 +2810,9 @@ async function apriModalInvita(nome) {
         document.getElementById('inviteStep1').style.display = 'none';
         document.getElementById('inviteStep2').style.display = '';
         document.getElementById('inviteShareDesc').textContent = `Condividi con ${nome}:`;
-        const phoneRaw = (_contactPhones[nome] || '').replace(/[^+0-9]/g,'');
+        const phoneRaw = _getPhone(nome).replace(/[^+0-9]/g,'');
         const phoneE164 = phoneRaw.startsWith('+') ? phoneRaw.slice(1) : phoneRaw.startsWith('0039') ? phoneRaw.slice(2) : phoneRaw.startsWith('39') && phoneRaw.length >= 11 ? phoneRaw : phoneRaw ? '39' + phoneRaw : '';
-        document.getElementById('btnShareWA').href = `https://wa.me/${phoneE164}?text=${encodeURIComponent(msg)}`;
+        window._inviteWAUrl = `https://wa.me/${phoneE164}?text=${encodeURIComponent(msg)}`;
         const emailBtn = document.getElementById('btnShareEmail');
         emailBtn.href = `mailto:?subject=${encodeURIComponent(mioNome + ' ti invita su Listando — ' + nomeViaggio)}&body=${encodeURIComponent(msg)}`;
         emailBtn.style.display = '';
@@ -2847,15 +2856,20 @@ async function inviaInvito() {
     document.getElementById('inviteStep1').style.display = 'none';
     document.getElementById('inviteStep2').style.display = '';
     document.getElementById('inviteShareDesc').textContent = `Condividi il messaggio con ${nome}.`;
-    const phoneRaw2 = (_contactPhones[nome] || '').replace(/[^+0-9]/g,'');
+    const phoneRaw2 = _getPhone(nome).replace(/[^+0-9]/g,'');
     const phoneE164_2 = phoneRaw2.startsWith('+') ? phoneRaw2.slice(1) : phoneRaw2.startsWith('0039') ? phoneRaw2.slice(2) : phoneRaw2.startsWith('39') && phoneRaw2.length >= 11 ? phoneRaw2 : phoneRaw2 ? '39' + phoneRaw2 : '';
-    document.getElementById('btnShareWA').href = `https://wa.me/${phoneE164_2}?text=${encodeURIComponent(msg)}`;
+    window._inviteWAUrl = `https://wa.me/${phoneE164_2}?text=${encodeURIComponent(msg)}`;
     const emailBtn = document.getElementById('btnShareEmail');
     emailBtn.href = `mailto:${email}?subject=${encodeURIComponent(`${mioNome} ti invita su Listando — ${nomeViaggio}`)}&body=${encodeURIComponent(msg)}`;
     emailBtn.style.display = email ? '' : 'none';
     if (navigator.share) document.getElementById('btnShareNativo').style.display = '';
 }
 async function condividiNativo() { try { await navigator.share({ text: window._inviteMsg }); } catch(e) {} }
+function apriWA() {
+    const url = window._inviteWAUrl;
+    if (!url) return;
+    window.open(url, '_blank', 'noopener');
+}
 function copiaMessaggio() {
     if (!window._inviteMsg) return;
     navigator.clipboard.writeText(window._inviteMsg).then(() => toast('📋 Testo copiato!')).catch(() => toast('Impossibile copiare'));
