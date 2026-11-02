@@ -15,6 +15,9 @@ module.exports = async function handler(req, res) {
 
     // ── START: nessun code → avvia il flusso OAuth ────────────────────
     if (!code && !error) {
+        if (req.query.debug === 'env') {
+            return res.status(200).json({ CLIENT_ID: !!CLIENT_ID, CLIENT_SECRET: !!CLIENT_SECRET, keys: Object.keys(process.env).filter(k => k.startsWith('GOOGLE')) });
+        }
         if (!CLIENT_ID) return res.status(500).send('GOOGLE_CLIENT_ID non configurato');
         const params = new URLSearchParams({
             client_id:     CLIENT_ID,
