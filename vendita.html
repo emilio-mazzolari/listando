@@ -480,7 +480,7 @@ function cardHtml(a) {
     const statoBadge = a.stato !== 'attivo'
         ? `<span class="badge bs-${a.stato}">${a.stato === 'venduto' ? 'Venduto' : 'Riservato'}</span>` : '';
     const isMine = a.email_utente === userEmail;
-    const mineBadge = isMine ? `<div class="badge-mine">📦 Mio</div>` : '';
+    const mineBadge = '';
     const privBadge = a.visibilita === 'privato' ? `<div class="badge-priv">🔒</div>` : (a.visibilita === 'selezionati' ? `<div class="badge-priv">👥</div>` : '');
     return `<div class="listing-card${isMine ? ' is-mine' : ''}" onclick="apriDettaglio(${a.id})">
         ${mineBadge}${privBadge}
