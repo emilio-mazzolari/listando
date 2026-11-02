@@ -1236,6 +1236,7 @@ function populateCurrencySelects(...ids) {
 }
 
 let viaggi = [], viaggioCorrenteId = null, partecipantiAttuali = [];
+const _contactPhones = {};
 let settlAlgo = localStorage.getItem('listando_settl_algo') || '1';
 let speseAttuali = [], fotoProfili = {}, tabAttiva = 'spese';
 let saldiServer = null, _speseGrezze = [];
@@ -2531,7 +2532,7 @@ async function apriRubrica() {
     const origText = btn?.innerHTML;
     if (btn) btn.innerHTML = '⏳ Apertura rubrica…';
     try {
-        const contacts = await navigator.contacts.select(['name'], { multiple: true });
+        const contacts = await navigator.contacts.select(['name', 'tel'], { multiple: true });
         if (btn) btn.innerHTML = origText;
         if (!contacts?.length) return;
         let aggiunti = 0;
@@ -2542,6 +2543,8 @@ async function apriRubrica() {
             const cognome = tokens.length > 1 ? tokens.pop() : '';
             const nome = tokens.join(' ');
             const nomeCompleto = cognome ? `${nome} ${cognome}` : nome;
+            const tel = (c.tel?.[0] || '').replace(/\s+/g, '').replace(/^00/, '+');
+            if (tel) _contactPhones[nomeCompleto] = tel;
             await apiPost('/sv_partecipanti', { viaggio_id: viaggioCorrenteId, email_utente: userEmail, nome: nomeCompleto });
             aggiunti++;
         }
@@ -2626,7 +2629,7 @@ async function rimuoviPartecipante(p) {
 }
 
 function condividiLinkViaggio() {
-    const url = `https://listando.it/spese_viaggio.html?join=${viaggioCorrenteId}`;
+    const url = `${location.origin}/spese_viaggio.html?join=${viaggioCorrenteId}`;
     if (navigator.share) { navigator.share({ title: 'Listando', url }); }
     else { navigator.clipboard.writeText(url).then(() => toast('🔗 Link copiato!')); }
 }
@@ -2641,16 +2644,18 @@ async function apriModalInvita(nome) {
         // Salta step 1 — genera subito i link di condivisione
         const viaggio = viaggi.find(v => v.id === viaggioCorrenteId);
         const mioNome = await getMioNome();
-        const joinUrl = `https://listando.it/spese_viaggio.html?join=${viaggioCorrenteId}`;
+        const joinUrl = `${location.origin}/spese_viaggio.html?join=${viaggioCorrenteId}`;
         const nomeViaggio = viaggio?.nome || 'viaggio';
         const msg = `Ciao ${nome.split(' ')[0]}! 👋\nTi ho aggiunto al viaggio "${nomeViaggio}" su Listando così puoi tenere traccia delle tue spese e di quelle condivise con gli altri partecipanti.\n\nClicca qui: ${joinUrl}\n\nListando è un'app gratuita. Accedi su https://listando.it`;
         window._inviteMsg = msg;
         document.getElementById('inviteStep1').style.display = 'none';
         document.getElementById('inviteStep2').style.display = '';
         document.getElementById('inviteShareDesc').textContent = `Condividi con ${nome}:`;
-        document.getElementById('btnShareWA').href = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+        const phoneRaw = (_contactPhones[nome] || '').replace(/[^+0-9]/g,'');
+        const phoneE164 = phoneRaw.startsWith('+') ? phoneRaw.slice(1) : phoneRaw.startsWith('0039') ? phoneRaw.slice(2) : phoneRaw.startsWith('39') && phoneRaw.length >= 11 ? phoneRaw : phoneRaw ? '39' + phoneRaw : '';
+        document.getElementById('btnShareWA').href = `https://wa.me/${phoneE164}?text=${encodeURIComponent(msg)}`;
         const emailBtn = document.getElementById('btnShareEmail');
-        emailBtn.href = `mailto:?subject=${encodeURIComponent(`${mioNome} ti invita su Listando — ${nomeViaggio}`)}&body=${encodeURIComponent(msg)}`;
+        emailBtn.href = `mailto:?subject=${encodeURIComponent(mioNome + ' ti invita su Listando — ' + nomeViaggio)}&body=${encodeURIComponent(msg)}`;
         emailBtn.style.display = '';
         if (navigator.share) document.getElementById('btnShareNativo').style.display = '';
     } else {
@@ -2669,7 +2674,7 @@ async function inviaInvito() {
     if (email && !email.includes('@')) { toast('Email non valida'); return; }
     const viaggio = viaggi.find(v => v.id === viaggioCorrenteId);
     const mioNome = await getMioNome();
-    const joinUrl = `https://listando.it/spese_viaggio.html?join=${viaggioCorrenteId}`;
+    const joinUrl = `${location.origin}/spese_viaggio.html?join=${viaggioCorrenteId}`;
     if (email) {
         await apiDel(`/sv_inviti?viaggio_id=eq.${viaggioCorrenteId}&email_invitato=eq.${encodeURIComponent(email)}`);
         await apiPost('/sv_inviti', {
@@ -2692,7 +2697,9 @@ async function inviaInvito() {
     document.getElementById('inviteStep1').style.display = 'none';
     document.getElementById('inviteStep2').style.display = '';
     document.getElementById('inviteShareDesc').textContent = `Condividi il messaggio con ${nome}.`;
-    document.getElementById('btnShareWA').href = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+    const phoneRaw2 = (_contactPhones[nome] || '').replace(/[^+0-9]/g,'');
+    const phoneE164_2 = phoneRaw2.startsWith('+') ? phoneRaw2.slice(1) : phoneRaw2.startsWith('0039') ? phoneRaw2.slice(2) : phoneRaw2.startsWith('39') && phoneRaw2.length >= 11 ? phoneRaw2 : phoneRaw2 ? '39' + phoneRaw2 : '';
+    document.getElementById('btnShareWA').href = `https://wa.me/${phoneE164_2}?text=${encodeURIComponent(msg)}`;
     const emailBtn = document.getElementById('btnShareEmail');
     emailBtn.href = `mailto:${email}?subject=${encodeURIComponent(`${mioNome} ti invita su Listando — ${nomeViaggio}`)}&body=${encodeURIComponent(msg)}`;
     emailBtn.style.display = email ? '' : 'none';
