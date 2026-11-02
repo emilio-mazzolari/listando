@@ -587,7 +587,7 @@ async function analizzaFoto(file, preview, idx = 0) {
     try {
         const b64 = preview.split(',')[1];
         const mime = file.type || 'image/jpeg';
-        const resp = await fetch('/api/_analizza-documento', {
+        const resp = await fetch('/api/analizza-documento', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ imageBase64: b64, mimeType: mime })
