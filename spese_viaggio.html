@@ -2527,25 +2527,28 @@ async function apriRubrica() {
         toast('Rubrica non disponibile su questo browser');
         return;
     }
+    const btn = document.querySelector('.btn-rubrica');
+    const origText = btn?.innerHTML;
+    if (btn) btn.innerHTML = '⏳ Apertura rubrica…';
     try {
-        const contacts = await navigator.contacts.select(['name', 'email', 'tel'], { multiple: true });
+        const contacts = await navigator.contacts.select(['name'], { multiple: true });
+        if (btn) btn.innerHTML = origText;
         if (!contacts?.length) return;
         let aggiunti = 0;
         for (const c of contacts) {
             const fullName = (c.name?.[0] || '').trim();
             if (!fullName) continue;
-            // Separa nome e cognome: ultimo token = cognome
             const tokens = fullName.split(/\s+/);
             const cognome = tokens.length > 1 ? tokens.pop() : '';
             const nome = tokens.join(' ');
             const nomeCompleto = cognome ? `${nome} ${cognome}` : nome;
-            const email = c.email?.[0] || null;
-            await apiPost('/sv_partecipanti', { viaggio_id: viaggioCorrenteId, email_utente: userEmail, nome: nomeCompleto, ...(email ? { email_collegata: email } : {}) });
+            await apiPost('/sv_partecipanti', { viaggio_id: viaggioCorrenteId, email_utente: userEmail, nome: nomeCompleto });
             aggiunti++;
         }
         await caricaPartecipanti(); renderPartecipanti();
         toast(`✓ ${aggiunti} contatt${aggiunti === 1 ? 'o aggiunto' : 'i aggiunti'}`);
     } catch(e) {
+        if (btn) btn.innerHTML = origText;
         if (e?.name !== 'AbortError') toast('Errore accesso rubrica');
     }
 }
