@@ -354,6 +354,16 @@ const STATEMENTS = [
         ordine int default 0
     )`,
     `ALTER TABLE IF EXISTS documenti_foto DISABLE ROW LEVEL SECURITY`,
+    `CREATE TABLE IF NOT EXISTS sv_documenti_viaggio (
+        id bigint generated always as identity primary key,
+        viaggio_id bigint not null references sv_viaggi(id) on delete cascade,
+        documento_id bigint not null references documenti(id) on delete cascade,
+        email_utente text not null,
+        visibile_partecipanti boolean default false,
+        created_at timestamptz default now(),
+        unique(viaggio_id, documento_id)
+    )`,
+    `ALTER TABLE IF EXISTS sv_documenti_viaggio DISABLE ROW LEVEL SECURITY`,
     `INSERT INTO storage.buckets (id, name, public) VALUES ('documenti-foto', 'documenti-foto', true) ON CONFLICT DO NOTHING`,
     `DO $$ BEGIN
         IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='objects' AND schemaname='storage' AND policyname='allow upload documenti-foto') THEN

@@ -176,6 +176,18 @@
         .add-partecipante-wrap { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
         .add-partecipante-wrap input { flex: 1; min-width: 100px; padding: 13px 14px; border-radius: 14px; border: 2.5px solid var(--grey); font-size: 15px; font-family: inherit; outline: none; background: var(--white); }
         .add-partecipante-wrap input:focus { border-color: var(--accent); }
+        /* Documenti viaggio */
+        .doc-viaggio-section { margin-top: 18px; border-top: 2px solid var(--grey-light); padding-top: 14px; }
+        .doc-viaggio-title { font-size: 12px; font-weight: 800; color: #aaa; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px; }
+        .doc-viaggio-card { background: var(--white); border-radius: 14px; padding: 12px 14px; margin-bottom: 8px; display: flex; align-items: center; gap: 12px; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+        .doc-viaggio-emoji { font-size: 22px; width: 36px; text-align: center; flex-shrink: 0; }
+        .doc-viaggio-info { flex: 1; min-width: 0; }
+        .doc-viaggio-nome { font-weight: 800; font-size: 14px; }
+        .doc-viaggio-sub { font-size: 11px; color: #aaa; font-weight: 600; margin-top: 2px; }
+        .doc-viaggio-vis { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 8px; cursor: pointer; border: none; font-family: inherit; flex-shrink: 0; }
+        .doc-viaggio-vis.public { background: #e8f5e9; color: #16a34a; }
+        .doc-viaggio-vis.private { background: var(--grey-light); color: #aaa; }
+        .btn-add-doc-viaggio { display: flex; align-items: center; gap: 6px; width: 100%; padding: 11px 14px; border-radius: 14px; border: 2px dashed var(--grey); background: var(--white); color: #888; font-weight: 700; font-size: 13px; font-family: inherit; cursor: pointer; justify-content: center; margin-top: 4px; }
         .btn-rubrica { display: flex; align-items: center; gap: 6px; width: 100%; padding: 13px 14px; border-radius: 14px; border: 2.5px solid #5856d6; background: rgba(88,86,214,0.07); color: #5856d6; font-weight: 800; font-size: 14px; font-family: inherit; cursor: pointer; justify-content: center; margin-top: 6px; }
         .btn-add-part { padding: 13px 18px; border-radius: 14px; border: none; background: var(--accent); color: white; font-weight: 900; font-size: 14px; cursor: pointer; white-space: nowrap; }
         .btn-invita { width: 100%; padding: 13px; border-radius: 14px; border: 2px dashed #5856d6; background: #f5f4ff; color: #5856d6; font-weight: 800; font-size: 14px; cursor: pointer; font-family: inherit; margin-top: 8px; }
@@ -574,6 +586,15 @@
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
                 Scegli dalla rubrica
             </button>
+
+            <div class="doc-viaggio-section">
+                <div class="doc-viaggio-title">Documenti di viaggio</div>
+                <div id="elencoDocViaggio"></div>
+                <button class="btn-add-doc-viaggio" onclick="apriModalDocViaggio()">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
+                    + Aggiungi documento
+                </button>
+            </div>
         </div>
 
         <!-- TAB PIANO -->
@@ -741,6 +762,27 @@
 </div>
 
 <!-- Modal: Invita utente -->
+<!-- Modal: Aggiungi documento di viaggio -->
+<div class="modal-overlay" id="modalDocViaggio">
+    <div class="modal-box">
+        <div class="modal-handle"></div>
+        <div class="modal-title">Aggiungi documento</div>
+        <p style="font-size:13px;color:#888;font-weight:600;margin:0 0 16px;line-height:1.5">Seleziona un tuo documento da allegare al viaggio.</p>
+        <div id="listaDocViaggio" style="max-height:260px;overflow-y:auto;margin-bottom:14px"></div>
+        <div style="background:var(--grey-light);border-radius:14px;padding:14px;margin-bottom:14px">
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+                <input type="checkbox" id="docViaggioVisibile" style="width:20px;height:20px;accent-color:var(--accent);cursor:pointer">
+                <div>
+                    <div style="font-weight:800;font-size:14px">Visibile agli altri partecipanti</div>
+                    <div style="font-size:12px;color:#888;font-weight:600;margin-top:2px">Solo per la durata del viaggio</div>
+                </div>
+            </label>
+        </div>
+        <button class="btn-save-modal" id="btnSalvaDocViaggio" onclick="salvaDocViaggio()" style="background:var(--accent)">Aggiungi al viaggio</button>
+        <button onclick="chiudiModalDocViaggio()" style="width:100%;padding:14px;border:none;background:transparent;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit;color:#aaa;margin-top:4px">Annulla</button>
+    </div>
+</div>
+
 <div class="modal-overlay" id="modalInvita">
     <div class="modal-box">
         <div class="modal-handle"></div>
@@ -1769,7 +1811,7 @@ function mostraTab(tab) {
         if (panel) panel.style.display = t === tab ? '' : 'none';
     });
     if (tab === 'saldi') renderSaldi();
-    if (tab === 'persone') renderPartecipanti();
+    if (tab === 'persone') { renderPartecipanti(); caricaDocViaggio(); }
     if (tab === 'statistiche') renderStatistiche();
     if (tab === 'piano') renderPiano();
     if (tab === 'budget') renderBudget();
@@ -2521,6 +2563,114 @@ async function aggiungiPartecipante() {
     const parts = await apiGetArr(`/sv_partecipanti?viaggio_id=eq.${viaggioCorrenteId}&nome=eq.${encodeURIComponent(nomeCompleto)}&order=id.desc&limit=1`);
     _invitePartId = parts[0]?.id || null;
     apriModalInvita(nomeCompleto);
+}
+
+// ── Documenti di viaggio ─────────────────────────────────
+let _docViaggioSelezionato = null;
+let _docViaggioList = [];
+
+async function caricaDocViaggio() {
+    if (!viaggioCorrenteId) return;
+    const rows = await apiGetArr(`/sv_documenti_viaggio?viaggio_id=eq.${viaggioCorrenteId}&select=*`);
+    _docViaggioList = rows;
+    renderDocViaggio();
+}
+
+const TIPI_DOC = {
+    carta_identita:'🪪', passaporto:'🛂', patente:'🚗', tessera_sanitaria:'🏥',
+    codice_fiscale:'📋', cert_nascita:'📜', cert_matrimonio:'💍', diploma:'🎓',
+    rogito:'🏠', libretto_auto:'🚘', contratto_lavoro:'📄', altro:'📁'
+};
+
+function renderDocViaggio() {
+    const el = document.getElementById('elencoDocViaggio');
+    if (!el) return;
+    if (!_docViaggioList.length) { el.innerHTML = ''; return; }
+    el.innerHTML = _docViaggioList.map(d => {
+        const emoji = TIPI_DOC[d.tipo] || '📁';
+        const isMio = d.email_utente === userEmail;
+        const visLabel = d.visibile_partecipanti ? '👁 Visibile' : '🔒 Privato';
+        const visClass = d.visibile_partecipanti ? 'public' : 'private';
+        return `<div class="doc-viaggio-card">
+            <div class="doc-viaggio-emoji">${emoji}</div>
+            <div class="doc-viaggio-info">
+                <div class="doc-viaggio-nome">${d.nome}</div>
+                <div class="doc-viaggio-sub">${isMio ? 'Il tuo documento' : d.email_utente}</div>
+            </div>
+            ${isMio ? `<button class="doc-viaggio-vis ${visClass}" onclick="toggleVisDocViaggio(${d.id},${d.visibile_partecipanti})">${visLabel}</button>
+            <button onclick="rimuoviDocViaggio(${d.id})" style="width:32px;height:32px;border-radius:10px;border:none;background:var(--grey-light);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#999" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>` : `<span class="doc-viaggio-vis ${visClass}">${visLabel}</span>`}
+        </div>`;
+    }).join('');
+}
+
+async function apriModalDocViaggio() {
+    // carica documenti utente filtrati per carta_identita e passaporto
+    const docs = await apiGetArr(`/documenti?email_utente=eq.${encodeURIComponent(userEmail)}&tipo=in.(carta_identita,passaporto)&order=created_at.desc`);
+    const giàAggiuntiIds = new Set(_docViaggioList.filter(d => d.email_utente === userEmail).map(d => d.documento_id));
+    const disponibili = docs.filter(d => !giàAggiuntiIds.has(d.id));
+    const el = document.getElementById('listaDocViaggio');
+    if (!disponibili.length) {
+        el.innerHTML = '<div style="text-align:center;padding:20px;color:#aaa;font-weight:700;font-size:14px">Nessun documento disponibile.<br><span style="font-size:12px;font-weight:600">Aggiungi prima carta d'identità o passaporto nella sezione Documenti.</span></div>';
+    } else {
+        _docViaggioSelezionato = null;
+        el.innerHTML = disponibili.map(d => {
+            const emoji = TIPI_DOC[d.tipo] || '📁';
+            return `<div class="doc-viaggio-card" id="dvcard_${d.id}" onclick="selezionaDocViaggio(${d.id})" style="cursor:pointer;border:2px solid transparent">
+                <div class="doc-viaggio-emoji">${emoji}</div>
+                <div class="doc-viaggio-info">
+                    <div class="doc-viaggio-nome">${d.nome}</div>
+                    <div class="doc-viaggio-sub">${d.intestatario || ''} ${d.data_scadenza ? '· Scade: '+d.data_scadenza : ''}</div>
+                </div>
+            </div>`;
+        }).join('');
+    }
+    document.getElementById('docViaggioVisibile').checked = false;
+    document.getElementById('modalDocViaggio').classList.add('open');
+}
+
+function selezionaDocViaggio(id) {
+    _docViaggioSelezionato = id;
+    document.querySelectorAll('[id^="dvcard_"]').forEach(el => {
+        el.style.borderColor = el.id === 'dvcard_' + id ? 'var(--accent)' : 'transparent';
+        el.style.background = el.id === 'dvcard_' + id ? 'rgba(79,70,229,0.06)' : 'var(--white)';
+    });
+}
+
+async function salvaDocViaggio() {
+    if (!_docViaggioSelezionato) { toast('Seleziona un documento'); return; }
+    const visibile = document.getElementById('docViaggioVisibile').checked;
+    // leggi dati documento per salvare nome e tipo nel record
+    const docs = await apiGetArr(`/documenti?id=eq.${_docViaggioSelezionato}`);
+    const doc = docs[0];
+    const res = await apiPost('/sv_documenti_viaggio', {
+        viaggio_id: viaggioCorrenteId,
+        documento_id: _docViaggioSelezionato,
+        email_utente: userEmail,
+        nome: doc?.nome || '',
+        tipo: doc?.tipo || 'altro',
+        visibile_partecipanti: visibile
+    });
+    chiudiModalDocViaggio();
+    await caricaDocViaggio();
+    toast(visibile ? '✓ Documento aggiunto e visibile ai partecipanti' : '✓ Documento aggiunto (solo tu lo vedi)');
+}
+
+async function toggleVisDocViaggio(id, attuale) {
+    await apiPatch(`/sv_documenti_viaggio?id=eq.${id}`, { visibile_partecipanti: !attuale });
+    await caricaDocViaggio();
+}
+
+async function rimuoviDocViaggio(id) {
+    await apiDel(`/sv_documenti_viaggio?id=eq.${id}`);
+    await caricaDocViaggio();
+    toast('Documento rimosso dal viaggio');
+}
+
+function chiudiModalDocViaggio() {
+    document.getElementById('modalDocViaggio').classList.remove('open');
+    _docViaggioSelezionato = null;
 }
 
 async function apriRubrica() {
