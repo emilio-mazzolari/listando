@@ -595,7 +595,8 @@ async function analizzaFoto(file, preview, idx = 0) {
         const json = await resp.json();
 
         if (!json.ok) {
-            bar.textContent = json.reason === 'no_api_key' ? '💡 Analisi non disponibile (API key non configurata)' : '⚠️ Analisi non riuscita';
+            if (json.reason === 'no_api_key') { bar.textContent = '💡 Analisi non disponibile (API key non configurata)'; return; }
+            bar.textContent = '⚠️ Analisi non riuscita: ' + (json.reason || '') + ' ' + (json.detail || '');
             return;
         }
 
@@ -609,8 +610,8 @@ async function analizzaFoto(file, preview, idx = 0) {
 
         bar.className = 'analisi-bar ok';
         bar.textContent = '✓ Dati rilevati automaticamente — verifica e correggi se necessario';
-    } catch {
-        bar.textContent = '⚠️ Analisi non riuscita';
+    } catch(err) {
+        bar.textContent = '⚠️ Errore: ' + err.message;
     }
 }
 
