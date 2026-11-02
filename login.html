@@ -332,7 +332,10 @@ async function loginManuale() {
         }
     });
     if (error) {
-        statusDiv.innerHTML = `<span class="error">${error.message}</span>`;
+        const msg = error.message?.toLowerCase().includes('rate limit')
+            ? 'Troppi tentativi ravvicinati. Aspetta qualche minuto e riprova, oppure accedi con Google.'
+            : error.message;
+        statusDiv.innerHTML = `<span class="error">${msg}</span>`;
         btn.disabled = false;
     } else {
         statusDiv.innerHTML = '<span class="success">✉️ Controlla la tua email: hai ricevuto un link di accesso. Torna qui dopo averlo cliccato.</span>';
