@@ -347,6 +347,29 @@ const STATEMENTS = [
         created_at timestamptz default now()
     )`,
     `ALTER TABLE IF EXISTS documenti DISABLE ROW LEVEL SECURITY`,
+    `CREATE TABLE IF NOT EXISTS documenti_foto (
+        id bigint generated always as identity primary key,
+        documento_id bigint not null references documenti(id) on delete cascade,
+        url text not null,
+        ordine int default 0
+    )`,
+    `ALTER TABLE IF EXISTS documenti_foto DISABLE ROW LEVEL SECURITY`,
+    `INSERT INTO storage.buckets (id, name, public) VALUES ('documenti-foto', 'documenti-foto', true) ON CONFLICT DO NOTHING`,
+    `DO $$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='objects' AND schemaname='storage' AND policyname='allow upload documenti-foto') THEN
+            CREATE POLICY "allow upload documenti-foto" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'documenti-foto');
+        END IF;
+    END $$`,
+    `DO $$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='objects' AND schemaname='storage' AND policyname='allow select documenti-foto') THEN
+            CREATE POLICY "allow select documenti-foto" ON storage.objects FOR SELECT USING (bucket_id = 'documenti-foto');
+        END IF;
+    END $$`,
+    `DO $$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='objects' AND schemaname='storage' AND policyname='allow delete documenti-foto') THEN
+            CREATE POLICY "allow delete documenti-foto" ON storage.objects FOR DELETE USING (bucket_id = 'documenti-foto');
+        END IF;
+    END $$`,
 ];
 
 async function runSql(serviceKey, sql) {
