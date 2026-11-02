@@ -30,8 +30,6 @@
             display: flex; justify-content: center; align-items: center;
             min-height: 100vh; color: var(--dark);
         }
-
-        /* ── Card base ── */
         .card {
             background: white; padding: 40px 30px;
             border-radius: 32px; box-shadow: 0 10px 25px rgba(0,0,0,0.05);
@@ -39,10 +37,7 @@
             border: 4px solid var(--grey);
         }
         .logo-img { width: 100%; max-width: 220px; height: auto; margin-bottom: 24px; display: block; margin-left: auto; margin-right: auto; }
-
-        /* ── Schermata biometrica ── */
         #screenBio { display: none; flex-direction: column; align-items: center; }
-
         .bio-icon-wrap {
             width: 88px; height: 88px; border-radius: 50%;
             background: linear-gradient(135deg, #e8f8f3, #d0f0e7);
@@ -56,10 +51,8 @@
             50%       { box-shadow: 0 0 0 14px rgba(15,186,141,0); }
         }
         .bio-icon-wrap svg { width: 44px; height: 44px; stroke: var(--green); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-
         .bio-title { font-weight: 900; font-size: 22px; margin: 0 0 8px; }
         .bio-email  { font-size: 13px; color: #999; font-weight: 600; margin-bottom: 28px; }
-
         .btn-bio {
             width: 100%; padding: 18px; border-radius: 20px; border: none;
             background: var(--green); color: white;
@@ -69,19 +62,14 @@
             margin-bottom: 14px;
         }
         .btn-bio:active { transform: scale(0.97); opacity: 0.88; }
-
         .link-altro {
             font-size: 13px; color: #aaa; font-weight: 700;
             cursor: pointer; text-decoration: underline; background: none;
             border: none; font-family: inherit; padding: 0;
         }
         .link-altro:hover { color: var(--dark); }
-
-        /* ── Schermata email ── */
         #screenEmail { display: none; flex-direction: column; width: 100%; }
-
         .subtitle { font-weight: 600; color: #000; margin-bottom: 28px; font-size: 16px; }
-
         input {
             width: 100%; padding: 16px; margin-bottom: 14px;
             border-radius: 18px; border: 3px solid var(--grey);
@@ -89,7 +77,6 @@
             transition: border-color 0.2s; font-family: inherit;
         }
         input:focus { border-color: var(--blue); }
-
         .btn-email {
             width: 100%; padding: 16px; border-radius: 18px; border: none;
             font-weight: 800; font-size: 16px; cursor: pointer;
@@ -97,13 +84,11 @@
             font-family: inherit; transition: transform 0.1s;
         }
         .btn-email:active { transform: scale(0.98); }
-
         .divider {
             margin: 22px 0; color: var(--grey); font-size: 12px; font-weight: 800;
             display: flex; align-items: center; gap: 10px;
         }
         .divider::before, .divider::after { content: ""; flex: 1; height: 2px; background: var(--grey); }
-
         .btn-google {
             width: 100%; padding: 16px; border-radius: 18px;
             border: 3px solid var(--grey); background: white;
@@ -112,15 +97,15 @@
             cursor: pointer; font-family: inherit; transition: transform 0.1s;
         }
         .btn-google:active { transform: scale(0.98); }
-
-        /* ── Status ── */
         #status { margin-top: 18px; font-size: 13px; font-weight: 700; min-height: 20px; }
         .error   { color: #ff3b30; }
         .success { color: var(--green); }
-
+        .btn-ricontrolla {
+            width: 100%; padding: 14px; border-radius: 16px; border: 2px solid var(--green);
+            background: #e8f8f3; color: var(--green); font-weight: 800; font-size: 14px;
+            cursor: pointer; font-family: inherit; margin-top: 10px; display: none;
+        }
         button:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
-
-
         @media (min-width: 768px)  { .card { max-width: 420px; } }
         @media (min-width: 1024px) { .card { max-width: 460px; } }
     </style>
@@ -132,7 +117,6 @@
     <!-- Schermata biometrica (ritorno) -->
     <div id="screenBio">
         <div class="bio-icon-wrap">
-            <!-- Fingerprint icon -->
             <svg viewBox="0 0 24 24">
                 <path d="M12 1C8.5 1 5.5 3 4 6"/>
                 <path d="M20 6c-1.5-3-4.5-5-8-5"/>
@@ -145,6 +129,7 @@
             </svg>
         </div>
         <div class="bio-title">Bentornato</div>
+        <div class="bio-email" id="bioEmailLabel"></div>
         <button class="btn-bio" onclick="accediConBiometria()">🔐 SBLOCCA</button>
         <button class="link-altro" onclick="mostraSchermaEmail()">Accedi con email</button>
         <button class="link-altro" style="margin-top:6px;font-size:11px;color:#ccc" onclick="usaAltroAccount()">Cambia account</button>
@@ -157,10 +142,11 @@
                onkeydown="if(event.key==='Enter') loginManuale()">
         <button class="btn-email" id="btnEmail" onclick="loginManuale()">INVIA LINK DI ACCESSO</button>
         <div class="divider">OPPURE</div>
-        <button class="btn-google" onclick="loginConGoogle()">
+        <button class="btn-google" id="btnGoogle" onclick="loginConGoogle()">
             <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
             Continua con Google
         </button>
+        <button class="btn-ricontrolla" id="btnRicontrolla" onclick="ricontrollaSessione()">✓ Ho completato l'accesso Google — Entra</button>
     </div>
 
     <div id="status"></div>
@@ -177,14 +163,19 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const statusDiv = document.getElementById('status');
 
-// Mostra errore se il callback Google ha restituito un parametro di errore
+// Mostra errore Google se presente nell'URL
 (function() {
     const ge = new URLSearchParams(location.search).get('google_error');
-    if (ge) statusDiv.innerHTML = `<span class="error">Accesso Google fallito: ${decodeURIComponent(ge)}</span>`;
+    if (ge) statusDiv.innerHTML = `<span class="error">Accesso Google non riuscito: ${decodeURIComponent(ge)}</span>`;
 })();
 
 const BIO_KEY   = 'bioCredId';
 const BIO_EMAIL = 'bioEmail';
+
+function isPWA() {
+    return window.matchMedia('(display-mode: standalone)').matches ||
+           window.navigator.standalone === true;
+}
 
 function getRedirectUrl() {
     const url = localStorage.getItem('pendingUrl');
@@ -192,33 +183,51 @@ function getRedirectUrl() {
     return 'index.html';
 }
 
-// ── Rilevamento supporto ────────────────────────────────────────────
 async function bioSupportato() {
     return !!(window.PublicKeyCredential &&
               await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable());
 }
 
-// ── Inizializzazione ────────────────────────────────────────────────
+// ── Inizializzazione ─────────────────────────────────────────────────
 window.addEventListener('load', async () => {
     if (localStorage.getItem('listando_pwd_enc'))
         document.getElementById('offlinePasswordLink').style.display = '';
 
-    // Se c'è già una sessione Supabase valida, vai direttamente all'app
-    const { data: { session } } = await supabaseClient.auth.getSession();
-    if (session) {
+    await tentaRipristinoSessione();
+});
+
+async function tentaRipristinoSessione() {
+    // 1. Prova sessione esistente
+    let { data: { session } } = await supabaseClient.auth.getSession();
+
+    // 2. Se non c'è sessione, prova il refresh token (potrebbe essere ancora valido)
+    if (!session) {
+        const { data: refreshed } = await supabaseClient.auth.refreshSession();
+        session = refreshed?.session || null;
+    }
+
+    if (session?.user?.email) {
         localStorage.setItem('userEmail', session.user.email);
         window.location.assign(getRedirectUrl());
         return;
     }
 
+    // Nessuna sessione valida — mostra login
     const credId = localStorage.getItem(BIO_KEY);
     const email  = localStorage.getItem(BIO_EMAIL);
-
     if (credId && email) {
+        document.getElementById('bioEmailLabel').textContent = email;
         mostraSchermaBio();
         setTimeout(accediConBiometria, 400);
     } else {
         mostraSchermaEmail();
+    }
+}
+
+// Quando l'utente ritorna sulla tab (dopo OAuth in Safari)
+document.addEventListener('visibilitychange', async () => {
+    if (document.visibilityState === 'visible' && localStorage.getItem('google_auth_pending')) {
+        await ricontrollaSessione();
     }
 });
 
@@ -233,14 +242,12 @@ function mostraSchermaEmail() {
     if (saved) document.getElementById('emailInput').value = saved;
 }
 
-// ── Autenticazione biometrica ───────────────────────────────────────
+// ── Autenticazione biometrica ────────────────────────────────────────
 async function accediConBiometria() {
     const credIdStr = localStorage.getItem(BIO_KEY);
     if (!credIdStr) { mostraSchermaEmail(); return; }
-
     const credId = Uint8Array.from(atob(credIdStr), c => c.charCodeAt(0));
     statusDiv.innerHTML = 'Verifica in corso…';
-
     try {
         const assertion = await navigator.credentials.get({
             publicKey: {
@@ -251,16 +258,16 @@ async function accediConBiometria() {
             }
         });
         if (assertion) {
-            // Verifica che la sessione Supabase sia ancora valida
-            const { data: { session } } = await supabaseClient.auth.getSession();
+            let { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) {
+                const { data: refreshed } = await supabaseClient.auth.refreshSession();
+                session = refreshed?.session || null;
+            }
             if (session) {
                 localStorage.setItem('userEmail', session.user.email);
                 window.location.assign(getRedirectUrl());
             } else {
-                // Sessione scaduta: serve un nuovo link di accesso
                 mostraSchermaEmail();
-                const saved = localStorage.getItem(BIO_EMAIL);
-                if (saved) document.getElementById('emailInput').value = saved;
                 statusDiv.innerHTML = '<span class="error">Sessione scaduta. Invia un nuovo link via email.</span>';
             }
         }
@@ -268,13 +275,12 @@ async function accediConBiometria() {
         if (e.name === 'NotAllowedError') {
             statusDiv.innerHTML = '<span class="error">Verifica annullata. Riprova.</span>';
         } else {
-            console.error(e);
-            statusDiv.innerHTML = '<span class="error">Touch ID non riuscito. Riprova o usa email.</span>';
+            statusDiv.innerHTML = '<span class="error">Touch ID non riuscito. Usa email.</span>';
         }
     }
 }
 
-// ── Registrazione biometrica (silenziosa dopo il primo login) ────────
+// ── Registrazione biometrica ─────────────────────────────────────────
 async function registraBiometria(email) {
     if (!(await bioSupportato())) return false;
     try {
@@ -284,12 +290,11 @@ async function registraBiometria(email) {
                 rp: { name: 'Listando', id: location.hostname },
                 user: {
                     id: crypto.getRandomValues(new Uint8Array(16)),
-                    name: email,
-                    displayName: email
+                    name: email, displayName: email
                 },
                 pubKeyCredParams: [
-                    { type: 'public-key', alg: -7   },  // ES256
-                    { type: 'public-key', alg: -257 }   // RS256 fallback
+                    { type: 'public-key', alg: -7   },
+                    { type: 'public-key', alg: -257 }
                 ],
                 authenticatorSelection: {
                     authenticatorAttachment: 'platform',
@@ -304,13 +309,12 @@ async function registraBiometria(email) {
             return true;
         }
     } catch (e) {
-        // L'utente ha rifiutato o il dispositivo non supporta: non è un errore bloccante
         console.info('Biometric registration skipped:', e.name);
     }
     return false;
 }
 
-// ── Login via magic link (OTP email) ───────────────────────────────
+// ── Magic link ───────────────────────────────────────────────────────
 async function loginManuale() {
     const email = document.getElementById('emailInput').value.trim();
     if (!email.includes('@')) {
@@ -320,7 +324,6 @@ async function loginManuale() {
     const btn = document.getElementById('btnEmail');
     btn.disabled = true;
     statusDiv.innerHTML = 'Invio link in corso…';
-
     const { error } = await supabaseClient.auth.signInWithOtp({
         email,
         options: {
@@ -328,7 +331,6 @@ async function loginManuale() {
             emailRedirectTo: 'https://listando.it/login.html'
         }
     });
-
     if (error) {
         statusDiv.innerHTML = `<span class="error">${error.message}</span>`;
         btn.disabled = false;
@@ -337,28 +339,73 @@ async function loginManuale() {
     }
 }
 
-// ── Google OAuth (redirect via listando.it — mostra "Continua su listando.it") ──
+// ── Google OAuth ─────────────────────────────────────────────────────
 function loginConGoogle() {
+    localStorage.setItem('google_auth_pending', '1');
     statusDiv.innerHTML = 'Reindirizzo a Google…';
-    window.location.href = '/api/google-auth';
+
+    if (isPWA()) {
+        // Su PWA iOS/Android il redirect OAuth apre Safari, non la PWA.
+        // Apriamo in una nuova finestra e mostriamo il bottone di rientro.
+        window.open('/api/google-auth', '_blank');
+        statusDiv.innerHTML = '<span class="success">Completa l\'accesso Google nel browser che si è aperto.</span>';
+        document.getElementById('btnRicontrolla').style.display = '';
+        document.getElementById('btnGoogle').style.display = 'none';
+    } else {
+        window.location.href = '/api/google-auth';
+    }
 }
 
+async function ricontrollaSessione() {
+    statusDiv.innerHTML = 'Verifica in corso…';
+    localStorage.removeItem('google_auth_pending');
+    let { data: { session } } = await supabaseClient.auth.getSession();
+    if (!session) {
+        const { data: refreshed } = await supabaseClient.auth.refreshSession();
+        session = refreshed?.session || null;
+    }
+    if (session?.user?.email) {
+        localStorage.setItem('userEmail', session.user.email);
+        if (!localStorage.getItem(BIO_KEY)) await registraBiometria(session.user.email);
+        window.location.assign(getRedirectUrl());
+    } else {
+        statusDiv.innerHTML = '<span class="error">Sessione non trovata. Riprova o usa il link via email.</span>';
+        document.getElementById('btnRicontrolla').style.display = '';
+    }
+}
+
+// ── Listener cambiamento sessione ────────────────────────────────────
 supabaseClient.auth.onAuthStateChange(async (event, session) => {
     if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session) {
         const email = session.user.email;
         localStorage.setItem('userEmail', email);
+        localStorage.removeItem('google_auth_pending');
+        // Se siamo stati aperti come popup dall'OAuth, chiudi e notifica
+        if (window.opener && !window.opener.closed) {
+            try {
+                window.opener.localStorage.setItem('sb_oauth_complete', email);
+                window.opener.dispatchEvent(new Event('storage'));
+            } catch(e) {}
+            window.close();
+            return;
+        }
         if (!localStorage.getItem(BIO_KEY)) {
             statusDiv.innerHTML = 'Configuro Face ID / Touch ID…';
             await registraBiometria(email);
         }
         window.location.assign(getRedirectUrl());
     }
-    if (event === 'SIGNED_OUT') {
-        localStorage.removeItem('userEmail');
+    if (event === 'SIGNED_OUT') localStorage.removeItem('userEmail');
+});
+
+// Ascolto notifica dal popup OAuth
+window.addEventListener('storage', async (e) => {
+    if (e.key === 'sb_oauth_complete' && e.newValue) {
+        localStorage.removeItem('sb_oauth_complete');
+        await ricontrollaSessione();
     }
 });
 
-// ── Cambio account ──────────────────────────────────────────────────
 function usaAltroAccount() {
     localStorage.removeItem(BIO_KEY);
     localStorage.removeItem(BIO_EMAIL);
