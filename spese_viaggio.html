@@ -173,9 +173,10 @@
         .part-info { flex: 1; min-width: 0; }
         .partecipante-nome { font-weight: 800; font-size: 15px; }
         .partecipante-sub { font-size: 11px; color: #aaa; font-weight: 600; margin-top: 2px; }
-        .add-partecipante-wrap { display: flex; gap: 10px; margin-top: 12px; }
-        .add-partecipante-wrap input { flex: 1; padding: 13px 14px; border-radius: 14px; border: 2.5px solid var(--grey); font-size: 15px; font-family: inherit; outline: none; background: var(--white); }
+        .add-partecipante-wrap { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+        .add-partecipante-wrap input { flex: 1; min-width: 100px; padding: 13px 14px; border-radius: 14px; border: 2.5px solid var(--grey); font-size: 15px; font-family: inherit; outline: none; background: var(--white); }
         .add-partecipante-wrap input:focus { border-color: var(--accent); }
+        .btn-rubrica { display: flex; align-items: center; gap: 6px; width: 100%; padding: 13px 14px; border-radius: 14px; border: 2.5px solid #5856d6; background: rgba(88,86,214,0.07); color: #5856d6; font-weight: 800; font-size: 14px; font-family: inherit; cursor: pointer; justify-content: center; margin-top: 6px; }
         .btn-add-part { padding: 13px 18px; border-radius: 14px; border: none; background: var(--accent); color: white; font-weight: 900; font-size: 14px; cursor: pointer; white-space: nowrap; }
         .btn-invita { width: 100%; padding: 13px; border-radius: 14px; border: 2px dashed #5856d6; background: #f5f4ff; color: #5856d6; font-weight: 800; font-size: 14px; cursor: pointer; font-family: inherit; margin-top: 8px; }
         .btn-link-viaggio { width: 100%; padding: 13px; border-radius: 14px; border: 2px dashed var(--green); background: #f0fff8; color: var(--green); font-weight: 800; font-size: 14px; cursor: pointer; font-family: inherit; margin-top: 8px; }
@@ -563,11 +564,16 @@
         <div id="tabPersone" style="display:none">
             <div id="elencoPersone"></div>
             <button onclick="ricaricaFoto()" style="width:100%;padding:10px;border-radius:12px;border:1.5px solid var(--grey);background:var(--white);font-weight:700;font-size:13px;cursor:pointer;font-family:inherit;color:#888;margin-bottom:10px">🔄 Ricarica foto profilo</button>
+            <button class="btn-invita" onclick="aggiungiMeStesso()" style="background:#e8f5e9;color:#0fba8d;border:2px solid #0fba8d;border-radius:14px;width:100%;padding:13px;font-weight:800;font-size:14px;cursor:pointer;font-family:inherit;margin-bottom:8px">👤 Aggiungi me stesso</button>
             <div class="add-partecipante-wrap">
-                <input type="text" id="nomeNuovaPersona" placeholder="Nome partecipante…" onkeydown="if(event.key==='Enter') aggiungiPartecipante()">
+                <input type="text" id="inputNome" placeholder="Nome" onkeydown="if(event.key==='Enter') document.getElementById('inputCognome').focus()">
+                <input type="text" id="inputCognome" placeholder="Cognome" onkeydown="if(event.key==='Enter') aggiungiPartecipante()">
                 <button class="btn-add-part" onclick="aggiungiPartecipante()">+ Aggiungi</button>
             </div>
-            <button class="btn-invita" onclick="aggiungiMeStesso()" style="background:#e8f5e9;color:#0fba8d;border:2px solid #0fba8d;border-radius:14px;width:100%;padding:13px;font-weight:800;font-size:14px;cursor:pointer;font-family:inherit;margin-top:4px">👤 Aggiungi me stesso</button>
+            <button class="btn-rubrica" onclick="apriRubrica()">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                Scegli dalla rubrica
+            </button>
         </div>
 
         <!-- TAB PIANO -->
@@ -2472,7 +2478,10 @@ async function caricaFotoProfili() {
 
 function renderPartecipanti() {
     const el = document.getElementById('elencoPersone');
-    if (!partecipantiAttuali.length) { el.innerHTML = `<div class="empty-msg" style="padding:24px 0">Nessun partecipante ancora.</div>`; return; }
+    if (!partecipantiAttuali.length) {
+        el.innerHTML = `<div class="empty-msg" style="padding:16px 0 8px">Nessun partecipante ancora.<br><span style="font-size:13px">Usa i pulsanti qui sotto per aggiungerne.</span></div>`;
+        return;
+    }
     const nessunoSonoIo = !mioPartecipanteId();
     el.innerHTML = partecipantiAttuali.map(p => {
         const fp = p.email_collegata ? fotoProfili[p.email_collegata] : null;
@@ -2499,16 +2508,46 @@ function renderPartecipanti() {
 }
 
 async function aggiungiPartecipante() {
-    const input = document.getElementById('nomeNuovaPersona');
-    const nome = input.value.trim();
-    if (!nome) return;
-    await apiPost('/sv_partecipanti', { viaggio_id: viaggioCorrenteId, email_utente: userEmail, nome });
-    input.value = '';
+    const nome = (document.getElementById('inputNome')?.value || '').trim();
+    const cognome = (document.getElementById('inputCognome')?.value || '').trim();
+    const nomeCompleto = [nome, cognome].filter(Boolean).join(' ');
+    if (!nomeCompleto) return;
+    await apiPost('/sv_partecipanti', { viaggio_id: viaggioCorrenteId, email_utente: userEmail, nome: nomeCompleto });
+    document.getElementById('inputNome').value = '';
+    document.getElementById('inputCognome').value = '';
     await caricaPartecipanti(); renderPartecipanti();
-    toast(`✓ ${nome} aggiunto`);
-    const parts = await apiGetArr(`/sv_partecipanti?viaggio_id=eq.${viaggioCorrenteId}&nome=eq.${encodeURIComponent(nome)}&order=id.desc&limit=1`);
+    toast(`✓ ${nomeCompleto} aggiunto`);
+    const parts = await apiGetArr(`/sv_partecipanti?viaggio_id=eq.${viaggioCorrenteId}&nome=eq.${encodeURIComponent(nomeCompleto)}&order=id.desc&limit=1`);
     _invitePartId = parts[0]?.id || null;
-    apriModalInvita(nome);
+    apriModalInvita(nomeCompleto);
+}
+
+async function apriRubrica() {
+    if (!('contacts' in navigator) || !('ContactsManager' in window)) {
+        toast('Rubrica non disponibile su questo browser');
+        return;
+    }
+    try {
+        const contacts = await navigator.contacts.select(['name', 'email', 'tel'], { multiple: true });
+        if (!contacts?.length) return;
+        let aggiunti = 0;
+        for (const c of contacts) {
+            const fullName = (c.name?.[0] || '').trim();
+            if (!fullName) continue;
+            // Separa nome e cognome: ultimo token = cognome
+            const tokens = fullName.split(/\s+/);
+            const cognome = tokens.length > 1 ? tokens.pop() : '';
+            const nome = tokens.join(' ');
+            const nomeCompleto = cognome ? `${nome} ${cognome}` : nome;
+            const email = c.email?.[0] || null;
+            await apiPost('/sv_partecipanti', { viaggio_id: viaggioCorrenteId, email_utente: userEmail, nome: nomeCompleto, ...(email ? { email_collegata: email } : {}) });
+            aggiunti++;
+        }
+        await caricaPartecipanti(); renderPartecipanti();
+        toast(`✓ ${aggiunti} contatt${aggiunti === 1 ? 'o aggiunto' : 'i aggiunti'}`);
+    } catch(e) {
+        if (e?.name !== 'AbortError') toast('Errore accesso rubrica');
+    }
 }
 
 async function sonoIo(partId) {
@@ -2590,15 +2629,33 @@ function condividiLinkViaggio() {
 }
 
 // ── Invita ────────────────────────────────────────────────────────
-function apriModalInvita(nome) {
+async function apriModalInvita(nome) {
     document.getElementById('emailInvitato').value = '';
     document.getElementById('nomeInvitato').value = nome || '';
-    document.getElementById('inviteStep1').style.display = '';
-    document.getElementById('inviteStep2').style.display = 'none';
     document.getElementById('modalInvitaTitolo').textContent = nome ? `Invita ${nome}` : 'Invita partecipante';
-    document.getElementById('inviteNomeWrap').style.display = nome ? 'none' : '';
     document.getElementById('modalInvita').classList.add('open');
-    setTimeout(() => document.getElementById('emailInvitato').focus(), 300);
+    if (nome) {
+        // Salta step 1 — genera subito i link di condivisione
+        const viaggio = viaggi.find(v => v.id === viaggioCorrenteId);
+        const mioNome = await getMioNome();
+        const joinUrl = `https://listando.it/spese_viaggio.html?join=${viaggioCorrenteId}`;
+        const nomeViaggio = viaggio?.nome || 'viaggio';
+        const msg = `Ciao ${nome}! 👋\n${mioNome} ti ha aggiunto alle spese di "${nomeViaggio}" su Listando 🧳\n\nClicca qui per vedere il viaggio:\n${joinUrl}\n\n(Se non hai ancora Listando, accedi su https://listando.it con la tua email e poi riapri il link)`;
+        window._inviteMsg = msg;
+        document.getElementById('inviteStep1').style.display = 'none';
+        document.getElementById('inviteStep2').style.display = '';
+        document.getElementById('inviteShareDesc').textContent = `Condividi con ${nome}:`;
+        document.getElementById('btnShareWA').href = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+        const emailBtn = document.getElementById('btnShareEmail');
+        emailBtn.href = `mailto:?subject=${encodeURIComponent(`${mioNome} ti invita su Listando — ${nomeViaggio}`)}&body=${encodeURIComponent(msg)}`;
+        emailBtn.style.display = '';
+        if (navigator.share) document.getElementById('btnShareNativo').style.display = '';
+    } else {
+        document.getElementById('inviteStep1').style.display = '';
+        document.getElementById('inviteStep2').style.display = 'none';
+        document.getElementById('inviteNomeWrap').style.display = '';
+        setTimeout(() => document.getElementById('emailInvitato').focus(), 300);
+    }
 }
 function chiudiModalInvita() { document.getElementById('modalInvita').classList.remove('open'); _invitePartId = null; }
 
