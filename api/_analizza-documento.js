@@ -3,7 +3,7 @@ module.exports = async function handler(req, res) {
     if (req.method === 'OPTIONS') return res.status(200).end();
     if (req.method !== 'POST') return res.status(405).end();
 
-    const apiKey = process.env.ANTHROPIC_API_KEY;
+    const apiKey = process.env.GOOGLE_AI_API_KEY;
     if (!apiKey) return res.status(200).json({ ok: false, reason: 'no_api_key' });
 
     const { imageBase64, mimeType = 'image/jpeg' } = req.body || {};
@@ -21,23 +21,18 @@ module.exports = async function handler(req, res) {
 Rispondi SOLO con JSON, senza testo aggiuntivo.`;
 
     try {
-        const resp = await fetch('https://api.anthropic.com/v1/messages', {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+        const resp = await fetch(url, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': apiKey,
-                'anthropic-version': '2023-06-01',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                model: 'claude-haiku-4-5-20251001',
-                max_tokens: 400,
-                messages: [{
-                    role: 'user',
-                    content: [
-                        { type: 'image', source: { type: 'base64', media_type: mimeType, data: imageBase64 } },
-                        { type: 'text', text: prompt }
+                contents: [{
+                    parts: [
+                        { inline_data: { mime_type: mimeType, data: imageBase64 } },
+                        { text: prompt }
                     ]
-                }]
+                }],
+                generationConfig: { maxOutputTokens: 400, temperature: 0 }
             })
         });
 
@@ -47,7 +42,7 @@ Rispondi SOLO con JSON, senza testo aggiuntivo.`;
         }
 
         const data = await resp.json();
-        const text = (data.content?.[0]?.text || '{}').trim();
+        const text = (data.candidates?.[0]?.content?.parts?.[0]?.text || '{}').trim();
 
         let parsed = {};
         try { parsed = JSON.parse(text); }
