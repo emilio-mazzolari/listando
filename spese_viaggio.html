@@ -2643,7 +2643,7 @@ async function apriModalInvita(nome) {
         const mioNome = await getMioNome();
         const joinUrl = `https://listando.it/spese_viaggio.html?join=${viaggioCorrenteId}`;
         const nomeViaggio = viaggio?.nome || 'viaggio';
-        const msg = `Ciao ${nome}! 👋\nTi ho aggiunto al viaggio "${nomeViaggio}" su Listando così puoi tenere traccia delle tue spese e di quelle condivise con gli altri partecipanti.\n\nClicca qui: ${joinUrl}\n\nListando è un'app gratuita. Accedi su https://listando.it`;
+        const msg = `Ciao ${nome.split(' ')[0]}! 👋\nTi ho aggiunto al viaggio "${nomeViaggio}" su Listando così puoi tenere traccia delle tue spese e di quelle condivise con gli altri partecipanti.\n\nClicca qui: ${joinUrl}\n\nListando è un'app gratuita. Accedi su https://listando.it`;
         window._inviteMsg = msg;
         document.getElementById('inviteStep1').style.display = 'none';
         document.getElementById('inviteStep2').style.display = '';
@@ -2687,7 +2687,7 @@ async function inviaInvito() {
     }
     _invitePartId = null;
     const nomeViaggio = viaggio?.nome || 'viaggio';
-    const msg = `Ciao ${nome}! 👋\nTi ho aggiunto al viaggio "${nomeViaggio}" su Listando così puoi tenere traccia delle tue spese e di quelle condivise con gli altri partecipanti.\n\nClicca qui: ${joinUrl}\n\nListando è un'app gratuita. Accedi su https://listando.it`;
+    const msg = `Ciao ${nome.split(' ')[0]}! 👋\nTi ho aggiunto al viaggio "${nomeViaggio}" su Listando così puoi tenere traccia delle tue spese e di quelle condivise con gli altri partecipanti.\n\nClicca qui: ${joinUrl}\n\nListando è un'app gratuita. Accedi su https://listando.it`;
     window._inviteMsg = msg;
     document.getElementById('inviteStep1').style.display = 'none';
     document.getElementById('inviteStep2').style.display = '';
