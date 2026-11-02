@@ -2621,7 +2621,7 @@ async function apriModalDocViaggio() {
     const disponibili = docs.filter(d => !giàAggiuntiIds.has(d.id));
     const el = document.getElementById('listaDocViaggio');
     if (!disponibili.length) {
-        el.innerHTML = '<div style="text-align:center;padding:20px;color:#aaa;font-weight:700;font-size:14px">Nessun documento disponibile.<br><span style="font-size:12px;font-weight:600">Aggiungi prima carta d'identità o passaporto nella sezione Documenti.</span></div>';
+        el.innerHTML = '<div style="text-align:center;padding:20px;color:#aaa;font-weight:700;font-size:14px">Nessun documento disponibile.<br><span style="font-size:12px;font-weight:600">Aggiungi prima carta d\'identità o passaporto nella sezione Documenti.</span></div>';
     } else {
         _docViaggioSelezionato = null;
         el.innerHTML = disponibili.map(d => {
