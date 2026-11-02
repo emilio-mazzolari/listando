@@ -16,7 +16,15 @@ module.exports = async function handler(req, res) {
     // ── START: nessun code → avvia il flusso OAuth ────────────────────
     if (!code && !error) {
         if (req.query.debug === 'env') {
-            return res.status(200).json({ CLIENT_ID: !!CLIENT_ID, CLIENT_SECRET: !!CLIENT_SECRET, keys: Object.keys(process.env).filter(k => k.startsWith('GOOGLE')) });
+            const allKeys = Object.keys(process.env);
+            return res.status(200).json({
+                CLIENT_ID: !!CLIENT_ID,
+                CLIENT_SECRET: !!CLIENT_SECRET,
+                googleKeys: allKeys.filter(k => k.startsWith('GOOGLE')),
+                allKeyCount: allKeys.length,
+                hasGCID: 'GOOGLE_CLIENT_ID' in process.env,
+                gcidRaw: process.env['GOOGLE_CLIENT_ID'] ?? 'UNDEFINED',
+            });
         }
         if (!CLIENT_ID) return res.status(500).send('GOOGLE_CLIENT_ID non configurato');
         const params = new URLSearchParams({
