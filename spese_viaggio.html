@@ -4195,7 +4195,7 @@ async function sincronizzaBudgetPiano(pianoId) {
     await Promise.all(voci.map(v => apiPost('/sv_budget', {
         viaggio_id: viaggioCorrenteId, email_utente: userEmail,
         piano_id: pianoId, categoria: v.categoria,
-        descrizione: v.desc, importo_previsto: v.importo, stato: 'prevista'
+        titolo: v.desc, importo_previsto: v.importo, stato: 'prevista'
     })));
 }
 
@@ -4511,7 +4511,6 @@ async function salvaBudgetItem() {
         viaggio_id: viaggioCorrenteId,
         email_utente: userEmail,
         titolo,
-        descrizione: titolo,
         categoria: budgetCatScelta,
         importo_previsto: importo,
         valuta: document.getElementById('bValuta').value || viaggioCorrenteValuta,
