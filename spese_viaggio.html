@@ -4193,7 +4193,7 @@ async function sincronizzaBudgetPiano(pianoId) {
         if (p.costo_tappa > 0) voci.push({ categoria: BUDGET_CAT_ICONS[p.tipo] ? p.tipo : 'altro', importo: +p.costo_tappa, desc: p.titolo || '' });
     }
     await Promise.all(voci.map(v => apiPost('/sv_budget', {
-        viaggio_id: viaggioCorrenteId, email_utente: userEmail,
+        viaggio_id: viaggioCorrenteId,
         piano_id: pianoId, categoria: v.categoria,
         titolo: v.desc, importo_previsto: v.importo, stato: 'prevista'
     })));
@@ -4509,7 +4509,6 @@ async function salvaBudgetItem() {
     if (isNaN(importo) || importo < 0) { toast('Inserisci un importo valido'); return; }
     const body = {
         viaggio_id: viaggioCorrenteId,
-        email_utente: userEmail,
         titolo,
         categoria: budgetCatScelta,
         importo_previsto: importo,
@@ -4518,7 +4517,7 @@ async function salvaBudgetItem() {
         note: document.getElementById('bNote').value.trim() || null,
     };
     const res = budgetItemEditId
-        ? await apiPatch(`/sv_budget?id=eq.${budgetItemEditId}&email_utente=eq.${encodeURIComponent(userEmail)}`, body)
+        ? await apiPatch(`/sv_budget?id=eq.${budgetItemEditId}`, body)
         : await apiPost('/sv_budget', body);
     if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
