@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Etichette — Listando</title>
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icon-pwa-512.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Listando">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+    color-scheme: light;
+    --accent:#4f46e5; --accent-bg:rgba(79,70,229,.08);
+    --green:#0fba8d; --red:#ef4444;
+    --grey:#e2e8f0; --grey-light:#f1f5f9;
+    --dark:#0f172a; --bg:#f5f6f8; --white:#fff;
+    --shadow:0 2px 8px rgba(0,0,0,.07);
+}
+*{box-sizing:border-box;}
+html,body{overflow-x:hidden;max-width:100%;margin:0;}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--dark);}
+
+/* Header */
+.page-header{position:sticky;top:0;z-index:100;background:var(--white);border-bottom:2px solid var(--grey-light);padding:14px 16px;padding-top:max(14px,env(safe-area-inset-top,14px));}
+.header-row{display:flex;align-items:center;gap:10px;}
+.btn-back{width:40px;height:40px;border-radius:12px;border:2.5px solid var(--grey);background:var(--white);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;}
+.page-title{flex:1;font-size:18px;font-weight:900;}
+.btn-new{padding:10px 16px;border-radius:12px;border:none;background:var(--accent);color:#fff;font-weight:800;font-size:14px;cursor:pointer;font-family:inherit;}
+
+/* Content */
+.content{padding:16px;max-width:560px;margin:0 auto;padding-bottom:max(80px,env(safe-area-inset-bottom,80px));}
+.empty-msg{text-align:center;padding:60px 20px;color:#aaa;font-weight:700;font-size:14px;line-height:1.8;}
+
+/* Label grid */
+.label-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.label-card{background:var(--white);border-radius:16px;box-shadow:var(--shadow);overflow:hidden;cursor:pointer;transition:transform .15s;}
+.label-card:active{transform:scale(.97);}
+.label-card-preview{width:100%;overflow:hidden;position:relative;background:#f8f9fa;}
+.label-card-footer{padding:10px 12px;border-top:1px solid var(--grey-light);}
+.label-card-name{font-weight:800;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.label-card-fmt{font-size:11px;color:#888;font-weight:700;margin-top:2px;}
+.label-card-actions{display:flex;gap:5px;margin-top:8px;}
+.btn-action{flex:1;padding:6px 2px;border-radius:9px;border:2px solid var(--grey);background:var(--white);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--dark);}
+.btn-action.print{background:var(--accent);color:#fff;border-color:var(--accent);}
+.btn-action.del{border-color:#fcc;color:var(--red);}
+
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s;}
+.modal-overlay.open{opacity:1;pointer-events:all;}
+.modal-box{background:var(--white);border-radius:24px 24px 0 0;padding:20px 16px 10px;width:100%;max-width:560px;max-height:95vh;overflow-y:auto;}
+.modal-handle{width:40px;height:4px;background:var(--grey);border-radius:2px;margin:0 auto 16px;}
+.modal-title{font-size:20px;font-weight:900;margin-bottom:16px;}
+.form-label{font-size:12px;font-weight:800;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px;display:block;}
+.form-input{width:100%;padding:12px 14px;border-radius:14px;border:2.5px solid var(--grey);font-size:15px;font-family:inherit;outline:none;margin-bottom:12px;background:var(--white);color:var(--dark);}
+.form-input:focus{border-color:var(--accent);}
+.btn-modal{width:100%;padding:15px;border-radius:16px;border:none;font-size:15px;font-weight:900;cursor:pointer;font-family:inherit;margin-top:6px;}
+
+/* Preview in modal */
+.preview-wrap{margin-bottom:16px;overflow:hidden;border-radius:14px;border:1.5px solid var(--grey-light);background:#f8f9fa;display:flex;justify-content:center;align-items:center;padding:14px;min-height:80px;}
+.preview-container{position:relative;overflow:hidden;}
+
+/* Stile picker */
+.stile-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;}
+.stile-btn{padding:7px 4px;border-radius:12px;border:2px solid var(--grey);background:var(--white);cursor:pointer;font-family:inherit;font-size:11px;font-weight:700;text-align:center;color:var(--dark);transition:all .15s;}
+.stile-btn.active{border-color:var(--accent);background:var(--accent-bg);color:var(--accent);}
+.stile-preview{height:34px;border-radius:6px;margin-bottom:5px;overflow:hidden;}
+
+/* Color presets */
+.color-grid{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;}
+.color-dot{width:34px;height:34px;border-radius:50%;border:3px solid transparent;cursor:pointer;transition:transform .15s;box-shadow:0 1px 3px rgba(0,0,0,.2);}
+.color-dot.active{border-color:var(--accent);transform:scale(1.18);}
+.color-pickers{display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap;}
+.color-pickers label{font-size:12px;font-weight:700;color:#888;}
+.color-pickers input[type=color]{width:40px;height:34px;border-radius:10px;border:2px solid var(--grey);cursor:pointer;padding:2px;}
+
+/* Format picker */
+.formato-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px;}
+.formato-btn{padding:10px 8px;border-radius:12px;border:2px solid var(--grey);background:var(--white);cursor:pointer;font-family:inherit;text-align:center;color:var(--dark);transition:all .15s;}
+.formato-btn.active{border-color:var(--accent);background:var(--accent-bg);color:var(--accent);}
+.formato-label{font-size:13px;font-weight:800;}
+.formato-desc{font-size:10px;color:#888;font-weight:600;margin-top:2px;}
+.formato-vis{margin:0 auto 5px;border:2px solid currentColor;border-radius:3px;opacity:.55;}
+.custom-wh{display:none;gap:10px;margin-bottom:14px;}
+
+/* Copies */
+.copie-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;background:var(--grey-light);border-radius:14px;padding:12px 14px;}
+.copie-stepper{display:flex;align-items:center;gap:10px;}
+.copie-btn{width:36px;height:36px;border-radius:10px;border:2px solid var(--grey);background:var(--white);font-size:20px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;}
+.copie-val{font-size:22px;font-weight:900;min-width:32px;text-align:center;}
+
+/* Toast */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:12px 20px;border-radius:14px;font-weight:700;font-size:14px;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;max-width:90vw;text-align:center;}
+.toast.show{opacity:1;}
+
+/* Print */
+#printLayer{display:none;}
+@media print{
+    @page{margin:8mm;}
+    body>*{display:none!important;}
+    #printLayer{display:block!important;}
+    *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}
+}
+</style>
+</head>
+<body>
+
+<div class="page-header">
+    <div class="header-row">
+        <button class="btn-back" onclick="history.back()">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div class="page-title">🏷️ Etichette</div>
+        <button class="btn-new" onclick="apriNuova()">+ Nuova</button>
+    </div>
+</div>
+
+<div class="content">
+    <div id="elenco"></div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modal" onclick="if(event.target===this)chiudi()">
+  <div class="modal-box">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modalTitolo">Nuova etichetta</div>
+
+    <div class="preview-wrap" id="previewWrap">
+        <div class="preview-container" id="previewCont"><div id="previewInner"></div></div>
+    </div>
+
+    <label class="form-label">Titolo *</label>
+    <input class="form-input" id="fTitolo" type="text" placeholder="es. Documenti fiscali" oninput="aggiornaPrev()">
+
+    <label class="form-label">Sottotitolo</label>
+    <input class="form-input" id="fSub" type="text" placeholder="es. Fatture, contratti, ricevute" oninput="aggiornaPrev()">
+
+    <label class="form-label">Periodo / anno</label>
+    <input class="form-input" id="fPeriodo" type="text" placeholder="es. 2020 — 2024" oninput="aggiornaPrev()">
+
+    <label class="form-label">Icona</label>
+    <div id="iconPicker" style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px"></div>
+
+    <label class="form-label">Stile grafico</label>
+    <div class="stile-grid" id="stilePicker"></div>
+
+    <label class="form-label">Colore</label>
+    <div class="color-grid" id="colorGrid"></div>
+    <div class="color-pickers">
+        <label>Sfondo</label><input type="color" id="cSfondo" oninput="onCustomColor()">
+        <label>Testo</label><input type="color" id="cTesto" oninput="onCustomColor()">
+        <label>Accento</label><input type="color" id="cAcc" oninput="onCustomColor()">
+    </div>
+
+    <label class="form-label">Formato di stampa</label>
+    <div class="formato-grid" id="formatGrid"></div>
+    <div class="custom-wh" id="customWH">
+        <div style="flex:1"><label class="form-label">Larghezza mm</label><input class="form-input" id="fW" type="number" placeholder="190" oninput="aggiornaPrev()" style="margin:0"></div>
+        <div style="flex:1"><label class="form-label">Altezza mm</label><input class="form-input" id="fH" type="number" placeholder="148" oninput="aggiornaPrev()" style="margin:0"></div>
+    </div>
+
+    <label class="form-label">Copie da stampare</label>
+    <div class="copie-row">
+        <span style="font-weight:700;font-size:14px">N° copie per stampa</span>
+        <div class="copie-stepper">
+            <button class="copie-btn" onclick="cambiaCopie(-1)">−</button>
+            <div class="copie-val" id="copieVal">1</div>
+            <button class="copie-btn" onclick="cambiaCopie(1)">+</button>
+        </div>
+    </div>
+
+    <button class="btn-modal" style="background:var(--accent);color:#fff" onclick="salva()">SALVA</button>
+    <button class="btn-modal" style="background:#e8f5e9;color:var(--green)" onclick="stampaOra()">🖨️ STAMPA ORA</button>
+    <button class="btn-modal" id="btnDuplica" style="display:none;background:var(--grey-light);color:var(--dark)" onclick="duplicaAttuale()">📋 DUPLICA</button>
+    <button class="btn-modal" id="btnDel" style="display:none;background:#fff0f0;color:var(--red);border:2px solid #fcc" onclick="eliminaAttuale()">ELIMINA</button>
+    <button class="btn-modal" style="background:transparent;color:#aaa" onclick="chiudi()">Annulla</button>
+  </div>
+</div>
+
+<div id="printLayer"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = "https://eejdpophfxsrqdvsucye.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlamRwb3BoZnhzcnFkdnN1Y3llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2NTMzMDQsImV4cCI6MjA5MzIyOTMwNH0.mpxbwlJyIdZgqKIdutHbLd85JR1P11yiglbYeApi17k";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const userEmail = localStorage.getItem('userEmail');
+if (!userEmail) location.href = 'login.html';
+
+// ── Costanti ───────────────────────────────────────────────────────
+const ICONS = ['📦','📁','📂','🗂️','📋','📄','📑','🏠','🚗','💼','👔','🏖️','📸','💰','🔧','⚽','🎵','📚','👶','🌿','🧾','🎁','🔑','💊','🍳','🎨','📖','🏋️','💻','🎓','🔖','📝','⚡','🏡','📺','🌍'];
+
+const COLORI = [
+    { name:'Notte',   s:'#0f172a', t:'#f8fafc', a:'#818cf8' },
+    { name:'Blu',     s:'#1e3a8a', t:'#dbeafe', a:'#60a5fa' },
+    { name:'Verde',   s:'#14532d', t:'#dcfce7', a:'#4ade80' },
+    { name:'Rosso',   s:'#7f1d1d', t:'#fee2e2', a:'#f87171' },
+    { name:'Viola',   s:'#4c1d95', t:'#ede9fe', a:'#a78bfa' },
+    { name:'Teal',    s:'#134e4a', t:'#ccfbf1', a:'#2dd4bf' },
+    { name:'Arancio', s:'#7c2d12', t:'#fff7ed', a:'#fb923c' },
+    { name:'Rosa',    s:'#831843', t:'#fdf2f8', a:'#f472b6' },
+    { name:'Grigio',  s:'#374151', t:'#f9fafb', a:'#9ca3af' },
+    { name:'Chiaro',  s:'#ffffff', t:'#0f172a', a:'#4f46e5' },
+    { name:'Avorio',  s:'#fefce8', t:'#713f12', a:'#ca8a04' },
+    { name:'Carta',   s:'#f5f0e8', t:'#44403c', a:'#78716c' },
+];
+
+const STILI = [
+    { id:'pieno', label:'Pieno' },
+    { id:'banda', label:'Banda' },
+    { id:'bordo', label:'Bordo' },
+    { id:'barra', label:'Barra' },
+];
+
+// w,h in mm; cols/rows = layout per foglio A4; land = landscape
+const FORMATI = [
+    { id:'a4_1',    label:'A4 intero',    desc:'1 per foglio',          w:190, h:277, cols:1, rows:1, land:false, iw:38,ih:52 },
+    { id:'a4_2',    label:'Metà A4',      desc:'2 per foglio',          w:190, h:136, cols:1, rows:2, land:false, iw:38,ih:26 },
+    { id:'a4_4',    label:'Quarto A4',    desc:'4 per foglio (2×2)',    w:93,  h:136, cols:2, rows:2, land:false, iw:18,ih:26 },
+    { id:'a4_6',    label:'Sesto A4',     desc:'6 per foglio (2×3)',    w:93,  h:88,  cols:2, rows:3, land:false, iw:18,ih:17 },
+    { id:'dorsale', label:'Dorsale',      desc:'3 per foglio — spina',  w:85,  h:190, cols:3, rows:1, land:true,  iw:16,ih:36 },
+    { id:'striscia',label:'Striscia',     desc:'5 per foglio (orizzontale)',w:190,h:52, cols:1, rows:5, land:false, iw:38,ih:10 },
+    { id:'custom',  label:'Personalizzato',desc:'Dimensioni libere',    w:null,h:null,cols:null,rows:null,land:false,iw:28,ih:20 },
+];
+
+// ── Stato modal ────────────────────────────────────────────────────
+let items = [], editId = null, nCopie = 1;
+let st = { icona:'📦', stile:'pieno', sfondo:'#0f172a', testo:'#f8fafc', acc:'#818cf8', formato:'a4_2' };
+
+// ── Init ───────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', async () => {
+    buildIconPicker();
+    buildStilePicker();
+    buildColorGrid();
+    buildFormatGrid();
+    await carica();
+});
+
+async function carica() {
+    const { data } = await sb.from('etichette').select('*').eq('email_utente', userEmail).order('created_at', { ascending: false });
+    items = data || [];
+    renderElenco();
+}
+
+// ── Render list ────────────────────────────────────────────────────
+function renderElenco() {
+    const el = document.getElementById('elenco');
+    if (!items.length) {
+        el.innerHTML = '<div class="empty-msg">🏷️<br>Nessuna etichetta.<br>Creane una con <b>+ Nuova</b>.</div>';
+        return;
+    }
+    el.innerHTML = `<div class="label-grid">${items.map(e => {
+        const fmt = FORMATI.find(f => f.id === e.formato) || FORMATI[1];
+        const W = e.larghezza_mm || fmt.w || 190;
+        const H = e.altezza_mm || fmt.h || 136;
+        const CARD = 180; // px target width for card preview
+        const sc = CARD / (W * 3.779);
+        const ph = Math.round(H * 3.779 * sc);
+        return `<div class="label-card" onclick="apriEdit(${e.id})">
+            <div class="label-card-preview" style="height:${ph}px">
+                <div style="transform:scale(${sc.toFixed(4)});transform-origin:top left;position:absolute">
+                    ${labelHtml(e, W, H)}
+                </div>
+            </div>
+            <div class="label-card-footer">
+                <div class="label-card-name">${esc(e.titolo || 'Senza titolo')}</div>
+                <div class="label-card-fmt">${fmt.label}</div>
+                <div class="label-card-actions">
+                    <button class="btn-action" onclick="event.stopPropagation();copia(${e.id})">📋</button>
+                    <button class="btn-action print" onclick="event.stopPropagation();stampaById(${e.id})">🖨️ Stampa</button>
+                    <button class="btn-action del" onclick="event.stopPropagation();del(${e.id})">✕</button>
+                </div>
+            </div>
+        </div>`;
+    }).join('')}</div>`;
+}
+
+// ── Label HTML builder (mm units — usato sia per preview che per stampa) ──
+function labelHtml(e, W, H) {
+    const stile = e.stile || 'pieno';
+    const sf = e.colore_sfondo || '#0f172a';
+    const te = e.colore_testo  || '#f8fafc';
+    const ac = e.colore_accento|| '#818cf8';
+    const ic = e.icona || '📦';
+    const ti = esc(e.titolo || '');
+    const su = esc(e.sottotitolo || '');
+    const pe = esc(e.periodo || '');
+    const r = `border-radius:4px;`;
+
+    const mn = Math.min(W, H);
+    const pad  = `${(mn * 0.07).toFixed(1)}mm`;
+    const gap  = `${(mn * 0.04).toFixed(1)}mm`;
+    const fIco = `${Math.min(mn * 0.16, 28).toFixed(1)}mm`;
+    const fTit = `${Math.min(mn * 0.1,  18).toFixed(1)}mm`;
+    const fSub = `${Math.min(mn * 0.068,12).toFixed(1)}mm`;
+    const fPer = `${Math.min(mn * 0.058,10).toFixed(1)}mm`;
+
+    const base = `width:${W}mm;height:${H}mm;overflow:hidden;position:relative;${r}`;
+
+    if (stile === 'pieno') {
+        return `<div style="${base}background:${sf};color:${te};display:flex;flex-direction:column;align-items:center;justify-content:center;padding:${pad};text-align:center;gap:${gap}">
+            <div style="font-size:${fIco};line-height:1">${ic}</div>
+            <div style="font-size:${fTit};font-weight:900;line-height:1.15;word-break:break-word">${ti}</div>
+            ${su?`<div style="font-size:${fSub};font-weight:600;opacity:.82;line-height:1.3">${su}</div>`:''}
+            ${pe?`<div style="font-size:${fPer};font-weight:700;opacity:.6;padding:${(mn*.02).toFixed(1)}mm ${(mn*.04).toFixed(1)}mm;border:1px solid ${te}55;border-radius:3mm;margin-top:${(mn*.01).toFixed(1)}mm">${pe}</div>`:''}
+        </div>`;
+    }
+
+    if (stile === 'banda') {
+        const bandH = (H * 0.38).toFixed(1);
+        return `<div style="${base}background:#fff;border:1.5px solid ${sf}55;">
+            <div style="width:100%;height:${bandH}mm;background:${sf};display:flex;align-items:center;padding:${pad};gap:${(mn*.04).toFixed(1)}mm">
+                <div style="font-size:${fIco};line-height:1;flex-shrink:0">${ic}</div>
+                <div style="font-size:${fTit};font-weight:900;color:${te};line-height:1.1;overflow:hidden">${ti}</div>
+            </div>
+            <div style="padding:${pad};display:flex;flex-direction:column;justify-content:center;gap:${gap}">
+                ${su?`<div style="font-size:${fSub};font-weight:700;color:#334155;line-height:1.35">${su}</div>`:''}
+                ${pe?`<div style="font-size:${fPer};font-weight:700;color:#fff;background:${sf};padding:${(mn*.02).toFixed(1)}mm ${(mn*.04).toFixed(1)}mm;border-radius:2mm;display:inline-block">${pe}</div>`:''}
+            </div>
+        </div>`;
+    }
+
+    if (stile === 'bordo') {
+        const bw = Math.max((mn * 0.025).toFixed(1), 2);
+        return `<div style="${base}background:#fff;border:${bw}mm solid ${sf};display:flex;flex-direction:column;align-items:center;justify-content:center;padding:${pad};text-align:center;gap:${gap}">
+            <div style="font-size:${fIco};line-height:1;color:${sf}">${ic}</div>
+            <div style="width:30%;height:1.5px;background:${sf};margin-bottom:${(mn*.01).toFixed(1)}mm"></div>
+            <div style="font-size:${fTit};font-weight:900;color:#0f172a;line-height:1.15;word-break:break-word">${ti}</div>
+            ${su?`<div style="font-size:${fSub};font-weight:600;color:#475569;line-height:1.3">${su}</div>`:''}
+            ${pe?`<div style="font-size:${fPer};font-weight:700;color:#fff;background:${sf};padding:${(mn*.025).toFixed(1)}mm ${(mn*.05).toFixed(1)}mm;border-radius:3mm;margin-top:${(mn*.01).toFixed(1)}mm">${pe}</div>`:''}
+            <div style="width:30%;height:1.5px;background:${sf};margin-top:${(mn*.01).toFixed(1)}mm"></div>
+        </div>`;
+    }
+
+    if (stile === 'barra') {
+        const bw = (W * 0.11).toFixed(1);
+        return `<div style="${base}background:#fff;border:1px solid ${sf}44;display:flex;">
+            <div style="width:${bw}mm;background:${sf};flex-shrink:0;display:flex;align-items:center;justify-content:center;">
+                <div style="font-size:${Math.min(parseFloat(bw)*0.65,14).toFixed(1)}mm;writing-mode:vertical-rl;transform:rotate(180deg)">${ic}</div>
+            </div>
+            <div style="flex:1;padding:${pad};display:flex;flex-direction:column;justify-content:center;gap:${gap}">
+                <div style="font-size:${fTit};font-weight:900;color:#0f172a;line-height:1.15;word-break:break-word">${ti}</div>
+                ${su?`<div style="font-size:${fSub};font-weight:600;color:#475569;line-height:1.3">${su}</div>`:''}
+                ${pe?`<div style="font-size:${fPer};font-weight:700;color:${sf};border-top:1.5px solid ${sf}44;padding-top:${(mn*.02).toFixed(1)}mm;margin-top:${(mn*.01).toFixed(1)}mm">${pe}</div>`:''}
+            </div>
+        </div>`;
+    }
+
+    return `<div style="${base}background:${sf};color:${te};display:flex;align-items:center;justify-content:center;padding:${pad};font-size:${fTit};font-weight:900">${ti}</div>`;
+}
+
+// ── Preview live ───────────────────────────────────────────────────
+function aggiornaPrev() {
+    const fmt = FORMATI.find(f => f.id === st.formato) || FORMATI[1];
+    const W = fmt.id === 'custom' ? (parseFloat(document.getElementById('fW').value) || 190) : fmt.w;
+    const H = fmt.id === 'custom' ? (parseFloat(document.getElementById('fH').value) || 136) : fmt.h;
+    const e = {
+        titolo: document.getElementById('fTitolo').value,
+        sottotitolo: document.getElementById('fSub').value,
+        periodo: document.getElementById('fPeriodo').value,
+        icona: st.icona, stile: st.stile,
+        colore_sfondo: document.getElementById('cSfondo').value,
+        colore_testo: document.getElementById('cTesto').value,
+        colore_accento: document.getElementById('cAcc').value,
+    };
+    const PREV = 288;
+    const sc = PREV / (W * 3.779);
+    const ph = Math.round(H * 3.779 * sc);
+    document.getElementById('previewCont').style.width = PREV + 'px';
+    document.getElementById('previewCont').style.height = ph + 'px';
+    document.getElementById('previewWrap').style.minHeight = (ph + 28) + 'px';
+    const inner = document.getElementById('previewInner');
+    inner.style.cssText = `transform:scale(${sc.toFixed(4)});transform-origin:top left;position:absolute`;
+    inner.innerHTML = labelHtml(e, W, H);
+}
+
+// ── Pickers ────────────────────────────────────────────────────────
+function buildIconPicker() {
+    document.getElementById('iconPicker').innerHTML = ICONS.map(ic =>
+        `<button onclick="setIcona('${encodeURIComponent(ic)}')" id="ic_${encodeURIComponent(ic)}" style="font-size:22px;padding:3px;border:2.5px solid transparent;border-radius:9px;background:var(--grey-light);cursor:pointer;width:40px;height:40px;line-height:1;transition:all .1s">${ic}</button>`
+    ).join('');
+}
+function setIcona(enc) {
+    const ic = decodeURIComponent(enc);
+    st.icona = ic;
+    document.querySelectorAll('[id^="ic_"]').forEach(b => { b.style.borderColor='transparent'; b.style.background='var(--grey-light)'; });
+    const b = document.getElementById('ic_'+enc);
+    if (b) { b.style.borderColor='var(--accent)'; b.style.background='var(--accent-bg)'; }
+    aggiornaPrev();
+}
+
+function buildStilePicker() {
+    document.getElementById('stilePicker').innerHTML = STILI.map(s => {
+        return `<button class="stile-btn" id="stile_${s.id}" onclick="setStile('${s.id}')">
+            <div class="stile-preview" id="stilePrev_${s.id}"></div>
+            <div>${s.label}</div>
+        </button>`;
+    }).join('');
+    STILI.forEach(s => aggiornaStilePreview(s.id));
+}
+function aggiornaStilePreview(id) {
+    const sf = st.sfondo; const el = document.getElementById('stilePrev_'+id);
+    if (!el) return;
+    if (id==='pieno') el.innerHTML=`<div style="width:100%;height:100%;background:${sf};border-radius:4px"></div>`;
+    else if (id==='banda') el.innerHTML=`<div style="width:100%;height:100%;background:#fff;border-radius:4px;border:1px solid #e0e0e0;overflow:hidden"><div style="height:40%;background:${sf}"></div></div>`;
+    else if (id==='bordo') el.innerHTML=`<div style="width:100%;height:100%;background:#fff;border-radius:4px;border:3px solid ${sf}"></div>`;
+    else if (id==='barra') el.innerHTML=`<div style="width:100%;height:100%;background:#fff;border-radius:4px;border:1px solid #e0e0e0;overflow:hidden;display:flex"><div style="width:18%;background:${sf}"></div></div>`;
+}
+function setStile(id) {
+    st.stile = id;
+    document.querySelectorAll('.stile-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('stile_'+id)?.classList.add('active');
+    aggiornaPrev();
+}
+
+function buildColorGrid() {
+    document.getElementById('colorGrid').innerHTML = COLORI.map((c,i) =>
+        `<div class="color-dot" style="background:${c.s}" title="${c.name}" id="cd_${i}" onclick="setColore(${i})"></div>`
+    ).join('');
+}
+function setColore(i) {
+    const c = COLORI[i];
+    st.sfondo=c.s; st.testo=c.t; st.acc=c.a;
+    document.getElementById('cSfondo').value=c.s;
+    document.getElementById('cTesto').value=c.t;
+    document.getElementById('cAcc').value=c.a;
+    sincColorGrid(c.s);
+    STILI.forEach(s => aggiornaStilePreview(s.id));
+    aggiornaPrev();
+}
+function onCustomColor() {
+    st.sfondo=document.getElementById('cSfondo').value;
+    st.testo=document.getElementById('cTesto').value;
+    st.acc=document.getElementById('cAcc').value;
+    sincColorGrid(null);
+    STILI.forEach(s => aggiornaStilePreview(s.id));
+    aggiornaPrev();
+}
+function sincColorGrid(sfondo) {
+    document.querySelectorAll('.color-dot').forEach((d,i) => {
+        d.classList.toggle('active', COLORI[i].s === (sfondo || st.sfondo));
+    });
+}
+
+function buildFormatGrid() {
+    document.getElementById('formatGrid').innerHTML = FORMATI.map(f =>
+        `<button class="formato-btn" id="fmt_${f.id}" onclick="setFormato('${f.id}')">
+            <div style="display:flex;justify-content:center"><div class="formato-vis" style="width:${f.iw}px;height:${f.ih}px"></div></div>
+            <div class="formato-label">${f.label}</div>
+            <div class="formato-desc">${f.desc}</div>
+        </button>`
+    ).join('');
+}
+function setFormato(id) {
+    st.formato = id;
+    document.querySelectorAll('.formato-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('fmt_'+id)?.classList.add('active');
+    document.getElementById('customWH').style.display = id==='custom' ? 'flex' : 'none';
+    aggiornaPrev();
+}
+
+function cambiaCopie(d) {
+    nCopie = Math.max(1, Math.min(20, nCopie + d));
+    document.getElementById('copieVal').textContent = nCopie;
+}
+
+// ── Modal open/close ───────────────────────────────────────────────
+function apriNuova() {
+    editId = null; nCopie = 1;
+    document.getElementById('modalTitolo').textContent = 'Nuova etichetta';
+    document.getElementById('btnDel').style.display = 'none';
+    document.getElementById('btnDuplica').style.display = 'none';
+    document.getElementById('copieVal').textContent = '1';
+    st = { icona:'📦', stile:'pieno', sfondo:'#0f172a', testo:'#f8fafc', acc:'#818cf8', formato:'a4_2' };
+    popolaForm();
+    document.getElementById('modal').classList.add('open');
+    setTimeout(() => document.getElementById('fTitolo').focus(), 300);
+}
+function apriEdit(id) {
+    const e = items.find(x => x.id === id); if (!e) return;
+    editId = id; nCopie = e.copie || 1;
+    document.getElementById('modalTitolo').textContent = 'Modifica etichetta';
+    document.getElementById('btnDel').style.display = '';
+    document.getElementById('btnDuplica').style.display = '';
+    document.getElementById('copieVal').textContent = nCopie;
+    st = { icona: e.icona||'📦', stile: e.stile||'pieno', sfondo: e.colore_sfondo||'#0f172a', testo: e.colore_testo||'#f8fafc', acc: e.colore_accento||'#818cf8', formato: e.formato||'a4_2' };
+    document.getElementById('fTitolo').value = e.titolo||'';
+    document.getElementById('fSub').value = e.sottotitolo||'';
+    document.getElementById('fPeriodo').value = e.periodo||'';
+    if (e.formato==='custom') {
+        document.getElementById('fW').value = e.larghezza_mm||190;
+        document.getElementById('fH').value = e.altezza_mm||136;
+    }
+    popolaForm();
+    document.getElementById('modal').classList.add('open');
+}
+function popolaForm() {
+    document.getElementById('cSfondo').value = st.sfondo;
+    document.getElementById('cTesto').value = st.testo;
+    document.getElementById('cAcc').value = st.acc;
+    setIcona(encodeURIComponent(st.icona));
+    STILI.forEach(s => aggiornaStilePreview(s.id));
+    setStile(st.stile);
+    sincColorGrid(st.sfondo);
+    buildFormatGrid();
+    setFormato(st.formato);
+    aggiornaPrev();
+}
+function chiudi() { document.getElementById('modal').classList.remove('open'); }
+
+// ── CRUD ───────────────────────────────────────────────────────────
+async function salva() {
+    const titolo = document.getElementById('fTitolo').value.trim();
+    if (!titolo) { toast('Inserisci un titolo'); return; }
+    const fmt = FORMATI.find(f => f.id === st.formato) || FORMATI[1];
+    const W = fmt.id==='custom' ? (parseFloat(document.getElementById('fW').value)||190) : fmt.w;
+    const H = fmt.id==='custom' ? (parseFloat(document.getElementById('fH').value)||136) : fmt.h;
+    const row = {
+        email_utente: userEmail, titolo,
+        sottotitolo: document.getElementById('fSub').value.trim()||null,
+        periodo: document.getElementById('fPeriodo').value.trim()||null,
+        icona: st.icona, stile: st.stile,
+        colore_sfondo: st.sfondo, colore_testo: st.testo, colore_accento: st.acc,
+        formato: st.formato, larghezza_mm: W, altezza_mm: H, copie: nCopie,
+    };
+    if (editId) await sb.from('etichette').update(row).eq('id', editId);
+    else await sb.from('etichette').insert(row);
+    chiudi(); toast('✓ Salvata'); await carica();
+}
+async function del(id) {
+    if (!confirm('Eliminare?')) return;
+    await sb.from('etichette').delete().eq('id', id);
+    toast('Eliminata'); await carica();
+}
+async function eliminaAttuale() { if (editId) { chiudi(); await del(editId); } }
+async function copia(id) {
+    const e = items.find(x => x.id === id); if (!e) return;
+    const { id:_, created_at:__, ...rest } = e;
+    await sb.from('etichette').insert({ ...rest, titolo: (rest.titolo||'')+ ' (copia)' });
+    toast('✓ Duplicata'); await carica();
+}
+async function duplicaAttuale() { if (editId) { chiudi(); await copia(editId); } }
+
+// ── Stampa ─────────────────────────────────────────────────────────
+function stampaById(id) {
+    const e = items.find(x => x.id === id); if (!e) return;
+    eseguiStampa(e);
+}
+function stampaOra() {
+    const fmt = FORMATI.find(f => f.id === st.formato) || FORMATI[1];
+    const W = fmt.id==='custom'?(parseFloat(document.getElementById('fW').value)||190):fmt.w;
+    const H = fmt.id==='custom'?(parseFloat(document.getElementById('fH').value)||136):fmt.h;
+    eseguiStampa({
+        titolo: document.getElementById('fTitolo').value,
+        sottotitolo: document.getElementById('fSub').value,
+        periodo: document.getElementById('fPeriodo').value,
+        icona: st.icona, stile: st.stile,
+        colore_sfondo: document.getElementById('cSfondo').value,
+        colore_testo: document.getElementById('cTesto').value,
+        colore_accento: document.getElementById('cAcc').value,
+        formato: st.formato, larghezza_mm: W, altezza_mm: H, copie: nCopie,
+    });
+}
+function eseguiStampa(e) {
+    const fmt = FORMATI.find(f => f.id === e.formato) || FORMATI[1];
+    const W = e.larghezza_mm || fmt.w || 190;
+    const H = e.altezza_mm  || fmt.h || 136;
+    const tot = e.copie || 1;
+    const isLand = fmt.land;
+    let cols = fmt.cols || 1, rows = fmt.rows || 1;
+    if (fmt.id === 'custom') {
+        const pgW = isLand ? 277 : 190, pgH = isLand ? 190 : 277;
+        cols = Math.max(1, Math.floor((pgW + 3) / (W + 3)));
+        rows = Math.max(1, Math.floor((pgH + 3) / (H + 3)));
+    }
+    const perPag = cols * rows;
+    const nPag = Math.ceil(tot / perPag);
+    let pagesHtml = '';
+    let count = 0;
+    for (let pg = 0; pg < nPag; pg++) {
+        let grid = '';
+        for (let i = 0; i < perPag && count < tot; i++, count++) {
+            grid += labelHtml(e, W, H);
+        }
+        pagesHtml += `<div style="display:grid;grid-template-columns:repeat(${cols},${W}mm);gap:3mm;page-break-after:${pg<nPag-1?'always':'auto'};align-content:start">${grid}</div>`;
+    }
+    let dynSt = document.getElementById('_dynPrint');
+    if (!dynSt) { dynSt = document.createElement('style'); dynSt.id='_dynPrint'; document.head.appendChild(dynSt); }
+    dynSt.textContent = `@media print{@page{size:A4 ${isLand?'landscape':'portrait'};margin:10mm;}}`;
+    document.getElementById('printLayer').innerHTML = pagesHtml;
+    requestAnimationFrame(() => window.print());
+}
+
+// ── Utils ──────────────────────────────────────────────────────────
+let _tt;
+function toast(m) { const el=document.getElementById('toast'); el.textContent=m; el.classList.add('show'); clearTimeout(_tt); _tt=setTimeout(()=>el.classList.remove('show'),2800); }
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+</script>
+</body>
+</html>

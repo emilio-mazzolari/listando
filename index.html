@@ -107,6 +107,11 @@
         .promo-titolo { font-weight:800; font-size:14px; line-height:1.3; }
         .promo-desc { font-size:12px; color:#888; font-weight:600; margin-top:3px; }
         .promo-cta { flex-shrink:0; padding:8px 14px; border-radius:12px; font-weight:800; font-size:12px; color:white; white-space:nowrap; }
+        .promo-wrap { position:relative; }
+        .promo-admin-controls { position:absolute;top:50%;right:8px;transform:translateY(-50%);display:flex;flex-direction:column;gap:4px;z-index:2; }
+        .promo-admin-btn { width:26px;height:26px;border-radius:7px;background:rgba(255,255,255,0.95);border:1px solid #ddd;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;padding:0;line-height:1; }
+        .promo-admin-btn:active { background:#f0f0f0; }
+        .promo-inactive { opacity:0.42; }
         .toggle-switch { position:relative; display:inline-block; width:46px; height:26px; flex-shrink:0; }
         .toggle-switch input { opacity:0; width:0; height:0; }
         .toggle-slider { position:absolute; cursor:pointer; inset:0; background:#ccc; border-radius:26px; transition:.2s; }
@@ -401,6 +406,11 @@
                 <span>DOCUMENTI</span>
             </a>
 
+            <a href="etichette.html" class="btn-big" style="border-color:#f59e0b" data-id="etichette">
+                <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+                <span>ETICHETTE</span>
+            </a>
+
             <a href="faccende.html" class="btn-big" style="border-color:#e4b3e6" data-id="faccende">
                 <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="#e4b3e6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/><path d="M12 7v1"/></svg>
                 <span>FACCENDE</span>
@@ -657,12 +667,82 @@
 
     <!-- Promozioni overlay -->
     <div id="promoOverlay" onclick="if(event.target===this)chiudiPromo()" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,0.55);align-items:flex-end;justify-content:center">
-        <div style="width:100%;max-width:560px;max-height:88vh;overflow-y:auto;background:#f5f6f8;border-radius:24px 24px 0 0;padding:8px 16px 20px;padding-bottom:max(20px,calc(env(safe-area-inset-bottom)+16px))">
+        <div style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:560px;max-height:88vh;overflow-y:auto;background:#f5f6f8;border-radius:24px 24px 0 0;padding:8px 16px 20px;padding-bottom:max(20px,calc(env(safe-area-inset-bottom)+16px))">
             <div style="width:36px;height:4px;background:#ddd;border-radius:2px;margin:0 auto 18px"></div>
-            <div style="font-size:20px;font-weight:900;margin-bottom:2px">Promozioni per te 🎁</div>
+            <div style="display:flex;align-items:center;margin-bottom:2px">
+                <div style="flex:1;font-size:20px;font-weight:900">Promozioni per te 🎁</div>
+                <button id="promoAddBtn" onclick="apriEditPromo(null)" style="display:none;background:#0fba8d;color:white;border:none;border-radius:12px;padding:8px 14px;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit">+ Aggiungi</button>
+            </div>
             <div style="font-size:13px;color:#888;font-weight:600;margin-bottom:18px">Offerte esclusive per gli utenti Listando</div>
             <div id="promoOverlayCards"></div>
             <button onclick="chiudiPromo()" style="width:100%;margin-top:6px;padding:13px;border-radius:16px;border:none;background:#e8e8e8;color:#555;font-weight:900;font-size:14px;cursor:pointer;font-family:inherit">Chiudi</button>
+        </div>
+    </div>
+
+    <!-- Admin: Modifica promo -->
+    <div id="promoEditOverlay" onclick="if(event.target===this)chiudiEditPromo()" style="display:none;position:fixed;inset:0;z-index:600;background:rgba(0,0,0,0.6);align-items:flex-end;justify-content:center">
+        <div style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:560px;background:white;border-radius:24px 24px 0 0;padding:24px 20px;padding-bottom:max(24px,calc(env(safe-area-inset-bottom)+16px));max-height:90vh;overflow-y:auto">
+            <div style="width:36px;height:4px;background:#ddd;border-radius:2px;margin:0 auto 20px"></div>
+            <div style="font-weight:900;font-size:18px;margin-bottom:20px" id="promoEditTitle">Modifica promo</div>
+            <div style="display:flex;flex-direction:column;gap:14px">
+                <div>
+                    <div style="font-size:11px;font-weight:800;color:#888;margin-bottom:6px;letter-spacing:0.5px;text-transform:uppercase">Logo</div>
+                    <div style="display:flex;align-items:center;gap:14px">
+                        <div id="peLogoPreview" style="width:60px;height:60px;border-radius:14px;background:#f0f0f0;flex-shrink:0;display:flex;align-items:center;justify-content:center;overflow:hidden;border:1.5px solid #e0e0e0">
+                            <span style="font-size:28px;color:#ccc">🖼</span>
+                        </div>
+                        <div style="flex:1">
+                            <input type="file" id="peLogoFile" accept="image/*" style="display:none" onchange="handleLogoUpload(this)">
+                            <button id="peLogoUploadBtn" onclick="document.getElementById('peLogoFile').click()" style="width:100%;padding:11px 14px;border-radius:12px;border:1.5px solid #e0e0e0;background:white;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;text-align:left">📁 Carica immagine</button>
+                            <input id="peLogo" type="hidden" value="">
+                        </div>
+                    </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                    <div>
+                        <div style="font-size:11px;font-weight:800;color:#888;margin-bottom:6px;letter-spacing:0.5px;text-transform:uppercase">Sfondo logo</div>
+                        <input id="peSfondo" type="color" value="#f5f5f5" style="width:100%;height:44px;border-radius:12px;border:1.5px solid #e0e0e0;padding:4px 8px;cursor:pointer">
+                    </div>
+                    <div>
+                        <div style="font-size:11px;font-weight:800;color:#888;margin-bottom:6px;letter-spacing:0.5px;text-transform:uppercase">Colore bottone</div>
+                        <input id="peCtaColor" type="color" value="#333333" style="width:100%;height:44px;border-radius:12px;border:1.5px solid #e0e0e0;padding:4px 8px;cursor:pointer">
+                    </div>
+                </div>
+                <div>
+                    <div style="font-size:11px;font-weight:800;color:#888;margin-bottom:6px;letter-spacing:0.5px;text-transform:uppercase">Brand</div>
+                    <input id="peBrand" type="text" placeholder="es. Bestshopping" style="width:100%;padding:12px 14px;border-radius:12px;border:1.5px solid #e0e0e0;font-size:14px;font-family:inherit;outline:none">
+                </div>
+                <div>
+                    <div style="font-size:11px;font-weight:800;color:#888;margin-bottom:6px;letter-spacing:0.5px;text-transform:uppercase">Titolo</div>
+                    <input id="peTitolo" type="text" placeholder="Titolo della promo" style="width:100%;padding:12px 14px;border-radius:12px;border:1.5px solid #e0e0e0;font-size:14px;font-family:inherit;outline:none">
+                </div>
+                <div>
+                    <div style="font-size:11px;font-weight:800;color:#888;margin-bottom:6px;letter-spacing:0.5px;text-transform:uppercase">Descrizione</div>
+                    <input id="peDescrizione" type="text" placeholder="Breve descrizione" style="width:100%;padding:12px 14px;border-radius:12px;border:1.5px solid #e0e0e0;font-size:14px;font-family:inherit;outline:none">
+                </div>
+                <div>
+                    <div style="font-size:11px;font-weight:800;color:#888;margin-bottom:6px;letter-spacing:0.5px;text-transform:uppercase">Testo bottone (CTA)</div>
+                    <input id="peCta" type="text" placeholder="es. Iscriviti gratis" style="width:100%;padding:12px 14px;border-radius:12px;border:1.5px solid #e0e0e0;font-size:14px;font-family:inherit;outline:none">
+                </div>
+                <div>
+                    <div style="font-size:11px;font-weight:800;color:#888;margin-bottom:6px;letter-spacing:0.5px;text-transform:uppercase">URL</div>
+                    <input id="peUrl" type="url" placeholder="https://..." style="width:100%;padding:12px 14px;border-radius:12px;border:1.5px solid #e0e0e0;font-size:14px;font-family:inherit;outline:none">
+                </div>
+                <div>
+                    <div style="font-size:11px;font-weight:800;color:#888;margin-bottom:6px;letter-spacing:0.5px;text-transform:uppercase">Ordine</div>
+                    <input id="peOrdine" type="number" value="0" min="0" style="width:100%;padding:12px 14px;border-radius:12px;border:1.5px solid #e0e0e0;font-size:14px;font-family:inherit;outline:none">
+                </div>
+                <div style="display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:12px;background:#f5f6f8">
+                    <span style="font-size:14px;font-weight:800;flex:1">Attiva</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="peAttiva" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+            <button id="promoSaveBtn" onclick="salvaEditPromo()" style="width:100%;margin-top:20px;padding:15px;border-radius:16px;border:none;background:#0fba8d;color:white;font-weight:900;font-size:15px;cursor:pointer;font-family:inherit">Salva</button>
+            <button id="promoDeleteBtn" onclick="eliminaPromo()" style="width:100%;margin-top:10px;padding:13px;border-radius:16px;border:none;background:#fff0f0;color:#ff3b30;font-weight:800;font-size:14px;cursor:pointer;font-family:inherit">Elimina</button>
+            <button onclick="chiudiEditPromo()" style="width:100%;margin-top:10px;padding:13px;border-radius:16px;border:none;background:#f0f0f0;color:#555;font-weight:800;font-size:14px;cursor:pointer;font-family:inherit">Annulla</button>
         </div>
     </div>
 
@@ -674,8 +754,15 @@
             </svg>
             HOME
         </a>
-        <button class="tab-item" onclick="apriPromo()" style="background:none;border:none;cursor:pointer;color:#f97316;">
-            <svg class="icon-tab" style="stroke:#f97316" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+        <a href="profilo.html" class="tab-item">
+            <svg class="icon-tab" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+            </svg>
+            PROFILO
+        </a>
+        <button class="tab-item" onclick="apriPromo()" style="background:none;border:none;cursor:pointer;">
+            <svg class="icon-tab" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
                 <line x1="7" y1="7" x2="7.01" y2="7"/>
             </svg>
@@ -687,15 +774,8 @@
             </svg>
             IMPOSTAZIONI
         </button>
-        <a href="profilo.html" class="tab-item">
-            <svg class="icon-tab" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                <circle cx="12" cy="7" r="4"/>
-            </svg>
-            PROFILO
-        </a>
-        <button class="tab-item" onclick="logout()" style="background:none;border:none;cursor:pointer;color:#ff3b30;">
-            <svg class="icon-tab" style="stroke:#ff3b30" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+        <button class="tab-item" onclick="logout()" style="background:none;border:none;cursor:pointer;color:#0fba8d;">
+            <svg class="icon-tab" style="stroke:#0fba8d" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
                 <polyline points="16 17 21 12 16 7"/>
                 <line x1="21" y1="12" x2="9" y2="12"/>
@@ -864,83 +944,208 @@
         window.addEventListener('load', checkSostieniPopup);
 
         // ── Promozioni ───────────────────────────────────────────────
-        // Per aggiungere una promo: copia un oggetto nell'array e modifica i campi.
-        const PROMOS = [
-            {
-                logo: '/bestshopping-logo.png',
-                sfondo: '#fff0e8',
-                brand: 'Bestshopping',
-                titolo: 'Bestshopping.',
-                desc: 'Compra online e ottieni cashback.',
-                cta: 'Iscriviti gratis',
-                ctaColor: '#e8621a',
-                url: 'https://it.bestshopping.com/gc/bargigliode',
-            },
-            {
-                logo: '/linear-logo.png',
-                sfondo: '#4caf50',
-                brand: 'Linear',
-                titolo: 'Linear assicurazioni.',
-                desc: '5% sulla RC Auto · 10% su Assistenza Stradale e Tutela Giudiziaria.',
-                cta: 'Ottieni sconto',
-                ctaColor: '#388e3c',
-                url: 'https://www.linear.it/LinearFriends?Id=6231339',
-            },
-            {
-                logo: '/rigoni-logo.jpg',
-                sfondo: '#f0f8ee',
-                brand: 'Rigoni di Asiago',
-                titolo: 'Rigoni di Asiago.',
-                desc: '4 € di sconto sul tuo primo ordine.',
-                cta: 'Ottieni 4 €',
-                ctaColor: '#6db33f',
-                url: 'https://i.refs.cc/hHvgf7Tw',
-            },
-            {
-                logo: '/satispay-logo.webp',
-                sfondo: '#fff0ee',
-                brand: 'Satispay',
-                titolo: 'Satispay.',
-                desc: 'Scarica l\'app e ottieni 5 € di benvenuto.',
-                cta: 'Ottieni 5 €',
-                ctaColor: '#e8192c',
-                url: 'https://web.satispay.com/promocode/ef24e897-9b02-4814-9284-e87a33e80bf8',
-            },
-            {
-                logo: '/wordans-logo.svg',
-                sfondo: '#1e2649',
-                brand: 'Wordans',
-                titolo: 'Wordans.',
-                desc: 'T-shirt e abbigliamento personalizzato.',
-                cta: 'Scopri',
-                ctaColor: '#1e2649',
-                url: 'https://www.wordans.it?from=emiliomazzolari',
-            },
+        const ADMIN_EMAIL = 'emilio.mazzolari@gmail.com';
+
+        // Fallback locale (usato se la tabella Supabase è vuota o non raggiungibile)
+        const PROMOS_FALLBACK = [
+            { logo:'/bestshopping-logo.png', sfondo:'#fff0e8', brand:'Bestshopping', titolo:'Bestshopping.', descrizione:'Compra online e ottieni cashback.', cta:'Iscriviti gratis', cta_color:'#e8621a', url:'https://it.bestshopping.com/gc/bargigliode' },
+            { logo:'/linear-logo.png', sfondo:'#4caf50', brand:'Linear', titolo:'Linear assicurazioni.', descrizione:'5% sulla RC Auto · 10% su Assistenza Stradale e Tutela Giudiziaria.', cta:'Ottieni sconto', cta_color:'#388e3c', url:'https://www.linear.it/LinearFriends?Id=6231339' },
+            { logo:'/rigoni-logo.jpg', sfondo:'#f0f8ee', brand:'Rigoni di Asiago', titolo:'Rigoni di Asiago.', descrizione:'4 € di sconto sul tuo primo ordine.', cta:'Ottieni 4 €', cta_color:'#6db33f', url:'https://i.refs.cc/hHvgf7Tw' },
+            { logo:'/satispay-logo.webp', sfondo:'#fff0ee', brand:'Satispay', titolo:'Satispay.', descrizione:'Scarica l\'app e ottieni 5 € di benvenuto.', cta:'Ottieni 5 €', cta_color:'#e8192c', url:'https://web.satispay.com/promocode/ef24e897-9b02-4814-9284-e87a33e80bf8' },
+            { logo:'/wordans-logo.svg', sfondo:'#1e2649', brand:'Wordans', titolo:'Wordans.', descrizione:'T-shirt e abbigliamento personalizzato.', cta:'Scopri', cta_color:'#1e2649', url:'https://www.wordans.it?from=emiliomazzolari' },
         ];
 
-        function _promoCards() {
-            return PROMOS.map(p => {
+        function isAdmin() { return localStorage.getItem('userEmail') === ADMIN_EMAIL; }
+
+        async function caricaPromos() {
+            try {
+                let q = supabaseClient.from('promo_items').select('*').order('ordine');
+                if (!isAdmin()) q = q.eq('attiva', true);
+                const { data } = await q;
+                if (data && data.length > 0) return data;
+            } catch (e) {}
+            return PROMOS_FALLBACK;
+        }
+
+        function _promoCards(promos) {
+            const admin = isAdmin();
+            return promos.map(p => {
+                const id  = p.id !== undefined ? p.id : null;
+                const sfondo  = p.sfondo || '#f5f5f5';
+                const ctaCol  = p.cta_color || p.ctaColor || sfondo;
                 const logoHtml = p.logo
-                    ? `<img src="${p.logo}" alt="${p.brand}" style="width:38px;height:38px;object-fit:contain;border-radius:8px">`
-                    : `<span style="font-size:24px">${p.emoji}</span>`;
-                return `
-                <a href="${p.url}" target="_blank" rel="noopener" class="promo-card">
-                    <div class="promo-logo" style="background:${p.sfondo}">${logoHtml}</div>
-                    <div class="promo-body">
-                        <div class="promo-titolo">${p.titolo}</div>
-                        <div class="promo-desc">${p.desc}</div>
-                    </div>
-                    <div class="promo-cta" style="background:${p.ctaColor || p.sfondo}">${p.cta}</div>
-                </a>`;
+                    ? `<img src="${p.logo}" alt="${p.brand||''}" style="width:38px;height:38px;object-fit:contain;border-radius:8px">`
+                    : `<span style="font-size:24px">${p.emoji||'🏷️'}</span>`;
+                const inactive    = (p.attiva === false) ? ' promo-inactive' : '';
+                const adminCtrl  = (admin && id !== null) ? `
+                    <div class="promo-admin-controls">
+                        <button class="promo-admin-btn" title="Sposta su"    onclick="event.preventDefault();event.stopPropagation();spostaPromo(${id},'su')">▲</button>
+                        <button class="promo-admin-btn" title="Modifica"     onclick="event.preventDefault();event.stopPropagation();apriEditPromo(${id})">✎</button>
+                        <button class="promo-admin-btn" title="Sposta giù"   onclick="event.preventDefault();event.stopPropagation();spostaPromo(${id},'giu')">▼</button>
+                    </div>` : '';
+                const cardPad = (admin && id !== null) ? ' style="padding-right:46px"' : '';
+                return `<div class="promo-wrap">
+                    <a href="${p.url||'#'}" target="_blank" rel="noopener" class="promo-card${inactive}"${cardPad}>
+                        <div class="promo-logo" style="background:${sfondo}">${logoHtml}</div>
+                        <div class="promo-body">
+                            <div class="promo-titolo">${p.titolo||''}</div>
+                            <div class="promo-desc">${p.descrizione||p.desc||''}</div>
+                        </div>
+                        <div class="promo-cta" style="background:${ctaCol}">${p.cta||''}</div>
+                    </a>
+                    ${adminCtrl}
+                </div>`;
             }).join('');
         }
 
-        function apriPromo() {
-            document.getElementById('promoOverlayCards').innerHTML = _promoCards();
+        async function apriPromo() {
             document.getElementById('promoOverlay').style.display = 'flex';
+            document.getElementById('promoOverlayCards').innerHTML = '<div style="text-align:center;padding:30px;color:#ccc;font-size:26px;letter-spacing:4px">···</div>';
+            if (isAdmin()) document.getElementById('promoAddBtn').style.display = '';
+            const promos = await caricaPromos();
+            document.getElementById('promoOverlayCards').innerHTML = _promoCards(promos);
         }
+
         function chiudiPromo() {
             document.getElementById('promoOverlay').style.display = 'none';
+        }
+
+        // ── Admin: edit promo ─────────────────────────────────────────────
+        let _promoEditId = null;
+
+        async function apriEditPromo(id) {
+            _promoEditId = id;
+            const isNew = id === null;
+            document.getElementById('promoEditTitle').textContent = isNew ? 'Nuova promo' : 'Modifica promo';
+            document.getElementById('promoDeleteBtn').style.display = isNew ? 'none' : '';
+            document.getElementById('peLogoFile').value = '';
+
+            const preview = document.getElementById('peLogoPreview');
+
+            if (!isNew) {
+                const { data } = await supabaseClient.from('promo_items').select('*').eq('id', id).single();
+                if (data) {
+                    document.getElementById('peLogo').value         = data.logo || '';
+                    document.getElementById('peSfondo').value       = data.sfondo || '#f5f5f5';
+                    document.getElementById('peCtaColor').value     = data.cta_color || '#333333';
+                    document.getElementById('peBrand').value        = data.brand || '';
+                    document.getElementById('peTitolo').value       = data.titolo || '';
+                    document.getElementById('peDescrizione').value  = data.descrizione || '';
+                    document.getElementById('peCta').value          = data.cta || '';
+                    document.getElementById('peUrl').value          = data.url || '';
+                    document.getElementById('peOrdine').value       = data.ordine ?? 0;
+                    document.getElementById('peAttiva').checked     = data.attiva !== false;
+                    if (data.logo) {
+                        preview.innerHTML = `<img src="${data.logo}" style="width:100%;height:100%;object-fit:contain;border-radius:12px">`;
+                        document.getElementById('peLogoUploadBtn').textContent = '📁 Sostituisci logo';
+                    } else {
+                        preview.innerHTML = `<span style="font-size:28px;color:#ccc">🖼</span>`;
+                        document.getElementById('peLogoUploadBtn').textContent = '📁 Carica immagine';
+                    }
+                }
+            } else {
+                document.getElementById('peLogo').value         = '';
+                document.getElementById('peSfondo').value       = '#f5f5f5';
+                document.getElementById('peCtaColor').value     = '#333333';
+                document.getElementById('peBrand').value        = '';
+                document.getElementById('peTitolo').value       = '';
+                document.getElementById('peDescrizione').value  = '';
+                document.getElementById('peCta').value          = '';
+                document.getElementById('peUrl').value          = '';
+                document.getElementById('peOrdine').value       = '0';
+                document.getElementById('peAttiva').checked     = true;
+                preview.innerHTML = `<span style="font-size:28px;color:#ccc">🖼</span>`;
+                document.getElementById('peLogoUploadBtn').textContent = '📁 Carica immagine';
+            }
+            document.getElementById('promoEditOverlay').style.display = 'flex';
+        }
+
+        async function handleLogoUpload(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const preview = document.getElementById('peLogoPreview');
+            const btn = document.getElementById('peLogoUploadBtn');
+            // Anteprima locale immediata
+            const reader = new FileReader();
+            reader.onload = e => { preview.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:contain;border-radius:12px">`; };
+            reader.readAsDataURL(file);
+            btn.textContent = 'Caricamento…';
+            btn.disabled = true;
+            try {
+                const ext = file.name.split('.').pop().toLowerCase();
+                const filename = `promo-${Date.now()}.${ext}`;
+                const { error } = await supabaseClient.storage.from('promo-logos').upload(filename, file, { upsert: true, contentType: file.type });
+                if (error) throw error;
+                const { data: { publicUrl } } = supabaseClient.storage.from('promo-logos').getPublicUrl(filename);
+                document.getElementById('peLogo').value = publicUrl;
+                btn.textContent = '📁 Sostituisci logo';
+            } catch (e) {
+                alert('Errore upload: ' + (e.message || e));
+                preview.innerHTML = `<span style="font-size:28px;color:#ccc">🖼</span>`;
+                btn.textContent = '📁 Carica immagine';
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        async function spostaPromo(id, dir) {
+            const { data: items } = await supabaseClient.from('promo_items').select('id,ordine').order('ordine');
+            if (!items) return;
+            const idx = items.findIndex(x => x.id === id);
+            const to  = dir === 'su' ? idx - 1 : idx + 1;
+            if (to < 0 || to >= items.length) return;
+            [items[idx], items[to]] = [items[to], items[idx]];
+            await Promise.all(items.map((item, i) =>
+                supabaseClient.from('promo_items').update({ ordine: i + 1 }).eq('id', item.id)
+            ));
+            await apriPromo();
+        }
+
+        function chiudiEditPromo() {
+            document.getElementById('promoEditOverlay').style.display = 'none';
+        }
+
+        async function salvaEditPromo() {
+            const btn = document.getElementById('promoSaveBtn');
+            btn.disabled = true;
+            btn.textContent = 'Salvataggio…';
+            const body = {
+                logo:        document.getElementById('peLogo').value.trim() || null,
+                sfondo:      document.getElementById('peSfondo').value,
+                brand:       document.getElementById('peBrand').value.trim(),
+                titolo:      document.getElementById('peTitolo').value.trim(),
+                descrizione: document.getElementById('peDescrizione').value.trim(),
+                cta:         document.getElementById('peCta').value.trim(),
+                cta_color:   document.getElementById('peCtaColor').value,
+                url:         document.getElementById('peUrl').value.trim(),
+                ordine:      parseInt(document.getElementById('peOrdine').value) || 0,
+                attiva:      document.getElementById('peAttiva').checked,
+            };
+            try {
+                let err;
+                if (_promoEditId === null) {
+                    ({ error: err } = await supabaseClient.from('promo_items').insert(body));
+                } else {
+                    ({ error: err } = await supabaseClient.from('promo_items').update(body).eq('id', _promoEditId));
+                }
+                if (err) throw err;
+                chiudiEditPromo();
+                await apriPromo();
+            } catch (e) {
+                alert('Errore: ' + (e.message || e));
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Salva';
+            }
+        }
+
+        async function eliminaPromo() {
+            if (_promoEditId === null) return;
+            if (!confirm('Eliminare questa promo?')) return;
+            const { error } = await supabaseClient.from('promo_items').delete().eq('id', _promoEditId);
+            if (error) { alert('Errore: ' + error.message); return; }
+            chiudiEditPromo();
+            await apriPromo();
         }
 
         // ── Drag to reorder (per-user) ────────────────────────────────────

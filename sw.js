@@ -1,5 +1,5 @@
-const CACHE_NAME = "lista-spesa-cache-v208";
-const API_CACHE  = "lista-spesa-api-v208";
+const CACHE_NAME = "lista-spesa-cache-v209";
+const API_CACHE  = "lista-spesa-api-v209";
 
 const FILES = [
   "/manifest.json",
@@ -47,6 +47,7 @@ const FILES = [
   "/sport.html",
   "/documenti.html",
   "/auth-bridge.html",
+  "/etichette.html",
 ];
 
 /* INSTALL — cache: 'reload' bypassa HTTP cache e prende i file freschi dalla rete */
