@@ -303,7 +303,7 @@ function labelHtml(e, W, H) {
 
     if (stile === 'pieno') {
         return `<div style="${base}background:${sf};color:${te};display:flex;flex-direction:column;align-items:center;justify-content:center;padding:${pad};text-align:center;gap:${gap}">
-            <div style="font-size:${fIco};line-height:1">${ic}</div>
+            ${ic?`<div style="font-size:${fIco};line-height:1">${ic}</div>`:''}
             <div style="font-size:${fTit};font-weight:900;line-height:1.15;word-break:break-word">${ti}</div>
             ${su?`<div style="font-size:${fSub};font-weight:600;opacity:.82;line-height:1.3">${su}</div>`:''}
             ${pe?`<div style="font-size:${fPer};font-weight:700;opacity:.6;padding:${(mn*.02).toFixed(1)}mm ${(mn*.04).toFixed(1)}mm;border:1px solid ${te}55;border-radius:3mm;margin-top:${(mn*.01).toFixed(1)}mm">${pe}</div>`:''}
@@ -314,7 +314,7 @@ function labelHtml(e, W, H) {
         const bandH = (H * 0.38).toFixed(1);
         return `<div style="${base}background:#fff;border:1.5px solid ${sf}55;">
             <div style="width:100%;height:${bandH}mm;background:${sf};display:flex;align-items:center;padding:${pad};gap:${(mn*.04).toFixed(1)}mm">
-                <div style="font-size:${fIco};line-height:1;flex-shrink:0">${ic}</div>
+                ${ic?`<div style="font-size:${fIco};line-height:1;flex-shrink:0">${ic}</div>`:''}
                 <div style="font-size:${fTit};font-weight:900;color:${te};line-height:1.1;overflow:hidden">${ti}</div>
             </div>
             <div style="padding:${pad};display:flex;flex-direction:column;justify-content:center;gap:${gap}">
@@ -327,7 +327,7 @@ function labelHtml(e, W, H) {
     if (stile === 'bordo') {
         const bw = Math.max((mn * 0.025).toFixed(1), 2);
         return `<div style="${base}background:#fff;border:${bw}mm solid ${sf};display:flex;flex-direction:column;align-items:center;justify-content:center;padding:${pad};text-align:center;gap:${gap}">
-            <div style="font-size:${fIco};line-height:1;color:${sf}">${ic}</div>
+            ${ic?`<div style="font-size:${fIco};line-height:1;color:${sf}">${ic}</div>`:''}
             <div style="width:30%;height:1.5px;background:${sf};margin-bottom:${(mn*.01).toFixed(1)}mm"></div>
             <div style="font-size:${fTit};font-weight:900;color:#0f172a;line-height:1.15;word-break:break-word">${ti}</div>
             ${su?`<div style="font-size:${fSub};font-weight:600;color:#475569;line-height:1.3">${su}</div>`:''}
@@ -380,15 +380,16 @@ function aggiornaPrev() {
 
 // ── Pickers ────────────────────────────────────────────────────────
 function buildIconPicker() {
-    document.getElementById('iconPicker').innerHTML = ICONS.map(ic =>
+    const nessuna = `<button onclick="setIcona('')" id="ic_none" style="font-size:11px;font-weight:800;color:#888;padding:3px;border:2.5px solid transparent;border-radius:9px;background:var(--grey-light);cursor:pointer;width:40px;height:40px;line-height:1;transition:all .1s">Nessuna</button>`;
+    document.getElementById('iconPicker').innerHTML = nessuna + ICONS.map(ic =>
         `<button onclick="setIcona('${encodeURIComponent(ic)}')" id="ic_${encodeURIComponent(ic)}" style="font-size:22px;padding:3px;border:2.5px solid transparent;border-radius:9px;background:var(--grey-light);cursor:pointer;width:40px;height:40px;line-height:1;transition:all .1s">${ic}</button>`
     ).join('');
 }
 function setIcona(enc) {
-    const ic = decodeURIComponent(enc);
+    const ic = enc ? decodeURIComponent(enc) : '';
     st.icona = ic;
     document.querySelectorAll('[id^="ic_"]').forEach(b => { b.style.borderColor='transparent'; b.style.background='var(--grey-light)'; });
-    const b = document.getElementById('ic_'+enc);
+    const b = enc ? document.getElementById('ic_'+enc) : document.getElementById('ic_none');
     if (b) { b.style.borderColor='var(--accent)'; b.style.background='var(--accent-bg)'; }
     aggiornaPrev();
 }
