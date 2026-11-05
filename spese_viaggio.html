@@ -4509,9 +4509,23 @@ async function caricaBudget() {
     budgetAttuale = await apiGetArr(`/sv_budget?viaggio_id=eq.${viaggioCorrenteId}&order=created_at.asc`);
 }
 
+function _budgetVisibileAVediCome(b) {
+    if (!vediComeId) return true;
+    const perChi = b.per_chi || 'tutti';
+    if (perChi === 'tutti') return true;
+    if (perChi === 'me') return false;
+    if (perChi === 'alcuni') {
+        const vediCome = partecipantiAttuali.find(p => p.id === vediComeId);
+        const nomi = Array.isArray(b.per_chi_nomi) ? b.per_chi_nomi : (b.per_chi_nomi ? JSON.parse(b.per_chi_nomi) : []);
+        return vediCome ? nomi.includes(vediCome.nome) : false;
+    }
+    return true;
+}
+
 function renderBudget() {
+    const budgetVis = budgetAttuale.filter(_budgetVisibileAVediCome);
     const cur = symb(viaggioCorrenteValuta);
-    const attive = budgetAttuale.filter(b => b.stato !== 'annullata');
+    const attive = budgetVis.filter(b => b.stato !== 'annullata');
     const totPrevisto = attive.reduce((s, b) => s + parseFloat(b.importo_previsto || 0), 0);
 
     // Compute effettivo from linked confirmed expenses
@@ -4523,7 +4537,7 @@ function renderBudget() {
     const diffTot = totEffettivo - totPrevisto;
     const haConfronto = confermate.length > 0;
 
-    document.getElementById('riepilogoBudget').innerHTML = budgetAttuale.length ? `
+    document.getElementById('riepilogoBudget').innerHTML = budgetVis.length ? `
         <div class="budget-summary">
             <div class="budget-summary-row">
                 <span class="budget-summary-label">Budget previsto</span>
@@ -4541,16 +4555,16 @@ function renderBudget() {
             <div class="budget-summary-meta" style="margin-top:${haConfronto ? 8 : 8}px;padding-top:8px;border-top:1px solid var(--grey-light)">
                 <span>Previste: ${attive.filter(b => b.stato === 'prevista').length}</span>
                 <span>Confermate: ${confermate.length}</span>
-                <span>Annullate: ${budgetAttuale.length - attive.length}</span>
+                <span>Annullate: ${budgetVis.length - attive.length}</span>
             </div>
         </div>` : '';
 
     const el = document.getElementById('elencoBudget');
-    if (!budgetAttuale.length) {
+    if (!budgetVis.length) {
         el.innerHTML = '<div class="empty-msg">Nessuna voce di budget.<br>Tocca + per aggiungere.</div>';
         return;
     }
-    el.innerHTML = budgetAttuale.map(b => {
+    el.innerHTML = budgetVis.map(b => {
         const icon = BUDGET_CAT_ICONS[b.categoria] || '💡';
         const catLabel = BUDGET_CAT_LABEL[b.categoria] || b.categoria;
 
