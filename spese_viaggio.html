@@ -1113,6 +1113,16 @@
             <button class="period-pill"        id="bStatoAnnullata"  onclick="setBudgetStato('annullata')">Annullata</button>
         </div>
 
+        <label class="form-label" style="margin-top:12px">Per chi</label>
+        <div style="display:flex;gap:6px;margin-bottom:10px">
+            <button class="period-pill" id="bPerChiMe"    onclick="setBudgetPerChi('me')">👤 Solo io</button>
+            <button class="period-pill active" id="bPerChiTutti" onclick="setBudgetPerChi('tutti')">👥 Tutti</button>
+            <button class="period-pill" id="bPerChiAlcuni" onclick="setBudgetPerChi('alcuni')">👥 Alcuni…</button>
+        </div>
+        <div id="bPerChiAlcuniBox" style="display:none;background:var(--grey-light);border-radius:14px;padding:12px;margin-bottom:12px">
+            <div id="bPerChiCheckboxes"></div>
+        </div>
+
         <label class="form-label">Note</label>
         <textarea class="form-input" id="bNote" rows="2" style="resize:none" placeholder="Dettagli, riferimenti…"></textarea>
 
@@ -1340,6 +1350,7 @@ const _saldiSezioni = { saldi: false, pareggiare: false, storico: true };
 let pianoItemEditId = null, budgetItemEditId = null;
 let _invitePartId = null;
 let pianoTipoScelto = 'auto', budgetCatScelta = 'altro', budgetStatoScelto = 'prevista';
+let budgetPerChi = 'tutti', budgetPerChiNomi = [];
 let _budgetItemDaCollegare = null;
 
 function logout() {
@@ -4560,11 +4571,13 @@ function renderBudget() {
             }
         }
 
+        const perChiHtml = `<div style="font-size:11px;font-weight:700;color:#aaa;margin-top:3px">${budgetPerChiLabel(b)}</div>`;
         return `<div class="budget-card" onclick="apriModalEditBudgetItem(${b.id})" style="opacity:${b.stato === 'annullata' ? 0.45 : 1}">
             <div class="budget-cat-icon">${icon}</div>
             <div class="budget-body">
                 <div class="budget-titolo">${b.titolo || b.descrizione || '—'}</div>
                 <div class="budget-sub">${catLabel}</div>
+                ${perChiHtml}
                 <span class="budget-stato ${b.stato}">${b.stato}</span>
                 ${compareHtml}
             </div>
@@ -4597,9 +4610,58 @@ function setBudgetStato(stato) {
     });
 }
 
+function setBudgetPerChi(val) {
+    budgetPerChi = val;
+    if (val !== 'alcuni') budgetPerChiNomi = [];
+    ['me','tutti','alcuni'].forEach(v => {
+        const el = document.getElementById('bPerChi' + v.charAt(0).toUpperCase() + v.slice(1));
+        if (el) el.className = 'period-pill' + (v === val ? ' active' : '');
+    });
+    const box = document.getElementById('bPerChiAlcuniBox');
+    if (box) {
+        box.style.display = val === 'alcuni' ? '' : 'none';
+        if (val === 'alcuni') renderBudgetPerChiCheckboxes();
+    }
+}
+
+function renderBudgetPerChiCheckboxes() {
+    const box = document.getElementById('bPerChiCheckboxes');
+    if (!box) return;
+    if (!partecipantiAttuali.length) {
+        box.innerHTML = '<div style="font-size:13px;color:#aaa;font-weight:700">Nessun partecipante nel viaggio</div>';
+        return;
+    }
+    box.innerHTML = partecipantiAttuali.map(p => {
+        const checked = budgetPerChiNomi.includes(p.nome);
+        return `<label style="display:flex;align-items:center;gap:10px;padding:8px 4px;cursor:pointer">
+            <input type="checkbox" value="${p.nome}" ${checked ? 'checked' : ''} onchange="toggleBudgetPerChiNome(this)" style="width:18px;height:18px;accent-color:var(--green);cursor:pointer;flex-shrink:0">
+            <span style="font-weight:700;font-size:14px">${p.nome}</span>
+        </label>`;
+    }).join('');
+}
+
+function toggleBudgetPerChiNome(cb) {
+    if (cb.checked) {
+        if (!budgetPerChiNomi.includes(cb.value)) budgetPerChiNomi.push(cb.value);
+    } else {
+        budgetPerChiNomi = budgetPerChiNomi.filter(n => n !== cb.value);
+    }
+}
+
+function budgetPerChiLabel(b) {
+    if (!b.per_chi || b.per_chi === 'tutti') return '👥 Tutti i partecipanti';
+    if (b.per_chi === 'me') return '👤 Solo io';
+    if (b.per_chi === 'alcuni') {
+        const nomi = Array.isArray(b.per_chi_nomi) ? b.per_chi_nomi : (b.per_chi_nomi ? JSON.parse(b.per_chi_nomi) : []);
+        return nomi.length ? '👥 ' + nomi.join(', ') : '👥 Alcuni';
+    }
+    return '';
+}
+
 function apriModalNuovoBudgetItem() {
     budgetItemEditId = null;
     budgetCatScelta = 'altro';
+    budgetPerChiNomi = [];
     document.getElementById('titoloModalBudget').textContent = 'Nuova voce budget';
     document.getElementById('bTitolo').value = '';
     document.getElementById('bImporto').value = '';
@@ -4608,6 +4670,7 @@ function apriModalNuovoBudgetItem() {
     populateCurrencySelects('bValuta');
     document.getElementById('bValuta').value = viaggioCorrenteValuta;
     setBudgetStato('prevista');
+    setBudgetPerChi('tutti');
     renderBudgetCatRow();
     document.getElementById('modalBudgetItem').classList.add('open');
     setTimeout(() => document.getElementById('bTitolo').focus(), 300);
@@ -4626,6 +4689,8 @@ function apriModalEditBudgetItem(id) {
     populateCurrencySelects('bValuta');
     document.getElementById('bValuta').value = b.valuta || viaggioCorrenteValuta;
     setBudgetStato(b.stato || 'prevista');
+    budgetPerChiNomi = Array.isArray(b.per_chi_nomi) ? [...b.per_chi_nomi] : (b.per_chi_nomi ? JSON.parse(b.per_chi_nomi) : []);
+    setBudgetPerChi(b.per_chi || 'tutti');
     renderBudgetCatRow();
     document.getElementById('modalBudgetItem').classList.add('open');
 }
@@ -4643,6 +4708,8 @@ async function salvaBudgetItem() {
         valuta: document.getElementById('bValuta').value || viaggioCorrenteValuta,
         stato: budgetStatoScelto,
         note: document.getElementById('bNote').value.trim() || null,
+        per_chi: budgetPerChi,
+        per_chi_nomi: budgetPerChi === 'alcuni' ? budgetPerChiNomi : [],
     };
     const res = budgetItemEditId
         ? await apiPatch(`/sv_budget?id=eq.${budgetItemEditId}`, body)
