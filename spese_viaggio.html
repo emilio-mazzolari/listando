@@ -1191,13 +1191,22 @@
         <div class="modal-title">🏠 Ripartisci appartamento</div>
         <p style="font-size:13px;color:#888;font-weight:600;margin:0 0 16px">Calcola la quota equa per ogni persona in base ai giorni effettivi di presenza.</p>
 
-        <label class="form-label">Costo totale appartamento</label>
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-            <input class="form-input" id="ripCosto" type="number" min="0" step="0.01" placeholder="es. 500" oninput="calcolaRipartizione()" style="margin:0;flex:1">
-            <span style="font-weight:800;font-size:16px;color:#888;flex-shrink:0" id="ripValuta">€</span>
+        <div style="display:flex;gap:10px;margin-bottom:12px">
+            <div style="flex:2">
+                <label class="form-label">Costo totale appartamento</label>
+                <div style="display:flex;align-items:center;gap:8px">
+                    <input class="form-input" id="ripCosto" type="number" min="0" step="0.01" placeholder="es. 500" oninput="calcolaRipartizione()" style="margin:0;flex:1">
+                    <span style="font-weight:800;font-size:16px;color:#888;flex-shrink:0" id="ripValuta">€</span>
+                </div>
+            </div>
+            <div style="flex:1">
+                <label class="form-label">Durata affitto (gg)</label>
+                <input class="form-input" id="ripDurata" type="number" min="1" placeholder="es. 4" oninput="calcolaRipartizione()" style="margin:0">
+            </div>
         </div>
+        <p style="font-size:11px;color:#aaa;font-weight:600;margin:0 0 14px">Si assume che tutti arrivino il giorno 1 e che chi parte prima lo faccia in anticipo (es. 4 gg = 4 notti intere).</p>
 
-        <label class="form-label">Partecipanti e giorni di presenza</label>
+        <label class="form-label">Persone e giorni di presenza</label>
         <div id="ripPartecipanti"></div>
         <button onclick="aggiungiRipPartecipante()" style="width:100%;padding:11px;border-radius:14px;border:2px dashed var(--grey);background:transparent;font-weight:800;font-size:14px;color:#888;cursor:pointer;font-family:inherit;margin-bottom:14px">+ Aggiungi persona</button>
 
@@ -5007,6 +5016,7 @@ let _ripPersone = [];
 function apriRipartizione() {
     _ripPersone = [];
     document.getElementById('ripCosto').value = '';
+    document.getElementById('ripDurata').value = '';
     if (partecipantiAttuali && partecipantiAttuali.length) {
         partecipantiAttuali.forEach(p => _ripPersone.push({ nome: p.nome || '', giorni: 1 }));
     } else {
@@ -5034,21 +5044,27 @@ function aggiungiRipPartecipante() {
 }
 function calcolaRipartizione() {
     const costo = parseFloat(document.getElementById('ripCosto').value) || 0;
-    if (costo <= 0 || _ripPersone.length === 0) { document.getElementById('ripRisultato').style.display = 'none'; return; }
-    const totalGiorni = _ripPersone.reduce((s, p) => s + (parseInt(p.giorni) || 0), 0);
-    if (totalGiorni <= 0) { document.getElementById('ripRisultato').style.display = 'none'; return; }
-    const costoPerGiorno = costo / totalGiorni;
+    const durata = parseInt(document.getElementById('ripDurata').value) || 0;
+    if (costo <= 0 || durata <= 0 || _ripPersone.length === 0) { document.getElementById('ripRisultato').style.display = 'none'; return; }
     const valuta = document.getElementById('ripValuta').textContent;
+    const costoGiornaliero = costo / durata;
+    // Per ogni giornata, dividi il costo tra i presenti (chi ha giorni >= giorno corrente)
+    const quote = new Array(_ripPersone.length).fill(0);
+    for (let g = 1; g <= durata; g++) {
+        const presenti = _ripPersone.map((p, i) => ({ i, qui: (parseInt(p.giorni) || 0) >= g }));
+        const n = presenti.filter(p => p.qui).length;
+        if (n === 0) continue;
+        presenti.forEach(p => { if (p.qui) quote[p.i] += costoGiornaliero / n; });
+    }
     document.getElementById('ripRisultatoBody').innerHTML = _ripPersone.map((p, i) => {
         const gg = parseInt(p.giorni) || 0;
-        const quota = costoPerGiorno * gg;
         const nome = p.nome.trim() || `Persona ${i+1}`;
         return `<div class="rip-result-row">
             <div>
                 <div class="rip-result-name">${_esc(nome)}</div>
-                <div class="rip-result-nights">${gg} giorn${gg===1?'o':'i'} · ${valuta}${costoPerGiorno.toFixed(2)}/gg</div>
+                <div class="rip-result-nights">${gg} giorn${gg===1?'o':'i'} su ${durata}</div>
             </div>
-            <div class="rip-result-amount">${valuta}${quota.toFixed(2)}</div>
+            <div class="rip-result-amount">${valuta}${quote[i].toFixed(2)}</div>
         </div>`;
     }).join('');
     document.getElementById('ripRisultato').style.display = 'block';
