@@ -371,6 +371,19 @@ const STATEMENTS = [
         expires_at timestamptz not null
     )`,
     `ALTER TABLE IF EXISTS auth_state_tokens DISABLE ROW LEVEL SECURITY`,
+    `CREATE TABLE IF NOT EXISTS sv_ripartizione (
+        id bigint generated always as identity primary key,
+        viaggio_id bigint not null,
+        budget_item_id bigint not null,
+        persone jsonb not null default '[]',
+        risultati jsonb default '[]',
+        costo numeric,
+        tassa numeric,
+        created_at timestamptz not null default now()
+    )`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS sv_ripartizione_budget_uniq ON sv_ripartizione(budget_item_id)`,
+    `ALTER TABLE IF EXISTS sv_ripartizione DISABLE ROW LEVEL SECURITY`,
+    `ALTER TABLE IF EXISTS sv_budget ADD COLUMN IF NOT EXISTS indirizzo_alloggio text`,
     `INSERT INTO storage.buckets (id, name, public) VALUES ('documenti-foto', 'documenti-foto', true) ON CONFLICT DO NOTHING`,
     `DO $$ BEGIN
         IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='objects' AND schemaname='storage' AND policyname='allow upload documenti-foto') THEN

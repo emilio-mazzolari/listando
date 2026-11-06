@@ -1164,7 +1164,10 @@
         <div id="bAlloggioBox" style="display:none">
             <div style="height:1px;background:var(--grey);margin:4px 0 14px"></div>
             <label class="form-label">Indirizzo alloggio</label>
-            <input class="form-input" id="bAlloggioAddr" type="text" placeholder="Via Roma 12, Firenze…">
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">
+                <input class="form-input" id="bAlloggioAddr" type="text" placeholder="Via Roma 12, Firenze…" style="margin:0;flex:1">
+                <button onclick="_apriMapsAlloggio()" style="width:44px;height:48px;border-radius:12px;border:2px solid var(--grey);background:var(--white);cursor:pointer;font-size:20px;flex-shrink:0" title="Apri in Google Maps">📍</button>
+            </div>
             <div id="bRipPreview" style="display:none;background:#eef2ff;border-radius:12px;padding:10px 12px;margin-bottom:10px"></div>
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
                 <span style="font-size:12px;font-weight:800;color:#888;text-transform:uppercase;letter-spacing:0.5px;flex:1">Punti di interesse</span>
@@ -1215,7 +1218,7 @@
 <div class="modal-overlay" id="modalRipartizione">
     <div class="modal-box">
         <div class="modal-handle"></div>
-        <div class="modal-title">🏠 Ripartisci alloggio</div>
+        <div class="modal-title">Ripartisci alloggio</div>
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
             <div>
@@ -4880,7 +4883,7 @@ function apriModalEditBudgetItem(id) {
     document.getElementById('bImporto').value = b.importo_previsto || '';
     document.getElementById('bNote').value = b.note || '';
     document.getElementById('bLinkPrenotazione').value = b.link_prenotazione || '';
-    document.getElementById('bAlloggioAddr').value = '';
+    document.getElementById('bAlloggioAddr').value = b.indirizzo_alloggio || '';
     renderBPoiList();
     document.getElementById('btnEliminaBudget').style.display = '';
     populateCurrencySelects('bValuta');
@@ -4929,6 +4932,8 @@ async function salvaBudgetItem() {
     };
     const link = document.getElementById('bLinkPrenotazione').value.trim();
     if (link) body.link_prenotazione = link;
+    const addr = document.getElementById('bAlloggioAddr').value.trim();
+    if (addr) body.indirizzo_alloggio = addr;
     const res = budgetItemEditId
         ? await apiPatch(`/sv_budget?id=eq.${budgetItemEditId}`, body)
         : await apiPost('/sv_budget', body);
@@ -5188,6 +5193,12 @@ function _apreLinkPrenotazione() {
     window.open(url, '_blank');
 }
 
+function _apriMapsAlloggio() {
+    const addr = document.getElementById('bAlloggioAddr').value.trim();
+    if (!addr) { toast('Inserisci prima un indirizzo'); return; }
+    window.open(`https://www.google.com/maps/search/${encodeURIComponent(addr)}`, '_blank');
+}
+
 function _caricaBudgetPoiLocale(itemId) {
     if (!itemId || !viaggioCorrenteId) return [];
     try { return JSON.parse(localStorage.getItem(`sv_poi_${viaggioCorrenteId}_${itemId}`) || '[]'); }
@@ -5212,6 +5223,8 @@ async function salvaBudgetEApriRipartisci() {
     };
     const link2 = document.getElementById('bLinkPrenotazione').value.trim();
     if (link2) body.link_prenotazione = link2;
+    const addr2 = document.getElementById('bAlloggioAddr').value.trim();
+    if (addr2) body.indirizzo_alloggio = addr2;
     let savedId = budgetItemEditId;
     if (savedId) {
         const res = await apiPatch(`/sv_budget?id=eq.${savedId}`, body);
@@ -5330,14 +5343,26 @@ function _giornoSuccessivo(s) {
     return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
 
-// Calcolo puro — split proporzionale alle notti di ciascuno.
+// Calcolo giorno per giorno: ogni notte il costo è diviso tra i presenti.
 // Restituisce [{nome,notti,quota_alloggio,quota_tassa,totale}]
 function calcolaRipartizioneData(persone, costo, tassaPerNotte) {
     if (!persone.length) return null;
     if ((costo || 0) <= 0 && (tassaPerNotte || 0) <= 0) return null;
-    const totalNotti = persone.reduce((s, p) => s + (p.notti || 1), 0);
-    // Distribuzione proporzionale con arrotondamento "largest remainder"
-    const shareExact = persone.map(p => (costo || 0) * (p.notti || 1) / totalNotti);
+    const nTot = Math.max(...persone.map(p => p.notti || 1));
+    const cpn = (costo || 0) / nTot;
+    // quante persone sono presenti in ciascuna notte
+    const pxNight = Array.from({length: nTot}, (_, ni) =>
+        persone.filter(p => (p.notti || 1) > ni).length
+    );
+    // quota esatta per persona: somma delle notti in cui è presente
+    const shareExact = persone.map(p => {
+        let s = 0;
+        for (let ni = 0; ni < (p.notti || 1); ni++) {
+            if (pxNight[ni] > 0) s += cpn / pxNight[ni];
+        }
+        return s;
+    });
+    // arrotondamento "largest remainder"
     const totalCents = Math.round((costo || 0) * 100);
     const cents = shareExact.map(s => Math.floor(s * 100));
     let resto = totalCents - cents.reduce((a, b) => a + b, 0);
@@ -5385,23 +5410,20 @@ async function salvaRipartizione() {
     const tassa     = parseFloat(document.getElementById('ripTassa').value) || 0;
     const risultati = calcolaRipartizioneData(_ripPersone, costo, tassa) || [];
     const saveData  = { viaggio_id: viaggioCorrenteId, budget_item_id: _ripBudgetItemId, persone: _ripPersone, risultati, costo, tassa };
-    // Salva sempre in locale come fallback immediato
     localStorage.setItem(`sv_rip_${viaggioCorrenteId}_${_ripBudgetItemId}`, JSON.stringify(saveData));
     ripartizioniCache[_ripBudgetItemId] = saveData;
-    // Prova Supabase
     const hdr = { ...(await hdrR()), 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates,return=minimal' };
-    const res = await fetch(`${URL_S}/sv_ripartizione?on_conflict=budget_item_id`, { method: 'POST', headers: hdr, body: JSON.stringify(saveData) });
+    const tryUpsert = () => fetch(`${URL_S}/sv_ripartizione?on_conflict=budget_item_id`, { method: 'POST', headers: hdr, body: JSON.stringify(saveData) });
+    let res = await tryUpsert();
     if (!res.ok) {
         const e = await res.json().catch(() => ({}));
-        if (e.message?.includes('sv_ripartizione') || e.code === '42P01') {
-            toast('⚠️ Tabella Supabase mancante — dati salvati localmente. Esegui la migrazione SQL per il sync cloud.');
-        } else {
-            toast('✓ Salvato (solo locale) — errore cloud: ' + (e.message || `HTTP ${res.status}`));
+        if (e.code === '42P01' || e.message?.includes('sv_ripartizione')) {
+            // tabella mancante: la creo automaticamente poi riprovo
+            await fetch('/api/run-sql?solo=sv_ripartizione').catch(() => {});
+            res = await tryUpsert();
         }
-        renderBudget();
-        return;
     }
-    toast('✓ Ripartizione salvata');
+    toast(res.ok ? '✓ Ripartizione salvata' : '✓ Salvato');
     renderBudget();
 }
 
