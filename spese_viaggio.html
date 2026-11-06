@@ -477,6 +477,13 @@
         .rip-result-nights { font-size: 12px; color: #888; font-weight: 600; margin-top: 2px; }
         .rip-result-breakdown { font-size: 11px; color: #aaa; font-weight: 600; margin-top: 2px; }
         .rip-result-amount { font-weight: 900; font-size: 16px; color: var(--accent); flex-shrink: 0; }
+        .alloggio-box { background: var(--grey-light); border-radius: 14px; padding: 12px 14px; margin-bottom: 10px; }
+        .poi-row { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1.5px solid rgba(0,0,0,0.06); }
+        .poi-row:last-child { border-bottom: none; }
+        .poi-nome { flex: 1; font-weight: 700; font-size: 13px; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .poi-km { font-size: 12px; color: #888; font-weight: 700; flex-shrink: 0; }
+        .poi-maps { width: 30px; height: 30px; border-radius: 9px; border: 2px solid #5856d6; background: var(--white); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 14px; }
+        .poi-del { width: 30px; height: 30px; border-radius: 9px; border: 2px solid #fcc; background: var(--white); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--red); font-size: 16px; }
 
         @media (prefers-color-scheme: dark) {
             :root {
@@ -626,7 +633,6 @@
             <div style="display:flex;gap:8px;margin-bottom:12px">
                 <button class="btn-save-modal" onclick="apriModalNuovoBudgetItem()" style="background:var(--green);margin:0;flex:1">+ Voce libera</button>
                 <button class="btn-save-modal" onclick="apriModalBudgetDaPiano()" style="background:#5856d6;margin:0;flex:1">+ Da piano</button>
-                <button class="btn-save-modal" onclick="apriRipartizione()" style="background:#ea580c;margin:0;flex:1;padding:10px 8px;font-size:13px">🏠 Ripartisci</button>
             </div>
             <div id="riepilogoBudget"></div>
             <div id="elencoBudget"></div>
@@ -1148,6 +1154,21 @@
 
         <label class="form-label">Note</label>
         <textarea class="form-input" id="bNote" rows="2" style="resize:none" placeholder="Dettagli, riferimenti…"></textarea>
+
+        <label class="form-label">Link prenotazione</label>
+        <input class="form-input" id="bLinkPrenotazione" type="url" placeholder="https://booking.com/…" autocomplete="off">
+
+        <div id="bAlloggioBox" style="display:none">
+            <div style="height:1px;background:var(--grey);margin:4px 0 14px"></div>
+            <label class="form-label">🏠 Dettagli alloggio</label>
+            <input class="form-input" id="bAlloggioAddr" type="text" placeholder="Indirizzo alloggio (per aprire Maps)">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+                <span style="font-size:12px;font-weight:800;color:#888;text-transform:uppercase;letter-spacing:0.5px;flex:1">Punti di interesse</span>
+                <button onclick="aggiungiBPoi()" style="background:none;border:none;color:#5856d6;font-weight:900;font-size:13px;cursor:pointer;font-family:inherit;padding:4px 8px">+ Aggiungi</button>
+            </div>
+            <div id="bPoiList"></div>
+            <button class="btn-save-modal" style="background:#5856d6;margin-top:8px" onclick="salvaBudgetEApriRipartisci()">🏠 Salva e ripartisci le spese</button>
+        </div>
 
         <button class="btn-save-modal" style="background:var(--green);margin-top:10px" onclick="salvaBudgetItem()">SALVA</button>
         <button class="btn-save-modal" id="btnEliminaBudget" style="display:none;background:#fff0f0;color:var(--red);border:2px solid #fcc;margin-top:8px" onclick="eliminaBudgetItemModal()">ELIMINA</button>
@@ -4724,6 +4745,7 @@ function renderBudgetCatRow() {
 function setBudgetCat(cat) {
     budgetCatScelta = cat;
     renderBudgetCatRow();
+    _toggleAlloggioBox(cat);
 }
 
 function setBudgetStato(stato) {
@@ -4786,16 +4808,21 @@ function apriModalNuovoBudgetItem() {
     budgetItemEditId = null;
     budgetCatScelta = 'altro';
     budgetPerChiNomi = [];
+    _bPoiList = [];
     document.getElementById('titoloModalBudget').textContent = 'Nuova voce budget';
     document.getElementById('bTitolo').value = '';
     document.getElementById('bImporto').value = '';
     document.getElementById('bNote').value = '';
+    document.getElementById('bLinkPrenotazione').value = '';
+    document.getElementById('bAlloggioAddr').value = '';
+    renderBPoiList();
     document.getElementById('btnEliminaBudget').style.display = 'none';
     populateCurrencySelects('bValuta');
     document.getElementById('bValuta').value = viaggioCorrenteValuta;
     setBudgetStato('prevista');
     setBudgetPerChi('tutti');
     renderBudgetCatRow();
+    _toggleAlloggioBox('altro');
     document.getElementById('modalBudgetItem').classList.add('open');
     setTimeout(() => document.getElementById('bTitolo').focus(), 300);
 }
@@ -4805,10 +4832,14 @@ function apriModalEditBudgetItem(id) {
     if (!b) return;
     budgetItemEditId = id;
     budgetCatScelta = b.categoria || 'altro';
+    _bPoiList = _caricaBudgetPoiLocale(id);
     document.getElementById('titoloModalBudget').textContent = 'Modifica voce';
     document.getElementById('bTitolo').value = b.titolo || b.descrizione || '';
     document.getElementById('bImporto').value = b.importo_previsto || '';
     document.getElementById('bNote').value = b.note || '';
+    document.getElementById('bLinkPrenotazione').value = b.link_prenotazione || '';
+    document.getElementById('bAlloggioAddr').value = '';
+    renderBPoiList();
     document.getElementById('btnEliminaBudget').style.display = '';
     populateCurrencySelects('bValuta');
     document.getElementById('bValuta').value = b.valuta || viaggioCorrenteValuta;
@@ -4816,6 +4847,7 @@ function apriModalEditBudgetItem(id) {
     budgetPerChiNomi = Array.isArray(b.per_chi_nomi) ? [...b.per_chi_nomi] : (b.per_chi_nomi ? JSON.parse(b.per_chi_nomi) : []);
     setBudgetPerChi(b.per_chi || 'tutti');
     renderBudgetCatRow();
+    _toggleAlloggioBox(budgetCatScelta);
     document.getElementById('modalBudgetItem').classList.add('open');
 }
 
@@ -4832,6 +4864,7 @@ async function salvaBudgetItem() {
         valuta: document.getElementById('bValuta').value || viaggioCorrenteValuta,
         stato: budgetStatoScelto,
         note: document.getElementById('bNote').value.trim() || null,
+        link_prenotazione: document.getElementById('bLinkPrenotazione').value.trim() || null,
         per_chi: budgetPerChi,
         per_chi_nomi: budgetPerChi === 'alcuni' ? budgetPerChiNomi : [],
     };
@@ -4845,6 +4878,7 @@ async function salvaBudgetItem() {
         toast('Errore: ' + msg);
         return;
     }
+    if (budgetItemEditId) _salvaBudgetPoiLocale(budgetItemEditId);
     document.getElementById('modalBudgetItem').classList.remove('open');
     toast('✓ Salvato');
     await caricaBudget();
@@ -5025,12 +5059,108 @@ if (_joinId) { handleJoinFromLink(_joinId); } else { caricaViaggi(); }
 function _esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 let _ripPersone = [];
 
-function apriRipartizione() {
+// ── Budget alloggio: POI helpers ───────────────────────────────────
+let _bPoiList = [];
+
+function _toggleAlloggioBox(cat) {
+    const box = document.getElementById('bAlloggioBox');
+    if (box) box.style.display = cat === 'alloggio' ? '' : 'none';
+}
+
+function renderBPoiList() {
+    const el = document.getElementById('bPoiList');
+    if (!el) return;
+    if (!_bPoiList.length) {
+        el.innerHTML = '<div style="font-size:12px;color:#aaa;font-weight:600;padding:4px 0 8px">Nessun punto aggiunto</div>';
+        return;
+    }
+    el.innerHTML = _bPoiList.map((p, i) => `
+        <div class="poi-row">
+            <span class="poi-nome">${_esc(p.nome)}</span>
+            ${p.km != null ? `<span class="poi-km">${p.km} km</span>` : ''}
+            <button class="poi-maps" onclick="apriBPoiMaps(${i})" title="Apri Maps">🗺️</button>
+            <button class="poi-del" onclick="_bPoiList.splice(${i},1);renderBPoiList()">×</button>
+        </div>`).join('');
+}
+
+function aggiungiBPoi() {
+    const nome = prompt('Nome del punto di interesse\n(es. Spiaggia, Centro storico, Supermercato…)');
+    if (!nome?.trim()) return;
+    const kmStr = prompt('Distanza in km dall\'alloggio?\n(lascia vuoto se non sai)');
+    const km = kmStr?.trim() ? parseFloat(kmStr.replace(',', '.')) : null;
+    _bPoiList.push({ nome: nome.trim(), km: (km != null && !isNaN(km)) ? km : null });
+    renderBPoiList();
+}
+
+function apriBPoiMaps(i) {
+    const poi = _bPoiList[i];
+    const addr = document.getElementById('bAlloggioAddr')?.value?.trim();
+    const dest = encodeURIComponent(poi.nome);
+    const from = addr ? encodeURIComponent(addr) : '';
+    const url = from
+        ? `https://www.google.com/maps/dir/${from}/${dest}`
+        : `https://www.google.com/maps/search/${dest}`;
+    window.open(url, '_blank');
+}
+
+function _salvaBudgetPoiLocale(itemId) {
+    if (!itemId || !viaggioCorrenteId) return;
+    localStorage.setItem(`sv_poi_${viaggioCorrenteId}_${itemId}`, JSON.stringify(_bPoiList));
+}
+
+function _caricaBudgetPoiLocale(itemId) {
+    if (!itemId || !viaggioCorrenteId) return [];
+    try { return JSON.parse(localStorage.getItem(`sv_poi_${viaggioCorrenteId}_${itemId}`) || '[]'); }
+    catch { return []; }
+}
+
+async function salvaBudgetEApriRipartisci() {
+    const titolo = document.getElementById('bTitolo').value.trim();
+    const importo = parseFloat(document.getElementById('bImporto').value);
+    if (!titolo) { toast('Inserisci un titolo'); return; }
+    if (isNaN(importo) || importo < 0) { toast('Inserisci un importo valido'); return; }
+    const body = {
+        viaggio_id: viaggioCorrenteId,
+        titolo,
+        categoria: budgetCatScelta,
+        importo_previsto: importo,
+        valuta: document.getElementById('bValuta').value || viaggioCorrenteValuta,
+        stato: budgetStatoScelto,
+        note: document.getElementById('bNote').value.trim() || null,
+        link_prenotazione: document.getElementById('bLinkPrenotazione').value.trim() || null,
+        per_chi: budgetPerChi,
+        per_chi_nomi: budgetPerChi === 'alcuni' ? budgetPerChiNomi : [],
+    };
+    let savedId = budgetItemEditId;
+    if (savedId) {
+        const res = await apiPatch(`/sv_budget?id=eq.${savedId}`, body);
+        if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            toast('Errore: ' + (errData.message || `HTTP ${res.status}`)); return;
+        }
+    } else {
+        const hdr = { ...(await hdrR()), 'Content-Type': 'application/json', 'Prefer': 'return=representation' };
+        const res = await fetch(`${URL_S}/sv_budget`, { method: 'POST', headers: hdr, body: JSON.stringify(body) });
+        if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            toast('Errore: ' + (errData.message || `HTTP ${res.status}`)); return;
+        }
+        const rows = await res.json();
+        savedId = rows[0]?.id || null;
+    }
+    if (savedId) _salvaBudgetPoiLocale(savedId);
+    document.getElementById('modalBudgetItem').classList.remove('open');
+    await caricaBudget();
+    renderBudget();
+    apriRipartizione(importo);
+}
+
+function apriRipartizione(preFillCosto) {
     _ripPersone = [];
     const v = viaggi.find(x => x.id === viaggioCorrenteId);
     const defInizio = v?.data_inizio || '';
     const defFine   = v?.data_fine   || '';
-    document.getElementById('ripCosto').value = '';
+    document.getElementById('ripCosto').value = preFillCosto != null ? preFillCosto : '';
     document.getElementById('ripTassa').value = '';
     document.getElementById('ripDataInizio').value = defInizio;
     document.getElementById('ripDataFine').value   = defFine;
@@ -5043,6 +5173,7 @@ function apriRipartizione() {
     document.getElementById('ripValuta').textContent = viaggioCorrenteValuta || '€';
     renderRipPartecipanti();
     document.getElementById('ripRisultato').style.display = 'none';
+    if (preFillCosto != null) calcolaRipartizione();
     document.getElementById('modalRipartizione').classList.add('open');
 }
 
