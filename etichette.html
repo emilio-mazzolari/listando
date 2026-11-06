@@ -225,7 +225,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 
     <label class="form-label">Copie da stampare</label>
     <div class="copie-row">
-        <span style="font-weight:700;font-size:14px">N° copie per stampa</span>
+        <span style="font-weight:700;font-size:14px">Etichette da stampare</span>
         <div class="copie-stepper">
             <button class="copie-btn" onclick="cambiaCopie(-1)">−</button>
             <div class="copie-val" id="copieVal">1</div>
@@ -692,6 +692,10 @@ function setFormato(id) {
         document.getElementById('fW').value = fmt.w;
         document.getElementById('fH').value = fmt.h;
     }
+    if (fmt && fmt.cols && fmt.rows) {
+        nCopie = fmt.cols * fmt.rows;
+        document.getElementById('copieVal').textContent = nCopie;
+    }
     aggiornaPrev();
 }
 function onDimChange() {
@@ -714,7 +718,7 @@ function setMargine(mm) {
 }
 
 function cambiaCopie(d) {
-    nCopie = Math.max(1, Math.min(20, nCopie + d));
+    nCopie = Math.max(1, nCopie + d);
     document.getElementById('copieVal').textContent = nCopie;
 }
 
