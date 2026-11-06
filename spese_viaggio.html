@@ -4934,15 +4934,21 @@ async function salvaBudgetItem() {
     if (link) body.link_prenotazione = link;
     const addr = document.getElementById('bAlloggioAddr').value.trim();
     if (addr) body.indirizzo_alloggio = addr;
-    const res = budgetItemEditId
-        ? await apiPatch(`/sv_budget?id=eq.${budgetItemEditId}`, body)
-        : await apiPost('/sv_budget', body);
+    const tryBudgetSave = (b) => budgetItemEditId
+        ? apiPatch(`/sv_budget?id=eq.${budgetItemEditId}`, b)
+        : apiPost('/sv_budget', b);
+    let res = await tryBudgetSave(body);
     if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
-        const msg = errData.message || errData.details || errData.hint || `HTTP ${res.status}`;
-        console.error('Budget save error', res.status, errData);
-        toast('Errore: ' + msg);
-        return;
+        const msg = errData.message || '';
+        if (msg.includes('indirizzo_alloggio')) {
+            await fetch('/api/run-sql?solo=indirizzo_alloggio').catch(() => {});
+            res = await tryBudgetSave(body);
+        }
+        if (!res.ok) {
+            toast('Errore: ' + (msg || `HTTP ${res.status}`));
+            return;
+        }
     }
     if (budgetItemEditId) _salvaBudgetPoiLocale(budgetItemEditId);
     document.getElementById('modalBudgetItem').classList.remove('open');
@@ -5225,19 +5231,35 @@ async function salvaBudgetEApriRipartisci() {
     if (link2) body.link_prenotazione = link2;
     const addr2 = document.getElementById('bAlloggioAddr').value.trim();
     if (addr2) body.indirizzo_alloggio = addr2;
+    const autoMigraSeServe = async (res) => {
+        if (!res.ok) {
+            const e = await res.json().catch(() => ({}));
+            if ((e.message || '').includes('indirizzo_alloggio')) {
+                await fetch('/api/run-sql?solo=indirizzo_alloggio').catch(() => {});
+                return null; // segnala: riprova
+            }
+            toast('Errore: ' + (e.message || `HTTP ${res.status}`));
+            return false; // errore definitivo
+        }
+        return res;
+    };
     let savedId = budgetItemEditId;
     if (savedId) {
-        const res = await apiPatch(`/sv_budget?id=eq.${savedId}`, body);
+        let res = await apiPatch(`/sv_budget?id=eq.${savedId}`, body);
         if (!res.ok) {
-            const errData = await res.json().catch(() => ({}));
-            toast('Errore: ' + (errData.message || `HTTP ${res.status}`)); return;
+            const r = await autoMigraSeServe(res);
+            if (r === false) return;
+            if (r === null) res = await apiPatch(`/sv_budget?id=eq.${savedId}`, body);
+            if (!res.ok) { toast('Errore salvataggio'); return; }
         }
     } else {
         const hdr = { ...(await hdrR()), 'Content-Type': 'application/json', 'Prefer': 'return=representation' };
-        const res = await fetch(`${URL_S}/sv_budget`, { method: 'POST', headers: hdr, body: JSON.stringify(body) });
+        let res = await fetch(`${URL_S}/sv_budget`, { method: 'POST', headers: hdr, body: JSON.stringify(body) });
         if (!res.ok) {
-            const errData = await res.json().catch(() => ({}));
-            toast('Errore: ' + (errData.message || `HTTP ${res.status}`)); return;
+            const r = await autoMigraSeServe(res);
+            if (r === false) return;
+            if (r === null) res = await fetch(`${URL_S}/sv_budget`, { method: 'POST', headers: hdr, body: JSON.stringify(body) });
+            if (!res.ok) { toast('Errore salvataggio'); return; }
         }
         const rows = await res.json();
         savedId = rows[0]?.id || null;
