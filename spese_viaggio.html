@@ -1174,11 +1174,10 @@
                 <button onclick="aggiungiBPoi()" style="background:none;border:none;color:#5856d6;font-weight:900;font-size:13px;cursor:pointer;font-family:inherit;padding:4px 8px">+ Aggiungi</button>
             </div>
             <div id="bPoiList"></div>
-            <button id="bBtnVediRip" class="btn-save-modal" style="background:#5856d6;margin-top:8px;display:none" onclick="apriRipartizionePerId()">Modifica ripartizione</button>
-            <button class="btn-save-modal" style="background:#5856d6;margin-top:8px" onclick="salvaBudgetEApriRipartisci()">Salva e ripartisci le spese</button>
         </div>
 
         <button class="btn-save-modal" style="background:var(--green);margin-top:10px" onclick="salvaBudgetItem()">SALVA</button>
+        <button id="bBtnRipartisci" class="btn-save-modal" style="background:#5856d6;margin-top:8px;display:none" onclick="salvaBudgetEApriRipartisci()">RIPARTISCI SPESE</button>
         <button class="btn-save-modal" id="btnEliminaBudget" style="display:none;background:#fff0f0;color:var(--red);border:2px solid #fcc;margin-top:8px" onclick="eliminaBudgetItemModal()">ELIMINA</button>
         <button style="width:100%;padding:14px;border-radius:14px;border:2px solid var(--grey);background:var(--white);font-weight:800;font-size:15px;cursor:pointer;font-family:inherit;margin-top:8px;color:#aaa" onclick="document.getElementById('modalBudgetItem').classList.remove('open')">Chiudi</button>
     </div>
@@ -4883,7 +4882,7 @@ function apriModalEditBudgetItem(id) {
     document.getElementById('bImporto').value = b.importo_previsto || '';
     document.getElementById('bNote').value = b.note || '';
     document.getElementById('bLinkPrenotazione').value = b.link_prenotazione || '';
-    document.getElementById('bAlloggioAddr').value = b.indirizzo_alloggio || '';
+    document.getElementById('bAlloggioAddr').value = _caricaAddrLocale(id) || b.indirizzo_alloggio || '';
     renderBPoiList();
     document.getElementById('btnEliminaBudget').style.display = '';
     populateCurrencySelects('bValuta');
@@ -4898,12 +4897,11 @@ function apriModalEditBudgetItem(id) {
 
 function _renderRipPreviewInModal(itemId) {
     const prev = document.getElementById('bRipPreview');
-    const btn  = document.getElementById('bBtnVediRip');
-    if (!prev || !btn) return;
+    if (!prev) return;
     const rip = ripartizioniCache[itemId];
-    if (!rip) { prev.style.display = 'none'; btn.style.display = 'none'; return; }
+    if (!rip) { prev.style.display = 'none'; return; }
     const ris = Array.isArray(rip.risultati) ? rip.risultati : (rip.risultati ? JSON.parse(rip.risultati) : []);
-    if (!ris.length) { prev.style.display = 'none'; btn.style.display = 'none'; return; }
+    if (!ris.length) { prev.style.display = 'none'; return; }
     const vs = symb(rip.valuta || viaggioCorrenteValuta);
     prev.style.display = '';
     btn.style.display  = '';
@@ -4932,25 +4930,18 @@ async function salvaBudgetItem() {
     };
     const link = document.getElementById('bLinkPrenotazione').value.trim();
     if (link) body.link_prenotazione = link;
-    const addr = document.getElementById('bAlloggioAddr').value.trim();
-    if (addr) body.indirizzo_alloggio = addr;
-    const tryBudgetSave = (b) => budgetItemEditId
-        ? apiPatch(`/sv_budget?id=eq.${budgetItemEditId}`, b)
-        : apiPost('/sv_budget', b);
-    let res = await tryBudgetSave(body);
-    if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        const msg = errData.message || '';
-        if (msg.includes('indirizzo_alloggio')) {
-            await fetch('/api/run-sql?solo=indirizzo_alloggio').catch(() => {});
-            res = await tryBudgetSave(body);
-        }
-        if (!res.ok) {
-            toast('Errore: ' + (msg || `HTTP ${res.status}`));
-            return;
-        }
+    let savedId = budgetItemEditId;
+    if (savedId) {
+        const res = await apiPatch(`/sv_budget?id=eq.${savedId}`, body);
+        if (!res.ok) { const e = await res.json().catch(() => ({})); toast('Errore: ' + (e.message || `HTTP ${res.status}`)); return; }
+    } else {
+        const hdr = { ...(await hdrR()), 'Content-Type': 'application/json', 'Prefer': 'return=representation' };
+        const res = await fetch(`${URL_S}/sv_budget`, { method: 'POST', headers: hdr, body: JSON.stringify(body) });
+        if (!res.ok) { const e = await res.json().catch(() => ({})); toast('Errore: ' + (e.message || `HTTP ${res.status}`)); return; }
+        const rows = await res.json();
+        savedId = rows[0]?.id || null;
     }
-    if (budgetItemEditId) _salvaBudgetPoiLocale(budgetItemEditId);
+    if (savedId) _salvaBudgetPoiLocale(savedId);
     document.getElementById('modalBudgetItem').classList.remove('open');
     toast('✓ Salvato');
     await caricaBudget();
@@ -5135,8 +5126,11 @@ let _ripPersone = [];
 let _bPoiList = [];
 
 function _toggleAlloggioBox(cat) {
+    const isAlloggio = cat === 'alloggio';
     const box = document.getElementById('bAlloggioBox');
-    if (box) box.style.display = cat === 'alloggio' ? '' : 'none';
+    if (box) box.style.display = isAlloggio ? '' : 'none';
+    const btn = document.getElementById('bBtnRipartisci');
+    if (btn) btn.style.display = isAlloggio ? '' : 'none';
 }
 
 function renderBPoiList() {
@@ -5191,6 +5185,13 @@ function apriBPoiMaps(i) {
 function _salvaBudgetPoiLocale(itemId) {
     if (!itemId || !viaggioCorrenteId) return;
     localStorage.setItem(`sv_poi_${viaggioCorrenteId}_${itemId}`, JSON.stringify(_bPoiList));
+    const addr = document.getElementById('bAlloggioAddr')?.value?.trim();
+    if (addr !== undefined) localStorage.setItem(`sv_addr_${viaggioCorrenteId}_${itemId}`, addr);
+}
+
+function _caricaAddrLocale(itemId) {
+    if (!itemId || !viaggioCorrenteId) return '';
+    return localStorage.getItem(`sv_addr_${viaggioCorrenteId}_${itemId}`) || '';
 }
 
 function _apreLinkPrenotazione() {
@@ -5229,37 +5230,19 @@ async function salvaBudgetEApriRipartisci() {
     };
     const link2 = document.getElementById('bLinkPrenotazione').value.trim();
     if (link2) body.link_prenotazione = link2;
-    const addr2 = document.getElementById('bAlloggioAddr').value.trim();
-    if (addr2) body.indirizzo_alloggio = addr2;
-    const autoMigraSeServe = async (res) => {
-        if (!res.ok) {
-            const e = await res.json().catch(() => ({}));
-            if ((e.message || '').includes('indirizzo_alloggio')) {
-                await fetch('/api/run-sql?solo=indirizzo_alloggio').catch(() => {});
-                return null; // segnala: riprova
-            }
-            toast('Errore: ' + (e.message || `HTTP ${res.status}`));
-            return false; // errore definitivo
-        }
-        return res;
-    };
     let savedId = budgetItemEditId;
     if (savedId) {
-        let res = await apiPatch(`/sv_budget?id=eq.${savedId}`, body);
+        const res = await apiPatch(`/sv_budget?id=eq.${savedId}`, body);
         if (!res.ok) {
-            const r = await autoMigraSeServe(res);
-            if (r === false) return;
-            if (r === null) res = await apiPatch(`/sv_budget?id=eq.${savedId}`, body);
-            if (!res.ok) { toast('Errore salvataggio'); return; }
+            const e = await res.json().catch(() => ({}));
+            toast('Errore: ' + (e.message || `HTTP ${res.status}`)); return;
         }
     } else {
         const hdr = { ...(await hdrR()), 'Content-Type': 'application/json', 'Prefer': 'return=representation' };
-        let res = await fetch(`${URL_S}/sv_budget`, { method: 'POST', headers: hdr, body: JSON.stringify(body) });
+        const res = await fetch(`${URL_S}/sv_budget`, { method: 'POST', headers: hdr, body: JSON.stringify(body) });
         if (!res.ok) {
-            const r = await autoMigraSeServe(res);
-            if (r === false) return;
-            if (r === null) res = await fetch(`${URL_S}/sv_budget`, { method: 'POST', headers: hdr, body: JSON.stringify(body) });
-            if (!res.ok) { toast('Errore salvataggio'); return; }
+            const e = await res.json().catch(() => ({}));
+            toast('Errore: ' + (e.message || `HTTP ${res.status}`)); return;
         }
         const rows = await res.json();
         savedId = rows[0]?.id || null;
