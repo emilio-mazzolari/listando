@@ -1167,7 +1167,7 @@
                 <button onclick="aggiungiBPoi()" style="background:none;border:none;color:#5856d6;font-weight:900;font-size:13px;cursor:pointer;font-family:inherit;padding:4px 8px">+ Aggiungi</button>
             </div>
             <div id="bPoiList"></div>
-            <button class="btn-save-modal" style="background:#5856d6;margin-top:8px" onclick="salvaBudgetEApriRipartisci()">🏠 Salva e ripartisci le spese</button>
+            <button class="btn-save-modal" style="background:#5856d6;margin-top:8px" onclick="salvaBudgetEApriRipartisci()">Salva e ripartisci le spese</button>
         </div>
 
         <button class="btn-save-modal" style="background:var(--green);margin-top:10px" onclick="salvaBudgetItem()">SALVA</button>
@@ -4864,10 +4864,11 @@ async function salvaBudgetItem() {
         valuta: document.getElementById('bValuta').value || viaggioCorrenteValuta,
         stato: budgetStatoScelto,
         note: document.getElementById('bNote').value.trim() || null,
-        link_prenotazione: document.getElementById('bLinkPrenotazione').value.trim() || null,
         per_chi: budgetPerChi,
         per_chi_nomi: budgetPerChi === 'alcuni' ? budgetPerChiNomi : [],
     };
+    const link = document.getElementById('bLinkPrenotazione').value.trim();
+    if (link) body.link_prenotazione = link;
     const res = budgetItemEditId
         ? await apiPatch(`/sv_budget?id=eq.${budgetItemEditId}`, body)
         : await apiPost('/sv_budget', body);
@@ -5127,10 +5128,11 @@ async function salvaBudgetEApriRipartisci() {
         valuta: document.getElementById('bValuta').value || viaggioCorrenteValuta,
         stato: budgetStatoScelto,
         note: document.getElementById('bNote').value.trim() || null,
-        link_prenotazione: document.getElementById('bLinkPrenotazione').value.trim() || null,
         per_chi: budgetPerChi,
         per_chi_nomi: budgetPerChi === 'alcuni' ? budgetPerChiNomi : [],
     };
+    const link2 = document.getElementById('bLinkPrenotazione').value.trim();
+    if (link2) body.link_prenotazione = link2;
     let savedId = budgetItemEditId;
     if (savedId) {
         const res = await apiPatch(`/sv_budget?id=eq.${savedId}`, body);
