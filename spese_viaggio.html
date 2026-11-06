@@ -466,16 +466,17 @@
         .period-pill.active { border-color: #5856d6; background: rgba(88,86,214,0.08); color: #5856d6; }
 
         /* Ripartizione appartamento */
-        .rip-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
-        .rip-name { flex: 1; min-width: 0; }
-        .rip-days { width: 70px; flex-shrink: 0; }
+        .rip-person-block { background: var(--grey-light); border-radius: 14px; padding: 12px; margin-bottom: 10px; }
+        .rip-person-top { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+        .rip-person-dates { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         .rip-del { width: 36px; height: 36px; border-radius: 10px; border: 2px solid #fcc; background: var(--white); cursor: pointer; flex-shrink: 0; color: var(--red); font-size: 18px; display: flex; align-items: center; justify-content: center; }
         .rip-result { background: var(--grey-light); border-radius: 14px; padding: 14px 16px; margin-top: 12px; }
-        .rip-result-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1.5px solid rgba(0,0,0,0.06); }
+        .rip-result-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; padding: 9px 0; border-bottom: 1.5px solid rgba(0,0,0,0.06); }
         .rip-result-row:last-child { border-bottom: none; }
         .rip-result-name { font-weight: 700; font-size: 14px; }
         .rip-result-nights { font-size: 12px; color: #888; font-weight: 600; margin-top: 2px; }
-        .rip-result-amount { font-weight: 900; font-size: 16px; color: var(--accent); }
+        .rip-result-breakdown { font-size: 11px; color: #aaa; font-weight: 600; margin-top: 2px; }
+        .rip-result-amount { font-weight: 900; font-size: 16px; color: var(--accent); flex-shrink: 0; }
 
         @media (prefers-color-scheme: dark) {
             :root {
@@ -1188,30 +1189,40 @@
 <div class="modal-overlay" id="modalRipartizione">
     <div class="modal-box">
         <div class="modal-handle"></div>
-        <div class="modal-title">🏠 Ripartisci appartamento</div>
-        <p style="font-size:13px;color:#888;font-weight:600;margin:0 0 16px">Calcola la quota equa per ogni persona in base ai giorni effettivi di presenza.</p>
+        <div class="modal-title">🏠 Ripartisci alloggio</div>
 
-        <div style="display:flex;gap:10px;margin-bottom:12px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+            <div>
+                <label class="form-label">Check-in</label>
+                <input class="form-input" id="ripDataInizio" type="date" oninput="calcolaRipartizione()" style="margin:0">
+            </div>
+            <div>
+                <label class="form-label">Check-out</label>
+                <input class="form-input" id="ripDataFine" type="date" oninput="calcolaRipartizione()" style="margin:0">
+            </div>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-bottom:4px;align-items:flex-end">
             <div style="flex:2">
-                <label class="form-label">Costo totale appartamento</label>
+                <label class="form-label">Costo totale alloggio</label>
                 <div style="display:flex;align-items:center;gap:8px">
-                    <input class="form-input" id="ripCosto" type="number" min="0" step="0.01" placeholder="es. 500" oninput="calcolaRipartizione()" style="margin:0;flex:1">
+                    <input class="form-input" id="ripCosto" type="number" min="0" step="0.01" placeholder="es. 436.74" oninput="calcolaRipartizione()" style="margin:0;flex:1">
                     <span style="font-weight:800;font-size:16px;color:#888;flex-shrink:0" id="ripValuta">€</span>
                 </div>
             </div>
             <div style="flex:1">
-                <label class="form-label">Durata affitto (gg)</label>
-                <input class="form-input" id="ripDurata" type="number" min="1" placeholder="es. 4" oninput="calcolaRipartizione()" style="margin:0">
+                <label class="form-label">Tassa soggiorno</label>
+                <input class="form-input" id="ripTassa" type="number" min="0" step="0.01" placeholder="€/pers/notte" oninput="calcolaRipartizione()" style="margin:0">
             </div>
         </div>
-        <p style="font-size:11px;color:#aaa;font-weight:600;margin:0 0 14px">Si assume che tutti arrivino il giorno 1 e che chi parte prima lo faccia in anticipo (es. 4 gg = 4 notti intere).</p>
+        <p style="font-size:11px;color:#aaa;font-weight:600;margin:0 0 14px">La tassa è facoltativa (es. 6 € a persona a notte). Viene calcolata separatamente in base alle notti effettive di ogni persona.</p>
 
-        <label class="form-label">Persone e giorni di presenza</label>
+        <label class="form-label">Partecipanti</label>
         <div id="ripPartecipanti"></div>
         <button onclick="aggiungiRipPartecipante()" style="width:100%;padding:11px;border-radius:14px;border:2px dashed var(--grey);background:transparent;font-weight:800;font-size:14px;color:#888;cursor:pointer;font-family:inherit;margin-bottom:14px">+ Aggiungi persona</button>
 
         <div id="ripRisultato" style="display:none">
-            <label class="form-label">Quota per persona</label>
+            <label class="form-label">Riepilogo individuale</label>
             <div class="rip-result" id="ripRisultatoBody"></div>
         </div>
 
@@ -5010,63 +5021,175 @@ async function aggiungiDaPiano() {
 
 if (_joinId) { handleJoinFromLink(_joinId); } else { caricaViaggi(); }
 
-// ── Ripartizione appartamento ──────────────────────────────────────
+// ── Ripartizione alloggio ──────────────────────────────────────────
 function _esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 let _ripPersone = [];
+
 function apriRipartizione() {
     _ripPersone = [];
+    const v = viaggi.find(x => x.id === viaggioCorrenteId);
+    const defInizio = v?.data_inizio || '';
+    const defFine   = v?.data_fine   || '';
     document.getElementById('ripCosto').value = '';
-    document.getElementById('ripDurata').value = '';
+    document.getElementById('ripTassa').value = '';
+    document.getElementById('ripDataInizio').value = defInizio;
+    document.getElementById('ripDataFine').value   = defFine;
     if (partecipantiAttuali && partecipantiAttuali.length) {
-        partecipantiAttuali.forEach(p => _ripPersone.push({ nome: p.nome || '', giorni: 1 }));
+        partecipantiAttuali.forEach(p => _ripPersone.push({ nome: p.nome || '', arrivo: defInizio, partenza: defFine }));
     } else {
-        _ripPersone.push({ nome: '', giorni: 1 });
-        _ripPersone.push({ nome: '', giorni: 1 });
+        _ripPersone.push({ nome: '', arrivo: defInizio, partenza: defFine });
+        _ripPersone.push({ nome: '', arrivo: defInizio, partenza: defFine });
     }
     document.getElementById('ripValuta').textContent = viaggioCorrenteValuta || '€';
     renderRipPartecipanti();
     document.getElementById('ripRisultato').style.display = 'none';
     document.getElementById('modalRipartizione').classList.add('open');
 }
+
 function renderRipPartecipanti() {
+    const gI = document.getElementById('ripDataInizio').value;
+    const gF = document.getElementById('ripDataFine').value;
     document.getElementById('ripPartecipanti').innerHTML = _ripPersone.map((p, i) =>
-        `<div class="rip-row">
-            <input class="form-input rip-name" type="text" placeholder="Nome persona ${i+1}" value="${_esc(p.nome)}" oninput="_ripPersone[${i}].nome=this.value;calcolaRipartizione()" style="margin:0">
-            <input class="form-input rip-days" type="number" min="1" placeholder="gg" value="${p.giorni}" oninput="_ripPersone[${i}].giorni=parseInt(this.value)||1;calcolaRipartizione()" style="margin:0;text-align:center">
-            <button class="rip-del" onclick="_ripPersone.splice(${i},1);renderRipPartecipanti();calcolaRipartizione()">×</button>
+        `<div class="rip-person-block">
+            <div class="rip-person-top">
+                <input class="form-input" type="text" placeholder="Nome persona ${i+1}" value="${_esc(p.nome)}" oninput="_ripPersone[${i}].nome=this.value;calcolaRipartizione()" style="margin:0;flex:1">
+                <button class="rip-del" onclick="_ripPersone.splice(${i},1);renderRipPartecipanti();calcolaRipartizione()">×</button>
+            </div>
+            <div class="rip-person-dates">
+                <div>
+                    <label class="form-label" style="margin-bottom:4px">Arrivo</label>
+                    <input class="form-input" type="date" value="${p.arrivo||''}" min="${gI}" max="${gF}" oninput="_ripPersone[${i}].arrivo=this.value;calcolaRipartizione()" style="margin:0">
+                </div>
+                <div>
+                    <label class="form-label" style="margin-bottom:4px">Partenza</label>
+                    <input class="form-input" type="date" value="${p.partenza||''}" min="${gI}" max="${gF}" oninput="_ripPersone[${i}].partenza=this.value;calcolaRipartizione()" style="margin:0">
+                </div>
+            </div>
         </div>`
     ).join('');
 }
+
 function aggiungiRipPartecipante() {
-    _ripPersone.push({ nome: '', giorni: 1 });
+    const inizio = document.getElementById('ripDataInizio').value;
+    const fine   = document.getElementById('ripDataFine').value;
+    _ripPersone.push({ nome: '', arrivo: inizio, partenza: fine });
     renderRipPartecipanti();
     calcolaRipartizione();
 }
-function calcolaRipartizione() {
-    const costo = parseFloat(document.getElementById('ripCosto').value) || 0;
-    const durata = parseInt(document.getElementById('ripDurata').value) || 0;
-    if (costo <= 0 || durata <= 0 || _ripPersone.length === 0) { document.getElementById('ripRisultato').style.display = 'none'; return; }
-    const valuta = document.getElementById('ripValuta').textContent;
-    const costoGiornaliero = costo / durata;
-    // Per ogni giornata, dividi il costo tra i presenti (chi ha giorni >= giorno corrente)
-    const quote = new Array(_ripPersone.length).fill(0);
-    for (let g = 1; g <= durata; g++) {
-        const presenti = _ripPersone.map((p, i) => ({ i, qui: (parseInt(p.giorni) || 0) >= g }));
-        const n = presenti.filter(p => p.qui).length;
-        if (n === 0) continue;
-        presenti.forEach(p => { if (p.qui) quote[p.i] += costoGiornaliero / n; });
+
+// Enumera ogni notte del soggiorno come stringa YYYY-MM-DD (notte = giorno di inizio).
+// La notte "2024-01-04" va dalle 00:00 del 04 alle 00:00 del 05.
+// Una persona è presente sulla notte D se: arrivo <= D < partenza.
+// Usa Date locali (non toISOString/UTC) per evitare shift da timezone.
+function _enumeraNotti(inizio, fine) {
+    const notti = [];
+    const [ay,am,ad] = inizio.split('-').map(Number);
+    const [by,bm,bd] = fine.split('-').map(Number);
+    let d = new Date(ay, am-1, ad);
+    const fineD = new Date(by, bm-1, bd);
+    while (d < fineD) {
+        const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), g = String(d.getDate()).padStart(2,'0');
+        notti.push(`${y}-${m}-${g}`);
+        d.setDate(d.getDate() + 1);
     }
-    document.getElementById('ripRisultatoBody').innerHTML = _ripPersone.map((p, i) => {
-        const gg = parseInt(p.giorni) || 0;
-        const nome = p.nome.trim() || `Persona ${i+1}`;
+    return notti;
+}
+
+function _fmtD(s) {
+    if (!s) return '?';
+    const [, m, g] = s.split('-');
+    return `${parseInt(g)}/${parseInt(m)}`;
+}
+
+function _giornoSuccessivo(s) {
+    const [y,m,g] = s.split('-').map(Number);
+    const d = new Date(y, m-1, g);
+    d.setDate(d.getDate() + 1);
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function calcolaRipartizione() {
+    const costo  = parseFloat(document.getElementById('ripCosto').value)  || 0;
+    const tassa  = parseFloat(document.getElementById('ripTassa').value)  || 0;
+    const inizio = document.getElementById('ripDataInizio').value;
+    const fine   = document.getElementById('ripDataFine').value;
+    const valuta = document.getElementById('ripValuta').textContent;
+
+    if (!inizio || !fine || inizio >= fine || costo <= 0 || _ripPersone.length === 0) {
+        document.getElementById('ripRisultato').style.display = 'none';
+        return;
+    }
+
+    const notti = _enumeraNotti(inizio, fine);       // array di date-string per ogni notte
+    const nTot  = notti.length;
+    const costoPerNotte = costo / nTot;
+
+    // Notti effettive per persona (persona è presente su notte d se arrivo<=d<partenza)
+    const nottiP = _ripPersone.map(p => {
+        const arr = p.arrivo   || inizio;
+        const par = p.partenza || fine;
+        return notti.filter(d => d >= arr && d < par);
+    });
+
+    // Presenti su ogni notte: Map<data, count>
+    const presentiPerNotte = {};
+    notti.forEach(d => {
+        presentiPerNotte[d] = nottiP.filter(np => np.includes(d)).length;
+    });
+
+    // Quota alloggio esatta (float) per persona
+    const shareExact = nottiP.map(np =>
+        np.reduce((acc, d) => acc + (presentiPerNotte[d] > 0 ? costoPerNotte / presentiPerNotte[d] : 0), 0)
+    );
+
+    // Arrotondamento ai centesimi con metodo "largest remainder"
+    // garantisce che la somma delle quote = costo esatto
+    const totalCents = Math.round(costo * 100);
+    const cents = shareExact.map(s => Math.floor(s * 100));
+    let resto = totalCents - cents.reduce((a, b) => a + b, 0);
+    shareExact
+        .map((s, i) => ({ i, f: (s * 100) - Math.floor(s * 100) }))
+        .sort((a, b) => b.f - a.f)
+        .forEach(({ i }) => { if (resto-- > 0) cents[i]++; });
+    const shareAlloggio = cents.map(c => c / 100);
+
+    // Quota tassa: semplice moltiplicazione, nessun arrotondamento condiviso
+    const shareTassa = nottiP.map(np => Math.round(tassa * np.length * 100) / 100);
+
+    // Render risultati
+    let totAllo = 0, totTassa = 0;
+    const righe = _ripPersone.map((p, i) => {
+        const nome  = p.nome.trim() || `Persona ${i+1}`;
+        const gg    = nottiP[i].length;
+        const prima = nottiP[i][0]      || (p.arrivo   || inizio);
+        const ultima= nottiP[i][gg - 1] || null;
+        const par   = ultima ? _giornoSuccessivo(ultima) : (p.partenza || fine);
+        const qA    = shareAlloggio[i];
+        const qT    = shareTassa[i];
+        totAllo  += qA;
+        totTassa += qT;
+        const dettaglio = tassa > 0
+            ? `alloggio ${valuta}${qA.toFixed(2)} + tassa ${valuta}${qT.toFixed(2)}`
+            : '';
         return `<div class="rip-result-row">
             <div>
                 <div class="rip-result-name">${_esc(nome)}</div>
-                <div class="rip-result-nights">${gg} giorn${gg===1?'o':'i'} su ${durata}</div>
+                <div class="rip-result-nights">${gg} nott${gg===1?'e':'i'} · ${_fmtD(prima)} → ${_fmtD(par)}</div>
+                ${dettaglio ? `<div class="rip-result-breakdown">${dettaglio}</div>` : ''}
             </div>
-            <div class="rip-result-amount">${valuta}${quote[i].toFixed(2)}</div>
+            <div class="rip-result-amount">${valuta}${(qA + qT).toFixed(2)}</div>
         </div>`;
     }).join('');
+
+    const rigaTotale = `<div style="display:flex;justify-content:space-between;align-items:center;padding-top:10px;margin-top:4px;border-top:2px solid rgba(0,0,0,0.12)">
+        <div>
+            <div style="font-weight:800;font-size:14px">Totale</div>
+            ${tassa > 0 ? `<div style="font-size:11px;color:#aaa;font-weight:600">alloggio ${valuta}${totAllo.toFixed(2)} + tassa ${valuta}${totTassa.toFixed(2)}</div>` : ''}
+        </div>
+        <div style="font-weight:900;font-size:18px">${valuta}${(totAllo + totTassa).toFixed(2)}</div>
+    </div>`;
+
+    document.getElementById('ripRisultatoBody').innerHTML = righe + rigaTotale;
     document.getElementById('ripRisultato').style.display = 'block';
 }
 
