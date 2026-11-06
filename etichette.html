@@ -110,6 +110,19 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 .margine-chip{padding:7px 14px;border-radius:11px;border:2px solid var(--grey);background:var(--white);font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;color:var(--dark);transition:all .15s;}
 .margine-chip.active{border-color:var(--accent);background:var(--accent-bg);color:var(--accent);}
 
+/* Size chips */
+.size-chips{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
+.size-chip{padding:8px 14px;border-radius:11px;border:2px solid var(--grey);background:var(--white);font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;color:var(--dark);transition:all .15s;}
+.size-chip.active{border-color:var(--accent);background:var(--accent-bg);color:var(--accent);}
+
+/* Bold/italic toggles */
+.style-row{display:flex;gap:8px;margin-bottom:14px;}
+.style-tog{flex:1;padding:10px 4px;border-radius:12px;border:2px solid var(--grey);background:var(--white);cursor:pointer;font-family:inherit;font-size:14px;font-weight:700;color:var(--dark);transition:all .15s;text-align:center;}
+.style-tog.active{border-color:var(--accent);background:var(--accent-bg);color:var(--accent);}
+
+/* Serie button */
+.btn-serie{padding:10px 14px;border-radius:12px;border:2px solid var(--accent);background:var(--white);color:var(--accent);font-weight:800;font-size:14px;cursor:pointer;font-family:inherit;}
+
 #anteprimaWrap{position:relative;overflow:hidden;margin:0 auto 16px;}
 
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:12px 20px;border-radius:14px;font-weight:700;font-size:14px;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;max-width:90vw;text-align:center;}
@@ -132,6 +145,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
         </button>
         <div class="page-title">🏷️ Etichette</div>
+        <button class="btn-serie" onclick="apriSerie()">⚡ Serie</button>
         <button class="btn-new" onclick="apriNuova()">+ Nuova</button>
     </div>
 </div>
@@ -185,6 +199,15 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
     <label class="form-label">Allineamento testo</label>
     <div class="align-row" id="alignPicker"></div>
 
+    <label class="form-label">Dimensione testo</label>
+    <div class="size-chips" id="sizeChips"></div>
+
+    <label class="form-label">Stile testo</label>
+    <div class="style-row">
+        <button class="style-tog" id="togGrassetto" onclick="toggleGrassetto()"><b>G</b> Grassetto</button>
+        <button class="style-tog" id="togCorsivo" onclick="toggleCorsivo()"><i>I</i> Corsivo</button>
+    </div>
+
     <label class="form-label">Formato di stampa</label>
     <div class="formato-grid" id="formatGrid"></div>
 
@@ -237,6 +260,77 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
   </div>
 </div>
 
+<!-- Modal Serie -->
+<div class="modal-overlay" id="modalSerie" onclick="if(event.target===this)chiudiSerie()">
+  <div class="modal-box">
+    <div class="modal-handle"></div>
+    <div class="modal-title">⚡ Stampa serie</div>
+
+    <label class="form-label">Titoli (uno per riga) *</label>
+    <textarea class="form-input" id="seTitoli" rows="8" placeholder="Documento 1&#10;Documento 2&#10;Documento 3&#10;..." oninput="aggiornaPrevSerie()" style="resize:vertical;line-height:1.6"></textarea>
+
+    <label class="form-label">Sottotitolo comune</label>
+    <input class="form-input" id="seComSub" type="text" placeholder="Uguale per tutte" oninput="aggiornaPrevSerie()">
+
+    <label class="form-label">Periodo comune</label>
+    <input class="form-input" id="seComPer" type="text" placeholder="es. 2024" oninput="aggiornaPrevSerie()">
+
+    <label class="form-label">Icona</label>
+    <div id="seIconPicker" style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px"></div>
+
+    <label class="form-label">Stile grafico</label>
+    <div class="stile-grid" id="seStilePicker"></div>
+
+    <label class="form-label">Colore</label>
+    <div class="color-grid" id="seColorGrid"></div>
+    <div class="color-pickers">
+        <label>Sfondo</label><input type="color" id="seCsfondo" oninput="seOnCustomColor()">
+        <label>Testo</label><input type="color" id="seCTesto" oninput="seOnCustomColor()">
+        <label>Accento</label><input type="color" id="seCacc" oninput="seOnCustomColor()">
+    </div>
+
+    <label class="form-label">Font</label>
+    <div class="font-grid" id="seFontPicker"></div>
+
+    <label class="form-label">Dimensione testo</label>
+    <div class="size-chips" id="seSizeChips"></div>
+
+    <label class="form-label">Stile testo</label>
+    <div class="style-row">
+        <button class="style-tog" id="seTogGrassetto" onclick="seToggleGrassetto()"><b>G</b> Grassetto</button>
+        <button class="style-tog" id="seTogCorsivo" onclick="seToggleCorsivo()"><i>I</i> Corsivo</button>
+    </div>
+
+    <label class="form-label">Allineamento testo</label>
+    <div class="align-row" id="seAlignPicker"></div>
+
+    <label class="form-label">Formato di stampa</label>
+    <div class="formato-grid" id="seFormatGrid"></div>
+
+    <label class="form-label">Dimensioni etichetta</label>
+    <div class="dim-row">
+        <div>
+            <label class="form-label">Larghezza mm</label>
+            <input class="form-input" id="seW" type="number" min="10" max="400" placeholder="61" oninput="seOnDimChange()" style="margin:0">
+        </div>
+        <div>
+            <label class="form-label">Altezza mm</label>
+            <input class="form-input" id="seH" type="number" min="10" max="400" placeholder="67" oninput="seOnDimChange()" style="margin:0">
+        </div>
+    </div>
+
+    <div id="sePrevInfo" style="text-align:center;font-weight:700;font-size:13px;color:#888;margin-bottom:12px"></div>
+
+    <label class="form-label">Anteprima foglio A4 (pagina 1)</label>
+    <div id="sePrevWrap" style="margin:0 auto 16px;border:1.5px solid var(--grey);border-radius:4px;background:#fff;position:relative;overflow:hidden">
+        <div id="sePrevPage" style="transform-origin:top left"></div>
+    </div>
+
+    <button class="btn-modal" style="background:var(--accent);color:#fff" onclick="stampaSerie()">🖨️ STAMPA SERIE</button>
+    <button class="btn-modal" style="background:transparent;color:#aaa" onclick="chiudiSerie()">Annulla</button>
+  </div>
+</div>
+
 <div id="printLayer"></div>
 <div class="toast" id="toast"></div>
 
@@ -286,14 +380,19 @@ const FORMATI = [
     { id:'a4_6',    label:'Sesto A4',         desc:'6 per foglio (2×3)',        w:93,  h:88,  cols:2, rows:3, land:false, iw:18,ih:17 },
     { id:'dorsale', label:'Dorsale',          desc:'3 per foglio — spina',      w:85,  h:190, cols:3, rows:1, land:true,  iw:16,ih:36 },
     { id:'striscia',label:'Striscia',         desc:'5 per foglio (orizzontale)',w:190, h:52,  cols:1, rows:5, land:false, iw:38,ih:10 },
+    { id:'a4_12',   label:'12 per foglio',    desc:'12 per foglio (3×4)',       w:61,  h:67,  cols:3, rows:4, land:false, iw:12,ih:13 },
+    { id:'a4_24',   label:'24 per foglio',    desc:'24 per foglio (4×6)',       w:45,  h:43,  cols:4, rows:6, land:false, iw:9, ih:8  },
     { id:'custom',  label:'Personalizzato',   desc:'Dimensioni libere',         w:null,h:null,cols:null,rows:null,land:false,iw:28,ih:20 },
 ];
 
 const MARGINI = [5, 8, 10, 15, 20];
+const DIM_SCALE = { xs:0.6, s:0.8, m:1.0, l:1.3, xl:1.7 };
+const DIM_LABELS = { xs:'XS', s:'S', m:'M', l:'L', xl:'XL' };
 
 // ── Stato ──────────────────────────────────────────────────────────
 let items = [], editId = null, nCopie = 1;
-let st = { icona:'📦', stile:'pieno', sfondo:'#0f172a', testo:'#f8fafc', acc:'#818cf8', formato:'a4_2', font:'sans', allineamento:'centro' };
+let st = { icona:'📦', stile:'pieno', sfondo:'#0f172a', testo:'#f8fafc', acc:'#818cf8', formato:'a4_2', font:'sans', allineamento:'centro', grassetto:true, corsivo:false, dim_scala:'m' };
+let stS = {};
 let stampaQueue = [], marginiMm = 10;
 
 // ── Init ───────────────────────────────────────────────────────────
@@ -303,6 +402,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     buildColorGrid();
     buildFontPicker();
     buildAlignPicker();
+    buildSizeChips();
     buildFormatGrid();
     buildMargineChips();
     await carica();
@@ -361,21 +461,24 @@ function labelHtml(e, W, H) {
     const pe = esc(e.periodo || '');
     const ff = FONTS[e.font || 'sans']?.css || FONTS.sans.css;
     const al = e.allineamento === 'sinistra' ? 'left' : e.allineamento === 'destra' ? 'right' : 'center';
+    const sc = DIM_SCALE[e.dim_scala||'m']||1.0;
+    const fw = e.grassetto===false?'400':'900';
+    const fst = e.corsivo?'italic':'normal';
     const r = `border-radius:4px;`;
     const mn = Math.min(W, H);
     const pad  = `${(mn * 0.07).toFixed(1)}mm`;
     const gap  = `${(mn * 0.04).toFixed(1)}mm`;
-    const fIco = `${Math.min(mn * 0.16, 28).toFixed(1)}mm`;
-    const fTit = `${Math.min(mn * 0.1,  18).toFixed(1)}mm`;
-    const fSub = `${Math.min(mn * 0.068,12).toFixed(1)}mm`;
-    const fPer = `${Math.min(mn * 0.058,10).toFixed(1)}mm`;
-    const base = `width:${W}mm;height:${H}mm;overflow:hidden;position:relative;${r}font-family:${ff};`;
+    const fIco = `${Math.min(mn * 0.16 * sc, 28).toFixed(1)}mm`;
+    const fTit = `${Math.min(mn * 0.1  * sc, 18).toFixed(1)}mm`;
+    const fSub = `${Math.min(mn * 0.068* sc, 12).toFixed(1)}mm`;
+    const fPer = `${Math.min(mn * 0.058* sc, 10).toFixed(1)}mm`;
+    const base = `width:${W}mm;height:${H}mm;overflow:hidden;position:relative;${r}font-family:${ff};font-style:${fst};`;
 
     if (stile === 'pieno') {
         const flex_al = al === 'left' ? 'flex-start' : al === 'right' ? 'flex-end' : 'center';
         return `<div style="${base}background:${sf};color:${te};display:flex;flex-direction:column;align-items:${flex_al};justify-content:center;padding:${pad};text-align:${al};gap:${gap}">
             ${ic?`<div style="font-size:${fIco};line-height:1">${ic}</div>`:''}
-            <div style="font-size:${fTit};font-weight:900;line-height:1.15;word-break:break-word">${ti}</div>
+            <div style="font-size:${fTit};font-weight:${fw};line-height:1.15;word-break:break-word">${ti}</div>
             ${su?`<div style="font-size:${fSub};font-weight:600;opacity:.82;line-height:1.3">${su}</div>`:''}
             ${pe?`<div style="font-size:${fPer};font-weight:700;opacity:.6;padding:${(mn*.02).toFixed(1)}mm ${(mn*.04).toFixed(1)}mm;border:1px solid ${te}55;border-radius:3mm;margin-top:${(mn*.01).toFixed(1)}mm">${pe}</div>`:''}
         </div>`;
@@ -385,7 +488,7 @@ function labelHtml(e, W, H) {
         return `<div style="${base}background:#fff;border:1.5px solid ${sf}55;">
             <div style="width:100%;height:${bandH}mm;background:${sf};display:flex;align-items:center;padding:${pad};gap:${(mn*.04).toFixed(1)}mm">
                 ${ic?`<div style="font-size:${fIco};line-height:1;flex-shrink:0">${ic}</div>`:''}
-                <div style="font-size:${fTit};font-weight:900;color:${te};line-height:1.1;overflow:hidden;text-align:${al};flex:1">${ti}</div>
+                <div style="font-size:${fTit};font-weight:${fw};color:${te};line-height:1.1;overflow:hidden;text-align:${al};flex:1">${ti}</div>
             </div>
             <div style="padding:${pad};display:flex;flex-direction:column;justify-content:center;gap:${gap};text-align:${al}">
                 ${su?`<div style="font-size:${fSub};font-weight:700;color:#334155;line-height:1.35">${su}</div>`:''}
@@ -399,7 +502,7 @@ function labelHtml(e, W, H) {
         return `<div style="${base}background:#fff;border:${bw}mm solid ${sf};display:flex;flex-direction:column;align-items:${flex_al};justify-content:center;padding:${pad};text-align:${al};gap:${gap}">
             ${ic?`<div style="font-size:${fIco};line-height:1;color:${sf}">${ic}</div>`:''}
             <div style="width:30%;height:1.5px;background:${sf};margin-bottom:${(mn*.01).toFixed(1)}mm"></div>
-            <div style="font-size:${fTit};font-weight:900;color:#0f172a;line-height:1.15;word-break:break-word">${ti}</div>
+            <div style="font-size:${fTit};font-weight:${fw};color:#0f172a;line-height:1.15;word-break:break-word">${ti}</div>
             ${su?`<div style="font-size:${fSub};font-weight:600;color:#475569;line-height:1.3">${su}</div>`:''}
             ${pe?`<div style="font-size:${fPer};font-weight:700;color:#fff;background:${sf};padding:${(mn*.025).toFixed(1)}mm ${(mn*.05).toFixed(1)}mm;border-radius:3mm;margin-top:${(mn*.01).toFixed(1)}mm">${pe}</div>`:''}
             <div style="width:30%;height:1.5px;background:${sf};margin-top:${(mn*.01).toFixed(1)}mm"></div>
@@ -412,13 +515,13 @@ function labelHtml(e, W, H) {
                 ${ic?`<div style="font-size:${Math.min(parseFloat(bw)*0.65,14).toFixed(1)}mm;writing-mode:vertical-rl;transform:rotate(180deg)">${ic}</div>`:''}
             </div>
             <div style="flex:1;padding:${pad};display:flex;flex-direction:column;justify-content:center;gap:${gap};text-align:${al}">
-                <div style="font-size:${fTit};font-weight:900;color:#0f172a;line-height:1.15;word-break:break-word">${ti}</div>
+                <div style="font-size:${fTit};font-weight:${fw};color:#0f172a;line-height:1.15;word-break:break-word">${ti}</div>
                 ${su?`<div style="font-size:${fSub};font-weight:600;color:#475569;line-height:1.3">${su}</div>`:''}
                 ${pe?`<div style="font-size:${fPer};font-weight:700;color:${sf};border-top:1.5px solid ${sf}44;padding-top:${(mn*.02).toFixed(1)}mm;margin-top:${(mn*.01).toFixed(1)}mm">${pe}</div>`:''}
             </div>
         </div>`;
     }
-    return `<div style="${base}background:${sf};color:${te};display:flex;align-items:center;justify-content:center;padding:${pad};font-size:${fTit};font-weight:900;text-align:${al}">${ti}</div>`;
+    return `<div style="${base}background:${sf};color:${te};display:flex;align-items:center;justify-content:center;padding:${pad};font-size:${fTit};font-weight:${fw};text-align:${al}">${ti}</div>`;
 }
 
 // ── Preview live ───────────────────────────────────────────────────
@@ -430,6 +533,7 @@ function aggiornaPrev() {
         sottotitolo: document.getElementById('fSub').value,
         periodo: document.getElementById('fPeriodo').value,
         icona: st.icona, stile: st.stile, font: st.font, allineamento: st.allineamento,
+        grassetto: st.grassetto, corsivo: st.corsivo, dim_scala: st.dim_scala,
         colore_sfondo: document.getElementById('cSfondo').value,
         colore_testo: document.getElementById('cTesto').value,
         colore_accento: document.getElementById('cAcc').value,
@@ -548,6 +652,28 @@ function setAllineamento(id) {
     aggiornaPrev();
 }
 
+function buildSizeChips() {
+    document.getElementById('sizeChips').innerHTML = Object.keys(DIM_SCALE).map(id =>
+        `<button class="size-chip" id="sc_${id}" onclick="setSizeScale('${id}')">${DIM_LABELS[id]}</button>`
+    ).join('');
+}
+function setSizeScale(id) {
+    st.dim_scala = id;
+    document.querySelectorAll('#sizeChips .size-chip').forEach(b => b.classList.remove('active'));
+    document.getElementById('sc_'+id)?.classList.add('active');
+    aggiornaPrev();
+}
+function toggleGrassetto() {
+    st.grassetto = !st.grassetto;
+    document.getElementById('togGrassetto')?.classList.toggle('active', st.grassetto);
+    aggiornaPrev();
+}
+function toggleCorsivo() {
+    st.corsivo = !st.corsivo;
+    document.getElementById('togCorsivo')?.classList.toggle('active', st.corsivo);
+    aggiornaPrev();
+}
+
 function buildFormatGrid() {
     document.getElementById('formatGrid').innerHTML = FORMATI.map(f =>
         `<button class="formato-btn" id="fmt_${f.id}" onclick="setFormato('${f.id}')">
@@ -656,7 +782,7 @@ function apriNuova() {
     document.getElementById('fTitolo').value = '';
     document.getElementById('fSub').value = '';
     document.getElementById('fPeriodo').value = '';
-    st = { icona:'📦', stile:'pieno', sfondo:'#0f172a', testo:'#f8fafc', acc:'#818cf8', formato:'a4_2', font:'sans', allineamento:'centro' };
+    st = { icona:'📦', stile:'pieno', sfondo:'#0f172a', testo:'#f8fafc', acc:'#818cf8', formato:'a4_2', font:'sans', allineamento:'centro', grassetto:true, corsivo:false, dim_scala:'m' };
     popolaForm();
     document.getElementById('modal').classList.add('open');
     setTimeout(() => document.getElementById('fTitolo').focus(), 300);
@@ -671,7 +797,8 @@ function apriEdit(id) {
     st = {
         icona: e.icona||'', stile: e.stile||'pieno',
         sfondo: e.colore_sfondo||'#0f172a', testo: e.colore_testo||'#f8fafc', acc: e.colore_accento||'#818cf8',
-        formato: e.formato||'a4_2', font: e.font||'sans', allineamento: e.allineamento||'centro'
+        formato: e.formato||'a4_2', font: e.font||'sans', allineamento: e.allineamento||'centro',
+        grassetto: e.grassetto!==false, corsivo: !!e.corsivo, dim_scala: e.dim_scala||'m'
     };
     document.getElementById('fTitolo').value = e.titolo||'';
     document.getElementById('fSub').value = e.sottotitolo||'';
@@ -694,6 +821,9 @@ function popolaForm() {
     sincColorGrid(st.sfondo);
     setFont(st.font);
     setAllineamento(st.allineamento);
+    setSizeScale(st.dim_scala||'m');
+    document.getElementById('togGrassetto')?.classList.toggle('active', st.grassetto!==false);
+    document.getElementById('togCorsivo')?.classList.toggle('active', !!st.corsivo);
     buildFormatGrid();
     setFormato(st.formato); // popola fW/fH per formati predefiniti, non tocca custom
 }
@@ -713,6 +843,7 @@ async function salva() {
         colore_sfondo: st.sfondo, colore_testo: st.testo, colore_accento: st.acc,
         formato: st.formato, larghezza_mm: W, altezza_mm: H, copie: nCopie,
         font: st.font, allineamento: st.allineamento,
+        grassetto: st.grassetto, corsivo: st.corsivo, dim_scala: st.dim_scala,
     };
     if (editId) await sb.from('etichette').update(row).eq('id', editId);
     else await sb.from('etichette').insert(row);
@@ -742,6 +873,7 @@ function stampaOra() {
         sottotitolo: document.getElementById('fSub').value,
         periodo: document.getElementById('fPeriodo').value,
         icona: st.icona, stile: st.stile, font: st.font, allineamento: st.allineamento,
+        grassetto: st.grassetto, corsivo: st.corsivo, dim_scala: st.dim_scala,
         colore_sfondo: document.getElementById('cSfondo').value,
         colore_testo: document.getElementById('cTesto').value,
         colore_accento: document.getElementById('cAcc').value,
@@ -792,6 +924,236 @@ function _setPrintStyle(css) {
     let el = document.getElementById('_dynPrint');
     if (!el) { el = document.createElement('style'); el.id='_dynPrint'; document.head.appendChild(el); }
     el.textContent = css;
+}
+
+// ── Serie ──────────────────────────────────────────────────────────
+function apriSerie() {
+    stS = { ...st };
+    if (!stS.dim_scala) stS.dim_scala = 'm';
+    if (stS.grassetto === undefined) stS.grassetto = true;
+    buildSeIconPicker();
+    buildSeStilePicker();
+    buildSeColorGrid();
+    buildSeFontPicker();
+    buildSeSizeChips();
+    buildSeAlignPicker();
+    buildSeFormatGrid();
+    document.getElementById('seTitoli').value = '';
+    document.getElementById('seComSub').value = '';
+    document.getElementById('seComPer').value = '';
+    sePopolaForm();
+    aggiornaPrevSerie();
+    document.getElementById('modalSerie').classList.add('open');
+}
+function chiudiSerie() { document.getElementById('modalSerie').classList.remove('open'); }
+
+function sePopolaForm() {
+    document.getElementById('seCsfondo').value = stS.sfondo;
+    document.getElementById('seCTesto').value = stS.testo;
+    document.getElementById('seCacc').value = stS.acc;
+    seSetIcona(stS.icona ? encodeURIComponent(stS.icona) : '');
+    STILI.forEach(s => seAggiornaStilePreview(s.id));
+    seSetStile(stS.stile);
+    seSincColorGrid(stS.sfondo);
+    seSetFont(stS.font||'sans');
+    seSetSizeScale(stS.dim_scala||'m');
+    document.getElementById('seTogGrassetto')?.classList.toggle('active', stS.grassetto!==false);
+    document.getElementById('seTogCorsivo')?.classList.toggle('active', !!stS.corsivo);
+    seSetAllineamento(stS.allineamento||'centro');
+    seSetFormato(stS.formato||'a4_12');
+}
+
+function buildSeIconPicker() {
+    const nessuna = `<button onclick="seSetIcona('')" id="seic_none" style="font-size:11px;font-weight:800;color:#888;padding:3px;border:2.5px solid transparent;border-radius:9px;background:var(--grey-light);cursor:pointer;width:40px;height:40px;line-height:1;transition:all .1s">Nessuna</button>`;
+    document.getElementById('seIconPicker').innerHTML = nessuna + ICONS.map(ic =>
+        `<button onclick="seSetIcona('${encodeURIComponent(ic)}')" id="seic_${encodeURIComponent(ic)}" style="font-size:22px;padding:3px;border:2.5px solid transparent;border-radius:9px;background:var(--grey-light);cursor:pointer;width:40px;height:40px;line-height:1;transition:all .1s">${ic}</button>`
+    ).join('');
+}
+function seSetIcona(enc) {
+    const ic = enc ? decodeURIComponent(enc) : '';
+    stS.icona = ic;
+    document.querySelectorAll('[id^="seic_"]').forEach(b => { b.style.borderColor='transparent'; b.style.background='var(--grey-light)'; });
+    const b = enc ? document.getElementById('seic_'+enc) : document.getElementById('seic_none');
+    if (b) { b.style.borderColor='var(--accent)'; b.style.background='var(--accent-bg)'; }
+    aggiornaPrevSerie();
+}
+function buildSeStilePicker() {
+    document.getElementById('seStilePicker').innerHTML = STILI.map(s =>
+        `<button class="stile-btn" id="sestile_${s.id}" onclick="seSetStile('${s.id}')">
+            <div class="stile-preview" id="sestileprev_${s.id}"></div>
+            <div>${s.label}</div>
+        </button>`
+    ).join('');
+    STILI.forEach(s => seAggiornaStilePreview(s.id));
+}
+function seAggiornaStilePreview(id) {
+    const sf = stS.sfondo; const el = document.getElementById('sestileprev_'+id);
+    if (!el) return;
+    if (id==='pieno') el.innerHTML=`<div style="width:100%;height:100%;background:${sf};border-radius:4px"></div>`;
+    else if (id==='banda') el.innerHTML=`<div style="width:100%;height:100%;background:#fff;border-radius:4px;border:1px solid #e0e0e0;overflow:hidden"><div style="height:40%;background:${sf}"></div></div>`;
+    else if (id==='bordo') el.innerHTML=`<div style="width:100%;height:100%;background:#fff;border-radius:4px;border:3px solid ${sf}"></div>`;
+    else if (id==='barra') el.innerHTML=`<div style="width:100%;height:100%;background:#fff;border-radius:4px;border:1px solid #e0e0e0;overflow:hidden;display:flex"><div style="width:18%;background:${sf}"></div></div>`;
+}
+function seSetStile(id) {
+    stS.stile = id;
+    document.querySelectorAll('[id^="sestile_"]').forEach(b => b.classList.remove('active'));
+    document.getElementById('sestile_'+id)?.classList.add('active');
+    aggiornaPrevSerie();
+}
+function buildSeColorGrid() {
+    document.getElementById('seColorGrid').innerHTML = COLORI.map((c,i) =>
+        `<div class="color-dot" style="background:${c.s}" title="${c.name}" id="secd_${i}" onclick="seSetColore(${i})"></div>`
+    ).join('');
+}
+function seSetColore(i) {
+    const c = COLORI[i];
+    stS.sfondo=c.s; stS.testo=c.t; stS.acc=c.a;
+    document.getElementById('seCsfondo').value=c.s;
+    document.getElementById('seCTesto').value=c.t;
+    document.getElementById('seCacc').value=c.a;
+    seSincColorGrid(c.s);
+    STILI.forEach(s => seAggiornaStilePreview(s.id));
+    aggiornaPrevSerie();
+}
+function seOnCustomColor() {
+    stS.sfondo=document.getElementById('seCsfondo').value;
+    stS.testo=document.getElementById('seCTesto').value;
+    stS.acc=document.getElementById('seCacc').value;
+    seSincColorGrid(null);
+    STILI.forEach(s => seAggiornaStilePreview(s.id));
+    aggiornaPrevSerie();
+}
+function seSincColorGrid(sfondo) {
+    document.querySelectorAll('[id^="secd_"]').forEach((d,i) => {
+        d.classList.toggle('active', COLORI[i].s === (sfondo || stS.sfondo));
+    });
+}
+function buildSeFontPicker() {
+    document.getElementById('seFontPicker').innerHTML = Object.entries(FONTS).map(([id, f]) =>
+        `<button class="font-btn" id="sefont_${id}" onclick="seSetFont('${id}')">
+            <div class="font-sample" style="font-family:${f.css}">${f.sample}</div>
+            <div class="font-name">${f.label}</div>
+        </button>`
+    ).join('');
+}
+function seSetFont(id) {
+    stS.font = id;
+    document.querySelectorAll('[id^="sefont_"]').forEach(b => b.classList.remove('active'));
+    document.getElementById('sefont_'+id)?.classList.add('active');
+    aggiornaPrevSerie();
+}
+function buildSeSizeChips() {
+    document.getElementById('seSizeChips').innerHTML = Object.keys(DIM_SCALE).map(id =>
+        `<button class="size-chip" id="sesc_${id}" onclick="seSetSizeScale('${id}')">${DIM_LABELS[id]}</button>`
+    ).join('');
+}
+function seSetSizeScale(id) {
+    stS.dim_scala = id;
+    document.querySelectorAll('#seSizeChips .size-chip').forEach(b => b.classList.remove('active'));
+    document.getElementById('sesc_'+id)?.classList.add('active');
+    aggiornaPrevSerie();
+}
+function seToggleGrassetto() {
+    stS.grassetto = !stS.grassetto;
+    document.getElementById('seTogGrassetto')?.classList.toggle('active', stS.grassetto);
+    aggiornaPrevSerie();
+}
+function seToggleCorsivo() {
+    stS.corsivo = !stS.corsivo;
+    document.getElementById('seTogCorsivo')?.classList.toggle('active', stS.corsivo);
+    aggiornaPrevSerie();
+}
+function buildSeAlignPicker() {
+    const opts = [{ id:'sinistra', label:'Sinistra' }, { id:'centro', label:'Centro' }, { id:'destra', label:'Destra' }];
+    document.getElementById('seAlignPicker').innerHTML = opts.map(o =>
+        `<button class="align-btn" id="seal_${o.id}" onclick="seSetAllineamento('${o.id}')" title="${o.label}">
+            <div style="font-size:11px;font-weight:800;color:inherit">${o.label}</div>
+        </button>`
+    ).join('');
+}
+function seSetAllineamento(id) {
+    stS.allineamento = id;
+    document.querySelectorAll('[id^="seal_"]').forEach(b => b.classList.remove('active'));
+    document.getElementById('seal_'+id)?.classList.add('active');
+    aggiornaPrevSerie();
+}
+function buildSeFormatGrid() {
+    document.getElementById('seFormatGrid').innerHTML = FORMATI.map(f =>
+        `<button class="formato-btn" id="sefmt_${f.id}" onclick="seSetFormato('${f.id}')">
+            <div style="display:flex;justify-content:center"><div class="formato-vis" style="width:${f.iw}px;height:${f.ih}px"></div></div>
+            <div class="formato-label">${f.label}</div>
+            <div class="formato-desc">${f.desc}</div>
+        </button>`
+    ).join('');
+}
+function seSetFormato(id) {
+    stS.formato = id;
+    document.querySelectorAll('[id^="sefmt_"]').forEach(b => b.classList.remove('active'));
+    document.getElementById('sefmt_'+id)?.classList.add('active');
+    const fmt = FORMATI.find(f => f.id === id);
+    if (fmt && fmt.w) {
+        document.getElementById('seW').value = fmt.w;
+        document.getElementById('seH').value = fmt.h;
+    }
+    aggiornaPrevSerie();
+}
+function seOnDimChange() {
+    stS.formato = 'custom';
+    document.querySelectorAll('[id^="sefmt_"]').forEach(b => b.classList.remove('active'));
+    document.getElementById('sefmt_custom')?.classList.add('active');
+    aggiornaPrevSerie();
+}
+function aggiornaPrevSerie() {
+    const lines = (document.getElementById('seTitoli')?.value || '').split('\n').map(l => l.trim()).filter(l => l);
+    const sub = document.getElementById('seComSub')?.value || '';
+    const per = document.getElementById('seComPer')?.value || '';
+    const W = parseFloat(document.getElementById('seW')?.value) || 61;
+    const H = parseFloat(document.getElementById('seH')?.value) || 67;
+    const PX = 3.779;
+    const pgWpx = 210 * PX, pgHpx = 297 * PX;
+    const marginPx = 10 * PX;
+    const contentW = pgWpx - 2*marginPx;
+    const contentH = pgHpx - 2*marginPx;
+    const Wpx = W * PX, Hpx = H * PX;
+    const cols = Math.max(1, Math.floor((contentW + 3*PX) / (Wpx + 3*PX)));
+    const rows = Math.max(1, Math.floor((contentH + 3*PX) / (Hpx + 3*PX)));
+    const perPage = cols * rows;
+    const nPages = lines.length > 0 ? Math.ceil(lines.length / perPage) : 1;
+    document.getElementById('sePrevInfo').textContent = lines.length > 0
+        ? `${lines.length} etichette — ${nPages} pag${nPages>1?'ine':'ina'} — ${cols}×${rows} per foglio`
+        : `Scrivi i titoli sopra — ${cols}×${rows} per foglio (A4)`;
+    const pageLines = lines.length > 0 ? lines.slice(0, perPage) : ['Esempio'];
+    let labelsHtml = '';
+    for (const line of pageLines) {
+        const eL = { titolo:line, sottotitolo:sub, periodo:per, icona:stS.icona, stile:stS.stile, colore_sfondo:stS.sfondo, colore_testo:stS.testo, colore_accento:stS.acc, font:stS.font, allineamento:stS.allineamento, grassetto:stS.grassetto, corsivo:stS.corsivo, dim_scala:stS.dim_scala };
+        labelsHtml += `<div style="flex-shrink:0;break-inside:avoid">${labelHtml(eL, W, H)}</div>`;
+    }
+    const pageHtml = `<div style="width:${pgWpx.toFixed(1)}px;height:${pgHpx.toFixed(1)}px;background:#fff;padding:${marginPx.toFixed(1)}px;box-sizing:border-box"><div style="width:${contentW.toFixed(1)}px;height:${contentH.toFixed(1)}px;display:flex;flex-wrap:wrap;align-content:flex-start;gap:3mm;overflow:hidden">${labelsHtml}</div></div>`;
+    const targetW = Math.min(288, (window.innerWidth||360) - 64);
+    const scale = targetW / pgWpx;
+    const scaledH = Math.round(pgHpx * scale);
+    const page = document.getElementById('sePrevPage');
+    if (!page) return;
+    page.innerHTML = pageHtml;
+    page.style.transform = `scale(${scale.toFixed(4)})`;
+    document.getElementById('sePrevWrap').style.cssText = `width:${targetW}px;height:${scaledH}px;position:relative;overflow:hidden;margin:0 auto 16px;border:1.5px solid var(--grey);border-radius:4px;background:#fff`;
+}
+function stampaSerie() {
+    const lines = (document.getElementById('seTitoli')?.value || '').split('\n').map(l => l.trim()).filter(l => l);
+    if (!lines.length) { toast('Inserisci almeno un titolo'); return; }
+    const sub = document.getElementById('seComSub')?.value || '';
+    const per = document.getElementById('seComPer')?.value || '';
+    const W = parseFloat(document.getElementById('seW')?.value) || 61;
+    const H = parseFloat(document.getElementById('seH')?.value) || 67;
+    let labelsHtml = '';
+    for (const line of lines) {
+        const eL = { titolo:line, sottotitolo:sub, periodo:per, icona:stS.icona, stile:stS.stile, colore_sfondo:stS.sfondo, colore_testo:stS.testo, colore_accento:stS.acc, font:stS.font, allineamento:stS.allineamento, grassetto:stS.grassetto, corsivo:stS.corsivo, dim_scala:stS.dim_scala };
+        labelsHtml += `<div style="flex-shrink:0;break-inside:avoid">${labelHtml(eL, W, H)}</div>`;
+    }
+    _setPrintStyle(`@media print{@page{size:A4 portrait;margin:10mm;}}`);
+    document.getElementById('printLayer').innerHTML = `<div style="display:flex;flex-wrap:wrap;align-content:flex-start;gap:3mm">${labelsHtml}</div>`;
+    chiudiSerie();
+    requestAnimationFrame(() => window.print());
 }
 
 // ── Utils ──────────────────────────────────────────────────────────

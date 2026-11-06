@@ -465,6 +465,18 @@
         .period-pill { flex-shrink: 0; padding: 8px 14px; border-radius: 20px; border: 2px solid var(--grey); font-weight: 800; font-size: 12px; cursor: pointer; background: var(--white); color: #999; transition: all 0.15s; font-family: inherit; }
         .period-pill.active { border-color: #5856d6; background: rgba(88,86,214,0.08); color: #5856d6; }
 
+        /* Ripartizione appartamento */
+        .rip-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+        .rip-name { flex: 1; min-width: 0; }
+        .rip-days { width: 70px; flex-shrink: 0; }
+        .rip-del { width: 36px; height: 36px; border-radius: 10px; border: 2px solid #fcc; background: var(--white); cursor: pointer; flex-shrink: 0; color: var(--red); font-size: 18px; display: flex; align-items: center; justify-content: center; }
+        .rip-result { background: var(--grey-light); border-radius: 14px; padding: 14px 16px; margin-top: 12px; }
+        .rip-result-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1.5px solid rgba(0,0,0,0.06); }
+        .rip-result-row:last-child { border-bottom: none; }
+        .rip-result-name { font-weight: 700; font-size: 14px; }
+        .rip-result-nights { font-size: 12px; color: #888; font-weight: 600; margin-top: 2px; }
+        .rip-result-amount { font-weight: 900; font-size: 16px; color: var(--accent); }
+
         @media (prefers-color-scheme: dark) {
             :root {
                 --dark: #e8e8ec;
@@ -613,6 +625,7 @@
             <div style="display:flex;gap:8px;margin-bottom:12px">
                 <button class="btn-save-modal" onclick="apriModalNuovoBudgetItem()" style="background:var(--green);margin:0;flex:1">+ Voce libera</button>
                 <button class="btn-save-modal" onclick="apriModalBudgetDaPiano()" style="background:#5856d6;margin:0;flex:1">+ Da piano</button>
+                <button class="btn-save-modal" onclick="apriRipartizione()" style="background:#ea580c;margin:0;flex:1;padding:10px 8px;font-size:13px">🏠 Ripartisci</button>
             </div>
             <div id="riepilogoBudget"></div>
             <div id="elencoBudget"></div>
@@ -1168,6 +1181,32 @@
         </div>
         <button class="btn-save-modal" style="background:var(--green);margin-top:10px" onclick="aggiungiDaPiano()">Aggiungi al budget</button>
         <button style="width:100%;padding:14px;border-radius:14px;border:2px solid var(--grey);background:var(--white);font-weight:800;font-size:15px;cursor:pointer;font-family:inherit;margin-top:8px;color:#aaa" onclick="document.getElementById('modalPianoBudget').classList.remove('open')">Chiudi</button>
+    </div>
+</div>
+
+<!-- Modal: Ripartizione appartamento -->
+<div class="modal-overlay" id="modalRipartizione">
+    <div class="modal-box">
+        <div class="modal-handle"></div>
+        <div class="modal-title">🏠 Ripartisci appartamento</div>
+        <p style="font-size:13px;color:#888;font-weight:600;margin:0 0 16px">Calcola la quota equa per ogni persona in base ai giorni effettivi di presenza.</p>
+
+        <label class="form-label">Costo totale appartamento</label>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+            <input class="form-input" id="ripCosto" type="number" min="0" step="0.01" placeholder="es. 500" oninput="calcolaRipartizione()" style="margin:0;flex:1">
+            <span style="font-weight:800;font-size:16px;color:#888;flex-shrink:0" id="ripValuta">€</span>
+        </div>
+
+        <label class="form-label">Partecipanti e giorni di presenza</label>
+        <div id="ripPartecipanti"></div>
+        <button onclick="aggiungiRipPartecipante()" style="width:100%;padding:11px;border-radius:14px;border:2px dashed var(--grey);background:transparent;font-weight:800;font-size:14px;color:#888;cursor:pointer;font-family:inherit;margin-bottom:14px">+ Aggiungi persona</button>
+
+        <div id="ripRisultato" style="display:none">
+            <label class="form-label">Quota per persona</label>
+            <div class="rip-result" id="ripRisultatoBody"></div>
+        </div>
+
+        <button style="width:100%;padding:14px;border-radius:14px;border:2px solid var(--grey);background:var(--white);font-weight:800;font-size:15px;cursor:pointer;font-family:inherit;margin-top:12px;color:#aaa" onclick="document.getElementById('modalRipartizione').classList.remove('open')">Chiudi</button>
     </div>
 </div>
 
@@ -4961,6 +5000,59 @@ async function aggiungiDaPiano() {
 }
 
 if (_joinId) { handleJoinFromLink(_joinId); } else { caricaViaggi(); }
+
+// ── Ripartizione appartamento ──────────────────────────────────────
+function _esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+let _ripPersone = [];
+function apriRipartizione() {
+    _ripPersone = [];
+    document.getElementById('ripCosto').value = '';
+    if (partecipantiAttuali && partecipantiAttuali.length) {
+        partecipantiAttuali.forEach(p => _ripPersone.push({ nome: p.nome || '', giorni: 1 }));
+    } else {
+        _ripPersone.push({ nome: '', giorni: 1 });
+        _ripPersone.push({ nome: '', giorni: 1 });
+    }
+    document.getElementById('ripValuta').textContent = viaggioCorrenteValuta || '€';
+    renderRipPartecipanti();
+    document.getElementById('ripRisultato').style.display = 'none';
+    document.getElementById('modalRipartizione').classList.add('open');
+}
+function renderRipPartecipanti() {
+    document.getElementById('ripPartecipanti').innerHTML = _ripPersone.map((p, i) =>
+        `<div class="rip-row">
+            <input class="form-input rip-name" type="text" placeholder="Nome persona ${i+1}" value="${_esc(p.nome)}" oninput="_ripPersone[${i}].nome=this.value;calcolaRipartizione()" style="margin:0">
+            <input class="form-input rip-days" type="number" min="1" placeholder="gg" value="${p.giorni}" oninput="_ripPersone[${i}].giorni=parseInt(this.value)||1;calcolaRipartizione()" style="margin:0;text-align:center">
+            <button class="rip-del" onclick="_ripPersone.splice(${i},1);renderRipPartecipanti();calcolaRipartizione()">×</button>
+        </div>`
+    ).join('');
+}
+function aggiungiRipPartecipante() {
+    _ripPersone.push({ nome: '', giorni: 1 });
+    renderRipPartecipanti();
+    calcolaRipartizione();
+}
+function calcolaRipartizione() {
+    const costo = parseFloat(document.getElementById('ripCosto').value) || 0;
+    if (costo <= 0 || _ripPersone.length === 0) { document.getElementById('ripRisultato').style.display = 'none'; return; }
+    const totalGiorni = _ripPersone.reduce((s, p) => s + (parseInt(p.giorni) || 0), 0);
+    if (totalGiorni <= 0) { document.getElementById('ripRisultato').style.display = 'none'; return; }
+    const costoPerGiorno = costo / totalGiorni;
+    const valuta = document.getElementById('ripValuta').textContent;
+    document.getElementById('ripRisultatoBody').innerHTML = _ripPersone.map((p, i) => {
+        const gg = parseInt(p.giorni) || 0;
+        const quota = costoPerGiorno * gg;
+        const nome = p.nome.trim() || `Persona ${i+1}`;
+        return `<div class="rip-result-row">
+            <div>
+                <div class="rip-result-name">${_esc(nome)}</div>
+                <div class="rip-result-nights">${gg} giorn${gg===1?'o':'i'} · ${valuta}${costoPerGiorno.toFixed(2)}/gg</div>
+            </div>
+            <div class="rip-result-amount">${valuta}${quota.toFixed(2)}</div>
+        </div>`;
+    }).join('');
+    document.getElementById('ripRisultato').style.display = 'block';
+}
 
     function _fbApri() { document.getElementById('fbOverlay').classList.add('open'); document.getElementById('fbTesto').focus(); }
     function _fbChiudi() { document.getElementById('fbOverlay').classList.remove('open'); document.getElementById('fbTesto').value = ''; }
