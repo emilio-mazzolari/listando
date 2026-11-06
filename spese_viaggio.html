@@ -4736,7 +4736,10 @@ function renderBudget() {
             const ris = Array.isArray(rip.risultati) ? rip.risultati : (rip.risultati ? JSON.parse(rip.risultati) : []);
             if (ris.length) {
                 const vs = symb(b.valuta || viaggioCorrenteValuta);
-                ripHtml = `<div style="font-size:11px;font-weight:700;color:#5856d6;margin-top:4px">👥 ${ris.map(r => `${_esc(r.nome)} ${vs}${Number(r.totale).toFixed(2)}`).join(' · ')}</div>`;
+                const dateStr = (rip.check_in && rip.check_out)
+                    ? `<span style="color:#888;font-weight:700">${_fmtD(rip.check_in)} → ${_fmtD(rip.check_out)}</span> · `
+                    : '';
+                ripHtml = `<div style="font-size:11px;font-weight:700;color:#5856d6;margin-top:4px">${dateStr}👥 ${ris.map(r => `${_esc(r.nome)} ${vs}${Number(r.totale).toFixed(2)}`).join(' · ')}</div>`;
             }
         }
         return `<div class="budget-card" onclick="apriModalEditBudgetItem(${b.id})" style="opacity:${b.stato === 'annullata' ? 0.45 : 1}">
@@ -5279,8 +5282,10 @@ async function apriRipartizione(preFillCosto, itemId) {
     const saved = cloud || (itemId ? (() => { try { return JSON.parse(localStorage.getItem(`sv_rip_${viaggioCorrenteId}_${itemId}`) || 'null'); } catch { return null; } })() : null);
     if (saved?.persone?.length) {
         _ripPersone = saved.persone;
-        if (saved.costo)  document.getElementById('ripCosto').value = saved.costo;
-        if (saved.tassa)  document.getElementById('ripTassa').value = saved.tassa;
+        if (saved.costo)     document.getElementById('ripCosto').value     = saved.costo;
+        if (saved.tassa)     document.getElementById('ripTassa').value     = saved.tassa;
+        if (saved.check_in)  document.getElementById('ripDataInizio').value = saved.check_in;
+        if (saved.check_out) document.getElementById('ripDataFine').value   = saved.check_out;
     } else if (partecipantiAttuali && partecipantiAttuali.length) {
         partecipantiAttuali.forEach(p => _ripPersone.push({ nome: p.nome || '', notti: totN }));
     } else {
@@ -5414,7 +5419,9 @@ async function salvaRipartizione() {
     const costo     = parseFloat(document.getElementById('ripCosto').value) || 0;
     const tassa     = parseFloat(document.getElementById('ripTassa').value) || 0;
     const risultati = calcolaRipartizioneData(_ripPersone, costo, tassa) || [];
-    const saveData  = { viaggio_id: viaggioCorrenteId, budget_item_id: _ripBudgetItemId, persone: _ripPersone, risultati, costo, tassa };
+    const check_in  = document.getElementById('ripDataInizio').value || null;
+    const check_out = document.getElementById('ripDataFine').value   || null;
+    const saveData  = { viaggio_id: viaggioCorrenteId, budget_item_id: _ripBudgetItemId, persone: _ripPersone, risultati, costo, tassa, check_in, check_out };
     localStorage.setItem(`sv_rip_${viaggioCorrenteId}_${_ripBudgetItemId}`, JSON.stringify(saveData));
     ripartizioniCache[_ripBudgetItemId] = saveData;
     const hdr = { ...(await hdrR()), 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates,return=minimal' };
