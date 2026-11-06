@@ -1160,13 +1160,15 @@
 
         <div id="bAlloggioBox" style="display:none">
             <div style="height:1px;background:var(--grey);margin:4px 0 14px"></div>
-            <label class="form-label">🏠 Dettagli alloggio</label>
-            <input class="form-input" id="bAlloggioAddr" type="text" placeholder="Indirizzo alloggio (per aprire Maps)">
+            <label class="form-label">Indirizzo alloggio</label>
+            <input class="form-input" id="bAlloggioAddr" type="text" placeholder="Via Roma 12, Firenze…">
+            <div id="bRipPreview" style="display:none;background:#eef2ff;border-radius:12px;padding:10px 12px;margin-bottom:10px"></div>
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
                 <span style="font-size:12px;font-weight:800;color:#888;text-transform:uppercase;letter-spacing:0.5px;flex:1">Punti di interesse</span>
                 <button onclick="aggiungiBPoi()" style="background:none;border:none;color:#5856d6;font-weight:900;font-size:13px;cursor:pointer;font-family:inherit;padding:4px 8px">+ Aggiungi</button>
             </div>
             <div id="bPoiList"></div>
+            <button id="bBtnVediRip" class="btn-save-modal" style="background:#5856d6;margin-top:8px;display:none" onclick="apriRipartizionePerId()">Modifica ripartizione</button>
             <button class="btn-save-modal" style="background:#5856d6;margin-top:8px" onclick="salvaBudgetEApriRipartisci()">Salva e ripartisci le spese</button>
         </div>
 
@@ -1434,7 +1436,7 @@ let viaggioCorrenteValuta = 'EUR';
 let ratesCache = null;
 let filtroTesto = '', filtroPagatore = '';
 let convCurA = 'EUR', convCurB = 'USD', convSearchSide = 'A';
-let pianificazioneAttuale = [], budgetAttuale = [];
+let pianificazioneAttuale = [], budgetAttuale = [], ripartizioniCache = {};
 let _collapsedDays = {};
 const _saldiSezioni = { saldi: false, pareggiare: false, storico: true };
 let pianoItemEditId = null, budgetItemEditId = null;
@@ -4638,7 +4640,12 @@ const BUDGET_CAT_LABEL = {
 };
 
 async function caricaBudget() {
-    budgetAttuale = await apiGetArr(`/sv_budget?viaggio_id=eq.${viaggioCorrenteId}&order=created_at.asc`);
+    [budgetAttuale] = await Promise.all([
+        apiGetArr(`/sv_budget?viaggio_id=eq.${viaggioCorrenteId}&order=created_at.asc`),
+    ]);
+    const rips = await apiGetArr(`/sv_ripartizione?viaggio_id=eq.${viaggioCorrenteId}`);
+    ripartizioniCache = {};
+    rips.forEach(r => { ripartizioniCache[r.budget_item_id] = r; });
 }
 
 function _budgetVisibileAVediCome(b) {
@@ -4718,12 +4725,22 @@ function renderBudget() {
         }
 
         const perChiHtml = `<div style="font-size:11px;font-weight:700;color:#aaa;margin-top:3px">${budgetPerChiLabel(b)}</div>`;
+        let ripHtml = '';
+        if (b.categoria === 'alloggio' && ripartizioniCache[b.id]) {
+            const rip = ripartizioniCache[b.id];
+            const ris = Array.isArray(rip.risultati) ? rip.risultati : (rip.risultati ? JSON.parse(rip.risultati) : []);
+            if (ris.length) {
+                const vs = symb(b.valuta || viaggioCorrenteValuta);
+                ripHtml = `<div style="font-size:11px;font-weight:700;color:#5856d6;margin-top:4px">👥 ${ris.map(r => `${_esc(r.nome)} ${vs}${Number(r.totale).toFixed(2)}`).join(' · ')}</div>`;
+            }
+        }
         return `<div class="budget-card" onclick="apriModalEditBudgetItem(${b.id})" style="opacity:${b.stato === 'annullata' ? 0.45 : 1}">
             <div class="budget-cat-icon">${icon}</div>
             <div class="budget-body">
                 <div class="budget-titolo">${b.titolo || b.descrizione || '—'}</div>
                 <div class="budget-sub">${catLabel}</div>
                 ${perChiHtml}
+                ${ripHtml}
                 <span class="budget-stato ${b.stato}">${b.stato}</span>
                 ${compareHtml}
             </div>
@@ -4869,7 +4886,26 @@ function apriModalEditBudgetItem(id) {
     budgetPerChiNomi = Array.isArray(b.per_chi_nomi) ? [...b.per_chi_nomi] : (b.per_chi_nomi ? JSON.parse(b.per_chi_nomi) : []);
     setBudgetPerChi(b.per_chi || 'tutti');
     renderBudgetCatRow();
+    _renderRipPreviewInModal(id);
     document.getElementById('modalBudgetItem').classList.add('open');
+}
+
+function _renderRipPreviewInModal(itemId) {
+    const prev = document.getElementById('bRipPreview');
+    const btn  = document.getElementById('bBtnVediRip');
+    if (!prev || !btn) return;
+    const rip = ripartizioniCache[itemId];
+    if (!rip) { prev.style.display = 'none'; btn.style.display = 'none'; return; }
+    const ris = Array.isArray(rip.risultati) ? rip.risultati : (rip.risultati ? JSON.parse(rip.risultati) : []);
+    if (!ris.length) { prev.style.display = 'none'; btn.style.display = 'none'; return; }
+    const vs = symb(rip.valuta || viaggioCorrenteValuta);
+    prev.style.display = '';
+    btn.style.display  = '';
+    prev.innerHTML = `<div style="font-size:11px;font-weight:800;color:#5856d6;margin-bottom:6px">👥 Ripartizione salvata</div>` +
+        ris.map(r => `<div style="display:flex;justify-content:space-between;font-size:13px;font-weight:700;padding:3px 0">
+            <span>${_esc(r.nome)} <span style="color:#aaa;font-size:11px">(${r.notti}n)</span></span>
+            <span style="font-weight:900">${vs}${Number(r.totale).toFixed(2)}</span>
+        </div>`).join('');
 }
 
 async function salvaBudgetItem() {
@@ -5187,7 +5223,7 @@ function _calcolaTotNotti() {
     return _enumeraNotti(inizio, fine).length;
 }
 
-function apriRipartizione(preFillCosto, itemId) {
+async function apriRipartizione(preFillCosto, itemId) {
     _ripBudgetItemId = itemId || null;
     _ripPersone = [];
     const v = viaggi.find(x => x.id === viaggioCorrenteId);
@@ -5198,9 +5234,13 @@ function apriRipartizione(preFillCosto, itemId) {
     document.getElementById('ripDataInizio').value = defInizio;
     document.getElementById('ripDataFine').value   = defFine;
     const totN = defInizio && defFine && defInizio < defFine ? _enumeraNotti(defInizio, defFine).length : 1;
-    const saved = itemId ? (() => { try { return JSON.parse(localStorage.getItem(`sv_rip_${viaggioCorrenteId}_${itemId}`) || 'null'); } catch { return null; } })() : null;
+    // Carica da Supabase (già in cache), fallback localStorage
+    const cloud = itemId ? ripartizioniCache[itemId] : null;
+    const saved = cloud || (itemId ? (() => { try { return JSON.parse(localStorage.getItem(`sv_rip_${viaggioCorrenteId}_${itemId}`) || 'null'); } catch { return null; } })() : null);
     if (saved?.persone?.length) {
         _ripPersone = saved.persone;
+        if (saved.costo)  document.getElementById('ripCosto').value = saved.costo;
+        if (saved.tassa)  document.getElementById('ripTassa').value = saved.tassa;
     } else if (partecipantiAttuali && partecipantiAttuali.length) {
         partecipantiAttuali.forEach(p => _ripPersone.push({ nome: p.nome || '', notti: totN }));
     } else {
@@ -5210,7 +5250,7 @@ function apriRipartizione(preFillCosto, itemId) {
     document.getElementById('ripValuta').textContent = viaggioCorrenteValuta || '€';
     renderRipPartecipanti();
     document.getElementById('ripRisultato').style.display = 'none';
-    if (preFillCosto != null) calcolaRipartizione();
+    calcolaRipartizione();
     document.getElementById('modalRipartizione').classList.add('open');
 }
 
@@ -5274,82 +5314,80 @@ function _giornoSuccessivo(s) {
     return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
 
+// Calcolo puro (non tocca il DOM) — restituisce array [{nome,notti,quota_alloggio,quota_tassa,totale}]
+function calcolaRipartizioneData(persone, inizio, fine, costo, tassa) {
+    if (!inizio || !fine || inizio >= fine || costo <= 0 || !persone.length) return null;
+    const notti = _enumeraNotti(inizio, fine);
+    const nTot  = notti.length;
+    const cpn   = costo / nTot;
+    const nottiP = persone.map(p => notti.slice(0, Math.min(p.notti != null ? p.notti : nTot, nTot)));
+    const pxN = {};
+    notti.forEach(d => { pxN[d] = nottiP.filter(np => np.includes(d)).length; });
+    const shareExact = nottiP.map(np => np.reduce((acc, d) => acc + (pxN[d] > 0 ? cpn / pxN[d] : 0), 0));
+    const totalCents = Math.round(costo * 100);
+    const cents = shareExact.map(s => Math.floor(s * 100));
+    let resto = totalCents - cents.reduce((a, b) => a + b, 0);
+    shareExact.map((s, i) => ({ i, f: (s * 100) - Math.floor(s * 100) }))
+        .sort((a, b) => b.f - a.f).forEach(({ i }) => { if (resto-- > 0) cents[i]++; });
+    return persone.map((p, i) => ({
+        nome: (p.nome || '').trim() || `Persona ${i + 1}`,
+        notti: nottiP[i].length,
+        quota_alloggio: cents[i] / 100,
+        quota_tassa:    Math.round((tassa || 0) * nottiP[i].length * 100) / 100,
+        totale:         Math.round((cents[i] / 100 + (tassa || 0) * nottiP[i].length) * 100) / 100,
+    }));
+}
+
 function calcolaRipartizione() {
     const costo  = parseFloat(document.getElementById('ripCosto').value)  || 0;
     const tassa  = parseFloat(document.getElementById('ripTassa').value)  || 0;
     const inizio = document.getElementById('ripDataInizio').value;
     const fine   = document.getElementById('ripDataFine').value;
     const valuta = document.getElementById('ripValuta').textContent;
-
-    if (!inizio || !fine || inizio >= fine || costo <= 0 || _ripPersone.length === 0) {
-        document.getElementById('ripRisultato').style.display = 'none';
-        return;
-    }
-
-    const notti = _enumeraNotti(inizio, fine);
-    const nTot  = notti.length;
-    const costoPerNotte = costo / nTot;
-
-    // Ogni persona è presente sulle prime p.notti notti (si assume arrivo al check-in)
-    const nottiP = _ripPersone.map(p => notti.slice(0, Math.min(p.notti != null ? p.notti : nTot, nTot)));
-
-    // Presenti su ogni notte: Map<data, count>
-    const presentiPerNotte = {};
-    notti.forEach(d => {
-        presentiPerNotte[d] = nottiP.filter(np => np.includes(d)).length;
-    });
-
-    // Quota alloggio esatta (float) per persona
-    const shareExact = nottiP.map(np =>
-        np.reduce((acc, d) => acc + (presentiPerNotte[d] > 0 ? costoPerNotte / presentiPerNotte[d] : 0), 0)
-    );
-
-    // Arrotondamento ai centesimi con metodo "largest remainder"
-    // garantisce che la somma delle quote = costo esatto
-    const totalCents = Math.round(costo * 100);
-    const cents = shareExact.map(s => Math.floor(s * 100));
-    let resto = totalCents - cents.reduce((a, b) => a + b, 0);
-    shareExact
-        .map((s, i) => ({ i, f: (s * 100) - Math.floor(s * 100) }))
-        .sort((a, b) => b.f - a.f)
-        .forEach(({ i }) => { if (resto-- > 0) cents[i]++; });
-    const shareAlloggio = cents.map(c => c / 100);
-
-    // Quota tassa: semplice moltiplicazione, nessun arrotondamento condiviso
-    const shareTassa = nottiP.map(np => Math.round(tassa * np.length * 100) / 100);
-
-    // Render risultati
+    const risultati = calcolaRipartizioneData(_ripPersone, inizio, fine, costo, tassa);
+    if (!risultati) { document.getElementById('ripRisultato').style.display = 'none'; return; }
     let totAllo = 0, totTassa = 0;
-    const righe = _ripPersone.map((p, i) => {
-        const nome = p.nome.trim() || `Persona ${i+1}`;
-        const gg   = nottiP[i].length;
-        const qA   = shareAlloggio[i];
-        const qT   = shareTassa[i];
-        totAllo  += qA;
-        totTassa += qT;
-        const dettaglio = tassa > 0
-            ? `alloggio ${valuta}${qA.toFixed(2)} + tassa ${valuta}${qT.toFixed(2)}`
-            : '';
+    const righe = risultati.map(r => {
+        totAllo  += r.quota_alloggio;
+        totTassa += r.quota_tassa;
+        const det = tassa > 0 ? `alloggio ${valuta}${r.quota_alloggio.toFixed(2)} + tassa ${valuta}${r.quota_tassa.toFixed(2)}` : '';
         return `<div class="rip-result-row">
             <div>
-                <div class="rip-result-name">${_esc(nome)}</div>
-                <div class="rip-result-nights">${gg} nott${gg===1?'e':'i'}</div>
-                ${dettaglio ? `<div class="rip-result-breakdown">${dettaglio}</div>` : ''}
+                <div class="rip-result-name">${_esc(r.nome)}</div>
+                <div class="rip-result-nights">${r.notti} nott${r.notti===1?'e':'i'}</div>
+                ${det ? `<div class="rip-result-breakdown">${det}</div>` : ''}
             </div>
-            <div class="rip-result-amount">${valuta}${(qA + qT).toFixed(2)}</div>
+            <div class="rip-result-amount">${valuta}${r.totale.toFixed(2)}</div>
         </div>`;
     }).join('');
-
-    const rigaTotale = `<div style="display:flex;justify-content:space-between;align-items:center;padding-top:10px;margin-top:4px;border-top:2px solid rgba(0,0,0,0.12)">
-        <div>
-            <div style="font-weight:800;font-size:14px">Totale</div>
-            ${tassa > 0 ? `<div style="font-size:11px;color:#aaa;font-weight:600">alloggio ${valuta}${totAllo.toFixed(2)} + tassa ${valuta}${totTassa.toFixed(2)}</div>` : ''}
-        </div>
+    document.getElementById('ripRisultatoBody').innerHTML = righe + `<div style="display:flex;justify-content:space-between;align-items:center;padding-top:10px;margin-top:4px;border-top:2px solid rgba(0,0,0,0.12)">
+        <div><div style="font-weight:800;font-size:14px">Totale</div>${tassa > 0 ? `<div style="font-size:11px;color:#aaa;font-weight:600">alloggio ${valuta}${totAllo.toFixed(2)} + tassa ${valuta}${totTassa.toFixed(2)}</div>` : ''}</div>
         <div style="font-weight:900;font-size:18px">${valuta}${(totAllo + totTassa).toFixed(2)}</div>
     </div>`;
-
-    document.getElementById('ripRisultatoBody').innerHTML = righe + rigaTotale;
     document.getElementById('ripRisultato').style.display = 'block';
+}
+
+async function salvaRipartizione() {
+    if (!_ripBudgetItemId) { toast('Apri la ripartizione da una voce budget alloggio per salvare'); return; }
+    const costo  = parseFloat(document.getElementById('ripCosto').value)  || 0;
+    const tassa  = parseFloat(document.getElementById('ripTassa').value)  || 0;
+    const inizio = document.getElementById('ripDataInizio').value;
+    const fine   = document.getElementById('ripDataFine').value;
+    const risultati = calcolaRipartizioneData(_ripPersone, inizio, fine, costo, tassa) || [];
+    const body = { viaggio_id: viaggioCorrenteId, budget_item_id: _ripBudgetItemId, persone: _ripPersone, risultati, costo, tassa };
+    const hdr = { ...(await hdrR()), 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates,return=minimal' };
+    const res = await fetch(`${URL_S}/sv_ripartizione?on_conflict=budget_item_id`, { method: 'POST', headers: hdr, body: JSON.stringify(body) });
+    if (!res.ok) { const e = await res.json().catch(() => ({})); toast('Errore: ' + (e.message || `HTTP ${res.status}`)); return; }
+    ripartizioniCache[_ripBudgetItemId] = body;
+    toast('✓ Ripartizione salvata');
+    renderBudget();
+}
+
+async function apriRipartizionePerId() {
+    if (!budgetItemEditId) return;
+    const b = budgetAttuale.find(x => x.id === budgetItemEditId);
+    document.getElementById('modalBudgetItem').classList.remove('open');
+    await apriRipartizione(b?.importo_previsto || null, budgetItemEditId);
 }
 
     function _fbApri() { document.getElementById('fbOverlay').classList.add('open'); document.getElementById('fbTesto').focus(); }
