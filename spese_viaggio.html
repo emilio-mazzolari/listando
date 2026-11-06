@@ -1134,6 +1134,7 @@
                 <select class="form-input" id="bValuta" style="margin:0;padding:10px 12px"></select>
             </div>
         </div>
+        <button id="bBtnRipartisci" class="btn-save-modal" style="background:#5856d6;margin-top:10px;display:none" onclick="salvaBudgetEApriRipartisci()">RIPARTISCI SPESE</button>
 
         <label class="form-label" style="margin-top:12px">Stato</label>
         <div style="display:flex;gap:6px;margin-bottom:12px">
@@ -1163,6 +1164,13 @@
 
         <div id="bAlloggioBox" style="display:none">
             <div style="height:1px;background:var(--grey);margin:4px 0 14px"></div>
+            <div style="display:flex;gap:10px;align-items:flex-end;margin-bottom:12px">
+                <div style="flex:1">
+                    <label class="form-label">Tassa di soggiorno</label>
+                    <input class="form-input" id="bTassaSoggiorno" type="number" min="0" step="0.01" placeholder="es. 6.00" style="margin:0">
+                </div>
+                <div style="padding-bottom:14px;white-space:nowrap;font-size:12px;font-weight:700;color:#888">€ / pers / notte</div>
+            </div>
             <label class="form-label">Indirizzo alloggio</label>
             <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">
                 <input class="form-input" id="bAlloggioAddr" type="text" placeholder="Via Roma 12, Firenze…" style="margin:0;flex:1">
@@ -1177,7 +1185,6 @@
         </div>
 
         <button class="btn-save-modal" style="background:var(--green);margin-top:10px" onclick="salvaBudgetItem()">SALVA</button>
-        <button id="bBtnRipartisci" class="btn-save-modal" style="background:#5856d6;margin-top:8px;display:none" onclick="salvaBudgetEApriRipartisci()">RIPARTISCI SPESE</button>
         <button class="btn-save-modal" id="btnEliminaBudget" style="display:none;background:#fff0f0;color:var(--red);border:2px solid #fcc;margin-top:8px" onclick="eliminaBudgetItemModal()">ELIMINA</button>
         <button style="width:100%;padding:14px;border-radius:14px;border:2px solid var(--grey);background:var(--white);font-weight:800;font-size:15px;cursor:pointer;font-family:inherit;margin-top:8px;color:#aaa" onclick="document.getElementById('modalBudgetItem').classList.remove('open')">Chiudi</button>
     </div>
@@ -4731,6 +4738,7 @@ function renderBudget() {
 
         const perChiHtml = `<div style="font-size:11px;font-weight:700;color:#aaa;margin-top:3px">${budgetPerChiLabel(b)}</div>`;
         let ripHtml = '';
+        let quotaPersonale = null;
         if (b.categoria === 'alloggio' && ripartizioniCache[b.id]) {
             const rip = ripartizioniCache[b.id];
             const ris = Array.isArray(rip.risultati) ? rip.risultati : (rip.risultati ? JSON.parse(rip.risultati) : []);
@@ -4739,9 +4747,19 @@ function renderBudget() {
                 const dateStr = (rip.check_in && rip.check_out)
                     ? `<span style="color:#888;font-weight:700">${_fmtD(rip.check_in)} → ${_fmtD(rip.check_out)}</span> · `
                     : '';
-                ripHtml = `<div style="font-size:11px;font-weight:700;color:#5856d6;margin-top:4px">${dateStr}👥 ${ris.map(r => `${_esc(r.nome)} ${vs}${Number(r.totale).toFixed(2)}`).join(' · ')}</div>`;
+                if (vediComeId) {
+                    const pVedi = partecipantiAttuali.find(x => x.id === vediComeId);
+                    const quota = _ripTrovaQuota(ris, pVedi?.nome);
+                    if (quota) {
+                        quotaPersonale = Number(quota.totale);
+                        ripHtml = `<div style="font-size:11px;font-weight:700;color:#5856d6;margin-top:4px">${dateStr}La tua quota: ${vs}${quotaPersonale.toFixed(2)}</div>`;
+                    }
+                } else {
+                    ripHtml = `<div style="font-size:11px;font-weight:700;color:#5856d6;margin-top:4px">${dateStr}👥 ${ris.map(r => `${_esc(r.nome)} ${vs}${Number(r.totale).toFixed(2)}`).join(' · ')}</div>`;
+                }
             }
         }
+        const importoMostrato = quotaPersonale != null ? quotaPersonale : parseFloat(b.importo_previsto);
         return `<div class="budget-card" onclick="apriModalEditBudgetItem(${b.id})" style="opacity:${b.stato === 'annullata' ? 0.45 : 1}">
             <div class="budget-cat-icon">${icon}</div>
             <div class="budget-body">
@@ -4753,7 +4771,7 @@ function renderBudget() {
                 ${compareHtml}
             </div>
             <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0">
-                <div class="budget-importo">${cur}${parseFloat(b.importo_previsto).toFixed(2)}</div>
+                <div class="budget-importo">${cur}${importoMostrato.toFixed(2)}</div>
                 <button class="btn-card-sm del" onclick="event.stopPropagation(); eliminaBudgetItemById(${b.id})">
                     <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
@@ -4763,7 +4781,7 @@ function renderBudget() {
 }
 
 const _BUDGET_CAT_GROUPS = [
-    { label:'Alloggio',          cats:['alloggio','tassa_soggiorno'] },
+    { label:'Alloggio',          cats:['alloggio'] },
     { label:'Trasporto',         cats:['trasporto','carburante','pedaggi','parcheggio'] },
     { label:'Cibo & Bevande',    cats:['ristorante','bar','caffe','pasticceria','alimentari'] },
     { label:'Attrazioni',        cats:['museo','chiesa','centro_storico','parco','giardino_botanico','spiaggia','montagna','escursione','evento','mercato'] },
@@ -4863,6 +4881,7 @@ function apriModalNuovoBudgetItem() {
     document.getElementById('bNote').value = '';
     document.getElementById('bLinkPrenotazione').value = '';
     document.getElementById('bAlloggioAddr').value = '';
+    document.getElementById('bTassaSoggiorno').value = '';
     renderBPoiList();
     document.getElementById('btnEliminaBudget').style.display = 'none';
     populateCurrencySelects('bValuta');
@@ -4886,6 +4905,7 @@ function apriModalEditBudgetItem(id) {
     document.getElementById('bNote').value = b.note || '';
     document.getElementById('bLinkPrenotazione').value = b.link_prenotazione || '';
     document.getElementById('bAlloggioAddr').value = _caricaAddrLocale(id) || b.indirizzo_alloggio || '';
+    document.getElementById('bTassaSoggiorno').value = _caricaTassaLocale(id) || '';
     renderBPoiList();
     document.getElementById('btnEliminaBudget').style.display = '';
     populateCurrencySelects('bValuta');
@@ -5128,6 +5148,15 @@ let _ripPersone = [];
 // ── Budget alloggio: POI helpers ───────────────────────────────────
 let _bPoiList = [];
 
+function _ripTrovaQuota(ris, nome) {
+    if (!nome || !ris?.length) return null;
+    const n = nome.toLowerCase().trim();
+    return ris.find(r => {
+        const rn = (r.nome || '').toLowerCase().trim();
+        return rn === n || n.startsWith(rn) || rn.startsWith(n.split(' ')[0]);
+    }) || null;
+}
+
 function _toggleAlloggioBox(cat) {
     const isAlloggio = cat === 'alloggio';
     const box = document.getElementById('bAlloggioBox');
@@ -5190,11 +5219,18 @@ function _salvaBudgetPoiLocale(itemId) {
     localStorage.setItem(`sv_poi_${viaggioCorrenteId}_${itemId}`, JSON.stringify(_bPoiList));
     const addr = document.getElementById('bAlloggioAddr')?.value?.trim();
     if (addr !== undefined) localStorage.setItem(`sv_addr_${viaggioCorrenteId}_${itemId}`, addr);
+    const tassa = document.getElementById('bTassaSoggiorno')?.value?.trim();
+    if (tassa !== undefined) localStorage.setItem(`sv_tassa_${viaggioCorrenteId}_${itemId}`, tassa);
 }
 
 function _caricaAddrLocale(itemId) {
     if (!itemId || !viaggioCorrenteId) return '';
     return localStorage.getItem(`sv_addr_${viaggioCorrenteId}_${itemId}`) || '';
+}
+
+function _caricaTassaLocale(itemId) {
+    if (!itemId || !viaggioCorrenteId) return '';
+    return localStorage.getItem(`sv_tassa_${viaggioCorrenteId}_${itemId}`) || '';
 }
 
 function _apreLinkPrenotazione() {
@@ -5273,7 +5309,7 @@ async function apriRipartizione(preFillCosto, itemId) {
     const defInizio = v?.data_inizio || '';
     const defFine   = v?.data_fine   || '';
     document.getElementById('ripCosto').value = preFillCosto != null ? preFillCosto : '';
-    document.getElementById('ripTassa').value = '';
+    document.getElementById('ripTassa').value = itemId ? (_caricaTassaLocale(itemId) || '') : '';
     document.getElementById('ripDataInizio').value = defInizio;
     document.getElementById('ripDataFine').value   = defFine;
     const totN = defInizio && defFine && defInizio < defFine ? _enumeraNotti(defInizio, defFine).length : 1;
