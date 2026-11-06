@@ -1164,6 +1164,16 @@
 
         <div id="bAlloggioBox" style="display:none">
             <div style="height:1px;background:var(--grey);margin:4px 0 14px"></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+                <div>
+                    <label class="form-label">Check-in</label>
+                    <input class="form-input" id="bCheckIn" type="date" style="margin:0">
+                </div>
+                <div>
+                    <label class="form-label">Check-out</label>
+                    <input class="form-input" id="bCheckOut" type="date" style="margin:0">
+                </div>
+            </div>
             <div style="display:flex;gap:10px;align-items:flex-end;margin-bottom:12px">
                 <div style="flex:1">
                     <label class="form-label">Tassa di soggiorno</label>
@@ -1226,16 +1236,8 @@
         <div class="modal-handle"></div>
         <div class="modal-title">Ripartisci alloggio</div>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
-            <div>
-                <label class="form-label">Check-in</label>
-                <input class="form-input" id="ripDataInizio" type="date" oninput="calcolaRipartizione()" style="margin:0">
-            </div>
-            <div>
-                <label class="form-label">Check-out</label>
-                <input class="form-input" id="ripDataFine" type="date" oninput="calcolaRipartizione()" style="margin:0">
-            </div>
-        </div>
+        <input type="hidden" id="ripDataInizio">
+        <input type="hidden" id="ripDataFine">
 
         <div style="display:flex;gap:10px;margin-bottom:4px;align-items:flex-end">
             <div style="flex:2">
@@ -4739,23 +4741,32 @@ function renderBudget() {
         const perChiHtml = `<div style="font-size:11px;font-weight:700;color:#aaa;margin-top:3px">${budgetPerChiLabel(b)}</div>`;
         let ripHtml = '';
         let quotaPersonale = null;
+        // Date da localStorage (budget item) o dalla ripartizione salvata
+        const _cin  = localStorage.getItem(`sv_cin_${viaggioCorrenteId}_${b.id}`)  || ripartizioniCache[b.id]?.check_in  || '';
+        const _cout = localStorage.getItem(`sv_cout_${viaggioCorrenteId}_${b.id}`) || ripartizioniCache[b.id]?.check_out || '';
+        if (b.categoria === 'alloggio') {
+            const dateStr = (_cin && _cout)
+                ? `<div style="font-size:11px;font-weight:700;color:#888;margin-top:3px">${_fmtD(_cin)} → ${_fmtD(_cout)}</div>`
+                : '';
+            if (dateStr) ripHtml = dateStr;
+        }
         if (b.categoria === 'alloggio' && ripartizioniCache[b.id]) {
             const rip = ripartizioniCache[b.id];
             const ris = Array.isArray(rip.risultati) ? rip.risultati : (rip.risultati ? JSON.parse(rip.risultati) : []);
             if (ris.length) {
                 const vs = symb(b.valuta || viaggioCorrenteValuta);
-                const dateStr = (rip.check_in && rip.check_out)
-                    ? `<span style="color:#888;font-weight:700">${_fmtD(rip.check_in)} → ${_fmtD(rip.check_out)}</span> · `
+                const dateStr = (_cin && _cout)
+                    ? `<span style="color:#888;font-weight:700">${_fmtD(_cin)} → ${_fmtD(_cout)}</span> · `
                     : '';
                 if (vediComeId) {
                     const pVedi = partecipantiAttuali.find(x => x.id === vediComeId);
                     const quota = _ripTrovaQuota(ris, pVedi?.nome);
                     if (quota) {
                         quotaPersonale = Number(quota.totale);
-                        ripHtml = `<div style="font-size:11px;font-weight:700;color:#5856d6;margin-top:4px">${dateStr}La tua quota: ${vs}${quotaPersonale.toFixed(2)}</div>`;
+                        ripHtml += `<div style="font-size:11px;font-weight:700;color:#5856d6;margin-top:2px">${dateStr}La tua quota: ${vs}${quotaPersonale.toFixed(2)}</div>`;
                     }
                 } else {
-                    ripHtml = `<div style="font-size:11px;font-weight:700;color:#5856d6;margin-top:4px">${dateStr}👥 ${ris.map(r => `${_esc(r.nome)} ${vs}${Number(r.totale).toFixed(2)}`).join(' · ')}</div>`;
+                    ripHtml += `<div style="font-size:11px;font-weight:700;color:#5856d6;margin-top:2px">${dateStr}👥 ${ris.map(r => `${_esc(r.nome)} ${vs}${Number(r.totale).toFixed(2)}`).join(' · ')}</div>`;
                 }
             }
         }
@@ -4882,6 +4893,8 @@ function apriModalNuovoBudgetItem() {
     document.getElementById('bLinkPrenotazione').value = '';
     document.getElementById('bAlloggioAddr').value = '';
     document.getElementById('bTassaSoggiorno').value = '';
+    document.getElementById('bCheckIn').value = '';
+    document.getElementById('bCheckOut').value = '';
     renderBPoiList();
     document.getElementById('btnEliminaBudget').style.display = 'none';
     populateCurrencySelects('bValuta');
@@ -4906,6 +4919,8 @@ function apriModalEditBudgetItem(id) {
     document.getElementById('bLinkPrenotazione').value = b.link_prenotazione || '';
     document.getElementById('bAlloggioAddr').value = _caricaAddrLocale(id) || b.indirizzo_alloggio || '';
     document.getElementById('bTassaSoggiorno').value = _caricaTassaLocale(id) || '';
+    document.getElementById('bCheckIn').value  = localStorage.getItem(`sv_cin_${viaggioCorrenteId}_${id}`)  || '';
+    document.getElementById('bCheckOut').value = localStorage.getItem(`sv_cout_${viaggioCorrenteId}_${id}`) || '';
     renderBPoiList();
     document.getElementById('btnEliminaBudget').style.display = '';
     populateCurrencySelects('bValuta');
@@ -5221,6 +5236,10 @@ function _salvaBudgetPoiLocale(itemId) {
     if (addr !== undefined) localStorage.setItem(`sv_addr_${viaggioCorrenteId}_${itemId}`, addr);
     const tassa = document.getElementById('bTassaSoggiorno')?.value?.trim();
     if (tassa !== undefined) localStorage.setItem(`sv_tassa_${viaggioCorrenteId}_${itemId}`, tassa);
+    const cin  = document.getElementById('bCheckIn')?.value  || '';
+    const cout = document.getElementById('bCheckOut')?.value || '';
+    localStorage.setItem(`sv_cin_${viaggioCorrenteId}_${itemId}`,  cin);
+    localStorage.setItem(`sv_cout_${viaggioCorrenteId}_${itemId}`, cout);
 }
 
 function _caricaAddrLocale(itemId) {
@@ -5308,10 +5327,12 @@ async function apriRipartizione(preFillCosto, itemId) {
     const v = viaggi.find(x => x.id === viaggioCorrenteId);
     const defInizio = v?.data_inizio || '';
     const defFine   = v?.data_fine   || '';
+    const cinSalvato  = itemId ? (localStorage.getItem(`sv_cin_${viaggioCorrenteId}_${itemId}`)  || defInizio) : defInizio;
+    const coutSalvato = itemId ? (localStorage.getItem(`sv_cout_${viaggioCorrenteId}_${itemId}`) || defFine)   : defFine;
     document.getElementById('ripCosto').value = preFillCosto != null ? preFillCosto : '';
     document.getElementById('ripTassa').value = itemId ? (_caricaTassaLocale(itemId) || '') : '';
-    document.getElementById('ripDataInizio').value = defInizio;
-    document.getElementById('ripDataFine').value   = defFine;
+    document.getElementById('ripDataInizio').value = cinSalvato;
+    document.getElementById('ripDataFine').value   = coutSalvato;
     const totN = defInizio && defFine && defInizio < defFine ? _enumeraNotti(defInizio, defFine).length : 1;
     // Carica da Supabase (già in cache), fallback localStorage
     const cloud = itemId ? ripartizioniCache[itemId] : null;
