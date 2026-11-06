@@ -434,6 +434,10 @@
                 <option value="">— Nessuna —</option>
             </select>
         </div>
+        <div class="form-group">
+            <label class="form-label">Note</label>
+            <textarea class="form-input" id="sNote" rows="3" placeholder="Es. parte della routine Swing 1, BPM 180…" style="resize:vertical;min-height:72px"></textarea>
+        </div>
         <button class="btn-save-modal" onclick="salvaSong()">SALVA</button>
         <button class="btn-delete-modal" onclick="eliminaSong()">ELIMINA</button>
     </div>
@@ -670,6 +674,7 @@ function songItemHtml(s, i) {
         <div class="song-info">
             <div class="song-title${isPlay ? ' playing' : ''}">${s.titolo}</div>
             ${s.artista ? `<div class="song-artist">${s.artista}</div>` : ''}
+            ${s.note ? `<div class="song-artist" style="font-style:italic;color:#aaa">${s.note}</div>` : ''}
         </div>
         <div class="song-dur">${dur}</div>
         <button class="btn-song-more" onclick="event.stopPropagation(); apriCtxSong(${s.id}, event, false)">⋮</button>
@@ -1180,6 +1185,7 @@ function apriEditSong(s) {
     editSongId = s.id;
     document.getElementById('sTitolo').value = s.titolo || '';
     document.getElementById('sArtista').value = s.artista || '';
+    document.getElementById('sNote').value = s.note || '';
     const sel = document.getElementById('sPlaylist');
     sel.innerHTML = '<option value="">— Nessuna raccolta —</option>' +
         playlists.map(p => `<option value="${p.id}"${p.id === s.playlist_id ? ' selected' : ''}>${p.nome}</option>`).join('');
@@ -1192,11 +1198,17 @@ async function salvaSong() {
     const titolo = document.getElementById('sTitolo').value.trim();
     if (!titolo) { toast('Inserisci il titolo'); return; }
     const plVal = document.getElementById('sPlaylist').value;
-    const { error } = await sb.from('canzoni').update({
+    const updateData = {
         titolo,
         artista: document.getElementById('sArtista').value.trim() || null,
-        playlist_id: plVal ? Number(plVal) : null
-    }).eq('id', editSongId);
+        playlist_id: plVal ? Number(plVal) : null,
+        note: document.getElementById('sNote').value.trim() || null,
+    };
+    let { error } = await sb.from('canzoni').update(updateData).eq('id', editSongId);
+    if (error?.message?.includes('note')) {
+        await fetch('/api/run-sql?solo=canzoni_note').catch(() => {});
+        ({ error } = await sb.from('canzoni').update(updateData).eq('id', editSongId));
+    }
     if (error) { toast('Errore: ' + error.message); return; }
     document.getElementById('modaleSong').classList.remove('open');
     toast('✓ Salvato');

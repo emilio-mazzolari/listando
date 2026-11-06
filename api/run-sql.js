@@ -34,6 +34,7 @@ const STATEMENTS = [
         created_at timestamptz default now()
     )`,
     `ALTER TABLE canzoni_playlist ADD COLUMN IF NOT EXISTS parent_id bigint REFERENCES canzoni_playlist(id) ON DELETE SET NULL`,
+    `ALTER TABLE IF EXISTS canzoni ADD COLUMN IF NOT EXISTS note text`,
     `CREATE TABLE IF NOT EXISTS vendita_annunci (
         id bigint generated always as identity primary key,
         email_utente text not null,
