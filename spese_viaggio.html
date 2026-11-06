@@ -1119,7 +1119,7 @@
         <div class="modal-title" id="titoloModalBudget">Nuova voce budget</div>
 
         <label class="form-label">Categoria *</label>
-        <div id="budgetCatRow" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px"></div>
+        <select class="form-input" id="bCat" onchange="setBudgetCat(this.value)" style="margin-bottom:14px"></select>
 
         <label class="form-label">Titolo *</label>
         <input class="form-input" id="bTitolo" placeholder="es. Voli andata/ritorno…" type="text">
@@ -4619,7 +4619,7 @@ async function eliminaPianoItemModal() {
 
 // ── Budget ────────────────────────────────────────────────────────
 const BUDGET_CAT_ICONS = {
-    alloggio:'🏨', trasporto:'🚗', carburante:'⛽', pedaggi:'🛣️', parcheggio:'🅿️',
+    alloggio:'🏨', tassa_soggiorno:'🏙️', trasporto:'🚗', carburante:'⛽', pedaggi:'🛣️', parcheggio:'🅿️',
     ristorante:'🍽️', bar:'🍺', caffe:'☕', pasticceria:'🥐', alimentari:'🛒',
     museo:'🏛️', chiesa:'⛪', centro_storico:'🏰', parco:'🌳', giardino_botanico:'🌿',
     spiaggia:'🏖️', montagna:'⛰️', escursione:'🥾', evento:'🎭', mercato:'🏪',
@@ -4627,7 +4627,7 @@ const BUDGET_CAT_ICONS = {
     assicurazione:'🛡️', commissioni:'💳', altro:'💡'
 };
 const BUDGET_CAT_LABEL = {
-    alloggio:'Alloggio', trasporto:'Trasporto', carburante:'Carburante',
+    alloggio:'Alloggio', tassa_soggiorno:'Tassa di soggiorno', trasporto:'Trasporto', carburante:'Carburante',
     pedaggi:'Pedaggi', parcheggio:'Parcheggio',
     ristorante:'Ristorante', bar:'Bar', caffe:'Caffè', pasticceria:'Pasticceria', alimentari:'Alimentari',
     museo:'Museo', chiesa:'Chiesa', centro_storico:'Centro storico', parco:'Parco', giardino_botanico:'Giardino botanico',
@@ -4736,15 +4736,37 @@ function renderBudget() {
     }).join('');
 }
 
+const _BUDGET_CAT_GROUPS = [
+    { label:'Alloggio',          cats:['alloggio','tassa_soggiorno'] },
+    { label:'Trasporto',         cats:['trasporto','carburante','pedaggi','parcheggio'] },
+    { label:'Cibo & Bevande',    cats:['ristorante','bar','caffe','pasticceria','alimentari'] },
+    { label:'Attrazioni',        cats:['museo','chiesa','centro_storico','parco','giardino_botanico','spiaggia','montagna','escursione','evento','mercato'] },
+    { label:'Shopping & Sport',  cats:['shopping','benessere','yoga','fitness'] },
+    { label:'Varie',             cats:['assicurazione','commissioni','altro'] },
+];
+
 function renderBudgetCatRow() {
-    document.getElementById('budgetCatRow').innerHTML = Object.entries(BUDGET_CAT_ICONS).map(([cat, icon]) =>
-        `<button class="macro-cat-chip${cat === budgetCatScelta ? ' active' : ''}" onclick="setBudgetCat('${cat}')">${icon} ${BUDGET_CAT_LABEL[cat]}</button>`
-    ).join('');
+    const sel = document.getElementById('bCat');
+    if (!sel) return;
+    if (!sel.options.length) {
+        _BUDGET_CAT_GROUPS.forEach(g => {
+            const og = document.createElement('optgroup');
+            og.label = g.label;
+            g.cats.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c;
+                opt.textContent = `${BUDGET_CAT_ICONS[c] || '💡'} ${BUDGET_CAT_LABEL[c] || c}`;
+                og.appendChild(opt);
+            });
+            sel.appendChild(og);
+        });
+    }
+    sel.value = budgetCatScelta;
+    _toggleAlloggioBox(budgetCatScelta);
 }
 
 function setBudgetCat(cat) {
     budgetCatScelta = cat;
-    renderBudgetCatRow();
     _toggleAlloggioBox(cat);
 }
 
@@ -4822,7 +4844,6 @@ function apriModalNuovoBudgetItem() {
     setBudgetStato('prevista');
     setBudgetPerChi('tutti');
     renderBudgetCatRow();
-    _toggleAlloggioBox('altro');
     document.getElementById('modalBudgetItem').classList.add('open');
     setTimeout(() => document.getElementById('bTitolo').focus(), 300);
 }
@@ -4847,7 +4868,6 @@ function apriModalEditBudgetItem(id) {
     budgetPerChiNomi = Array.isArray(b.per_chi_nomi) ? [...b.per_chi_nomi] : (b.per_chi_nomi ? JSON.parse(b.per_chi_nomi) : []);
     setBudgetPerChi(b.per_chi || 'tutti');
     renderBudgetCatRow();
-    _toggleAlloggioBox(budgetCatScelta);
     document.getElementById('modalBudgetItem').classList.add('open');
 }
 
