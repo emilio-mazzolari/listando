@@ -816,6 +816,15 @@
     </div>
 </div>
 
+<!-- Visualizza documento -->
+<div class="modal-overlay" id="modalDocView" onclick="if(event.target===this)chiudiDocView()">
+    <div class="modal-box">
+        <div class="modal-handle"></div>
+        <div id="docViewContent"></div>
+        <button onclick="chiudiDocView()" style="width:100%;padding:14px;border:none;background:transparent;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit;color:#aaa;margin-top:12px">Chiudi</button>
+    </div>
+</div>
+
 <div class="modal-overlay" id="modalInvita">
     <div class="modal-box">
         <div class="modal-handle"></div>
@@ -2648,10 +2657,10 @@ function renderDocViaggio() {
         const visLabel = d.visibile_partecipanti ? '👁 Visibile' : '🔒 Privato';
         const visClass = d.visibile_partecipanti ? 'public' : 'private';
         return `<div class="doc-viaggio-card">
-            <div class="doc-viaggio-emoji">${emoji}</div>
-            <div class="doc-viaggio-info">
+            <div class="doc-viaggio-emoji" onclick="apriDocViaggio(${d.id})" style="cursor:pointer">${emoji}</div>
+            <div class="doc-viaggio-info" onclick="apriDocViaggio(${d.id})" style="cursor:pointer">
                 <div class="doc-viaggio-nome">${d.nome}</div>
-                <div class="doc-viaggio-sub">${isMio ? 'Il tuo documento' : d.email_utente}</div>
+                <div class="doc-viaggio-sub">${isMio ? 'Il tuo documento' : d.email_utente} · <span style="color:var(--accent)">Apri →</span></div>
             </div>
             ${isMio ? `<button class="doc-viaggio-vis ${visClass}" onclick="toggleVisDocViaggio(${d.id},${d.visibile_partecipanti})">${visLabel}</button>
             <button onclick="rimuoviDocViaggio(${d.id})" style="width:32px;height:32px;border-radius:10px;border:none;background:var(--grey-light);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">
@@ -2660,6 +2669,48 @@ function renderDocViaggio() {
         </div>`;
     }).join('');
 }
+
+let _dvIdx = 0;
+async function apriDocViaggio(id) {
+    const d = _docViaggioList.find(x => x.id === id);
+    if (!d) return;
+    const el = document.getElementById('docViewContent');
+    el.innerHTML = '<div style="text-align:center;padding:30px;color:#aaa;font-size:13px;font-weight:700">Caricamento…</div>';
+    document.getElementById('modalDocView').classList.add('open');
+
+    const fotos = await apiGetArr(`/documenti_foto?documento_id=eq.${d.documento_id}&order=ordine.asc`);
+    const emoji = TIPI_DOC[d.tipo] || '📁';
+
+    let fotosHtml = '';
+    if (fotos.length) {
+        fotosHtml = `<div id="dvSlides" style="position:relative">
+            ${fotos.map((f, i) => `<div class="dv-slide" style="${i===0?'':'display:none'}"><img src="${f.url}" style="width:100%;border-radius:12px;display:block;max-height:60vh;object-fit:contain"></div>`).join('')}
+        </div>
+        ${fotos.length > 1 ? `<div style="display:flex;align-items:center;justify-content:center;gap:14px;margin-top:12px">
+            <button onclick="dvNav(-1)" style="width:36px;height:36px;border-radius:50%;border:2px solid var(--grey);background:var(--white);font-size:18px;cursor:pointer">‹</button>
+            <span id="dvCounter" style="font-weight:800;font-size:14px;color:#888">1/${fotos.length}</span>
+            <button onclick="dvNav(1)" style="width:36px;height:36px;border-radius:50%;border:2px solid var(--grey);background:var(--white);font-size:18px;cursor:pointer">›</button>
+        </div>` : ''}`;
+        _dvIdx = 0;
+    } else {
+        fotosHtml = `<div style="text-align:center;padding:30px 0"><div style="font-size:52px">${emoji}</div><div style="color:#aaa;font-weight:700;font-size:13px;margin-top:8px">Nessuna foto allegata</div></div>`;
+    }
+
+    el.innerHTML = `
+        <div style="font-weight:900;font-size:18px;margin-bottom:4px">${esc(d.nome)}</div>
+        <div style="font-size:12px;color:#aaa;font-weight:700;margin-bottom:14px">${d.email_utente}</div>
+        ${fotosHtml}`;
+}
+function dvNav(dir) {
+    const slides = document.querySelectorAll('.dv-slide');
+    if (!slides.length) return;
+    slides[_dvIdx].style.display = 'none';
+    _dvIdx = (_dvIdx + dir + slides.length) % slides.length;
+    slides[_dvIdx].style.display = '';
+    const c = document.getElementById('dvCounter');
+    if (c) c.textContent = `${_dvIdx+1}/${slides.length}`;
+}
+function chiudiDocView() { document.getElementById('modalDocView').classList.remove('open'); }
 
 async function apriModalDocViaggio() {
     _docViaggioModalTab = 'seleziona';

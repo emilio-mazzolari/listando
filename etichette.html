@@ -25,18 +25,15 @@
 html,body{overflow-x:hidden;max-width:100%;margin:0;}
 body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--dark);}
 
-/* Header */
 .page-header{position:sticky;top:0;z-index:100;background:var(--white);border-bottom:2px solid var(--grey-light);padding:14px 16px;padding-top:max(14px,env(safe-area-inset-top,14px));}
 .header-row{display:flex;align-items:center;gap:10px;}
 .btn-back{width:40px;height:40px;border-radius:12px;border:2.5px solid var(--grey);background:var(--white);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;}
 .page-title{flex:1;font-size:18px;font-weight:900;}
 .btn-new{padding:10px 16px;border-radius:12px;border:none;background:var(--accent);color:#fff;font-weight:800;font-size:14px;cursor:pointer;font-family:inherit;}
 
-/* Content */
-.content{padding:16px;max-width:560px;margin:0 auto;padding-bottom:max(80px,env(safe-area-inset-bottom,80px));}
+.content{padding:16px;max-width:560px;margin:0 auto;padding-bottom:max(100px,env(safe-area-inset-bottom,100px));}
 .empty-msg{text-align:center;padding:60px 20px;color:#aaa;font-weight:700;font-size:14px;line-height:1.8;}
 
-/* Label grid */
 .label-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 .label-card{background:var(--white);border-radius:16px;box-shadow:var(--shadow);overflow:hidden;cursor:pointer;transition:transform .15s;}
 .label-card:active{transform:scale(.97);}
@@ -48,8 +45,15 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 .btn-action{flex:1;padding:6px 2px;border-radius:9px;border:2px solid var(--grey);background:var(--white);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--dark);}
 .btn-action.print{background:var(--accent);color:#fff;border-color:var(--accent);}
 .btn-action.del{border-color:#fcc;color:var(--red);}
+.btn-action.foglio{background:#f0fdf4;color:#15803d;border-color:#bbf7d0;}
+.btn-action.foglio.nel{background:#15803d;color:#fff;border-color:#15803d;}
 
-/* Modal */
+#stampaBar{position:fixed;bottom:0;left:0;right:0;background:var(--accent);color:#fff;padding:14px 16px;padding-bottom:max(14px,env(safe-area-inset-bottom,14px));display:flex;align-items:center;gap:8px;z-index:150;transform:translateY(100%);transition:transform .25s;}
+#stampaBar.visible{transform:translateY(0);}
+.sbar-label{flex:1;font-weight:800;font-size:13px;}
+.sbar-btn{padding:8px 12px;border-radius:10px;border:2px solid rgba(255,255,255,.35);background:transparent;color:#fff;font-weight:800;font-size:12px;cursor:pointer;font-family:inherit;white-space:nowrap;}
+.sbar-btn.prim{background:rgba(255,255,255,.18);border-color:transparent;}
+
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s;}
 .modal-overlay.open{opacity:1;pointer-events:all;}
 .modal-box{background:var(--white);border-radius:24px 24px 0 0;padding:20px 16px 10px;width:100%;max-width:560px;max-height:95vh;overflow-y:auto;}
@@ -60,17 +64,14 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 .form-input:focus{border-color:var(--accent);}
 .btn-modal{width:100%;padding:15px;border-radius:16px;border:none;font-size:15px;font-weight:900;cursor:pointer;font-family:inherit;margin-top:6px;}
 
-/* Preview in modal */
 .preview-wrap{margin-bottom:16px;overflow:hidden;border-radius:14px;border:1.5px solid var(--grey-light);background:#f8f9fa;display:flex;justify-content:center;align-items:center;padding:14px;min-height:80px;}
 .preview-container{position:relative;overflow:hidden;}
 
-/* Stile picker */
 .stile-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;}
 .stile-btn{padding:7px 4px;border-radius:12px;border:2px solid var(--grey);background:var(--white);cursor:pointer;font-family:inherit;font-size:11px;font-weight:700;text-align:center;color:var(--dark);transition:all .15s;}
 .stile-btn.active{border-color:var(--accent);background:var(--accent-bg);color:var(--accent);}
 .stile-preview{height:34px;border-radius:6px;margin-bottom:5px;overflow:hidden;}
 
-/* Color presets */
 .color-grid{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;}
 .color-dot{width:34px;height:34px;border-radius:50%;border:3px solid transparent;cursor:pointer;transition:transform .15s;box-shadow:0 1px 3px rgba(0,0,0,.2);}
 .color-dot.active{border-color:var(--accent);transform:scale(1.18);}
@@ -78,29 +79,45 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 .color-pickers label{font-size:12px;font-weight:700;color:#888;}
 .color-pickers input[type=color]{width:40px;height:34px;border-radius:10px;border:2px solid var(--grey);cursor:pointer;padding:2px;}
 
-/* Format picker */
+/* Font picker */
+.font-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;}
+.font-btn{padding:8px 4px;border-radius:12px;border:2px solid var(--grey);background:var(--white);cursor:pointer;font-family:inherit;text-align:center;color:var(--dark);transition:all .15s;}
+.font-btn.active{border-color:var(--accent);background:var(--accent-bg);color:var(--accent);}
+.font-sample{font-size:18px;font-weight:700;line-height:1.2;margin-bottom:3px;}
+.font-name{font-size:10px;font-weight:700;color:#888;}
+
+/* Align picker */
+.align-row{display:flex;gap:8px;margin-bottom:14px;}
+.align-btn{flex:1;padding:9px 4px;border-radius:12px;border:2px solid var(--grey);background:var(--white);cursor:pointer;font-family:inherit;font-size:18px;line-height:1;color:var(--dark);transition:all .15s;}
+.align-btn.active{border-color:var(--accent);background:var(--accent-bg);}
+
 .formato-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px;}
 .formato-btn{padding:10px 8px;border-radius:12px;border:2px solid var(--grey);background:var(--white);cursor:pointer;font-family:inherit;text-align:center;color:var(--dark);transition:all .15s;}
 .formato-btn.active{border-color:var(--accent);background:var(--accent-bg);color:var(--accent);}
 .formato-label{font-size:13px;font-weight:800;}
 .formato-desc{font-size:10px;color:#888;font-weight:600;margin-top:2px;}
 .formato-vis{margin:0 auto 5px;border:2px solid currentColor;border-radius:3px;opacity:.55;}
-.custom-wh{display:none;gap:10px;margin-bottom:14px;}
 
-/* Copies */
+.dim-row{display:flex;gap:10px;margin-bottom:14px;}
+.dim-row>div{flex:1;}
+
 .copie-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;background:var(--grey-light);border-radius:14px;padding:12px 14px;}
 .copie-stepper{display:flex;align-items:center;gap:10px;}
 .copie-btn{width:36px;height:36px;border-radius:10px;border:2px solid var(--grey);background:var(--white);font-size:20px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;}
 .copie-val{font-size:22px;font-weight:900;min-width:32px;text-align:center;}
 
-/* Toast */
+.margine-chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
+.margine-chip{padding:7px 14px;border-radius:11px;border:2px solid var(--grey);background:var(--white);font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;color:var(--dark);transition:all .15s;}
+.margine-chip.active{border-color:var(--accent);background:var(--accent-bg);color:var(--accent);}
+
+#anteprimaWrap{position:relative;overflow:hidden;margin:0 auto 16px;}
+
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:12px 20px;border-radius:14px;font-weight:700;font-size:14px;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;max-width:90vw;text-align:center;}
 .toast.show{opacity:1;}
 
-/* Print */
 #printLayer{display:none;}
 @media print{
-    @page{margin:8mm;}
+    @page{margin:10mm;}
     body>*{display:none!important;}
     #printLayer{display:block!important;}
     *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}
@@ -123,7 +140,13 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
     <div id="elenco"></div>
 </div>
 
-<!-- Modal -->
+<div id="stampaBar">
+    <div class="sbar-label" id="sbarLabel">0 etichette nel foglio</div>
+    <button class="sbar-btn" onclick="svuotaFoglio()">🗑️ Svuota</button>
+    <button class="sbar-btn prim" onclick="apriAnteprima()">👁️ Anteprima</button>
+</div>
+
+<!-- Modal crea/modifica -->
 <div class="modal-overlay" id="modal" onclick="if(event.target===this)chiudi()">
   <div class="modal-box">
     <div class="modal-handle"></div>
@@ -156,11 +179,25 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
         <label>Accento</label><input type="color" id="cAcc" oninput="onCustomColor()">
     </div>
 
+    <label class="form-label">Font</label>
+    <div class="font-grid" id="fontPicker"></div>
+
+    <label class="form-label">Allineamento testo</label>
+    <div class="align-row" id="alignPicker"></div>
+
     <label class="form-label">Formato di stampa</label>
     <div class="formato-grid" id="formatGrid"></div>
-    <div class="custom-wh" id="customWH">
-        <div style="flex:1"><label class="form-label">Larghezza mm</label><input class="form-input" id="fW" type="number" placeholder="190" oninput="aggiornaPrev()" style="margin:0"></div>
-        <div style="flex:1"><label class="form-label">Altezza mm</label><input class="form-input" id="fH" type="number" placeholder="148" oninput="aggiornaPrev()" style="margin:0"></div>
+
+    <label class="form-label">Dimensioni etichetta</label>
+    <div class="dim-row">
+        <div>
+            <label class="form-label">Larghezza mm</label>
+            <input class="form-input" id="fW" type="number" min="10" max="400" placeholder="190" oninput="onDimChange()" style="margin:0">
+        </div>
+        <div>
+            <label class="form-label">Altezza mm</label>
+            <input class="form-input" id="fH" type="number" min="10" max="400" placeholder="136" oninput="onDimChange()" style="margin:0">
+        </div>
     </div>
 
     <label class="form-label">Copie da stampare</label>
@@ -178,6 +215,25 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
     <button class="btn-modal" id="btnDuplica" style="display:none;background:var(--grey-light);color:var(--dark)" onclick="duplicaAttuale()">📋 DUPLICA</button>
     <button class="btn-modal" id="btnDel" style="display:none;background:#fff0f0;color:var(--red);border:2px solid #fcc" onclick="eliminaAttuale()">ELIMINA</button>
     <button class="btn-modal" style="background:transparent;color:#aaa" onclick="chiudi()">Annulla</button>
+  </div>
+</div>
+
+<!-- Modal anteprima di stampa -->
+<div class="modal-overlay" id="modalAnteprima" onclick="if(event.target===this)chiudiAnteprima()">
+  <div class="modal-box">
+    <div class="modal-handle"></div>
+    <div class="modal-title">👁️ Anteprima di stampa</div>
+
+    <label class="form-label">Margini pagina</label>
+    <div class="margine-chips" id="margineChips"></div>
+
+    <label class="form-label">Layout foglio A4</label>
+    <div id="anteprimaWrap">
+        <div id="anteprimaPage" style="position:absolute;top:0;left:0;transform-origin:top left"></div>
+    </div>
+
+    <button class="btn-modal" style="background:var(--accent);color:#fff;margin-top:16px" onclick="eseguiStampaFoglio()">🖨️ STAMPA FOGLIO</button>
+    <button class="btn-modal" style="background:transparent;color:#aaa" onclick="chiudiAnteprima()">Chiudi</button>
   </div>
 </div>
 
@@ -216,27 +272,39 @@ const STILI = [
     { id:'barra', label:'Barra' },
 ];
 
-// w,h in mm; cols/rows = layout per foglio A4; land = landscape
+const FONTS = {
+    sans:    { label:'Sans',    css:"'Segoe UI',system-ui,sans-serif",    sample:'Aa' },
+    serif:   { label:'Serif',   css:"Georgia,'Times New Roman',serif",     sample:'Aa' },
+    mono:    { label:'Mono',    css:"'Courier New',Courier,monospace",     sample:'Aa' },
+    bold:    { label:'Bold',    css:"Impact,'Arial Black',sans-serif",     sample:'Aa' },
+};
+
 const FORMATI = [
-    { id:'a4_1',    label:'A4 intero',    desc:'1 per foglio',          w:190, h:277, cols:1, rows:1, land:false, iw:38,ih:52 },
-    { id:'a4_2',    label:'Metà A4',      desc:'2 per foglio',          w:190, h:136, cols:1, rows:2, land:false, iw:38,ih:26 },
-    { id:'a4_4',    label:'Quarto A4',    desc:'4 per foglio (2×2)',    w:93,  h:136, cols:2, rows:2, land:false, iw:18,ih:26 },
-    { id:'a4_6',    label:'Sesto A4',     desc:'6 per foglio (2×3)',    w:93,  h:88,  cols:2, rows:3, land:false, iw:18,ih:17 },
-    { id:'dorsale', label:'Dorsale',      desc:'3 per foglio — spina',  w:85,  h:190, cols:3, rows:1, land:true,  iw:16,ih:36 },
-    { id:'striscia',label:'Striscia',     desc:'5 per foglio (orizzontale)',w:190,h:52, cols:1, rows:5, land:false, iw:38,ih:10 },
-    { id:'custom',  label:'Personalizzato',desc:'Dimensioni libere',    w:null,h:null,cols:null,rows:null,land:false,iw:28,ih:20 },
+    { id:'a4_1',    label:'A4 intero',       desc:'1 per foglio',              w:190, h:277, cols:1, rows:1, land:false, iw:38,ih:52 },
+    { id:'a4_2',    label:'Metà A4',          desc:'2 per foglio',              w:190, h:136, cols:1, rows:2, land:false, iw:38,ih:26 },
+    { id:'a4_4',    label:'Quarto A4',        desc:'4 per foglio (2×2)',        w:93,  h:136, cols:2, rows:2, land:false, iw:18,ih:26 },
+    { id:'a4_6',    label:'Sesto A4',         desc:'6 per foglio (2×3)',        w:93,  h:88,  cols:2, rows:3, land:false, iw:18,ih:17 },
+    { id:'dorsale', label:'Dorsale',          desc:'3 per foglio — spina',      w:85,  h:190, cols:3, rows:1, land:true,  iw:16,ih:36 },
+    { id:'striscia',label:'Striscia',         desc:'5 per foglio (orizzontale)',w:190, h:52,  cols:1, rows:5, land:false, iw:38,ih:10 },
+    { id:'custom',  label:'Personalizzato',   desc:'Dimensioni libere',         w:null,h:null,cols:null,rows:null,land:false,iw:28,ih:20 },
 ];
 
-// ── Stato modal ────────────────────────────────────────────────────
+const MARGINI = [5, 8, 10, 15, 20];
+
+// ── Stato ──────────────────────────────────────────────────────────
 let items = [], editId = null, nCopie = 1;
-let st = { icona:'📦', stile:'pieno', sfondo:'#0f172a', testo:'#f8fafc', acc:'#818cf8', formato:'a4_2' };
+let st = { icona:'📦', stile:'pieno', sfondo:'#0f172a', testo:'#f8fafc', acc:'#818cf8', formato:'a4_2', font:'sans', allineamento:'centro' };
+let stampaQueue = [], marginiMm = 10;
 
 // ── Init ───────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
     buildIconPicker();
     buildStilePicker();
     buildColorGrid();
+    buildFontPicker();
+    buildAlignPicker();
     buildFormatGrid();
+    buildMargineChips();
     await carica();
 });
 
@@ -244,6 +312,7 @@ async function carica() {
     const { data } = await sb.from('etichette').select('*').eq('email_utente', userEmail).order('created_at', { ascending: false });
     items = data || [];
     renderElenco();
+    aggiornaBarra();
 }
 
 // ── Render list ────────────────────────────────────────────────────
@@ -257,9 +326,10 @@ function renderElenco() {
         const fmt = FORMATI.find(f => f.id === e.formato) || FORMATI[1];
         const W = e.larghezza_mm || fmt.w || 190;
         const H = e.altezza_mm || fmt.h || 136;
-        const CARD = 180; // px target width for card preview
+        const CARD = 180;
         const sc = CARD / (W * 3.779);
         const ph = Math.round(H * 3.779 * sc);
+        const inQ = stampaQueue.includes(e.id);
         return `<div class="label-card" onclick="apriEdit(${e.id})">
             <div class="label-card-preview" style="height:${ph}px">
                 <div style="transform:scale(${sc.toFixed(4)});transform-origin:top left;position:absolute">
@@ -268,9 +338,9 @@ function renderElenco() {
             </div>
             <div class="label-card-footer">
                 <div class="label-card-name">${esc(e.titolo || 'Senza titolo')}</div>
-                <div class="label-card-fmt">${fmt.label}</div>
+                <div class="label-card-fmt">${fmt.label} · ${W}×${H}mm</div>
                 <div class="label-card-actions">
-                    <button class="btn-action" onclick="event.stopPropagation();copia(${e.id})">📋</button>
+                    <button class="btn-action foglio${inQ?' nel':''}" onclick="event.stopPropagation();aggiungiAlFoglio(${e.id})">${inQ?'✓ Nel foglio':'⊕ Foglio'}</button>
                     <button class="btn-action print" onclick="event.stopPropagation();stampaById(${e.id})">🖨️ Stampa</button>
                     <button class="btn-action del" onclick="event.stopPropagation();del(${e.id})">✕</button>
                 </div>
@@ -279,18 +349,19 @@ function renderElenco() {
     }).join('')}</div>`;
 }
 
-// ── Label HTML builder (mm units — usato sia per preview che per stampa) ──
+// ── Label HTML builder ─────────────────────────────────────────────
 function labelHtml(e, W, H) {
     const stile = e.stile || 'pieno';
     const sf = e.colore_sfondo || '#0f172a';
     const te = e.colore_testo  || '#f8fafc';
     const ac = e.colore_accento|| '#818cf8';
-    const ic = e.icona || '📦';
+    const ic = e.icona || '';
     const ti = esc(e.titolo || '');
     const su = esc(e.sottotitolo || '');
     const pe = esc(e.periodo || '');
+    const ff = FONTS[e.font || 'sans']?.css || FONTS.sans.css;
+    const al = e.allineamento === 'sinistra' ? 'left' : e.allineamento === 'destra' ? 'right' : 'center';
     const r = `border-radius:4px;`;
-
     const mn = Math.min(W, H);
     const pad  = `${(mn * 0.07).toFixed(1)}mm`;
     const gap  = `${(mn * 0.04).toFixed(1)}mm`;
@@ -298,35 +369,34 @@ function labelHtml(e, W, H) {
     const fTit = `${Math.min(mn * 0.1,  18).toFixed(1)}mm`;
     const fSub = `${Math.min(mn * 0.068,12).toFixed(1)}mm`;
     const fPer = `${Math.min(mn * 0.058,10).toFixed(1)}mm`;
-
-    const base = `width:${W}mm;height:${H}mm;overflow:hidden;position:relative;${r}`;
+    const base = `width:${W}mm;height:${H}mm;overflow:hidden;position:relative;${r}font-family:${ff};`;
 
     if (stile === 'pieno') {
-        return `<div style="${base}background:${sf};color:${te};display:flex;flex-direction:column;align-items:center;justify-content:center;padding:${pad};text-align:center;gap:${gap}">
+        const flex_al = al === 'left' ? 'flex-start' : al === 'right' ? 'flex-end' : 'center';
+        return `<div style="${base}background:${sf};color:${te};display:flex;flex-direction:column;align-items:${flex_al};justify-content:center;padding:${pad};text-align:${al};gap:${gap}">
             ${ic?`<div style="font-size:${fIco};line-height:1">${ic}</div>`:''}
             <div style="font-size:${fTit};font-weight:900;line-height:1.15;word-break:break-word">${ti}</div>
             ${su?`<div style="font-size:${fSub};font-weight:600;opacity:.82;line-height:1.3">${su}</div>`:''}
             ${pe?`<div style="font-size:${fPer};font-weight:700;opacity:.6;padding:${(mn*.02).toFixed(1)}mm ${(mn*.04).toFixed(1)}mm;border:1px solid ${te}55;border-radius:3mm;margin-top:${(mn*.01).toFixed(1)}mm">${pe}</div>`:''}
         </div>`;
     }
-
     if (stile === 'banda') {
         const bandH = (H * 0.38).toFixed(1);
         return `<div style="${base}background:#fff;border:1.5px solid ${sf}55;">
             <div style="width:100%;height:${bandH}mm;background:${sf};display:flex;align-items:center;padding:${pad};gap:${(mn*.04).toFixed(1)}mm">
                 ${ic?`<div style="font-size:${fIco};line-height:1;flex-shrink:0">${ic}</div>`:''}
-                <div style="font-size:${fTit};font-weight:900;color:${te};line-height:1.1;overflow:hidden">${ti}</div>
+                <div style="font-size:${fTit};font-weight:900;color:${te};line-height:1.1;overflow:hidden;text-align:${al};flex:1">${ti}</div>
             </div>
-            <div style="padding:${pad};display:flex;flex-direction:column;justify-content:center;gap:${gap}">
+            <div style="padding:${pad};display:flex;flex-direction:column;justify-content:center;gap:${gap};text-align:${al}">
                 ${su?`<div style="font-size:${fSub};font-weight:700;color:#334155;line-height:1.35">${su}</div>`:''}
                 ${pe?`<div style="font-size:${fPer};font-weight:700;color:#fff;background:${sf};padding:${(mn*.02).toFixed(1)}mm ${(mn*.04).toFixed(1)}mm;border-radius:2mm;display:inline-block">${pe}</div>`:''}
             </div>
         </div>`;
     }
-
     if (stile === 'bordo') {
         const bw = Math.max((mn * 0.025).toFixed(1), 2);
-        return `<div style="${base}background:#fff;border:${bw}mm solid ${sf};display:flex;flex-direction:column;align-items:center;justify-content:center;padding:${pad};text-align:center;gap:${gap}">
+        const flex_al = al === 'left' ? 'flex-start' : al === 'right' ? 'flex-end' : 'center';
+        return `<div style="${base}background:#fff;border:${bw}mm solid ${sf};display:flex;flex-direction:column;align-items:${flex_al};justify-content:center;padding:${pad};text-align:${al};gap:${gap}">
             ${ic?`<div style="font-size:${fIco};line-height:1;color:${sf}">${ic}</div>`:''}
             <div style="width:30%;height:1.5px;background:${sf};margin-bottom:${(mn*.01).toFixed(1)}mm"></div>
             <div style="font-size:${fTit};font-weight:900;color:#0f172a;line-height:1.15;word-break:break-word">${ti}</div>
@@ -335,34 +405,31 @@ function labelHtml(e, W, H) {
             <div style="width:30%;height:1.5px;background:${sf};margin-top:${(mn*.01).toFixed(1)}mm"></div>
         </div>`;
     }
-
     if (stile === 'barra') {
         const bw = (W * 0.11).toFixed(1);
         return `<div style="${base}background:#fff;border:1px solid ${sf}44;display:flex;">
             <div style="width:${bw}mm;background:${sf};flex-shrink:0;display:flex;align-items:center;justify-content:center;">
-                <div style="font-size:${Math.min(parseFloat(bw)*0.65,14).toFixed(1)}mm;writing-mode:vertical-rl;transform:rotate(180deg)">${ic}</div>
+                ${ic?`<div style="font-size:${Math.min(parseFloat(bw)*0.65,14).toFixed(1)}mm;writing-mode:vertical-rl;transform:rotate(180deg)">${ic}</div>`:''}
             </div>
-            <div style="flex:1;padding:${pad};display:flex;flex-direction:column;justify-content:center;gap:${gap}">
+            <div style="flex:1;padding:${pad};display:flex;flex-direction:column;justify-content:center;gap:${gap};text-align:${al}">
                 <div style="font-size:${fTit};font-weight:900;color:#0f172a;line-height:1.15;word-break:break-word">${ti}</div>
                 ${su?`<div style="font-size:${fSub};font-weight:600;color:#475569;line-height:1.3">${su}</div>`:''}
                 ${pe?`<div style="font-size:${fPer};font-weight:700;color:${sf};border-top:1.5px solid ${sf}44;padding-top:${(mn*.02).toFixed(1)}mm;margin-top:${(mn*.01).toFixed(1)}mm">${pe}</div>`:''}
             </div>
         </div>`;
     }
-
-    return `<div style="${base}background:${sf};color:${te};display:flex;align-items:center;justify-content:center;padding:${pad};font-size:${fTit};font-weight:900">${ti}</div>`;
+    return `<div style="${base}background:${sf};color:${te};display:flex;align-items:center;justify-content:center;padding:${pad};font-size:${fTit};font-weight:900;text-align:${al}">${ti}</div>`;
 }
 
 // ── Preview live ───────────────────────────────────────────────────
 function aggiornaPrev() {
-    const fmt = FORMATI.find(f => f.id === st.formato) || FORMATI[1];
-    const W = fmt.id === 'custom' ? (parseFloat(document.getElementById('fW').value) || 190) : fmt.w;
-    const H = fmt.id === 'custom' ? (parseFloat(document.getElementById('fH').value) || 136) : fmt.h;
+    const W = parseFloat(document.getElementById('fW').value) || 190;
+    const H = parseFloat(document.getElementById('fH').value) || 136;
     const e = {
         titolo: document.getElementById('fTitolo').value,
         sottotitolo: document.getElementById('fSub').value,
         periodo: document.getElementById('fPeriodo').value,
-        icona: st.icona, stile: st.stile,
+        icona: st.icona, stile: st.stile, font: st.font, allineamento: st.allineamento,
         colore_sfondo: document.getElementById('cSfondo').value,
         colore_testo: document.getElementById('cTesto').value,
         colore_accento: document.getElementById('cAcc').value,
@@ -395,12 +462,12 @@ function setIcona(enc) {
 }
 
 function buildStilePicker() {
-    document.getElementById('stilePicker').innerHTML = STILI.map(s => {
-        return `<button class="stile-btn" id="stile_${s.id}" onclick="setStile('${s.id}')">
+    document.getElementById('stilePicker').innerHTML = STILI.map(s =>
+        `<button class="stile-btn" id="stile_${s.id}" onclick="setStile('${s.id}')">
             <div class="stile-preview" id="stilePrev_${s.id}"></div>
             <div>${s.label}</div>
-        </button>`;
-    }).join('');
+        </button>`
+    ).join('');
     STILI.forEach(s => aggiornaStilePreview(s.id));
 }
 function aggiornaStilePreview(id) {
@@ -447,6 +514,40 @@ function sincColorGrid(sfondo) {
     });
 }
 
+function buildFontPicker() {
+    document.getElementById('fontPicker').innerHTML = Object.entries(FONTS).map(([id, f]) =>
+        `<button class="font-btn" id="font_${id}" onclick="setFont('${id}')">
+            <div class="font-sample" style="font-family:${f.css}">${f.sample}</div>
+            <div class="font-name">${f.label}</div>
+        </button>`
+    ).join('');
+}
+function setFont(id) {
+    st.font = id;
+    document.querySelectorAll('.font-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('font_'+id)?.classList.add('active');
+    aggiornaPrev();
+}
+
+function buildAlignPicker() {
+    const opts = [
+        { id:'sinistra', icon:'≡', label:'Sinistra' },
+        { id:'centro',   icon:'☰', label:'Centro'   },
+        { id:'destra',   icon:'≡', label:'Destra'    },
+    ];
+    document.getElementById('alignPicker').innerHTML = opts.map(o =>
+        `<button class="align-btn" id="al_${o.id}" onclick="setAllineamento('${o.id}')" title="${o.label}">
+            <div style="font-size:11px;font-weight:800;color:inherit">${o.label}</div>
+        </button>`
+    ).join('');
+}
+function setAllineamento(id) {
+    st.allineamento = id;
+    document.querySelectorAll('.align-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('al_'+id)?.classList.add('active');
+    aggiornaPrev();
+}
+
 function buildFormatGrid() {
     document.getElementById('formatGrid').innerHTML = FORMATI.map(f =>
         `<button class="formato-btn" id="fmt_${f.id}" onclick="setFormato('${f.id}')">
@@ -460,13 +561,89 @@ function setFormato(id) {
     st.formato = id;
     document.querySelectorAll('.formato-btn').forEach(b => b.classList.remove('active'));
     document.getElementById('fmt_'+id)?.classList.add('active');
-    document.getElementById('customWH').style.display = id==='custom' ? 'flex' : 'none';
+    const fmt = FORMATI.find(f => f.id === id);
+    if (fmt && fmt.w) {
+        document.getElementById('fW').value = fmt.w;
+        document.getElementById('fH').value = fmt.h;
+    }
     aggiornaPrev();
+}
+function onDimChange() {
+    st.formato = 'custom';
+    document.querySelectorAll('.formato-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('fmt_custom')?.classList.add('active');
+    aggiornaPrev();
+}
+
+function buildMargineChips() {
+    document.getElementById('margineChips').innerHTML = MARGINI.map(m =>
+        `<button class="margine-chip${m===marginiMm?' active':''}" id="mc_${m}" onclick="setMargine(${m})">${m} mm</button>`
+    ).join('');
+}
+function setMargine(mm) {
+    marginiMm = mm;
+    document.querySelectorAll('.margine-chip').forEach(c => c.classList.remove('active'));
+    document.getElementById('mc_'+mm)?.classList.add('active');
+    renderAnteprima();
 }
 
 function cambiaCopie(d) {
     nCopie = Math.max(1, Math.min(20, nCopie + d));
     document.getElementById('copieVal').textContent = nCopie;
+}
+
+// ── Stampa queue ───────────────────────────────────────────────────
+function aggiungiAlFoglio(id) {
+    const idx = stampaQueue.indexOf(id);
+    if (idx === -1) stampaQueue.push(id);
+    else stampaQueue.splice(idx, 1);
+    aggiornaBarra();
+    renderElenco();
+}
+function svuotaFoglio() {
+    stampaQueue = [];
+    aggiornaBarra();
+    renderElenco();
+}
+function aggiornaBarra() {
+    const n = stampaQueue.reduce((acc, id) => {
+        const e = items.find(x => x.id === id);
+        return acc + (e ? (e.copie || 1) : 0);
+    }, 0);
+    const count = stampaQueue.length;
+    document.getElementById('sbarLabel').textContent = `${count} etichett${count===1?'a':'e'} · ${n} cop${n===1?'ia':'ie'} nel foglio`;
+    document.getElementById('stampaBar').classList.toggle('visible', count > 0);
+}
+
+// ── Anteprima di stampa ────────────────────────────────────────────
+function apriAnteprima() {
+    if (!stampaQueue.length) { toast('Aggiungi etichette al foglio prima'); return; }
+    renderAnteprima();
+    document.getElementById('modalAnteprima').classList.add('open');
+}
+function chiudiAnteprima() { document.getElementById('modalAnteprima').classList.remove('open'); }
+function renderAnteprima() {
+    const PX = 3.779;
+    const pgWpx = 210 * PX, pgHpx = 297 * PX;
+    const marginPx = marginiMm * PX;
+    let labelsHtml = '';
+    for (const id of stampaQueue) {
+        const e = items.find(x => x.id === id); if (!e) continue;
+        const fmt = FORMATI.find(f => f.id === e.formato) || FORMATI[1];
+        const W = e.larghezza_mm || fmt.w || 190;
+        const H = e.altezza_mm || fmt.h || 136;
+        const copies = e.copie || 1;
+        for (let i = 0; i < copies; i++) labelsHtml += `<div style="flex-shrink:0;break-inside:avoid">${labelHtml(e, W, H)}</div>`;
+    }
+    const contentW = pgWpx - 2 * marginPx, contentH = pgHpx - 2 * marginPx;
+    const pageHtml = `<div style="width:${pgWpx.toFixed(1)}px;height:${pgHpx.toFixed(1)}px;background:#fff;padding:${marginPx.toFixed(1)}px;box-sizing:border-box;box-shadow:0 3px 12px rgba(0,0,0,.18)"><div style="width:${contentW.toFixed(1)}px;height:${contentH.toFixed(1)}px;display:flex;flex-wrap:wrap;align-content:flex-start;gap:3mm;overflow:hidden">${labelsHtml}</div></div>`;
+    const targetW = Math.min(288, window.innerWidth - 64);
+    const scale = targetW / pgWpx;
+    const scaledH = Math.round(pgHpx * scale);
+    const page = document.getElementById('anteprimaPage');
+    page.innerHTML = pageHtml;
+    page.style.transform = `scale(${scale.toFixed(4)})`;
+    document.getElementById('anteprimaWrap').style.cssText = `width:${targetW}px;height:${scaledH}px;position:relative;overflow:hidden;margin:0 auto 16px;border:1.5px solid var(--grey);border-radius:4px;background:#fff`;
 }
 
 // ── Modal open/close ───────────────────────────────────────────────
@@ -476,7 +653,10 @@ function apriNuova() {
     document.getElementById('btnDel').style.display = 'none';
     document.getElementById('btnDuplica').style.display = 'none';
     document.getElementById('copieVal').textContent = '1';
-    st = { icona:'📦', stile:'pieno', sfondo:'#0f172a', testo:'#f8fafc', acc:'#818cf8', formato:'a4_2' };
+    document.getElementById('fTitolo').value = '';
+    document.getElementById('fSub').value = '';
+    document.getElementById('fPeriodo').value = '';
+    st = { icona:'📦', stile:'pieno', sfondo:'#0f172a', testo:'#f8fafc', acc:'#818cf8', formato:'a4_2', font:'sans', allineamento:'centro' };
     popolaForm();
     document.getElementById('modal').classList.add('open');
     setTimeout(() => document.getElementById('fTitolo').focus(), 300);
@@ -488,13 +668,18 @@ function apriEdit(id) {
     document.getElementById('btnDel').style.display = '';
     document.getElementById('btnDuplica').style.display = '';
     document.getElementById('copieVal').textContent = nCopie;
-    st = { icona: e.icona||'📦', stile: e.stile||'pieno', sfondo: e.colore_sfondo||'#0f172a', testo: e.colore_testo||'#f8fafc', acc: e.colore_accento||'#818cf8', formato: e.formato||'a4_2' };
+    st = {
+        icona: e.icona||'', stile: e.stile||'pieno',
+        sfondo: e.colore_sfondo||'#0f172a', testo: e.colore_testo||'#f8fafc', acc: e.colore_accento||'#818cf8',
+        formato: e.formato||'a4_2', font: e.font||'sans', allineamento: e.allineamento||'centro'
+    };
     document.getElementById('fTitolo').value = e.titolo||'';
     document.getElementById('fSub').value = e.sottotitolo||'';
     document.getElementById('fPeriodo').value = e.periodo||'';
-    if (e.formato==='custom') {
-        document.getElementById('fW').value = e.larghezza_mm||190;
-        document.getElementById('fH').value = e.altezza_mm||136;
+    // Per formato custom, pre-carico dims perché setFormato non le sovrascrive
+    if (st.formato === 'custom') {
+        document.getElementById('fW').value = e.larghezza_mm || 190;
+        document.getElementById('fH').value = e.altezza_mm || 136;
     }
     popolaForm();
     document.getElementById('modal').classList.add('open');
@@ -503,13 +688,14 @@ function popolaForm() {
     document.getElementById('cSfondo').value = st.sfondo;
     document.getElementById('cTesto').value = st.testo;
     document.getElementById('cAcc').value = st.acc;
-    setIcona(encodeURIComponent(st.icona));
+    setIcona(st.icona ? encodeURIComponent(st.icona) : '');
     STILI.forEach(s => aggiornaStilePreview(s.id));
     setStile(st.stile);
     sincColorGrid(st.sfondo);
+    setFont(st.font);
+    setAllineamento(st.allineamento);
     buildFormatGrid();
-    setFormato(st.formato);
-    aggiornaPrev();
+    setFormato(st.formato); // popola fW/fH per formati predefiniti, non tocca custom
 }
 function chiudi() { document.getElementById('modal').classList.remove('open'); }
 
@@ -517,9 +703,8 @@ function chiudi() { document.getElementById('modal').classList.remove('open'); }
 async function salva() {
     const titolo = document.getElementById('fTitolo').value.trim();
     if (!titolo) { toast('Inserisci un titolo'); return; }
-    const fmt = FORMATI.find(f => f.id === st.formato) || FORMATI[1];
-    const W = fmt.id==='custom' ? (parseFloat(document.getElementById('fW').value)||190) : fmt.w;
-    const H = fmt.id==='custom' ? (parseFloat(document.getElementById('fH').value)||136) : fmt.h;
+    const W = parseFloat(document.getElementById('fW').value) || 190;
+    const H = parseFloat(document.getElementById('fH').value) || 136;
     const row = {
         email_utente: userEmail, titolo,
         sottotitolo: document.getElementById('fSub').value.trim()||null,
@@ -527,6 +712,7 @@ async function salva() {
         icona: st.icona, stile: st.stile,
         colore_sfondo: st.sfondo, colore_testo: st.testo, colore_accento: st.acc,
         formato: st.formato, larghezza_mm: W, altezza_mm: H, copie: nCopie,
+        font: st.font, allineamento: st.allineamento,
     };
     if (editId) await sb.from('etichette').update(row).eq('id', editId);
     else await sb.from('etichette').insert(row);
@@ -547,19 +733,15 @@ async function copia(id) {
 async function duplicaAttuale() { if (editId) { chiudi(); await copia(editId); } }
 
 // ── Stampa ─────────────────────────────────────────────────────────
-function stampaById(id) {
-    const e = items.find(x => x.id === id); if (!e) return;
-    eseguiStampa(e);
-}
+function stampaById(id) { const e = items.find(x => x.id === id); if (e) eseguiStampa(e); }
 function stampaOra() {
-    const fmt = FORMATI.find(f => f.id === st.formato) || FORMATI[1];
-    const W = fmt.id==='custom'?(parseFloat(document.getElementById('fW').value)||190):fmt.w;
-    const H = fmt.id==='custom'?(parseFloat(document.getElementById('fH').value)||136):fmt.h;
+    const W = parseFloat(document.getElementById('fW').value) || 190;
+    const H = parseFloat(document.getElementById('fH').value) || 136;
     eseguiStampa({
         titolo: document.getElementById('fTitolo').value,
         sottotitolo: document.getElementById('fSub').value,
         periodo: document.getElementById('fPeriodo').value,
-        icona: st.icona, stile: st.stile,
+        icona: st.icona, stile: st.stile, font: st.font, allineamento: st.allineamento,
         colore_sfondo: document.getElementById('cSfondo').value,
         colore_testo: document.getElementById('cTesto').value,
         colore_accento: document.getElementById('cAcc').value,
@@ -580,20 +762,36 @@ function eseguiStampa(e) {
     }
     const perPag = cols * rows;
     const nPag = Math.ceil(tot / perPag);
-    let pagesHtml = '';
-    let count = 0;
+    let pagesHtml = '', count = 0;
     for (let pg = 0; pg < nPag; pg++) {
         let grid = '';
-        for (let i = 0; i < perPag && count < tot; i++, count++) {
-            grid += labelHtml(e, W, H);
-        }
+        for (let i = 0; i < perPag && count < tot; i++, count++) grid += labelHtml(e, W, H);
         pagesHtml += `<div style="display:grid;grid-template-columns:repeat(${cols},${W}mm);gap:3mm;page-break-after:${pg<nPag-1?'always':'auto'};align-content:start">${grid}</div>`;
     }
-    let dynSt = document.getElementById('_dynPrint');
-    if (!dynSt) { dynSt = document.createElement('style'); dynSt.id='_dynPrint'; document.head.appendChild(dynSt); }
-    dynSt.textContent = `@media print{@page{size:A4 ${isLand?'landscape':'portrait'};margin:10mm;}}`;
+    _setPrintStyle(`@media print{@page{size:A4 ${isLand?'landscape':'portrait'};margin:${marginiMm}mm;}}`);
     document.getElementById('printLayer').innerHTML = pagesHtml;
     requestAnimationFrame(() => window.print());
+}
+function eseguiStampaFoglio() {
+    if (!stampaQueue.length) return;
+    let labelsHtml = '';
+    for (const id of stampaQueue) {
+        const e = items.find(x => x.id === id); if (!e) continue;
+        const fmt = FORMATI.find(f => f.id === e.formato) || FORMATI[1];
+        const W = e.larghezza_mm || fmt.w || 190;
+        const H = e.altezza_mm || fmt.h || 136;
+        const copies = e.copie || 1;
+        for (let i = 0; i < copies; i++) labelsHtml += `<div style="flex-shrink:0;break-inside:avoid">${labelHtml(e, W, H)}</div>`;
+    }
+    _setPrintStyle(`@media print{@page{size:A4 portrait;margin:${marginiMm}mm;}}`);
+    document.getElementById('printLayer').innerHTML = `<div style="display:flex;flex-wrap:wrap;align-content:flex-start;gap:3mm">${labelsHtml}</div>`;
+    chiudiAnteprima();
+    requestAnimationFrame(() => window.print());
+}
+function _setPrintStyle(css) {
+    let el = document.getElementById('_dynPrint');
+    if (!el) { el = document.createElement('style'); el.id='_dynPrint'; document.head.appendChild(el); }
+    el.textContent = css;
 }
 
 // ── Utils ──────────────────────────────────────────────────────────
