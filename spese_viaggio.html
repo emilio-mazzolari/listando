@@ -1245,9 +1245,10 @@
         <div id="ripRisultato" style="display:none">
             <label class="form-label">Riepilogo individuale</label>
             <div class="rip-result" id="ripRisultatoBody"></div>
+            <button class="btn-save-modal" style="background:var(--green);margin-top:10px" onclick="salvaRipartizione()">SALVA</button>
         </div>
 
-        <button style="width:100%;padding:14px;border-radius:14px;border:2px solid var(--grey);background:var(--white);font-weight:800;font-size:15px;cursor:pointer;font-family:inherit;margin-top:12px;color:#aaa" onclick="document.getElementById('modalRipartizione').classList.remove('open')">Chiudi</button>
+        <button style="width:100%;padding:14px;border-radius:14px;border:2px solid var(--grey);background:var(--white);font-weight:800;font-size:15px;cursor:pointer;font-family:inherit;margin-top:8px;color:#aaa" onclick="document.getElementById('modalRipartizione').classList.remove('open')">Chiudi</button>
     </div>
 </div>
 
@@ -5174,10 +5175,20 @@ async function salvaBudgetEApriRipartisci() {
     document.getElementById('modalBudgetItem').classList.remove('open');
     await caricaBudget();
     renderBudget();
-    apriRipartizione(importo);
+    apriRipartizione(importo, savedId);
 }
 
-function apriRipartizione(preFillCosto) {
+let _ripBudgetItemId = null;
+
+function _calcolaTotNotti() {
+    const inizio = document.getElementById('ripDataInizio').value;
+    const fine   = document.getElementById('ripDataFine').value;
+    if (!inizio || !fine || inizio >= fine) return 1;
+    return _enumeraNotti(inizio, fine).length;
+}
+
+function apriRipartizione(preFillCosto, itemId) {
+    _ripBudgetItemId = itemId || null;
     _ripPersone = [];
     const v = viaggi.find(x => x.id === viaggioCorrenteId);
     const defInizio = v?.data_inizio || '';
@@ -5186,11 +5197,15 @@ function apriRipartizione(preFillCosto) {
     document.getElementById('ripTassa').value = '';
     document.getElementById('ripDataInizio').value = defInizio;
     document.getElementById('ripDataFine').value   = defFine;
-    if (partecipantiAttuali && partecipantiAttuali.length) {
-        partecipantiAttuali.forEach(p => _ripPersone.push({ nome: p.nome || '', arrivo: defInizio, partenza: defFine }));
+    const totN = defInizio && defFine && defInizio < defFine ? _enumeraNotti(defInizio, defFine).length : 1;
+    const saved = itemId ? (() => { try { return JSON.parse(localStorage.getItem(`sv_rip_${viaggioCorrenteId}_${itemId}`) || 'null'); } catch { return null; } })() : null;
+    if (saved?.persone?.length) {
+        _ripPersone = saved.persone;
+    } else if (partecipantiAttuali && partecipantiAttuali.length) {
+        partecipantiAttuali.forEach(p => _ripPersone.push({ nome: p.nome || '', notti: totN }));
     } else {
-        _ripPersone.push({ nome: '', arrivo: defInizio, partenza: defFine });
-        _ripPersone.push({ nome: '', arrivo: defInizio, partenza: defFine });
+        _ripPersone.push({ nome: '', notti: totN });
+        _ripPersone.push({ nome: '', notti: totN });
     }
     document.getElementById('ripValuta').textContent = viaggioCorrenteValuta || '€';
     renderRipPartecipanti();
@@ -5199,33 +5214,31 @@ function apriRipartizione(preFillCosto) {
     document.getElementById('modalRipartizione').classList.add('open');
 }
 
+function salvaRipartizione() {
+    if (!_ripBudgetItemId) { toast('Apri la ripartizione da una voce budget alloggio per salvare'); return; }
+    localStorage.setItem(`sv_rip_${viaggioCorrenteId}_${_ripBudgetItemId}`, JSON.stringify({ persone: _ripPersone }));
+    toast('✓ Salvato');
+}
+
 function renderRipPartecipanti() {
-    const gI = document.getElementById('ripDataInizio').value;
-    const gF = document.getElementById('ripDataFine').value;
-    document.getElementById('ripPartecipanti').innerHTML = _ripPersone.map((p, i) =>
-        `<div class="rip-person-block">
+    const totN = _calcolaTotNotti();
+    document.getElementById('ripPartecipanti').innerHTML = _ripPersone.map((p, i) => {
+        const notti = p.notti != null ? p.notti : totN;
+        return `<div class="rip-person-block">
             <div class="rip-person-top">
                 <input class="form-input" type="text" placeholder="Nome persona ${i+1}" value="${_esc(p.nome)}" oninput="_ripPersone[${i}].nome=this.value;calcolaRipartizione()" style="margin:0;flex:1">
+                <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+                    <label style="font-size:12px;font-weight:800;color:#888;white-space:nowrap">Notti</label>
+                    <input class="form-input" type="number" min="1" max="${totN}" value="${notti}" oninput="_ripPersone[${i}].notti=Math.min(Math.max(1,parseInt(this.value)||1),${totN});calcolaRipartizione()" style="margin:0;width:68px;padding:10px 8px;text-align:center">
+                </div>
                 <button class="rip-del" onclick="_ripPersone.splice(${i},1);renderRipPartecipanti();calcolaRipartizione()">×</button>
             </div>
-            <div class="rip-person-dates">
-                <div>
-                    <label class="form-label" style="margin-bottom:4px">Arrivo</label>
-                    <input class="form-input" type="date" value="${p.arrivo||''}" min="${gI}" max="${gF}" oninput="_ripPersone[${i}].arrivo=this.value;calcolaRipartizione()" style="margin:0">
-                </div>
-                <div>
-                    <label class="form-label" style="margin-bottom:4px">Partenza</label>
-                    <input class="form-input" type="date" value="${p.partenza||''}" min="${gI}" max="${gF}" oninput="_ripPersone[${i}].partenza=this.value;calcolaRipartizione()" style="margin:0">
-                </div>
-            </div>
-        </div>`
-    ).join('');
+        </div>`;
+    }).join('');
 }
 
 function aggiungiRipPartecipante() {
-    const inizio = document.getElementById('ripDataInizio').value;
-    const fine   = document.getElementById('ripDataFine').value;
-    _ripPersone.push({ nome: '', arrivo: inizio, partenza: fine });
+    _ripPersone.push({ nome: '', notti: _calcolaTotNotti() });
     renderRipPartecipanti();
     calcolaRipartizione();
 }
@@ -5273,16 +5286,12 @@ function calcolaRipartizione() {
         return;
     }
 
-    const notti = _enumeraNotti(inizio, fine);       // array di date-string per ogni notte
+    const notti = _enumeraNotti(inizio, fine);
     const nTot  = notti.length;
     const costoPerNotte = costo / nTot;
 
-    // Notti effettive per persona (persona è presente su notte d se arrivo<=d<partenza)
-    const nottiP = _ripPersone.map(p => {
-        const arr = p.arrivo   || inizio;
-        const par = p.partenza || fine;
-        return notti.filter(d => d >= arr && d < par);
-    });
+    // Ogni persona è presente sulle prime p.notti notti (si assume arrivo al check-in)
+    const nottiP = _ripPersone.map(p => notti.slice(0, Math.min(p.notti != null ? p.notti : nTot, nTot)));
 
     // Presenti su ogni notte: Map<data, count>
     const presentiPerNotte = {};
@@ -5312,13 +5321,10 @@ function calcolaRipartizione() {
     // Render risultati
     let totAllo = 0, totTassa = 0;
     const righe = _ripPersone.map((p, i) => {
-        const nome  = p.nome.trim() || `Persona ${i+1}`;
-        const gg    = nottiP[i].length;
-        const prima = nottiP[i][0]      || (p.arrivo   || inizio);
-        const ultima= nottiP[i][gg - 1] || null;
-        const par   = ultima ? _giornoSuccessivo(ultima) : (p.partenza || fine);
-        const qA    = shareAlloggio[i];
-        const qT    = shareTassa[i];
+        const nome = p.nome.trim() || `Persona ${i+1}`;
+        const gg   = nottiP[i].length;
+        const qA   = shareAlloggio[i];
+        const qT   = shareTassa[i];
         totAllo  += qA;
         totTassa += qT;
         const dettaglio = tassa > 0
@@ -5327,7 +5333,7 @@ function calcolaRipartizione() {
         return `<div class="rip-result-row">
             <div>
                 <div class="rip-result-name">${_esc(nome)}</div>
-                <div class="rip-result-nights">${gg} nott${gg===1?'e':'i'} · ${_fmtD(prima)} → ${_fmtD(par)}</div>
+                <div class="rip-result-nights">${gg} nott${gg===1?'e':'i'}</div>
                 ${dettaglio ? `<div class="rip-result-breakdown">${dettaglio}</div>` : ''}
             </div>
             <div class="rip-result-amount">${valuta}${(qA + qT).toFixed(2)}</div>
