@@ -208,20 +208,31 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
         <button class="style-tog" id="togCorsivo" onclick="toggleCorsivo()"><i>I</i> Corsivo</button>
     </div>
 
-    <label class="form-label">Formato di stampa</label>
-    <div class="formato-grid" id="formatGrid"></div>
-
-    <label class="form-label">Dimensioni etichetta</label>
-    <div class="dim-row">
-        <div>
-            <label class="form-label">Larghezza mm</label>
-            <input class="form-input" id="fW" type="number" min="10" max="400" placeholder="190" oninput="onDimChange()" style="margin:0">
-        </div>
-        <div>
-            <label class="form-label">Altezza mm</label>
-            <input class="form-input" id="fH" type="number" min="10" max="400" placeholder="136" oninput="onDimChange()" style="margin:0">
+    <label class="form-label">Foglio</label>
+    <div id="foglioChips" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px"></div>
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+        <button class="margine-chip" id="orientV" onclick="setOrient('V')" style="flex:1">▯ Verticale</button>
+        <button class="margine-chip" id="orientH" onclick="setOrient('H')" style="flex:1">▭ Orizzontale</button>
+    </div>
+    <label class="form-label">Margini foglio</label>
+    <div id="margineLayoutChips" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px"></div>
+    <label class="form-label">Etichette per foglio</label>
+    <div id="layoutPresets" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px"></div>
+    <div id="layoutCustomBox" style="display:none;margin-bottom:10px">
+        <div class="dim-row">
+            <div>
+                <label class="form-label">Colonne</label>
+                <input class="form-input" id="layoutCols" type="number" min="1" max="20" value="1" oninput="onLayoutCustomChange()" style="margin:0">
+            </div>
+            <div>
+                <label class="form-label">Righe</label>
+                <input class="form-input" id="layoutRows" type="number" min="1" max="30" value="2" oninput="onLayoutCustomChange()" style="margin:0">
+            </div>
         </div>
     </div>
+    <div id="layoutComputedInfo" style="background:var(--grey-light);border-radius:12px;padding:10px 14px;margin-bottom:12px;font-size:13px;font-weight:700;color:var(--dark)"></div>
+    <input type="hidden" id="fW" value="190">
+    <input type="hidden" id="fH" value="136">
 
     <label class="form-label">Copie da stampare</label>
     <div class="copie-row">
@@ -385,13 +396,33 @@ const FORMATI = [
     { id:'custom',  label:'Personalizzato',   desc:'Dimensioni libere',         w:null,h:null,cols:null,rows:null,land:false,iw:28,ih:20 },
 ];
 
+const FOGLI = [
+    { id:'a4', label:'A4', w:210, h:297 },
+    { id:'a5', label:'A5', w:148, h:210 },
+    { id:'a6', label:'A6', w:105, h:148 },
+    { id:'a3', label:'A3', w:297, h:420 },
+];
+const LAYOUT_PRESETS = [
+    { n:1,  cols:1, rows:1 },
+    { n:2,  cols:1, rows:2 },
+    { n:4,  cols:2, rows:2 },
+    { n:6,  cols:2, rows:3 },
+    { n:9,  cols:3, rows:3 },
+    { n:12, cols:3, rows:4 },
+    { n:16, cols:4, rows:4 },
+    { n:24, cols:4, rows:6 },
+    { n:30, cols:5, rows:6 },
+    { n:48, cols:6, rows:8 },
+    { n:65, cols:5, rows:13 },
+];
+
 const MARGINI = [5, 8, 10, 15, 20];
 const DIM_SCALE = { xs:0.6, s:0.8, m:1.0, l:1.3, xl:1.7 };
 const DIM_LABELS = { xs:'XS', s:'S', m:'M', l:'L', xl:'XL' };
 
 // ── Stato ──────────────────────────────────────────────────────────
 let items = [], editId = null, nCopie = 1;
-let st = { icona:'📦', stile:'pieno', sfondo:'#0f172a', testo:'#f8fafc', acc:'#818cf8', formato:'a4_2', font:'sans', allineamento:'centro', grassetto:true, corsivo:false, dim_scala:'m' };
+let st = { icona:'📦', stile:'pieno', sfondo:'#0f172a', testo:'#f8fafc', acc:'#818cf8', formato:'a4_2', font:'sans', allineamento:'centro', grassetto:true, corsivo:false, dim_scala:'m', foglio:'a4', orientamento:'V', layout_cols:1, layout_rows:2, margini_layout:10, layout_custom:false };
 let stS = {};
 let stampaQueue = [], marginiMm = 10;
 
@@ -403,7 +434,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     buildFontPicker();
     buildAlignPicker();
     buildSizeChips();
-    buildFormatGrid();
     buildMargineChips();
     await carica();
 });
@@ -430,6 +460,9 @@ function renderElenco() {
         const sc = CARD / (W * 3.779);
         const ph = Math.round(H * 3.779 * sc);
         const inQ = stampaQueue.includes(e.id);
+        const ld = (() => { try { return JSON.parse(localStorage.getItem(`etl_${e.id}`) || 'null'); } catch { return null; } })();
+        const foglioLabel = ld ? (FOGLI.find(f=>f.id===ld.foglio)||FOGLI[0]).label : 'A4';
+        const perFoglio = ld ? `${(ld.layout_cols||1)*(ld.layout_rows||1)}/foglio` : fmt.desc;
         return `<div class="label-card" onclick="apriEdit(${e.id})">
             <div class="label-card-preview" style="height:${ph}px">
                 <div style="transform:scale(${sc.toFixed(4)});transform-origin:top left;position:absolute">
@@ -438,7 +471,7 @@ function renderElenco() {
             </div>
             <div class="label-card-footer">
                 <div class="label-card-name">${esc(e.titolo || 'Senza titolo')}</div>
-                <div class="label-card-fmt">${fmt.label} · ${W}×${H}mm</div>
+                <div class="label-card-fmt">${foglioLabel} · ${perFoglio} · ${W}×${H}mm</div>
                 <div class="label-card-actions">
                     <button class="btn-action foglio${inQ?' nel':''}" onclick="event.stopPropagation();aggiungiAlFoglio(${e.id})">${inQ?'✓ Nel foglio':'⊕ Foglio'}</button>
                     <button class="btn-action print" onclick="event.stopPropagation();stampaById(${e.id})">🖨️ Stampa</button>
@@ -674,34 +707,76 @@ function toggleCorsivo() {
     aggiornaPrev();
 }
 
-function buildFormatGrid() {
-    document.getElementById('formatGrid').innerHTML = FORMATI.map(f =>
-        `<button class="formato-btn" id="fmt_${f.id}" onclick="setFormato('${f.id}')">
-            <div style="display:flex;justify-content:center"><div class="formato-vis" style="width:${f.iw}px;height:${f.ih}px"></div></div>
-            <div class="formato-label">${f.label}</div>
-            <div class="formato-desc">${f.desc}</div>
-        </button>`
+function buildFoglioChips() {
+    document.getElementById('foglioChips').innerHTML = FOGLI.map(f =>
+        `<button class="margine-chip${st.foglio===f.id?' active':''}" id="foglio_${f.id}" onclick="setFoglio('${f.id}')">${f.label}</button>`
     ).join('');
 }
-function setFormato(id) {
-    st.formato = id;
-    document.querySelectorAll('.formato-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById('fmt_'+id)?.classList.add('active');
-    const fmt = FORMATI.find(f => f.id === id);
-    if (fmt && fmt.w) {
-        document.getElementById('fW').value = fmt.w;
-        document.getElementById('fH').value = fmt.h;
-    }
-    if (fmt && fmt.cols && fmt.rows) {
-        nCopie = fmt.cols * fmt.rows;
-        document.getElementById('copieVal').textContent = nCopie;
-    }
-    aggiornaPrev();
+function buildMargineLayoutChips() {
+    const mm = st.margini_layout || 10;
+    document.getElementById('margineLayoutChips').innerHTML = MARGINI.map(m =>
+        `<button class="margine-chip${m===mm?' active':''}" id="mlc_${m}" onclick="setMargineLayout(${m})">${m} mm</button>`
+    ).join('');
 }
-function onDimChange() {
-    st.formato = 'custom';
-    document.querySelectorAll('.formato-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById('fmt_custom')?.classList.add('active');
+function buildLayoutPresets() {
+    const isCustom = !!st.layout_custom;
+    const presets = LAYOUT_PRESETS.map(p => {
+        const isActive = !isCustom && st.layout_cols===p.cols && st.layout_rows===p.rows;
+        return `<button class="formato-btn${isActive?' active':''}" id="lp_${p.n}" onclick="setLayoutPreset(${p.n},${p.cols},${p.rows})"><div class="formato-label" style="font-size:17px;font-weight:900">${p.n}</div><div class="formato-desc">${p.cols}×${p.rows}</div></button>`;
+    }).join('');
+    const customBtn = `<button class="formato-btn${isCustom?' active':''}" id="lp_custom" onclick="setLayoutPreset('custom',${st.layout_cols||1},${st.layout_rows||1})"><div class="formato-label">×</div><div class="formato-desc">Libero</div></button>`;
+    document.getElementById('layoutPresets').innerHTML = presets + customBtn;
+}
+function setFoglio(id) {
+    st.foglio = id;
+    document.querySelectorAll('[id^="foglio_"]').forEach(b => b.classList.remove('active'));
+    document.getElementById('foglio_'+id)?.classList.add('active');
+    aggiornaLayoutComputed();
+}
+function setOrient(o) {
+    st.orientamento = o;
+    _syncOrientButtons();
+    aggiornaLayoutComputed();
+}
+function _syncOrientButtons() {
+    document.getElementById('orientV')?.classList.toggle('active', st.orientamento !== 'H');
+    document.getElementById('orientH')?.classList.toggle('active', st.orientamento === 'H');
+}
+function setMargineLayout(mm) {
+    st.margini_layout = mm;
+    document.querySelectorAll('[id^="mlc_"]').forEach(b => b.classList.remove('active'));
+    document.getElementById('mlc_'+mm)?.classList.add('active');
+    aggiornaLayoutComputed();
+}
+function setLayoutPreset(n, cols, rows) {
+    st.layout_custom = (n === 'custom');
+    if (!st.layout_custom) { st.layout_cols = cols; st.layout_rows = rows; }
+    document.querySelectorAll('#layoutPresets .formato-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(`lp_${n}`)?.classList.add('active');
+    document.getElementById('layoutCustomBox').style.display = st.layout_custom ? '' : 'none';
+    if (!st.layout_custom) aggiornaLayoutComputed();
+}
+function onLayoutCustomChange() {
+    st.layout_cols = Math.max(1, parseInt(document.getElementById('layoutCols').value)||1);
+    st.layout_rows = Math.max(1, parseInt(document.getElementById('layoutRows').value)||1);
+    aggiornaLayoutComputed();
+}
+function aggiornaLayoutComputed() {
+    const foglio = FOGLI.find(f => f.id === (st.foglio||'a4')) || FOGLI[0];
+    const isLand = st.orientamento === 'H';
+    const shW = isLand ? foglio.h : foglio.w;
+    const shH = isLand ? foglio.w : foglio.h;
+    const mm = st.margini_layout || 10;
+    const cols = Math.max(1, st.layout_cols || 1);
+    const rows = Math.max(1, st.layout_rows || 1);
+    const lW = Math.round(((shW - 2*mm) / cols) * 10) / 10;
+    const lH = Math.round(((shH - 2*mm) / rows) * 10) / 10;
+    document.getElementById('fW').value = lW;
+    document.getElementById('fH').value = lH;
+    const info = document.getElementById('layoutComputedInfo');
+    if (info) info.innerHTML = `Etichetta: <b>${lW} × ${lH} mm</b> &nbsp;·&nbsp; ${cols}×${rows} per foglio (${foglio.label} ${isLand?'▭':'▯'})`;
+    nCopie = cols * rows;
+    document.getElementById('copieVal').textContent = nCopie;
     aggiornaPrev();
 }
 
@@ -754,7 +829,13 @@ function apriAnteprima() {
 function chiudiAnteprima() { document.getElementById('modalAnteprima').classList.remove('open'); }
 function renderAnteprima() {
     const PX = 3.779;
-    const pgWpx = 210 * PX, pgHpx = 297 * PX;
+    const firstId = stampaQueue[0];
+    const fld = firstId ? (() => { try { return JSON.parse(localStorage.getItem(`etl_${firstId}`) || 'null'); } catch { return null; } })() : null;
+    const foglio = FOGLI.find(f => f.id === (fld?.foglio||'a4')) || FOGLI[0];
+    const isLand = (fld?.orientamento||'V') === 'H';
+    const pgWmm = isLand ? foglio.h : foglio.w;
+    const pgHmm = isLand ? foglio.w : foglio.h;
+    const pgWpx = pgWmm * PX, pgHpx = pgHmm * PX;
     const marginPx = marginiMm * PX;
     let labelsHtml = '';
     for (const id of stampaQueue) {
@@ -786,7 +867,7 @@ function apriNuova() {
     document.getElementById('fTitolo').value = '';
     document.getElementById('fSub').value = '';
     document.getElementById('fPeriodo').value = '';
-    st = { icona:'📦', stile:'pieno', sfondo:'#0f172a', testo:'#f8fafc', acc:'#818cf8', formato:'a4_2', font:'sans', allineamento:'centro', grassetto:true, corsivo:false, dim_scala:'m' };
+    st = { icona:'📦', stile:'pieno', sfondo:'#0f172a', testo:'#f8fafc', acc:'#818cf8', formato:'a4_2', font:'sans', allineamento:'centro', grassetto:true, corsivo:false, dim_scala:'m', foglio:'a4', orientamento:'V', layout_cols:1, layout_rows:2, margini_layout:10, layout_custom:false };
     popolaForm();
     document.getElementById('modal').classList.add('open');
     setTimeout(() => document.getElementById('fTitolo').focus(), 300);
@@ -798,20 +879,23 @@ function apriEdit(id) {
     document.getElementById('btnDel').style.display = '';
     document.getElementById('btnDuplica').style.display = '';
     document.getElementById('copieVal').textContent = nCopie;
+    const ld = (() => { try { return JSON.parse(localStorage.getItem(`etl_${id}`) || 'null'); } catch { return null; } })();
+    const oldFmt = FORMATI.find(f => f.id === e.formato);
     st = {
         icona: e.icona||'', stile: e.stile||'pieno',
         sfondo: e.colore_sfondo||'#0f172a', testo: e.colore_testo||'#f8fafc', acc: e.colore_accento||'#818cf8',
         formato: e.formato||'a4_2', font: e.font||'sans', allineamento: e.allineamento||'centro',
-        grassetto: e.grassetto!==false, corsivo: !!e.corsivo, dim_scala: e.dim_scala||'m'
+        grassetto: e.grassetto!==false, corsivo: !!e.corsivo, dim_scala: e.dim_scala||'m',
+        foglio: ld?.foglio || 'a4',
+        orientamento: ld?.orientamento || 'V',
+        layout_cols: ld?.layout_cols || oldFmt?.cols || 1,
+        layout_rows: ld?.layout_rows || oldFmt?.rows || 2,
+        margini_layout: ld?.margini_layout || 10,
+        layout_custom: ld?.layout_custom || false,
     };
     document.getElementById('fTitolo').value = e.titolo||'';
     document.getElementById('fSub').value = e.sottotitolo||'';
     document.getElementById('fPeriodo').value = e.periodo||'';
-    // Per formato custom, pre-carico dims perché setFormato non le sovrascrive
-    if (st.formato === 'custom') {
-        document.getElementById('fW').value = e.larghezza_mm || 190;
-        document.getElementById('fH').value = e.altezza_mm || 136;
-    }
     popolaForm();
     document.getElementById('modal').classList.add('open');
 }
@@ -828,8 +912,16 @@ function popolaForm() {
     setSizeScale(st.dim_scala||'m');
     document.getElementById('togGrassetto')?.classList.toggle('active', st.grassetto!==false);
     document.getElementById('togCorsivo')?.classList.toggle('active', !!st.corsivo);
-    buildFormatGrid();
-    setFormato(st.formato); // popola fW/fH per formati predefiniti, non tocca custom
+    buildFoglioChips();
+    buildMargineLayoutChips();
+    buildLayoutPresets();
+    _syncOrientButtons();
+    document.getElementById('layoutCustomBox').style.display = st.layout_custom ? '' : 'none';
+    if (st.layout_custom) {
+        document.getElementById('layoutCols').value = st.layout_cols || 1;
+        document.getElementById('layoutRows').value = st.layout_rows || 1;
+    }
+    aggiornaLayoutComputed();
 }
 function chiudi() { document.getElementById('modal').classList.remove('open'); }
 
@@ -849,8 +941,23 @@ async function salva() {
         font: st.font, allineamento: st.allineamento,
         grassetto: st.grassetto, corsivo: st.corsivo, dim_scala: st.dim_scala,
     };
-    if (editId) await sb.from('etichette').update(row).eq('id', editId);
-    else await sb.from('etichette').insert(row);
+    let savedId = editId;
+    if (editId) {
+        await sb.from('etichette').update(row).eq('id', editId);
+    } else {
+        const { data } = await sb.from('etichette').insert(row).select('id').single();
+        savedId = data?.id;
+    }
+    if (savedId) {
+        localStorage.setItem(`etl_${savedId}`, JSON.stringify({
+            foglio: st.foglio || 'a4',
+            orientamento: st.orientamento || 'V',
+            layout_cols: st.layout_cols || 1,
+            layout_rows: st.layout_rows || 1,
+            margini_layout: st.margini_layout || 10,
+            layout_custom: !!st.layout_custom,
+        }));
+    }
     chiudi(); toast('✓ Salvata'); await carica();
 }
 async function del(id) {
@@ -862,7 +969,11 @@ async function eliminaAttuale() { if (editId) { chiudi(); await del(editId); } }
 async function copia(id) {
     const e = items.find(x => x.id === id); if (!e) return;
     const { id:_, created_at:__, ...rest } = e;
-    await sb.from('etichette').insert({ ...rest, titolo: (rest.titolo||'')+ ' (copia)' });
+    const { data } = await sb.from('etichette').insert({ ...rest, titolo: (rest.titolo||'')+ ' (copia)' }).select('id').single();
+    if (data?.id) {
+        const ld = localStorage.getItem(`etl_${id}`);
+        if (ld) localStorage.setItem(`etl_${data.id}`, ld);
+    }
     toast('✓ Duplicata'); await carica();
 }
 async function duplicaAttuale() { if (editId) { chiudi(); await copia(editId); } }
@@ -882,44 +993,45 @@ function stampaOra() {
         colore_testo: document.getElementById('cTesto').value,
         colore_accento: document.getElementById('cAcc').value,
         formato: st.formato, larghezza_mm: W, altezza_mm: H, copie: nCopie,
+        _layout: { foglio: st.foglio||'a4', orientamento: st.orientamento||'V', layout_cols: st.layout_cols||1, layout_rows: st.layout_rows||1, margini_layout: st.margini_layout||10 },
     });
 }
 function eseguiStampa(e) {
-    const fmt = FORMATI.find(f => f.id === e.formato) || FORMATI[1];
-    const W = e.larghezza_mm || fmt.w || 190;
-    const H = e.altezza_mm  || fmt.h || 136;
+    const ld = e._layout || (() => { try { return JSON.parse(localStorage.getItem(`etl_${e.id}`) || 'null'); } catch { return null; } })();
+    const foglio = FOGLI.find(f => f.id === (ld?.foglio||'a4')) || FOGLI[0];
+    const isLand = (ld?.orientamento||'V') === 'H';
+    const ml = ld?.margini_layout || marginiMm;
+    const W = e.larghezza_mm || 190;
+    const H = e.altezza_mm || 136;
     const tot = e.copie || 1;
-    const isLand = fmt.land;
-    let cols = fmt.cols || 1, rows = fmt.rows || 1;
-    if (fmt.id === 'custom') {
-        const pgW = isLand ? 277 : 190, pgH = isLand ? 190 : 277;
-        cols = Math.max(1, Math.floor((pgW + 3) / (W + 3)));
-        rows = Math.max(1, Math.floor((pgH + 3) / (H + 3)));
-    }
+    const cols = ld?.layout_cols || Math.max(1, Math.round(((isLand?foglio.h:foglio.w) - 2*ml) / W));
+    const rows = ld?.layout_rows || Math.max(1, Math.round(((isLand?foglio.w:foglio.h) - 2*ml) / H));
     const perPag = cols * rows;
     const nPag = Math.ceil(tot / perPag);
     let pagesHtml = '', count = 0;
     for (let pg = 0; pg < nPag; pg++) {
         let grid = '';
         for (let i = 0; i < perPag && count < tot; i++, count++) grid += labelHtml(e, W, H);
-        pagesHtml += `<div style="display:grid;grid-template-columns:repeat(${cols},${W}mm);gap:3mm;page-break-after:${pg<nPag-1?'always':'auto'};align-content:start">${grid}</div>`;
+        pagesHtml += `<div style="display:grid;grid-template-columns:repeat(${cols},${W}mm);page-break-after:${pg<nPag-1?'always':'auto'};align-content:start">${grid}</div>`;
     }
-    _setPrintStyle(`@media print{@page{size:A4 ${isLand?'landscape':'portrait'};margin:${marginiMm}mm;}}`);
+    _setPrintStyle(`@media print{@page{size:${foglio.label} ${isLand?'landscape':'portrait'};margin:${ml}mm;}}`);
     document.getElementById('printLayer').innerHTML = pagesHtml;
     requestAnimationFrame(() => window.print());
 }
 function eseguiStampaFoglio() {
     if (!stampaQueue.length) return;
+    const fld = (() => { try { return JSON.parse(localStorage.getItem(`etl_${stampaQueue[0]}`) || 'null'); } catch { return null; } })();
+    const foglio = FOGLI.find(f => f.id === (fld?.foglio||'a4')) || FOGLI[0];
+    const isLand = (fld?.orientamento||'V') === 'H';
     let labelsHtml = '';
     for (const id of stampaQueue) {
         const e = items.find(x => x.id === id); if (!e) continue;
-        const fmt = FORMATI.find(f => f.id === e.formato) || FORMATI[1];
-        const W = e.larghezza_mm || fmt.w || 190;
-        const H = e.altezza_mm || fmt.h || 136;
+        const W = e.larghezza_mm || 190;
+        const H = e.altezza_mm || 136;
         const copies = e.copie || 1;
         for (let i = 0; i < copies; i++) labelsHtml += `<div style="flex-shrink:0;break-inside:avoid">${labelHtml(e, W, H)}</div>`;
     }
-    _setPrintStyle(`@media print{@page{size:A4 portrait;margin:${marginiMm}mm;}}`);
+    _setPrintStyle(`@media print{@page{size:${foglio.label} ${isLand?'landscape':'portrait'};margin:${marginiMm}mm;}}`);
     document.getElementById('printLayer').innerHTML = `<div style="display:flex;flex-wrap:wrap;align-content:flex-start;gap:3mm">${labelsHtml}</div>`;
     chiudiAnteprima();
     requestAnimationFrame(() => window.print());

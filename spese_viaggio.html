@@ -1156,7 +1156,10 @@
         <textarea class="form-input" id="bNote" rows="2" style="resize:none" placeholder="Dettagli, riferimenti…"></textarea>
 
         <label class="form-label">Link prenotazione</label>
-        <input class="form-input" id="bLinkPrenotazione" type="url" placeholder="https://booking.com/…" autocomplete="off">
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">
+            <input class="form-input" id="bLinkPrenotazione" type="url" placeholder="https://booking.com/…" autocomplete="off" style="margin:0;flex:1">
+            <button onclick="_apreLinkPrenotazione()" style="width:44px;height:48px;border-radius:12px;border:2px solid var(--grey);background:var(--white);cursor:pointer;font-size:20px;flex-shrink:0" title="Apri link">🔗</button>
+        </div>
 
         <div id="bAlloggioBox" style="display:none">
             <div style="height:1px;background:var(--grey);margin:4px 0 14px"></div>
@@ -5137,6 +5140,7 @@ function renderBPoiList() {
             <span class="poi-nome">${_esc(p.nome)}</span>
             ${p.km != null ? `<span class="poi-km">${p.km} km</span>` : ''}
             <button class="poi-maps" onclick="apriBPoiMaps(${i})" title="Apri Maps">🗺️</button>
+            <button class="poi-maps" onclick="modificaBPoi(${i})" title="Modifica" style="border-color:#aaa;font-size:13px">✏️</button>
             <button class="poi-del" onclick="_bPoiList.splice(${i},1);renderBPoiList()">×</button>
         </div>`).join('');
 }
@@ -5146,7 +5150,19 @@ function aggiungiBPoi() {
     if (!nome?.trim()) return;
     const kmStr = prompt('Distanza in km dall\'alloggio?\n(lascia vuoto se non sai)');
     const km = kmStr?.trim() ? parseFloat(kmStr.replace(',', '.')) : null;
-    _bPoiList.push({ nome: nome.trim(), km: (km != null && !isNaN(km)) ? km : null });
+    const n = nome.trim();
+    _bPoiList.push({ nome: n.charAt(0).toUpperCase() + n.slice(1), km: (km != null && !isNaN(km)) ? km : null });
+    renderBPoiList();
+}
+
+function modificaBPoi(i) {
+    const p = _bPoiList[i];
+    const nome = prompt('Nome del punto di interesse', p.nome);
+    if (nome === null) return;
+    const kmStr = prompt('Distanza in km dall\'alloggio?\n(lascia vuoto se non sai)', p.km != null ? String(p.km) : '');
+    const km = kmStr?.trim() ? parseFloat(kmStr.replace(',', '.')) : null;
+    const n = nome.trim();
+    _bPoiList[i] = { nome: n.charAt(0).toUpperCase() + n.slice(1), km: (km != null && !isNaN(km)) ? km : null };
     renderBPoiList();
 }
 
@@ -5164,6 +5180,12 @@ function apriBPoiMaps(i) {
 function _salvaBudgetPoiLocale(itemId) {
     if (!itemId || !viaggioCorrenteId) return;
     localStorage.setItem(`sv_poi_${viaggioCorrenteId}_${itemId}`, JSON.stringify(_bPoiList));
+}
+
+function _apreLinkPrenotazione() {
+    const url = document.getElementById('bLinkPrenotazione').value.trim();
+    if (!url) { toast('Inserisci prima un link di prenotazione'); return; }
+    window.open(url, '_blank');
 }
 
 function _caricaBudgetPoiLocale(itemId) {
