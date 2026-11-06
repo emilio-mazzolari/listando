@@ -176,6 +176,10 @@ function isPWA() {
     return window.matchMedia('(display-mode: standalone)').matches ||
            window.navigator.standalone === true;
 }
+// Solo iOS PWA ha localStorage isolato da Safari — serve il flusso via state+DB
+function isIOSPWA() {
+    return window.navigator.standalone === true;
+}
 
 function getRedirectUrl() {
     const url = localStorage.getItem('pendingUrl');
@@ -365,9 +369,8 @@ function loginConGoogle() {
     localStorage.setItem('google_auth_pending', '1');
     statusDiv.innerHTML = 'Reindirizzo a Google…';
 
-    if (isPWA()) {
-        // Su PWA iOS/Android il redirect OAuth apre Safari, con localStorage isolato.
-        // Usiamo un UUID state per passare i token via server (auth_state_tokens).
+    if (isIOSPWA()) {
+        // Solo iOS PWA: localStorage isolato da Safari, si passano i token via DB
         const state = crypto.randomUUID();
         localStorage.setItem('oauth_state', state);
         window.open(`/api/google-auth?state=${state}`, '_blank');
@@ -375,6 +378,7 @@ function loginConGoogle() {
         document.getElementById('btnRicontrolla').style.display = '';
         document.getElementById('btnGoogle').style.display = 'none';
     } else {
+        // Browser normale + Android PWA: redirect diretto (localStorage condiviso)
         window.location.href = '/api/google-auth';
     }
 }
