@@ -1126,7 +1126,7 @@
 
         <div style="display:flex;gap:8px">
             <div style="flex:1.6">
-                <label class="form-label">Importo previsto *</label>
+                <label class="form-label" id="bImportoLabel">Importo previsto *</label>
                 <input class="form-input" id="bImporto" type="number" min="0" step="0.01" placeholder="0.00" inputmode="decimal" style="margin:0;padding:10px 12px">
             </div>
             <div style="flex:1">
@@ -1164,6 +1164,10 @@
 
         <div id="bAlloggioBox" style="display:none">
             <div style="height:1px;background:var(--grey);margin:4px 0 14px"></div>
+            <div style="display:flex;gap:6px;margin-bottom:14px">
+                <button class="period-pill active" id="bModeFisso" onclick="setBudgetAlloggioMode('fisso')">Importo fisso</button>
+                <button class="period-pill" id="bModeRipartire" onclick="setBudgetAlloggioMode('ripartire')">Da ripartire</button>
+            </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
                 <div>
                     <label class="form-label">Check-in</label>
@@ -1455,7 +1459,7 @@ let _collapsedDays = {};
 const _saldiSezioni = { saldi: false, pareggiare: false, storico: true };
 let pianoItemEditId = null, budgetItemEditId = null;
 let _invitePartId = null;
-let pianoTipoScelto = 'auto', budgetCatScelta = 'altro', budgetStatoScelto = 'prevista';
+let pianoTipoScelto = 'auto', budgetCatScelta = 'altro', budgetStatoScelto = 'prevista', budgetAlloggioMode = 'fisso';
 let budgetPerChi = 'tutti', budgetPerChiNomi = [];
 let _budgetItemDaCollegare = null;
 
@@ -4884,6 +4888,7 @@ function budgetPerChiLabel(b) {
 function apriModalNuovoBudgetItem() {
     budgetItemEditId = null;
     budgetCatScelta = 'altro';
+    budgetAlloggioMode = 'fisso';
     budgetPerChiNomi = [];
     _bPoiList = [];
     document.getElementById('titoloModalBudget').textContent = 'Nuova voce budget';
@@ -4895,6 +4900,7 @@ function apriModalNuovoBudgetItem() {
     document.getElementById('bTassaSoggiorno').value = '';
     document.getElementById('bCheckIn').value = '';
     document.getElementById('bCheckOut').value = '';
+    setBudgetAlloggioMode('fisso');
     renderBPoiList();
     document.getElementById('btnEliminaBudget').style.display = 'none';
     populateCurrencySelects('bValuta');
@@ -4911,6 +4917,7 @@ function apriModalEditBudgetItem(id) {
     if (!b) return;
     budgetItemEditId = id;
     budgetCatScelta = b.categoria || 'altro';
+    budgetAlloggioMode = localStorage.getItem(`sv_allomode_${viaggioCorrenteId}_${id}`) || 'fisso';
     _bPoiList = _caricaBudgetPoiLocale(id);
     document.getElementById('titoloModalBudget').textContent = 'Modifica voce';
     document.getElementById('bTitolo').value = b.titolo || b.descrizione || '';
@@ -4929,6 +4936,7 @@ function apriModalEditBudgetItem(id) {
     budgetPerChiNomi = Array.isArray(b.per_chi_nomi) ? [...b.per_chi_nomi] : (b.per_chi_nomi ? JSON.parse(b.per_chi_nomi) : []);
     setBudgetPerChi(b.per_chi || 'tutti');
     renderBudgetCatRow();
+    setBudgetAlloggioMode(budgetAlloggioMode);
     _renderRipPreviewInModal(id);
     document.getElementById('modalBudgetItem').classList.add('open');
 }
@@ -4942,7 +4950,6 @@ function _renderRipPreviewInModal(itemId) {
     if (!ris.length) { prev.style.display = 'none'; return; }
     const vs = symb(rip.valuta || viaggioCorrenteValuta);
     prev.style.display = '';
-    btn.style.display  = '';
     prev.innerHTML = `<div style="font-size:11px;font-weight:800;color:#5856d6;margin-bottom:6px">👥 Ripartizione salvata</div>` +
         ris.map(r => `<div style="display:flex;justify-content:space-between;font-size:13px;font-weight:700;padding:3px 0">
             <span>${_esc(r.nome)} <span style="color:#aaa;font-size:11px">(${r.notti}n)</span></span>
@@ -5177,7 +5184,25 @@ function _toggleAlloggioBox(cat) {
     const box = document.getElementById('bAlloggioBox');
     if (box) box.style.display = isAlloggio ? '' : 'none';
     const btn = document.getElementById('bBtnRipartisci');
-    if (btn) btn.style.display = isAlloggio ? '' : 'none';
+    if (btn) btn.style.display = (isAlloggio && budgetAlloggioMode === 'ripartire') ? '' : 'none';
+}
+
+function setBudgetAlloggioMode(mode) {
+    budgetAlloggioMode = mode;
+    document.getElementById('bModeFisso')?.classList.toggle('active', mode === 'fisso');
+    document.getElementById('bModeRipartire')?.classList.toggle('active', mode === 'ripartire');
+    const btn = document.getElementById('bBtnRipartisci');
+    if (btn) btn.style.display = (budgetCatScelta === 'alloggio' && mode === 'ripartire') ? '' : 'none';
+    const inp = document.getElementById('bImporto');
+    if (inp) {
+        inp.readOnly = mode === 'ripartire';
+        inp.style.opacity = mode === 'ripartire' ? '0.55' : '1';
+        inp.style.background = mode === 'ripartire' ? 'var(--grey-light)' : '';
+        if (mode === 'ripartire') inp.placeholder = 'Calcolato da ripartizione';
+        else inp.placeholder = '0.00';
+    }
+    const lbl = document.getElementById('bImportoLabel');
+    if (lbl) lbl.textContent = mode === 'ripartire' ? 'La tua quota (da ripartire)' : 'Importo previsto *';
 }
 
 function renderBPoiList() {
@@ -5240,6 +5265,7 @@ function _salvaBudgetPoiLocale(itemId) {
     const cout = document.getElementById('bCheckOut')?.value || '';
     localStorage.setItem(`sv_cin_${viaggioCorrenteId}_${itemId}`,  cin);
     localStorage.setItem(`sv_cout_${viaggioCorrenteId}_${itemId}`, cout);
+    localStorage.setItem(`sv_allomode_${viaggioCorrenteId}_${itemId}`, budgetAlloggioMode);
 }
 
 function _caricaAddrLocale(itemId) {
@@ -5272,9 +5298,11 @@ function _caricaBudgetPoiLocale(itemId) {
 
 async function salvaBudgetEApriRipartisci() {
     const titolo = document.getElementById('bTitolo').value.trim();
-    const importo = parseFloat(document.getElementById('bImporto').value);
+    const importo = budgetAlloggioMode === 'ripartire'
+        ? (parseFloat(document.getElementById('bImporto').value) || 0)
+        : parseFloat(document.getElementById('bImporto').value);
     if (!titolo) { toast('Inserisci un titolo'); return; }
-    if (isNaN(importo) || importo < 0) { toast('Inserisci un importo valido'); return; }
+    if (budgetAlloggioMode !== 'ripartire' && (isNaN(importo) || importo < 0)) { toast('Inserisci un importo valido'); return; }
     const body = {
         viaggio_id: viaggioCorrenteId,
         titolo,
@@ -5490,6 +5518,17 @@ async function salvaRipartizione() {
             // tabella mancante: la creo automaticamente poi riprovo
             await fetch('/api/run-sql?solo=sv_ripartizione').catch(() => {});
             res = await tryUpsert();
+        }
+    }
+    // when mode='ripartire', write user's quota back to sv_budget.importo_previsto
+    if (budgetAlloggioMode === 'ripartire' && risultati.length && _ripBudgetItemId) {
+        const meP = partecipantiAttuali.find(p => (p.email_collegata || '').toLowerCase() === _me());
+        const meNome = meP?.nome || '';
+        const quota = meNome ? _ripTrovaQuota(risultati, meNome) : null;
+        if (quota) {
+            await apiPatch(`/sv_budget?id=eq.${_ripBudgetItemId}`, { importo_previsto: quota.totale });
+            const cached = budgetAttuale.find(x => x.id === _ripBudgetItemId);
+            if (cached) cached.importo_previsto = quota.totale;
         }
     }
     toast(res.ok ? '✓ Ripartizione salvata' : '✓ Salvato');
