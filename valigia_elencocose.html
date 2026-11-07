@@ -691,5 +691,6 @@ function logout() {
 caricaDati();
 document.addEventListener('visibilitychange', () => { if (!document.hidden) caricaDati(); });
 </script>
+<script>if("serviceWorker"in navigator)navigator.serviceWorker.addEventListener("controllerchange",()=>location.reload());</script>
 </body>
 </html>

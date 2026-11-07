@@ -814,6 +814,7 @@ async function apriDocumento(id, tipo) {
         <button class="fb-send" id="fbSendBtn" onclick="_fbInvia()">Invia</button>
     </div>
 </div>
+<script>if("serviceWorker"in navigator)navigator.serviceWorker.addEventListener("controllerchange",()=>location.reload());</script>
 </body></html>`);
     try {
         const r = await fetch(`${URL}/documenti_valigia?id=eq.${id}&select=data,tipo,nome`, { headers: HR });
@@ -1231,5 +1232,6 @@ caricaValigie();
         finally { btn.disabled = false; btn.textContent = 'Invia'; }
     }
 </script>
+<script>if("serviceWorker"in navigator)navigator.serviceWorker.addEventListener("controllerchange",()=>location.reload());</script>
 </body>
 </html>

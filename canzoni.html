@@ -1367,5 +1367,6 @@ carica().then(() => {
         <button class="fb-send" id="fbSendBtn" onclick="_fbInvia()">Invia</button>
     </div>
 </div>
+<script>if("serviceWorker"in navigator)navigator.serviceWorker.addEventListener("controllerchange",()=>location.reload());</script>
 </body>
 </html>
