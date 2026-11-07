@@ -1162,9 +1162,6 @@
             <div id="bPerChiCheckboxes"></div>
         </div>
 
-        <label class="form-label">Note</label>
-        <textarea class="form-input" id="bNote" rows="2" style="resize:none" placeholder="Dettagli, riferimenti…"></textarea>
-
         <label class="form-label">Link prenotazione</label>
         <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">
             <input class="form-input" id="bLinkPrenotazione" type="url" placeholder="https://booking.com/…" autocomplete="off" style="margin:0;flex:1">
@@ -1201,6 +1198,9 @@
             </div>
             <div id="bPoiList"></div>
         </div>
+
+        <label class="form-label" style="margin-top:4px">Note</label>
+        <textarea class="form-input" id="bNote" rows="2" style="resize:none" placeholder="Dettagli, riferimenti…"></textarea>
 
         <button class="btn-save-modal" style="background:var(--green);margin-top:10px" onclick="salvaBudgetItem()">SALVA</button>
         <button class="btn-save-modal" id="btnEliminaBudget" style="display:none;background:#fff0f0;color:var(--red);border:2px solid #fcc;margin-top:8px" onclick="eliminaBudgetItemModal()">ELIMINA</button>
