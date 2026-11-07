@@ -252,14 +252,14 @@
                 <div class="row-body">
                     <div class="row-label">Nome</div>
                 </div>
-                <input class="row-input" id="fNome" type="text" placeholder="Nome" autocomplete="off" oninput="onCampoChange()">
+                <input class="row-input" id="fNome" type="text" placeholder="Nome" autocomplete="off" oninput="onCampoChange()" onblur="capitalizzaInput(this)">
             </div>
             <div class="row">
                 <div class="row-icon" style="background:#f5f0ff">🪪</div>
                 <div class="row-body">
                     <div class="row-label">Cognome</div>
                 </div>
-                <input class="row-input" id="fCognome" type="text" placeholder="Cognome" autocomplete="off" oninput="onCampoChange()">
+                <input class="row-input" id="fCognome" type="text" placeholder="Cognome" autocomplete="off" oninput="onCampoChange()" onblur="capitalizzaInput(this)">
             </div>
             <div class="row">
                 <div class="row-icon" style="background:#fff8f0">🎂</div>
@@ -369,7 +369,7 @@
     <div class="settings-group">
         <div class="group-label">Supporto</div>
         <div class="group-card">
-            <div id="rowInviaFeedback" class="row" style="cursor:pointer" onclick="apriFeedback()">
+            <div class="row" style="cursor:pointer" onclick="apriFeedback()">
                 <div class="row-icon" style="background:#f0f9ff">💬</div>
                 <div class="row-body">
                     <div class="row-label">Invia feedback</div>
@@ -379,19 +379,6 @@
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
                 </div>
             </div>
-            <div id="rowAdminFeedback" class="row" style="display:none;cursor:pointer" onclick="apriAdminFeedback()">
-                <div class="row-icon" style="background:#fff8f0">📬</div>
-                <div class="row-body">
-                    <div class="row-label">Feedback ricevuti</div>
-                    <div class="row-sub" id="subFeedbackCount">—</div>
-                </div>
-                <div class="row-right">
-                    <svg id="arrowAdminFeedback" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
-                </div>
-            </div>
-            <div id="adminFeedbackPanel" style="display:none;padding:0 18px 16px">
-                <div id="adminFeedbackList"></div>
-            </div>
         </div>
     </div>
 
@@ -399,11 +386,11 @@
     <div class="settings-group" id="adminGroup" style="display:none">
         <div class="group-label">Admin</div>
         <div class="group-card">
-            <div class="row" style="cursor:pointer" onclick="apriAdminIscritti()">
-                <div class="row-icon" style="background:#f0f0ff">👥</div>
+            <div class="row" style="cursor:pointer" onclick="location.href='admin.html'">
+                <div class="row-icon" style="background:#1a1a2e;color:white">⚙️</div>
                 <div class="row-body">
-                    <div class="row-label">Iscritti a Listando</div>
-                    <div class="row-sub" id="subIscritti">—</div>
+                    <div class="row-label">Pannello Admin</div>
+                    <div class="row-sub">Utenti, notifiche push, feedback</div>
                 </div>
                 <div class="row-right">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
@@ -479,15 +466,6 @@
     </div>
 </div>
 
-
-<!-- Modal: Admin iscritti (solo admin) -->
-<div class="sheet-overlay" id="sheetAdminIscritti" onclick="if(!event.target.closest('.sheet-box'))chiudiAdminIscritti()">
-    <div class="sheet-box">
-        <div class="sheet-handle"></div>
-        <div class="sheet-title">👥 Iscritti a Listando</div>
-        <div id="adminIscrittiList"><div style="text-align:center;color:#aaa;padding:20px">Caricamento…</div></div>
-    </div>
-</div>
 
 <!-- Modal: Cambia email -->
 <div class="sheet-overlay" id="sheetCambioEmail" onclick="if(event.target===this)chiudiCambioEmail()">
@@ -664,9 +642,19 @@ function onFotoChange(input) {
     reader.readAsDataURL(file);
 }
 
+function titleCase(s) {
+    return s.toLowerCase().replace(/(^|[\s'])(\S)/g, (_, sep, c) => sep + c.toUpperCase());
+}
+function capitalizzaInput(el) {
+    const v = el.value.trim();
+    if (v) { el.value = titleCase(v); onCampoChange(); }
+}
+
 async function salvaProfilo() {
-    const nome        = document.getElementById('fNome').value.trim();
-    const cognome     = document.getElementById('fCognome').value.trim();
+    const nome        = titleCase(document.getElementById('fNome').value.trim());
+    const cognome     = titleCase(document.getElementById('fCognome').value.trim());
+    document.getElementById('fNome').value    = nome;
+    document.getElementById('fCognome').value = cognome;
     if (!nome || !cognome) { toast('⚠️ Nome e cognome sono obbligatori'); return; }
     const dataNascita = document.getElementById('fDataNascita').value || null;
     const iban        = document.getElementById('fIban').value.trim();
@@ -1003,218 +991,8 @@ async function inviaFeedback() {
     }
 }
 
-// ── Admin: lista feedback ─────────────────────────────────────────────
-async function caricaContattoFeedback() {
-    const res = await fetch(`${URL_S}/app_feedback?select=id`, { headers: _HR });
-    if (res.ok) {
-        const items = await res.json();
-        const n = Array.isArray(items) ? items.length : 0;
-        document.getElementById('subFeedbackCount').textContent = n === 1 ? '1 messaggio ricevuto' : `${n} messaggi ricevuti`;
-    }
-}
-
-async function apriAdminFeedback() {
-    const panel = document.getElementById('adminFeedbackPanel');
-    const arrow = document.getElementById('arrowAdminFeedback');
-    const open = panel.style.display !== 'none';
-    panel.style.display = open ? 'none' : 'block';
-    arrow.style.transform = open ? '' : 'rotate(90deg)';
-    if (!open) await renderAdminFeedback();
-}
-
-async function renderAdminFeedback() {
-    const list = document.getElementById('adminFeedbackList');
-    list.innerHTML = '';
-
-    const loading = document.createElement('div');
-    loading.style.cssText = 'text-align:center;color:#aaa;padding:20px';
-    loading.textContent = 'Caricamento…';
-    list.appendChild(loading);
-
-    const res = await fetch(`${URL_S}/app_feedback?order=created_at.desc`, { headers: _HR });
-    const items = res.ok ? await res.json() : [];
-    list.innerHTML = '';
-
-    if (!items.length) {
-        const empty = document.createElement('div');
-        empty.style.cssText = 'text-align:center;color:#aaa;padding:20px;font-weight:700';
-        empty.textContent = 'Nessun feedback ricevuto';
-        list.appendChild(empty);
-        caricaContattoFeedback();
-        return;
-    }
-
-    items.forEach(f => {
-        const d = new Date(f.created_at);
-        const dataStr = d.toLocaleDateString('it-IT', { day:'2-digit', month:'2-digit', year:'2-digit' })
-                      + ' ' + d.toLocaleTimeString('it-IT', { hour:'2-digit', minute:'2-digit' });
-
-        const item = document.createElement('div');
-        item.id = `afi-${f.id}`;
-        item.style.cssText = 'padding:14px 0;border-bottom:1px solid #f0f0f0';
-
-        // riga meta
-        const meta = document.createElement('div');
-        meta.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap';
-        const chip = document.createElement('span');
-        chip.style.cssText = 'font-size:10px;font-weight:900;padding:3px 8px;border-radius:6px;'
-            + (f.tipo === 'errore' ? 'background:#fff0f0;color:#ff3b30' : 'background:#f0f9ff;color:#0ea5e9');
-        chip.textContent = f.tipo === 'errore' ? '🐛 Errore' : '💡 Suggerimento';
-        const emailEl = document.createElement('span');
-        emailEl.style.cssText = 'font-size:11px;color:#888;font-weight:700';
-        emailEl.textContent = f.email_utente;
-        const dateEl = document.createElement('span');
-        dateEl.style.cssText = 'font-size:11px;color:#bbb;margin-left:auto';
-        dateEl.textContent = dataStr;
-        meta.append(chip, emailEl, dateEl);
-
-        // testo
-        const testoEl = document.createElement('div');
-        testoEl.style.cssText = 'font-size:13px;color:#444;line-height:1.5;white-space:pre-wrap;margin-bottom:8px';
-        testoEl.textContent = f.testo;
-
-        // risposta già inviata
-        const rispostaDiv = document.createElement('div');
-        if (f.risposta) {
-            rispostaDiv.style.cssText = 'background:#f0f9ff;border-radius:10px;padding:8px 12px;font-size:12px;color:#0369a1;font-weight:700;margin-bottom:8px';
-            rispostaDiv.textContent = '↩ Risposta inviata: ' + f.risposta;
-        }
-
-        // bottoni azione
-        const actions = document.createElement('div');
-        actions.style.cssText = 'display:flex;gap:8px;margin-bottom:4px';
-
-        const btnReply = document.createElement('button');
-        btnReply.style.cssText = 'padding:7px 13px;border-radius:10px;border:none;font-size:12px;font-weight:800;cursor:pointer;font-family:inherit;background:#f0f9ff;color:#0ea5e9';
-        btnReply.textContent = '↩ Rispondi';
-
-        const btnDel = document.createElement('button');
-        btnDel.style.cssText = 'padding:7px 13px;border-radius:10px;border:none;font-size:12px;font-weight:800;cursor:pointer;font-family:inherit;background:#fff0f0;color:#ff3b30';
-        btnDel.textContent = '🗑 Elimina';
-
-        actions.append(btnReply, btnDel);
-
-        // box risposta
-        const replyBox = document.createElement('div');
-        replyBox.style.display = 'none';
-        const ta = document.createElement('textarea');
-        ta.rows = 3;
-        ta.placeholder = 'Scrivi la tua risposta…';
-        ta.style.cssText = 'width:100%;border:2px solid #0ea5e9;border-radius:12px;padding:10px 12px;font-size:13px;font-family:inherit;resize:none;outline:none;line-height:1.5;box-sizing:border-box';
-        const btnSend = document.createElement('button');
-        btnSend.style.cssText = 'margin-top:6px;width:100%;padding:10px;border-radius:10px;border:none;background:#0ea5e9;color:white;font-weight:900;font-size:13px;cursor:pointer;font-family:inherit';
-        btnSend.textContent = 'Invia risposta';
-        replyBox.append(ta, btnSend);
-
-        item.append(meta, testoEl, rispostaDiv, actions, replyBox);
-        list.appendChild(item);
-
-        // listener direttamente sull'elemento DOM — nessun innerHTML con onclick
-        btnReply.addEventListener('click', function() {
-            const aperto = replyBox.style.display !== 'none';
-            replyBox.style.display = aperto ? 'none' : 'block';
-            if (!aperto) ta.focus();
-        });
-
-        btnDel.addEventListener('click', async function() {
-            item.style.opacity = '0.4';
-            const r = await fetch(`${URL_S}/app_feedback?id=eq.${f.id}`, {
-                method: 'DELETE',
-                headers: { ..._HR, 'Prefer': 'return=minimal' }
-            });
-            if (r.ok || r.status === 204) {
-                item.remove();
-                caricaContattoFeedback();
-                toast('🗑 Feedback eliminato');
-            } else {
-                item.style.opacity = '';
-                toast('Errore eliminazione (' + r.status + ')');
-            }
-        });
-
-        btnSend.addEventListener('click', async function() {
-            const testo = ta.value.trim();
-            if (!testo) return;
-            btnSend.disabled = true; btnSend.textContent = 'Invio…';
-            try {
-                const r = await fetch('/api/feedback', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'reply', id: f.id, email: f.email_utente, risposta: testo })
-                });
-                if (r.ok) {
-                    toast('✓ Risposta inviata');
-                    replyBox.style.display = 'none';
-                    rispostaDiv.style.cssText = 'background:#f0f9ff;border-radius:10px;padding:8px 12px;font-size:12px;color:#0369a1;font-weight:700;margin-bottom:8px';
-                    rispostaDiv.textContent = '↩ Risposta inviata: ' + testo;
-                } else { toast('Errore invio risposta'); }
-            } catch(e) { toast('Errore invio risposta'); }
-            btnSend.disabled = false; btnSend.textContent = 'Invia risposta';
-        });
-    });
-
-    caricaContattoFeedback();
-}
-
 if (userEmail === ADMIN_EMAIL) {
-    document.getElementById('rowAdminFeedback').style.display = '';
-    document.getElementById('rowInviaFeedback').style.display = 'none';
     document.getElementById('adminGroup').style.display = '';
-    caricaContattoFeedback();
-    caricaConteggiIscritti();
-}
-
-async function caricaConteggiIscritti() {
-    const [rP, rS] = await Promise.all([
-        fetch(`${URL_S}/profili?select=email_utente`, { headers: _HR }),
-        fetch(`${URL_S}/push_subscriptions?select=email`, { headers: _HR })
-    ]);
-    const profili = rP.ok ? await rP.json() : [];
-    const subs    = rS.ok ? await rS.json() : [];
-    const tutteEmail = new Set([
-        ...profili.map(p => p.email_utente),
-        ...subs.map(s => s.email)
-    ]);
-    const n = tutteEmail.size;
-    document.getElementById('subIscritti').textContent = `${n} ${n === 1 ? 'utente' : 'utenti'}`;
-}
-
-function apriAdminIscritti() {
-    document.getElementById('sheetAdminIscritti').classList.add('open');
-    renderAdminIscritti();
-}
-
-function chiudiAdminIscritti() {
-    document.getElementById('sheetAdminIscritti').classList.remove('open');
-}
-
-async function renderAdminIscritti() {
-    const list = document.getElementById('adminIscrittiList');
-    list.innerHTML = '<div style="text-align:center;color:#aaa;padding:20px">Caricamento…</div>';
-    const res = await fetch(`${URL_S}/profili?select=email_utente,nome,cognome,foto,created_at&order=created_at.desc`, { headers: _HR });
-    const items = res.ok ? await res.json() : [];
-    if (!items.length) {
-        list.innerHTML = '<div style="text-align:center;color:#aaa;padding:20px;font-weight:700">Nessun iscritto</div>';
-        return;
-    }
-    list.innerHTML = items.map(u => {
-        const nome = [u.nome, u.cognome].filter(Boolean).join(' ') || u.email_utente.split('@')[0];
-        const ini  = nome.split(' ').map(p => p[0]).slice(0,2).join('').toUpperCase() || '?';
-        const avatarBg = u.foto
-            ? `background-image:url(${u.foto});background-size:cover;background-position:center;`
-            : 'background:#eef2ff;';
-        const dataStr = u.created_at
-            ? new Date(u.created_at).toLocaleDateString('it-IT', { day:'numeric', month:'short', year:'numeric' })
-            : '';
-        return `<div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--grey-light)">
-            <div style="width:40px;height:40px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;color:#5856d6;${avatarBg}">${u.foto ? '' : ini}</div>
-            <div style="flex:1;min-width:0">
-                <div style="font-weight:800;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${nome}</div>
-                <div style="font-size:12px;color:#888;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${u.email_utente}</div>
-            </div>
-            ${dataStr ? `<div style="font-size:11px;color:#bbb;font-weight:700;flex-shrink:0">${dataStr}</div>` : ''}
-        </div>`;
-    }).join('');
 }
 </script>
 </body>

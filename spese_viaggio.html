@@ -1134,6 +1134,10 @@
                 <select class="form-input" id="bValuta" style="margin:0;padding:10px 12px"></select>
             </div>
         </div>
+        <div id="bAlloggioModeRow" style="display:none;gap:6px;margin-top:10px">
+            <button class="period-pill active" id="bModeFisso" onclick="setBudgetAlloggioMode('fisso')">Fisso</button>
+            <button class="period-pill" id="bModeRipartire" onclick="setBudgetAlloggioMode('ripartire')">Da ripartire</button>
+        </div>
         <button id="bBtnRipartisci" class="btn-save-modal" style="background:#5856d6;margin-top:10px;display:none" onclick="salvaBudgetEApriRipartisci()">RIPARTISCI SPESE</button>
 
         <label class="form-label" style="margin-top:12px">Stato</label>
@@ -1164,10 +1168,6 @@
 
         <div id="bAlloggioBox" style="display:none">
             <div style="height:1px;background:var(--grey);margin:4px 0 14px"></div>
-            <div style="display:flex;gap:6px;margin-bottom:14px">
-                <button class="period-pill active" id="bModeFisso" onclick="setBudgetAlloggioMode('fisso')">Importo fisso</button>
-                <button class="period-pill" id="bModeRipartire" onclick="setBudgetAlloggioMode('ripartire')">Da ripartire</button>
-            </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
                 <div>
                     <label class="form-label">Check-in</label>
@@ -5183,6 +5183,8 @@ function _toggleAlloggioBox(cat) {
     const isAlloggio = cat === 'alloggio';
     const box = document.getElementById('bAlloggioBox');
     if (box) box.style.display = isAlloggio ? '' : 'none';
+    const modeRow = document.getElementById('bAlloggioModeRow');
+    if (modeRow) modeRow.style.display = isAlloggio ? 'flex' : 'none';
     const btn = document.getElementById('bBtnRipartisci');
     if (btn) btn.style.display = (isAlloggio && budgetAlloggioMode === 'ripartire') ? '' : 'none';
 }

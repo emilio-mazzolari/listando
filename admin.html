@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Listando - Admin</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/icon-pwa-512.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            color-scheme: light;
+            --accent: #5856d6; --red: #ff3b30; --green: #0fba8d;
+            --grey: #d8dddc; --grey-light: #f2f2f7;
+            --dark: #111; --bg: #f2f2f7; --white: #fff;
+        }
+        * { box-sizing: border-box; }
+        html, body { overflow-x: hidden; max-width: 100%; margin: 0; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--dark); }
+
+        .page-header {
+            position: sticky; top: 0; z-index: 100;
+            background: #1a1a2e; border-bottom: none;
+            display: flex; align-items: center; gap: 10px;
+            padding: 14px 20px; padding-top: max(14px, env(safe-area-inset-top, 14px));
+        }
+        .btn-back {
+            width: 40px; height: 40px; border-radius: 12px;
+            border: 2px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.08);
+            display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;
+        }
+        .btn-back svg { width: 18px; height: 18px; stroke: white; fill: none; stroke-width: 2.5; }
+        .header-title { font-weight: 900; font-size: 18px; color: white; flex: 1; letter-spacing: 0.5px; }
+        .header-badge {
+            font-size: 10px; font-weight: 900; background: #ff3b30; color: white;
+            padding: 3px 8px; border-radius: 8px; letter-spacing: 0.5px;
+        }
+
+        .stats-strip {
+            background: #1a1a2e; padding: 0 20px 24px;
+            display: flex; gap: 12px;
+        }
+        .stat-card {
+            flex: 1; background: rgba(255,255,255,0.08); border-radius: 16px;
+            padding: 14px 16px; border: 1px solid rgba(255,255,255,0.1);
+        }
+        .stat-val { font-size: 28px; font-weight: 900; color: white; line-height: 1; }
+        .stat-lbl { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.55); margin-top: 4px; }
+
+        .content { padding: 20px 16px 100px; display: flex; flex-direction: column; gap: 24px; }
+
+        .group-label {
+            font-size: 11px; font-weight: 800; color: #888;
+            text-transform: uppercase; letter-spacing: 0.6px;
+            padding: 0 4px; margin-bottom: 8px;
+        }
+        .group-card {
+            background: var(--white); border-radius: 20px;
+            overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .row {
+            display: flex; align-items: center; gap: 14px;
+            padding: 16px 18px; border-bottom: 1px solid var(--grey-light);
+        }
+        .row:last-child { border-bottom: none; }
+        .row-icon {
+            width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center; font-size: 18px;
+        }
+        .row-body { flex: 1; min-width: 0; }
+        .row-label { font-size: 15px; font-weight: 700; }
+        .row-sub { font-size: 12px; color: #888; margin-top: 2px; font-weight: 500; }
+
+        /* Form notifica */
+        .notif-form { padding: 16px 18px; }
+        .field-label {
+            font-size: 11px; font-weight: 800; color: #999;
+            text-transform: uppercase; letter-spacing: 0.4px;
+            display: block; margin-bottom: 6px;
+        }
+        .field-input {
+            width: 100%; padding: 12px 14px; border: 2px solid var(--grey);
+            border-radius: 14px; font-size: 15px; font-family: inherit;
+            outline: none; transition: border 0.15s; color: var(--dark);
+            background: var(--white); margin-bottom: 14px;
+        }
+        .field-input:focus { border-color: var(--accent); }
+        textarea.field-input { resize: none; line-height: 1.5; }
+        .btn-invia {
+            width: 100%; padding: 15px; border-radius: 16px; border: none;
+            background: var(--accent); color: white; font-weight: 900; font-size: 15px;
+            cursor: pointer; font-family: inherit; transition: opacity 0.15s;
+        }
+        .btn-invia:disabled { opacity: 0.4; cursor: default; }
+        .notif-result {
+            margin-top: 12px; padding: 12px 14px; border-radius: 12px;
+            font-size: 13px; font-weight: 700; display: none;
+        }
+        .notif-result.ok { background: #e8fdf4; color: var(--green); }
+        .notif-result.err { background: #fff0f0; color: var(--red); }
+
+        /* Feedback list */
+        .fb-item { padding: 14px 18px; border-bottom: 1px solid var(--grey-light); }
+        .fb-item:last-child { border-bottom: none; }
+        .fb-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
+        .chip {
+            font-size: 10px; font-weight: 900; padding: 3px 8px; border-radius: 6px;
+        }
+        .chip-err { background: #fff0f0; color: var(--red); }
+        .chip-sugg { background: #f0f9ff; color: #0ea5e9; }
+        .fb-email { font-size: 11px; color: #888; font-weight: 700; }
+        .fb-date { font-size: 11px; color: #bbb; margin-left: auto; }
+        .fb-testo { font-size: 13px; color: #444; line-height: 1.5; white-space: pre-wrap; margin-bottom: 8px; }
+        .fb-risposta { background: #f0f9ff; border-radius: 10px; padding: 8px 12px; font-size: 12px; color: #0369a1; font-weight: 700; margin-bottom: 8px; }
+        .fb-actions { display: flex; gap: 8px; }
+        .btn-sm {
+            padding: 7px 13px; border-radius: 10px; border: none;
+            font-size: 12px; font-weight: 800; cursor: pointer; font-family: inherit;
+        }
+        .btn-reply { background: #f0f9ff; color: #0ea5e9; }
+        .btn-del { background: #fff0f0; color: var(--red); }
+        .reply-box { display: none; margin-top: 10px; }
+        .reply-ta {
+            width: 100%; border: 2px solid #0ea5e9; border-radius: 12px;
+            padding: 10px 12px; font-size: 13px; font-family: inherit;
+            resize: none; outline: none; line-height: 1.5; box-sizing: border-box;
+        }
+        .btn-send-reply {
+            margin-top: 6px; width: 100%; padding: 10px; border-radius: 10px;
+            border: none; background: #0ea5e9; color: white;
+            font-weight: 900; font-size: 13px; cursor: pointer; font-family: inherit;
+        }
+
+        /* Users list */
+        .user-row { display: flex; align-items: center; gap: 12px; padding: 12px 18px; border-bottom: 1px solid var(--grey-light); }
+        .user-row:last-child { border-bottom: none; }
+        .user-avatar {
+            width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+            background: #eef2ff; display: flex; align-items: center; justify-content: center;
+            font-weight: 900; font-size: 15px; color: var(--accent);
+            background-size: cover; background-position: center; overflow: hidden;
+        }
+        .user-name { font-size: 14px; font-weight: 700; }
+        .user-email { font-size: 11px; color: #888; font-weight: 500; }
+        .user-date { font-size: 11px; color: #bbb; margin-left: auto; flex-shrink: 0; }
+
+        .empty-msg { text-align: center; color: #aaa; padding: 24px; font-weight: 700; }
+        .loading-msg { text-align: center; color: #aaa; padding: 24px; }
+
+        .toast {
+            position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px);
+            background: var(--dark); color: white; padding: 12px 20px; border-radius: 14px;
+            font-weight: 700; font-size: 14px; opacity: 0; transition: all 0.25s;
+            white-space: nowrap; z-index: 999; pointer-events: none;
+        }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    </style>
+</head>
+<body>
+
+<div class="page-header">
+    <button class="btn-back" onclick="location.href='profilo.html'">
+        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div class="header-title">PANNELLO ADMIN</div>
+    <span class="header-badge">SOLO TU</span>
+</div>
+
+<div class="stats-strip">
+    <div class="stat-card">
+        <div class="stat-val" id="statUtenti">—</div>
+        <div class="stat-lbl">UTENTI ISCRITTI</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-val" id="statPush">—</div>
+        <div class="stat-lbl">PUSH ATTIVE</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-val" id="statFeedback">—</div>
+        <div class="stat-lbl">FEEDBACK</div>
+    </div>
+</div>
+
+<div class="content">
+
+    <!-- Invia notifica push -->
+    <div>
+        <div class="group-label">Notifiche push</div>
+        <div class="group-card">
+            <div class="notif-form">
+                <label class="field-label">Titolo *</label>
+                <input class="field-input" id="nTitolo" type="text" placeholder="es. Novità in Listando!" autocomplete="off">
+                <label class="field-label">Messaggio *</label>
+                <textarea class="field-input" id="nBody" rows="3" placeholder="Testo della notifica…"></textarea>
+                <label class="field-label">URL destinazione</label>
+                <input class="field-input" id="nUrl" type="text" placeholder="/index.html">
+                <button class="btn-invia" id="btnInvia" onclick="inviaNotifica()">📢 INVIA A TUTTI</button>
+                <div class="notif-result" id="notifResult"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feedback ricevuti -->
+    <div>
+        <div class="group-label" style="display:flex;justify-content:space-between;align-items:center;padding-right:4px">
+            <span>Feedback ricevuti</span>
+            <span id="feedbackCount" style="font-size:11px;color:#aaa;font-weight:700"></span>
+        </div>
+        <div class="group-card">
+            <div id="feedbackList"><div class="loading-msg">Caricamento…</div></div>
+        </div>
+    </div>
+
+    <!-- Iscritti -->
+    <div>
+        <div class="group-label" style="display:flex;justify-content:space-between;align-items:center;padding-right:4px">
+            <span>Iscritti a Listando</span>
+            <span id="iscrittiCount" style="font-size:11px;color:#aaa;font-weight:700"></span>
+        </div>
+        <div class="group-card">
+            <div id="iscrittiList"><div class="loading-msg">Caricamento…</div></div>
+        </div>
+    </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const ADMIN_EMAIL  = 'emilio.mazzolari@gmail.com';
+const SUPABASE_URL = 'https://eejdpophfxsrqdvsucye.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlamRwb3BoZnhzcnFkdnN1Y3llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2NTMzMDQsImV4cCI6MjA5MzIyOTMwNH0.mpxbwlJyIdZgqKIdutHbLd85JR1P11yiglbYeApi17k';
+const URL_S = SUPABASE_URL + '/rest/v1';
+const _HR = { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY };
+
+const userEmail = localStorage.getItem('userEmail');
+if (!userEmail || userEmail !== ADMIN_EMAIL) {
+    location.replace('login.html');
+}
+
+let toastTimer;
+function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+function _esc(s) {
+    return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Init ─────────────────────────────────────────────────────────────
+async function init() {
+    await Promise.all([caricaStats(), caricaFeedback(), caricaIscritti()]);
+}
+
+// ── Stats ─────────────────────────────────────────────────────────────
+async function caricaStats() {
+    const [rP, rS, rF] = await Promise.all([
+        fetch(`${URL_S}/profili?select=email_utente`, { headers: _HR }),
+        fetch(`${URL_S}/push_subscriptions?select=email_utente`, { headers: _HR }),
+        fetch(`${URL_S}/app_feedback?select=id`, { headers: _HR }),
+    ]);
+    const profili = rP.ok ? await rP.json() : [];
+    const subs    = rS.ok ? await rS.json() : [];
+    const fbs     = rF.ok ? await rF.json() : [];
+    const emails  = new Set([...profili.map(p => p.email_utente), ...subs.map(s => s.email_utente)]);
+    document.getElementById('statUtenti').textContent   = emails.size;
+    document.getElementById('statPush').textContent     = subs.length;
+    document.getElementById('statFeedback').textContent = fbs.length;
+}
+
+// ── Invia notifica push ───────────────────────────────────────────────
+async function inviaNotifica() {
+    const title = document.getElementById('nTitolo').value.trim();
+    const body  = document.getElementById('nBody').value.trim();
+    const url   = document.getElementById('nUrl').value.trim() || '/index.html';
+    const res_el = document.getElementById('notifResult');
+    if (!title || !body) { toast('Inserisci titolo e messaggio'); return; }
+    const btn = document.getElementById('btnInvia');
+    btn.disabled = true; btn.textContent = 'Invio…';
+    res_el.style.display = 'none';
+    try {
+        const res = await fetch('/api/admin-broadcast', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ adminEmail: userEmail, title, body, url }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+            res_el.className = 'notif-result ok';
+            res_el.textContent = `✓ Inviata a ${data.sent} dispositiv${data.sent === 1 ? 'o' : 'i'}${data.failed ? ` · ${data.failed} falliti` : ''}`;
+            res_el.style.display = '';
+            document.getElementById('nTitolo').value = '';
+            document.getElementById('nBody').value   = '';
+            document.getElementById('nUrl').value    = '';
+            await caricaStats();
+        } else {
+            res_el.className = 'notif-result err';
+            res_el.textContent = '✗ Errore: ' + (data.error || `HTTP ${res.status}`);
+            res_el.style.display = '';
+        }
+    } catch(e) {
+        res_el.className = 'notif-result err';
+        res_el.textContent = '✗ Errore di rete';
+        res_el.style.display = '';
+    }
+    btn.disabled = false; btn.textContent = '📢 INVIA A TUTTI';
+}
+
+// ── Feedback ─────────────────────────────────────────────────────────
+async function caricaFeedback() {
+    const list = document.getElementById('feedbackList');
+    const res = await fetch(`${URL_S}/app_feedback?order=created_at.desc`, { headers: _HR });
+    const items = res.ok ? await res.json() : [];
+    document.getElementById('feedbackCount').textContent = items.length ? `${items.length} messaggi` : '';
+    if (!items.length) {
+        list.innerHTML = '<div class="empty-msg">Nessun feedback ricevuto</div>';
+        return;
+    }
+    list.innerHTML = '';
+    items.forEach(f => {
+        const d = new Date(f.created_at);
+        const dataStr = d.toLocaleDateString('it-IT', { day:'2-digit', month:'2-digit', year:'2-digit' })
+                      + ' ' + d.toLocaleTimeString('it-IT', { hour:'2-digit', minute:'2-digit' });
+        const item = document.createElement('div');
+        item.className = 'fb-item';
+
+        item.innerHTML = `
+            <div class="fb-meta">
+                <span class="chip ${f.tipo === 'errore' ? 'chip-err' : 'chip-sugg'}">${f.tipo === 'errore' ? '🐛 Errore' : '💡 Suggerimento'}</span>
+                <span class="fb-email">${_esc(f.email_utente)}</span>
+                <span class="fb-date">${dataStr}</span>
+            </div>
+            <div class="fb-testo">${_esc(f.testo)}</div>
+            ${f.risposta ? `<div class="fb-risposta">↩ ${_esc(f.risposta)}</div>` : '<div class="fb-risposta" style="display:none"></div>'}
+            <div class="fb-actions">
+                <button class="btn-sm btn-reply">↩ Rispondi</button>
+                <button class="btn-sm btn-del">🗑 Elimina</button>
+            </div>
+            <div class="reply-box">
+                <textarea class="reply-ta" rows="3" placeholder="Scrivi la tua risposta…"></textarea>
+                <button class="btn-send-reply">Invia risposta</button>
+            </div>`;
+
+        const rispostaDiv  = item.querySelector('.fb-risposta');
+        const replyBox     = item.querySelector('.reply-box');
+        const ta           = item.querySelector('.reply-ta');
+        const btnReply     = item.querySelector('.btn-reply');
+        const btnDel       = item.querySelector('.btn-del');
+        const btnSendReply = item.querySelector('.btn-send-reply');
+
+        btnReply.addEventListener('click', () => {
+            const open = replyBox.style.display !== 'none';
+            replyBox.style.display = open ? 'none' : 'block';
+            if (!open) ta.focus();
+        });
+
+        btnDel.addEventListener('click', async () => {
+            if (!confirm('Eliminare questo feedback?')) return;
+            item.style.opacity = '0.4';
+            const r = await fetch(`${URL_S}/app_feedback?id=eq.${f.id}`, {
+                method: 'DELETE', headers: { ..._HR, 'Prefer': 'return=minimal' }
+            });
+            if (r.ok || r.status === 204) {
+                item.remove();
+                toast('🗑 Eliminato');
+                await caricaStats();
+            } else {
+                item.style.opacity = '';
+                toast('Errore eliminazione');
+            }
+        });
+
+        btnSendReply.addEventListener('click', async () => {
+            const testo = ta.value.trim();
+            if (!testo) return;
+            btnSendReply.disabled = true; btnSendReply.textContent = 'Invio…';
+            try {
+                const r = await fetch('/api/feedback', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'reply', id: f.id, email: f.email_utente, risposta: testo })
+                });
+                if (r.ok) {
+                    toast('✓ Risposta inviata');
+                    replyBox.style.display = 'none';
+                    rispostaDiv.style.display = '';
+                    rispostaDiv.textContent = '↩ ' + testo;
+                } else { toast('Errore invio risposta'); }
+            } catch { toast('Errore invio risposta'); }
+            btnSendReply.disabled = false; btnSendReply.textContent = 'Invia risposta';
+        });
+
+        list.appendChild(item);
+    });
+}
+
+// ── Iscritti ─────────────────────────────────────────────────────────
+async function caricaIscritti() {
+    const list = document.getElementById('iscrittiList');
+    const [rP, rS] = await Promise.all([
+        fetch(`${URL_S}/profili?select=email_utente,nome,cognome,foto,created_at&order=created_at.desc`, { headers: _HR }),
+        fetch(`${URL_S}/push_subscriptions?select=email_utente`, { headers: _HR }),
+    ]);
+    const profili = rP.ok ? await rP.json() : [];
+    const subs    = rS.ok ? await rS.json() : [];
+    const pushSet = new Set(subs.map(s => s.email_utente));
+    document.getElementById('iscrittiCount').textContent = profili.length ? `${profili.length} utenti` : '';
+    if (!profili.length) {
+        list.innerHTML = '<div class="empty-msg">Nessun iscritto</div>';
+        return;
+    }
+    list.innerHTML = '';
+    profili.forEach(u => {
+        const nome = [u.nome, u.cognome].filter(Boolean).join(' ') || u.email_utente.split('@')[0];
+        const ini  = nome.split(' ').map(p => p[0]).slice(0,2).join('').toUpperCase() || '?';
+        const dataStr = u.created_at
+            ? new Date(u.created_at).toLocaleDateString('it-IT', { day:'numeric', month:'short', year:'numeric' }) : '';
+        const hasPush = pushSet.has(u.email_utente);
+        const row = document.createElement('div');
+        row.className = 'user-row';
+        row.innerHTML = `
+            <div class="user-avatar" style="${u.foto ? `background-image:url(${u.foto});background-size:cover` : ''}">${u.foto ? '' : ini}</div>
+            <div style="flex:1;min-width:0">
+                <div class="user-name">${_esc(nome)}</div>
+                <div class="user-email">${_esc(u.email_utente)}</div>
+            </div>
+            ${hasPush ? '<span style="font-size:16px" title="Push attiva">🔔</span>' : ''}
+            <div class="user-date">${dataStr}</div>`;
+        list.appendChild(row);
+    });
+}
+
+init();
+</script>
+</body>
+</html>
