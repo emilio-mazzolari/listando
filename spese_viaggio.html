@@ -200,6 +200,10 @@
         .modal-overlay { display: none; position: fixed; inset: 0; z-index: 1100; background: rgba(0,0,0,0.5); align-items: flex-end; justify-content: center; }
         .modal-overlay.open { display: flex; }
         .modal-box { background: var(--white); border-radius: 28px 28px 0 0; padding: 24px 20px; padding-bottom: max(24px, env(safe-area-inset-bottom, 24px)); width: 100%; max-width: 500px; max-height: 92vh; overflow-y: auto; }
+        @media (min-width: 600px) {
+            .modal-overlay { align-items: center; }
+            .modal-box { border-radius: 28px; max-width: 640px; max-height: 85vh; padding-bottom: 24px; }
+        }
         .modal-handle { width: 40px; height: 4px; background: var(--grey); border-radius: 4px; margin: 0 auto 20px; }
         .modal-title { font-weight: 900; font-size: 17px; margin-bottom: 14px; }
         .form-input { width: 100%; padding: 13px 14px; border-radius: 14px; border: 2.5px solid var(--grey); font-size: 15px; font-family: inherit; outline: none; margin-bottom: 10px; background: var(--white); color: var(--dark); }
@@ -1138,6 +1142,7 @@
             <button class="period-pill active" id="bModeFisso" onclick="setBudgetAlloggioMode('fisso')">Fisso</button>
             <button class="period-pill" id="bModeRipartire" onclick="setBudgetAlloggioMode('ripartire')">Da ripartire</button>
         </div>
+        <div id="bRipPreview" style="display:none;background:#eef2ff;border-radius:12px;padding:10px 12px;margin-top:10px"></div>
         <button id="bBtnRipartisci" class="btn-save-modal" style="background:#5856d6;margin-top:10px;display:none" onclick="salvaBudgetEApriRipartisci()">RIPARTISCI SPESE</button>
 
         <label class="form-label" style="margin-top:12px">Stato</label>
@@ -1190,7 +1195,6 @@
                 <input class="form-input" id="bAlloggioAddr" type="text" placeholder="Via Roma 12, Firenze…" style="margin:0;flex:1">
                 <button onclick="_apriMapsAlloggio()" style="width:44px;height:48px;border-radius:12px;border:2px solid var(--grey);background:var(--white);cursor:pointer;font-size:20px;flex-shrink:0" title="Apri in Google Maps">📍</button>
             </div>
-            <div id="bRipPreview" style="display:none;background:#eef2ff;border-radius:12px;padding:10px 12px;margin-bottom:10px"></div>
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
                 <span style="font-size:12px;font-weight:800;color:#888;text-transform:uppercase;letter-spacing:0.5px;flex:1">Punti di interesse</span>
                 <button onclick="aggiungiBPoi()" style="background:none;border:none;color:#5856d6;font-weight:900;font-size:13px;cursor:pointer;font-family:inherit;padding:4px 8px">+ Aggiungi</button>
