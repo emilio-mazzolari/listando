@@ -7,57 +7,103 @@ function extractVideoId(url) {
     return m ? m[1] : null;
 }
 
-// Chiama l'API InnerTube con il client Android — bypassa il bot-check
-async function getYouTubeAudio(videoId) {
-    const r = await fetch('https://www.youtube.com/youtubei/v1/player', {
-        method: 'POST',
+// Client InnerTube in ordine di preferenza
+const CLIENTS = [
+    {
+        name: 'ANDROID',
+        key: 'AIzaSyA8eiZmM1FaDVjRy-df2KTyQ_vz_yYM39w',
         headers: {
-            'Content-Type': 'application/json',
-            'User-Agent': 'com.google.android.youtube/17.36.4 (Linux; U; Android 12; GB) gzip',
             'X-YouTube-Client-Name': '3',
             'X-YouTube-Client-Version': '17.36.4',
-            'Origin': 'https://www.youtube.com',
+            'User-Agent': 'com.google.android.youtube/17.36.4 (Linux; U; Android 12; GB) gzip',
         },
-        body: JSON.stringify({
-            videoId,
-            context: {
-                client: {
-                    clientName: 'ANDROID',
-                    clientVersion: '17.36.4',
-                    androidSdkVersion: 31,
-                    hl: 'en',
-                    gl: 'US',
-                }
+        context: {
+            client: {
+                clientName: 'ANDROID', clientVersion: '17.36.4',
+                androidSdkVersion: 31, hl: 'en', gl: 'US',
+                userAgent: 'com.google.android.youtube/17.36.4 (Linux; U; Android 12; GB) gzip',
             }
-        })
-    });
+        },
+    },
+    {
+        name: 'IOS',
+        key: 'AIzaSyB-63vPrdThhKuerbB2N_l7Kwwcxj6yUAc',
+        headers: {
+            'X-YouTube-Client-Name': '5',
+            'X-YouTube-Client-Version': '19.29.1',
+            'User-Agent': 'com.google.ios.youtube/19.29.1 (iPhone16,2; U; CPU iOS 17_5_1 like Mac OS X;)',
+        },
+        context: {
+            client: {
+                clientName: 'IOS', clientVersion: '19.29.1',
+                deviceModel: 'iPhone16,2', hl: 'en', gl: 'US',
+                userAgent: 'com.google.ios.youtube/19.29.1 (iPhone16,2; U; CPU iOS 17_5_1 like Mac OS X;)',
+            }
+        },
+    },
+    {
+        name: 'TVHTML5',
+        key: 'AIzaSyDCU8hByM-4DrUqRUYnGn-3llEO78bcxq8',
+        headers: {
+            'X-YouTube-Client-Name': '7',
+            'X-YouTube-Client-Version': '7.20230405.08.01',
+            'User-Agent': 'Mozilla/5.0 (SMART-TV; Linux; Tizen 6.0) AppleWebKit/538.1 (KHTML, like Gecko) Version/6.0 TV Safari/538.1',
+        },
+        context: {
+            client: {
+                clientName: 'TVHTML5', clientVersion: '7.20230405.08.01',
+                hl: 'en', gl: 'US',
+            }
+        },
+    },
+];
 
-    if (!r.ok) throw new Error('YouTube API errore: ' + r.status);
-    const data = await r.json();
+async function getYouTubeAudio(videoId) {
+    let lastErr = 'Nessun client disponibile';
 
-    const status = data.playabilityStatus?.status;
-    if (status === 'LOGIN_REQUIRED') throw new Error('Video privato o richiede login');
-    if (status !== 'OK') throw new Error('Video non disponibile: ' + (data.playabilityStatus?.reason || status));
+    for (const client of CLIENTS) {
+        try {
+            const r = await fetch(
+                `https://www.youtube.com/youtubei/v1/player?key=${client.key}&prettyPrint=false`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', ...client.headers },
+                    body: JSON.stringify({ videoId, context: client.context }),
+                }
+            );
 
-    const title = data.videoDetails?.title || 'Canzone';
-    const duration = parseInt(data.videoDetails?.lengthSeconds) || null;
+            if (!r.ok) { lastErr = `${client.name}: HTTP ${r.status}`; continue; }
 
-    const formats = (data.streamingData?.adaptiveFormats || [])
-        .filter(f => f.mimeType?.startsWith('audio/') && f.url);
+            const data = await r.json();
+            const status = data.playabilityStatus?.status;
+            if (status === 'LOGIN_REQUIRED') throw new Error('Video privato o richiede login');
+            if (status !== 'OK') { lastErr = `${client.name}: ${data.playabilityStatus?.reason || status}`; continue; }
 
-    if (!formats.length) throw new Error('Nessuno stream audio trovato');
+            const formats = (data.streamingData?.adaptiveFormats || [])
+                .filter(f => f.mimeType?.startsWith('audio/') && f.url);
+            if (!formats.length) { lastErr = `${client.name}: nessun formato audio`; continue; }
 
-    // Preferisci m4a (audio/mp4), poi il bitrate più alto
-    const best = formats.sort((a, b) => {
-        const aS = (a.mimeType.includes('mp4') ? 1e9 : 0) + (a.bitrate || 0);
-        const bS = (b.mimeType.includes('mp4') ? 1e9 : 0) + (b.bitrate || 0);
-        return bS - aS;
-    })[0];
+            const best = formats.sort((a, b) => {
+                const aS = (a.mimeType.includes('mp4') ? 1e9 : 0) + (a.bitrate || 0);
+                const bS = (b.mimeType.includes('mp4') ? 1e9 : 0) + (b.bitrate || 0);
+                return bS - aS;
+            })[0];
 
-    const ext = best.mimeType.includes('mp4') ? 'm4a' : 'webm';
-    const contentType = best.mimeType.split(';')[0];
+            return {
+                title: data.videoDetails?.title || 'Canzone',
+                duration: parseInt(data.videoDetails?.lengthSeconds) || null,
+                audioUrl: best.url,
+                ext: best.mimeType.includes('mp4') ? 'm4a' : 'webm',
+                contentType: best.mimeType.split(';')[0],
+                clientUsed: client.name,
+            };
+        } catch (e) {
+            if (e.message.includes('privato')) throw e;
+            lastErr = `${client.name}: ${e.message}`;
+        }
+    }
 
-    return { title, duration, audioUrl: best.url, ext, contentType };
+    throw new Error(lastErr);
 }
 
 module.exports = async function handler(req, res) {
@@ -87,12 +133,8 @@ module.exports = async function handler(req, res) {
             titolo = t.trim();
         }
 
-        // Scarica audio direttamente dal CDN YouTube
         const audioRes = await fetch(audioUrl, {
-            headers: {
-                'User-Agent': 'com.google.android.youtube/17.36.4 (Linux; U; Android 12; GB) gzip',
-                'Referer': 'https://www.youtube.com/',
-            }
+            headers: { 'User-Agent': 'com.google.android.youtube/17.36.4 (Linux; U; Android 12; GB) gzip' }
         });
         if (!audioRes.ok) return res.status(500).json({ error: 'Download audio fallito (' + audioRes.status + ')' });
         const buffer = Buffer.from(await audioRes.arrayBuffer());
