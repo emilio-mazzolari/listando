@@ -188,9 +188,11 @@
 
  <label class="form-label">Livello di allenamento</label>
  <div class="pills-row" id="pillsLivello">
- <button class="pill active" data-val="principiante" onclick="setPill('livello','principiante',this)">Principiante</button>
- <button class="pill" data-val="intermedio" onclick="setPill('livello','intermedio',this)">Intermedio</button>
- <button class="pill" data-val="avanzato" onclick="setPill('livello','avanzato',this)">Avanzato</button>
+ <button class="pill active small" data-val="principiante" onclick="setPill('livello','principiante',this)">Principiante</button>
+ <button class="pill small" data-val="base" onclick="setPill('livello','base',this)">Base</button>
+ <button class="pill small" data-val="intermedio" onclick="setPill('livello','intermedio',this)">Intermedio</button>
+ <button class="pill small" data-val="avanzato" onclick="setPill('livello','avanzato',this)">Avanzato</button>
+ <button class="pill small" data-val="elite" onclick="setPill('livello','elite',this)">Elite</button>
  </div>
 
  <label class="form-label">Obiettivo principale</label>
@@ -204,9 +206,13 @@
 
  <label class="form-label">Attrezzatura disponibile</label>
  <div class="pills-row" id="pillsAttr">
- <button class="pill active" data-val="casa" onclick="setPill('attr','casa',this)">Solo corpo libero</button>
- <button class="pill" data-val="casa_attrezzi" onclick="setPill('attr','casa_attrezzi',this)">Casa con attrezzi</button>
- <button class="pill" data-val="palestra" onclick="setPill('attr','palestra',this)">Palestra completa</button>
+ <button class="pill active" data-val="casa" onclick="setAttr('casa',this)">Solo corpo libero</button>
+ <button class="pill" data-val="casa_attrezzi" onclick="setAttr('casa_attrezzi',this)">Casa con attrezzi</button>
+ <button class="pill" data-val="palestra" onclick="setAttr('palestra',this)">Palestra completa</button>
+ </div>
+ <div id="attrezziCasaWrap" style="display:none;margin-top:10px">
+ <div style="font-size:11px;font-weight:800;color:#999;text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">Specifica gli attrezzi disponibili</div>
+ <div class="pills-row" id="pillsAttrezzi"></div>
  </div>
 
  <label class="form-label">Giorni di allenamento a settimana</label>
@@ -238,7 +244,24 @@ const OBJ_LABEL = {
  resistenza:'Resistenza', mantenersi:'Mantenersi', flessibilita:'Flessibilità'
 };
 const ATTR_LABEL = { casa:'Corpo libero', casa_attrezzi:'Casa con attrezzi', palestra:'Palestra' };
-const LVL_LABEL = { principiante:'Principiante', intermedio:'Intermedio', avanzato:'Avanzato' };
+const LVL_LABEL = { principiante:'Principiante', base:'Base', intermedio:'Intermedio', avanzato:'Avanzato', elite:'Elite' };
+
+const ATTREZZI_LIST = [
+ {id:'manubri',       label:'🏋️ Manubri'},
+ {id:'kettlebell',    label:'🫙 Kettlebell'},
+ {id:'bilanciere',    label:'🏋️ Bilanciere'},
+ {id:'panca',         label:'🛋️ Panca'},
+ {id:'sbarra',        label:'🤸 Sbarra trazioni'},
+ {id:'banda_elastica',label:'🎗️ Banda elastica'},
+ {id:'tappetino',     label:'🧘 Tappetino'},
+ {id:'corda',         label:'🪢 Corda per saltare'},
+ {id:'ruota_add',     label:'⭕ Ruota addominali'},
+ {id:'trx',           label:'🔗 TRX / sospensioni'},
+ {id:'step',          label:'🪜 Step / gradino'},
+ {id:'cyclette',      label:'🚴 Cyclette'},
+ {id:'vogatore',      label:'🚣 Vogatore'},
+ {id:'tapis_roulant', label:'🏃 Tapis roulant'},
+];
 
 const RESTRIZIONI_LIST = [
  {id:'vegetariano', label:' Vegetariano'},
@@ -570,11 +593,11 @@ function getSplit(obiettivo, giorni, attr) {
 // Parametri serie/rep/riposo
 function getParams(obiettivo, livello) {
  const P = {
- perdere_peso: { principiante:{s:3,r:'12-15',rs:'30s'}, intermedio:{s:4,r:'15-20',rs:'20s'}, avanzato:{s:4,r:'15-25',rs:'15s'} },
- aumentare_massa: { principiante:{s:3,r:'8-12',rs:'90s'}, intermedio:{s:4,r:'6-10',rs:'90s'}, avanzato:{s:5,r:'4-8',rs:'2-3min'} },
- resistenza: { principiante:{s:3,r:'15-20',rs:'45s'}, intermedio:{s:4,r:'20-25',rs:'30s'}, avanzato:{s:5,r:'20-30',rs:'20s'} },
- mantenersi: { principiante:{s:3,r:'10-12',rs:'60s'}, intermedio:{s:3,r:'10-15',rs:'60s'}, avanzato:{s:4,r:'10-15',rs:'45s'} },
- flessibilita: { principiante:{s:2,r:'30-45s',rs:'10s'},intermedio:{s:3,r:'45-60s',rs:'10s'},avanzato:{s:3,r:'60-90s',rs:'10s'} },
+ perdere_peso: { principiante:{s:3,r:'12-15',rs:'45s'}, base:{s:3,r:'12-15',rs:'30s'}, intermedio:{s:4,r:'15-20',rs:'20s'}, avanzato:{s:4,r:'15-25',rs:'15s'}, elite:{s:5,r:'20-30',rs:'10s'} },
+ aumentare_massa: { principiante:{s:3,r:'10-12',rs:'90s'}, base:{s:3,r:'8-12',rs:'90s'}, intermedio:{s:4,r:'6-10',rs:'90s'}, avanzato:{s:5,r:'4-8',rs:'2-3min'}, elite:{s:6,r:'3-6',rs:'3-4min'} },
+ resistenza: { principiante:{s:3,r:'12-15',rs:'60s'}, base:{s:3,r:'15-20',rs:'45s'}, intermedio:{s:4,r:'20-25',rs:'30s'}, avanzato:{s:5,r:'20-30',rs:'20s'}, elite:{s:6,r:'25-40',rs:'15s'} },
+ mantenersi: { principiante:{s:3,r:'10-12',rs:'60s'}, base:{s:3,r:'10-15',rs:'60s'}, intermedio:{s:3,r:'10-15',rs:'60s'}, avanzato:{s:4,r:'10-15',rs:'45s'}, elite:{s:4,r:'12-15',rs:'30s'} },
+ flessibilita: { principiante:{s:2,r:'20-30s',rs:'10s'}, base:{s:2,r:'30-45s',rs:'10s'}, intermedio:{s:3,r:'45-60s',rs:'10s'}, avanzato:{s:3,r:'60-90s',rs:'10s'}, elite:{s:4,r:'90-120s',rs:'10s'} },
  };
  return P[obiettivo]?.[livello] || {s:3,r:'10-12',rs:'60s'};
 }
@@ -716,7 +739,7 @@ function getMealTemplates(restrizioni, kcal, obiettivo) {
 const _profiloSalvato = !!localStorage.getItem('fitness_profilo');
 let profilo = JSON.parse(localStorage.getItem('fitness_profilo') || 'null') || {
  sesso:'m', livello:'principiante', obiettivo:'perdere_peso',
- attr:'casa', giorni:'4', dieta:[]
+ attr:'casa', giorni:'4', dieta:[], attrezzi: ATTREZZI_LIST.map(a => a.id)
 };
 let pianoEs = JSON.parse(localStorage.getItem('fitness_piano_es') || 'null');
 let pianoAl = JSON.parse(localStorage.getItem('fitness_piano_al') || 'null');
@@ -726,7 +749,6 @@ let activeTab = 'es';
 // SETUP MODAL
 // ═══════════════════════════════════════════════════════════
 function apriSetup() {
- // popola pills
  ['sesso','livello','obiettivo','attr','giorni'].forEach(k =>{
  const map = {sesso:'pillsSesso',livello:'pillsLivello',obiettivo:'pillsObiettivo',attr:'pillsAttr',giorni:'pillsGiorni'};
  document.querySelectorAll(`#${map[k]} .pill`).forEach(b =>{
@@ -736,13 +758,36 @@ function apriSetup() {
  document.getElementById('fEta').value = profilo.eta || '';
  document.getElementById('fAlt').value = profilo.altezza || '';
  document.getElementById('fPeso').value = profilo.peso || '';
- // dieta pills
  const dp = document.getElementById('pillsDieta');
  dp.innerHTML = RESTRIZIONI_LIST.map(r =>
  `<button class="pill small${(profilo.dieta||[]).includes(r.id) ? ' active':''}" data-val="${r.id}" onclick="toggleDieta('${r.id}',this)">${r.label}</button>`
  ).join('');
+ // attrezzi casa
+ renderAttrezziPills();
+ aggiornaVisibilitaAttrezzi();
  document.getElementById('btnAnnullaSetup').style.display = localStorage.getItem('fitness_profilo') ? '' : 'none';
  document.getElementById('modalSetup').classList.add('open');
+}
+
+function renderAttrezziPills() {
+ const wrap = document.getElementById('pillsAttrezzi');
+ const sel = profilo.attrezzi || ATTREZZI_LIST.map(a => a.id);
+ wrap.innerHTML = ATTREZZI_LIST.map(a =>
+ `<button class="pill small${sel.includes(a.id) ? ' active':''}" data-val="${a.id}" onclick="toggleAttrezzo('${a.id}',this)">${a.label}</button>`
+ ).join('');
+}
+function toggleAttrezzo(id, el) {
+ el.classList.toggle('active');
+ profilo.attrezzi = [...document.querySelectorAll('#pillsAttrezzi .pill.active')].map(b => b.dataset.val);
+}
+function setAttr(val, el) {
+ el.closest('.pills-row').querySelectorAll('.pill').forEach(b => b.classList.remove('active'));
+ el.classList.add('active');
+ profilo.attr = val;
+ aggiornaVisibilitaAttrezzi();
+}
+function aggiornaVisibilitaAttrezzi() {
+ document.getElementById('attrezziCasaWrap').style.display = profilo.attr === 'casa_attrezzi' ? '' : 'none';
 }
 function chiudiSetup() {
     if (!_profiloSalvato && !localStorage.getItem('fitness_profilo')) return;
