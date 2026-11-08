@@ -1405,7 +1405,10 @@ carica().then(() => {
 <div class="modal-overlay center" id="modaleYoutube">
     <div class="modal-box">
         <div class="modal-handle"></div>
-        <div class="modal-title">▶ Scarica da YouTube</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+            <div class="modal-title" style="margin-bottom:0">▶ Scarica da YouTube</div>
+            <button onclick="document.getElementById('modaleYoutube').classList.remove('open')" style="width:32px;height:32px;border-radius:50%;border:none;background:#f2f2f7;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">✕</button>
+        </div>
         <div class="form-group">
             <label class="form-label">Link YouTube</label>
             <input class="form-input" id="ytUrl" type="url" placeholder="https://www.youtube.com/watch?v=…"
