@@ -26,7 +26,7 @@ module.exports = async function handler(req, res) {
         const ytCookies = process.env.YT_COOKIES;
         if (!ytCookies) {
             return res.status(500).json({
-                error: 'YT_COOKIES non configurata — vai su Vercel → listando → Settings → Environment Variables e aggiungi YT_COOKIES con i cookie di sessione YouTube (vedi istruzioni)'
+                error: 'YT_COOKIES non configurata — vai su Vercel → listando → Settings → Environment Variables e aggiungi YT_COOKIES con i cookie di sessione YouTube'
             });
         }
 
@@ -34,15 +34,15 @@ module.exports = async function handler(req, res) {
         if (!url || !email_utente) return res.status(400).json({ error: 'url e email_utente richiesti' });
         if (!ytdl.validateURL(url)) return res.status(400).json({ error: 'URL YouTube non valido' });
 
-        const reqOptions = {
-            headers: {
-                'Cookie': ytCookies,
-                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept-Language': 'it-IT,it;q=0.9,en-US;q=0.8',
-            }
-        };
+        // createAgent è il modo corretto per passare cookie in ytdl-core v4
+        const cookieObjects = ytCookies.split(';').map(c => {
+            const eq = c.indexOf('=');
+            if (eq === -1) return null;
+            return { name: c.substring(0, eq).trim(), value: c.substring(eq + 1).trim() };
+        }).filter(Boolean);
+        const agent = ytdl.createAgent(cookieObjects);
 
-        const info = await ytdl.getInfo(url, { requestOptions: reqOptions });
+        const info = await ytdl.getInfo(url, { agent });
         const rawTitle = info.videoDetails.title;
         const durationSec = parseInt(info.videoDetails.lengthSeconds) || null;
 
@@ -61,7 +61,7 @@ module.exports = async function handler(req, res) {
         const ext = format.container || 'webm';
         const contentType = (format.mimeType || 'audio/webm').split(';')[0];
 
-        const stream = ytdl.downloadFromInfo(info, { format, requestOptions: reqOptions });
+        const stream = ytdl.downloadFromInfo(info, { format, agent });
         const buffer = await streamToBuffer(stream);
 
         const sb = createClient(SUPABASE_URL, key, { auth: { persistSession: false } });
