@@ -1,15 +1,13 @@
 const { createClient } = require('@supabase/supabase-js');
-const ytdl = require('@distube/ytdl-core');
 
 const SUPABASE_URL = 'https://eejdpophfxsrqdvsucye.supabase.co';
 
-function streamToBuffer(stream) {
-    return new Promise((resolve, reject) => {
-        const chunks = [];
-        stream.on('data', c => chunks.push(c));
-        stream.on('end', () => resolve(Buffer.concat(chunks)));
-        stream.on('error', reject);
-    });
+async function getTitle(youtubeUrl) {
+    try {
+        const r = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(youtubeUrl)}&format=json`);
+        if (!r.ok) return null;
+        return (await r.json()).title || null;
+    } catch { return null; }
 }
 
 module.exports = async function handler(req, res) {
@@ -25,36 +23,45 @@ module.exports = async function handler(req, res) {
 
         const { url, email_utente, playlist_id } = req.body || {};
         if (!url || !email_utente) return res.status(400).json({ error: 'url e email_utente richiesti' });
-        if (!ytdl.validateURL(url)) return res.status(400).json({ error: 'URL YouTube non valido' });
+        if (!url.match(/youtube\.com\/watch|youtu\.be\//)) {
+            return res.status(400).json({ error: 'URL YouTube non valido' });
+        }
 
-        const info = await ytdl.getInfo(url);
-        const videoTitle = info.videoDetails.title;
-        const durationSec = parseInt(info.videoDetails.lengthSeconds) || null;
-
-        let titolo = videoTitle;
+        // Titolo via oEmbed (nessuna autenticazione richiesta)
+        const rawTitle = await getTitle(url) || 'Canzone';
+        let titolo = rawTitle;
         let artista = null;
-        if (videoTitle.includes(' - ')) {
-            const [a, t] = videoTitle.split(' - ', 2);
+        if (rawTitle.includes(' - ')) {
+            const [a, t] = rawTitle.split(' - ', 2);
             artista = a.trim();
             titolo = t.trim();
         }
 
-        const formats = ytdl.filterFormats(info.formats, 'audioonly');
-        const format = formats.sort((a, b) => (b.audioBitrate || 0) - (a.audioBitrate || 0))[0];
-        if (!format) return res.status(400).json({ error: 'Nessun formato audio disponibile' });
+        // URL audio via cobalt.tools (gestisce il bot-check di YouTube)
+        const cobaltRes = await fetch('https://api.cobalt.tools', {
+            method: 'POST',
+            headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url, downloadMode: 'audio', audioFormat: 'mp3', filenameStyle: 'basic' })
+        });
+        const cobalt = await cobaltRes.json();
+        if (cobalt.status === 'error') {
+            return res.status(400).json({ error: 'cobalt: ' + (cobalt.error?.code || 'errore sconosciuto') });
+        }
+        const audioUrl = cobalt.url;
+        if (!audioUrl) return res.status(500).json({ error: 'Nessun URL audio ricevuto' });
 
-        const ext = format.container || 'webm';
-        const contentType = (format.mimeType || 'audio/webm').split(';')[0];
+        // Download audio
+        const audioRes = await fetch(audioUrl);
+        if (!audioRes.ok) return res.status(500).json({ error: 'Download audio fallito (' + audioRes.status + ')' });
+        const buffer = Buffer.from(await audioRes.arrayBuffer());
 
-        const stream = ytdl.downloadFromInfo(info, { format });
-        const buffer = await streamToBuffer(stream);
-
+        // Upload su Supabase storage
         const sb = createClient(SUPABASE_URL, key, { auth: { persistSession: false } });
         const slug = email_utente.replace(/[^a-zA-Z0-9]/g, '_');
-        const fname = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+        const fname = `${Date.now()}_${Math.random().toString(36).slice(2)}.mp3`;
         const storagePath = `${slug}/audio/${fname}`;
 
-        const { error: upErr } = await sb.storage.from('canzoni').upload(storagePath, buffer, { contentType });
+        const { error: upErr } = await sb.storage.from('canzoni').upload(storagePath, buffer, { contentType: 'audio/mpeg' });
         if (upErr) return res.status(500).json({ error: 'Storage: ' + upErr.message });
 
         const { data: { publicUrl } } = sb.storage.from('canzoni').getPublicUrl(storagePath);
@@ -67,7 +74,7 @@ module.exports = async function handler(req, res) {
             storage_path: storagePath,
             url: publicUrl,
             size_bytes: buffer.length,
-            durata_sec: durationSec,
+            durata_sec: null,
             sort_order: Date.now()
         }).select().single();
 
@@ -79,7 +86,6 @@ module.exports = async function handler(req, res) {
         return res.status(200).json({ ok: true, song });
     } catch (err) {
         console.error('youtube-download error:', err);
-        const msg = err?.message || 'Errore interno';
-        return res.status(500).json({ error: msg });
+        return res.status(500).json({ error: err?.message || 'Errore interno' });
     }
 };
