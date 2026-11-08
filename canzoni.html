@@ -1308,7 +1308,7 @@ async function eliminaSongById(id) {
 }
 
 [document.getElementById('modalePlaylist'), document.getElementById('modaleSong'), document.getElementById('modaleCondividi'), document.getElementById('modaleSpostaPl'), document.getElementById('modaleYoutube')].forEach(m => {
-    m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+    if (m) m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
 });
 
 // ── YouTube download ───────────────────────────────────────────────────
