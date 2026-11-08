@@ -854,6 +854,8 @@
         async function initSW() {
             if (!('serviceWorker' in navigator)) return;
             const reg = await navigator.serviceWorker.register('/sw.js');
+            navigator.serviceWorker.addEventListener('controllerchange', () => location.reload());
+            reg.update();
 
             if (!('PushManager' in window)) return;
             if (Notification.permission === 'denied') return;

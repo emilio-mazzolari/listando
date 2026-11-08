@@ -32,6 +32,6 @@
 <script>
     setTimeout(() => { try { window.close(); } catch(e) {} }, 1200);
 </script>
-<script>if("serviceWorker"in navigator)navigator.serviceWorker.addEventListener("controllerchange",()=>location.reload());</script>
+<script>if("serviceWorker"in navigator){navigator.serviceWorker.addEventListener("controllerchange",()=>location.reload());navigator.serviceWorker.ready.then(r=>r.update());}</script>
 </body>
 </html>

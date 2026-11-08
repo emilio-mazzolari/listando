@@ -1277,6 +1277,6 @@ let _tt;
 function toast(m) { const el=document.getElementById('toast'); el.textContent=m; el.classList.add('show'); clearTimeout(_tt); _tt=setTimeout(()=>el.classList.remove('show'),2800); }
 function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 </script>
-<script>if("serviceWorker"in navigator)navigator.serviceWorker.addEventListener("controllerchange",()=>location.reload());</script>
+<script>if("serviceWorker"in navigator){navigator.serviceWorker.addEventListener("controllerchange",()=>location.reload());navigator.serviceWorker.ready.then(r=>r.update());}</script>
 </body>
 </html>

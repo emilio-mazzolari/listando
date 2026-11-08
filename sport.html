@@ -897,6 +897,6 @@ async function _fbInvia() {
 
 init();
 </script>
-<script>if("serviceWorker"in navigator)navigator.serviceWorker.addEventListener("controllerchange",()=>location.reload());</script>
+<script>if("serviceWorker"in navigator){navigator.serviceWorker.addEventListener("controllerchange",()=>location.reload());navigator.serviceWorker.ready.then(r=>r.update());}</script>
 </body>
 </html>
