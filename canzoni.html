@@ -259,7 +259,9 @@
         /* ── Modals ── */
         .modal-overlay { display: none; position: fixed; inset: 0; z-index: 300; background: rgba(0,0,0,0.5); align-items: flex-end; justify-content: center; }
         .modal-overlay.open { display: flex; }
+        .modal-overlay.center { align-items: center; padding: 20px; }
         .modal-box { background: var(--white); border-radius: 28px 28px 0 0; padding: 24px 20px; padding-bottom: max(24px, env(safe-area-inset-bottom, 24px)); width: 100%; max-width: 500px; max-height: 80vh; overflow-y: auto; }
+        .modal-overlay.center .modal-box { border-radius: 24px; padding-bottom: 24px; }
         .modal-handle { width: 40px; height: 4px; background: var(--grey); border-radius: 4px; margin: 0 auto 20px; }
         .modal-title { font-weight: 900; font-size: 18px; margin-bottom: 18px; }
         .form-group { margin-bottom: 12px; }
@@ -1340,7 +1342,9 @@ async function avviaYoutube() {
                 playlist_id: currentPlaylistId || null
             })
         });
-        const data = await res.json();
+        const text = await res.text();
+        let data;
+        try { data = JSON.parse(text); } catch { throw new Error('Errore server (HTTP ' + res.status + ')'); }
         if (!res.ok || !data.ok) throw new Error(data.error || 'Errore sconosciuto');
 
         document.getElementById('modaleYoutube').classList.remove('open');
@@ -1398,7 +1402,7 @@ carica().then(() => {
 </script>
 
 <!-- YouTube download modal -->
-<div class="modal-overlay" id="modaleYoutube">
+<div class="modal-overlay center" id="modaleYoutube">
     <div class="modal-box">
         <div class="modal-handle"></div>
         <div class="modal-title">▶ Scarica da YouTube</div>
