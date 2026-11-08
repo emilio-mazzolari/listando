@@ -1128,8 +1128,11 @@
         <label class="form-label">Categoria *</label>
         <select class="form-input" id="bCat" onchange="setBudgetCat(this.value)" style="margin-bottom:14px"></select>
 
+        <label class="form-label" id="bTitoloLabel">Titolo *</label>
+        <input class="form-input" id="bTitolo" placeholder="es. Voli andata/ritorno…" type="text" autocapitalize="sentences">
+
         <div id="bAlloggioTopBox" style="display:none">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;margin-top:12px">
                 <div>
                     <label class="form-label">Check-in</label>
                     <input class="form-input" id="bCheckIn" type="date" style="margin:0">
@@ -1148,9 +1151,6 @@
             </div>
         </div>
 
-        <label class="form-label" id="bTitoloLabel">Titolo *</label>
-        <input class="form-input" id="bTitolo" placeholder="es. Voli andata/ritorno…" type="text" autocapitalize="sentences">
-
         <div style="display:flex;gap:8px">
             <div style="flex:1.6">
                 <label class="form-label" id="bImportoLabel">Importo previsto *</label>
@@ -1166,7 +1166,7 @@
             <button class="period-pill" id="bModeRipartire" onclick="setBudgetAlloggioMode('ripartire')">Da ripartire</button>
         </div>
         <div id="bRipPreview" style="display:none;background:#eef2ff;border-radius:12px;padding:10px 12px;margin-top:10px"></div>
-        <button id="bBtnRipartisci" class="btn-save-modal" style="background:#5856d6;margin-top:10px;display:none" onclick="salvaBudgetEApriRipartisci()">RIPARTISCI SPESE</button>
+        <button id="bBtnRipartisci" class="btn-save-modal" style="background:#5856d6;margin-top:10px;display:none" onclick="salvaBudgetEApriRipartisci()">RIPARTISCI</button>
 
         <label class="form-label" style="margin-top:12px">Stato</label>
         <div style="display:flex;gap:6px;margin-bottom:12px">
@@ -1220,6 +1220,7 @@
     <div style="font-weight:900;font-size:17px;margin-bottom:16px" id="poiModalTitle">Punto di interesse</div>
     <label class="form-label">Nome *</label>
     <input class="form-input" id="poiNome" placeholder="Es. Spiaggia, Centro storico, Supermercato…" autocapitalize="sentences">
+    <button type="button" onclick="_apriMapsPoi()" style="width:100%;margin:10px 0 4px;padding:12px;border-radius:14px;border:2px solid #5856d6;background:#f5f4ff;color:#5856d6;font-weight:800;font-size:14px;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px">🗺️ Apri Maps per verificare la distanza</button>
     <label class="form-label">Distanza dall'alloggio</label>
     <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center">
         <input class="form-input" id="poiDistanza" type="number" min="0" step="0.1" placeholder="es. 1.2" style="flex:1;margin:0">
@@ -4980,12 +4981,26 @@ function _renderRipPreviewInModal(itemId) {
     const ris = Array.isArray(rip.risultati) ? rip.risultati : (rip.risultati ? JSON.parse(rip.risultati) : []);
     if (!ris.length) { prev.style.display = 'none'; return; }
     const vs = symb(rip.valuta || viaggioCorrenteValuta);
+    const meP = partecipantiAttuali.find(p => (p.email_collegata || '').toLowerCase() === _me());
+    const meNome = meP?.nome || '';
+    const quota = meNome ? _ripTrovaQuota(ris, meNome) : null;
+    const costo = rip.costo || 0;
+    const tassa = rip.tassa || 0;
+    let html = `<div style="font-size:11px;font-weight:800;color:#5856d6;margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px">Ripartizione</div>`;
+    if (quota) {
+        html += `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;font-weight:700;color:#555"><span>Totale alloggio</span><span>${vs}${costo.toFixed(2)}</span></div>`;
+        if (tassa > 0) {
+            html += `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;font-weight:700;color:#555"><span>Mia quota alloggio</span><span>${vs}${Number(quota.quota_alloggio).toFixed(2)}</span></div>`;
+            html += `<div style="display:flex;justify-content:space-between;padding:6px 0 2px;font-size:14px;font-weight:900;border-top:1.5px solid rgba(88,86,214,.2);margin-top:4px"><span style="color:#5856d6">Mia quota definitiva</span><span style="color:#5856d6">${vs}${Number(quota.totale).toFixed(2)}</span></div>`;
+            html += `<div style="font-size:11px;color:#aaa;font-weight:600;padding-bottom:2px">alloggio ${vs}${Number(quota.quota_alloggio).toFixed(2)} + tassa ${vs}${Number(quota.quota_tassa).toFixed(2)}</div>`;
+        } else {
+            html += `<div style="display:flex;justify-content:space-between;padding:6px 0 2px;font-size:14px;font-weight:900;border-top:1.5px solid rgba(88,86,214,.2);margin-top:4px"><span style="color:#5856d6">Mia quota</span><span style="color:#5856d6">${vs}${Number(quota.totale).toFixed(2)}</span></div>`;
+        }
+    } else {
+        html += ris.map(r => `<div style="display:flex;justify-content:space-between;font-size:13px;font-weight:700;padding:3px 0"><span>${_esc(r.nome)} <span style="color:#aaa;font-size:11px">(${r.notti}n)</span></span><span style="font-weight:900">${vs}${Number(r.totale).toFixed(2)}</span></div>`).join('');
+    }
     prev.style.display = '';
-    prev.innerHTML = `<div style="font-size:11px;font-weight:800;color:#5856d6;margin-bottom:6px">👥 Ripartizione salvata</div>` +
-        ris.map(r => `<div style="display:flex;justify-content:space-between;font-size:13px;font-weight:700;padding:3px 0">
-            <span>${_esc(r.nome)} <span style="color:#aaa;font-size:11px">(${r.notti}n)</span></span>
-            <span style="font-weight:900">${vs}${Number(r.totale).toFixed(2)}</span>
-        </div>`).join('');
+    prev.innerHTML = html;
 }
 
 async function salvaBudgetItem() {
@@ -5322,6 +5337,19 @@ function apriPoiModal(idx) {
 
 function chiudiModalPoi() {
     document.getElementById('modalPoiEdit').classList.remove('open');
+}
+
+function _apriMapsPoi() {
+    const nome = document.getElementById('poiNome').value.trim();
+    const addr = document.getElementById('bAlloggioAddr')?.value?.trim();
+    const dest = encodeURIComponent(nome || '');
+    const from = addr ? encodeURIComponent(addr) : '';
+    const url = nome && from
+        ? `https://www.google.com/maps/dir/${from}/${dest}`
+        : nome
+            ? `https://www.google.com/maps/search/${dest}`
+            : `https://www.google.com/maps`;
+    window.open(url, '_blank');
 }
 
 function confermaPoiEdit() {
