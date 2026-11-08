@@ -254,6 +254,28 @@ function _esc(s) {
     return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+// Pagina automaticamente ignorando il max-rows del progetto Supabase
+async function fetchAll(url) {
+    const all = [];
+    let offset = 0;
+    const pageSize = 1000;
+    while (true) {
+        const r = await fetch(`${url}&limit=${pageSize}&offset=${offset}`, {
+            headers: { ..._HR, 'Prefer': 'count=exact' }
+        });
+        if (!r.ok) break;
+        const page = await r.json();
+        if (!Array.isArray(page) || !page.length) break;
+        all.push(...page);
+        const cr = r.headers.get('Content-Range'); // es. "0-9/127"
+        const total = cr ? parseInt(cr.split('/')[1]) : null;
+        if (total != null && all.length >= total) break;
+        if (page.length < pageSize) break;
+        offset += all.length;
+    }
+    return all;
+}
+
 // ── Init ─────────────────────────────────────────────────────────────
 async function init() {
     await Promise.all([caricaStats(), caricaFeedback(), caricaIscritti()]);
@@ -261,14 +283,11 @@ async function init() {
 
 // ── Stats ─────────────────────────────────────────────────────────────
 async function caricaStats() {
-    const [rP, rS, rF] = await Promise.all([
-        fetch(`${URL_S}/profili?select=email_utente&limit=1000`, { headers: _HR }),
-        fetch(`${URL_S}/push_subscriptions?select=email_utente&limit=1000`, { headers: _HR }),
-        fetch(`${URL_S}/app_feedback?select=id&limit=1000`, { headers: _HR }),
+    const [profili, subs, fbs] = await Promise.all([
+        fetchAll(`${URL_S}/profili?select=email_utente`),
+        fetchAll(`${URL_S}/push_subscriptions?select=email_utente`),
+        fetchAll(`${URL_S}/app_feedback?select=id`),
     ]);
-    const profili = rP.ok ? await rP.json() : [];
-    const subs    = rS.ok ? await rS.json() : [];
-    const fbs     = rF.ok ? await rF.json() : [];
     const emails  = new Set([...profili.map(p => p.email_utente), ...subs.map(s => s.email_utente)]);
     document.getElementById('statUtenti').textContent   = emails.size;
     document.getElementById('statPush').textContent     = subs.length;
@@ -404,12 +423,10 @@ async function caricaFeedback() {
 // ── Iscritti ─────────────────────────────────────────────────────────
 async function caricaIscritti() {
     const list = document.getElementById('iscrittiList');
-    const [rP, rS] = await Promise.all([
-        fetch(`${URL_S}/profili?select=email_utente,nome,cognome,foto,created_at&order=created_at.desc&limit=1000`, { headers: _HR }),
-        fetch(`${URL_S}/push_subscriptions?select=email_utente&limit=1000`, { headers: _HR }),
+    const [profili, subs] = await Promise.all([
+        fetchAll(`${URL_S}/profili?select=email_utente,nome,cognome,foto,created_at&order=created_at.desc`),
+        fetchAll(`${URL_S}/push_subscriptions?select=email_utente`),
     ]);
-    const profili = rP.ok ? await rP.json() : [];
-    const subs    = rS.ok ? await rS.json() : [];
     const pushSet = new Set(subs.map(s => s.email_utente));
     document.getElementById('iscrittiCount').textContent = profili.length ? `${profili.length} utenti` : '';
     if (!profili.length) {

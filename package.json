@@ -4,7 +4,6 @@
   "private": true,
   "dependencies": {
     "@supabase/supabase-js": "^2",
-    "web-push": "^3.6.7",
-    "yt-dlp-exec": "^1"
+    "web-push": "^3.6.7"
   }
 }
