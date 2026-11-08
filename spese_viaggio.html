@@ -1222,11 +1222,14 @@
     <input class="form-input" id="poiNome" placeholder="Es. Spiaggia, Centro storico, Supermercato…" autocapitalize="sentences">
     <button type="button" onclick="_apriMapsPoi()" style="width:100%;margin:10px 0 4px;padding:12px;border-radius:14px;border:2px solid #5856d6;background:#f5f4ff;color:#5856d6;font-weight:800;font-size:14px;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px">🗺️ Apri Maps per verificare la distanza</button>
     <label class="form-label">Distanza dall'alloggio</label>
-    <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center">
-        <input class="form-input" id="poiDistanza" type="number" min="0" step="0.1" placeholder="es. 1.2" style="flex:1;margin:0">
-        <div style="display:flex;border-radius:12px;border:2px solid var(--grey);overflow:hidden;flex-shrink:0;height:48px">
-            <button id="poiUnitKm" onclick="setPoiUnit('km')" style="padding:0 14px;border:none;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit;background:#5856d6;color:white">km</button>
-            <button id="poiUnitMin" onclick="setPoiUnit('min')" style="padding:0 14px;border:none;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit;background:var(--white);color:#888">min</button>
+    <div style="display:flex;gap:10px;margin-bottom:12px">
+        <div style="flex:1">
+            <div style="font-size:11px;font-weight:800;color:#aaa;text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px">km</div>
+            <input class="form-input" id="poiDistKm" type="number" min="0" step="0.1" placeholder="es. 1.2" style="margin:0">
+        </div>
+        <div style="flex:1">
+            <div style="font-size:11px;font-weight:800;color:#aaa;text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px">min</div>
+            <input class="form-input" id="poiDistMin" type="number" min="0" step="1" placeholder="es. 15" style="margin:0">
         </div>
     </div>
     <label class="form-label">Mezzo di trasporto</label>
@@ -5269,11 +5272,14 @@ const POI_MEZZI = [
 ];
 
 function _poiDistLabel(p) {
-    if (!p.distanza && p.km == null) return '';
-    const val = p.distanza ?? p.km;
-    const unit = p.unita || 'km';
+    const kmV = p.km ?? (p.unita === 'km' ? p.distanza : null);
+    const minV = p.min ?? (p.unita === 'min' ? p.distanza : null);
+    const parts = [];
+    if (kmV != null) parts.push(`${kmV} km`);
+    if (minV != null) parts.push(`${minV} min`);
+    if (!parts.length) return '';
     const m = POI_MEZZI.find(x => x.id === p.mezzo);
-    return `${m ? m.emoji + ' ' : ''}${val} ${unit}`;
+    return `${m ? m.emoji + ' ' : ''}${parts.join(' · ')}`;
 }
 
 function renderBPoiList() {
@@ -5297,7 +5303,7 @@ function renderBPoiList() {
     }).join('');
 }
 
-let _poiEditIdx = -1, _poiUnit = 'km', _poiMezzo = null;
+let _poiEditIdx = -1, _poiMezzo = null;
 
 function _renderPoiMezziChips() {
     document.getElementById('poiMezziChips').innerHTML = POI_MEZZI.map(m =>
@@ -5310,14 +5316,6 @@ function selPoiMezzo(id) {
     _renderPoiMezziChips();
 }
 
-function setPoiUnit(u) {
-    _poiUnit = u;
-    document.getElementById('poiUnitKm').style.background = u === 'km' ? '#5856d6' : 'var(--white)';
-    document.getElementById('poiUnitKm').style.color = u === 'km' ? 'white' : '#888';
-    document.getElementById('poiUnitMin').style.background = u === 'min' ? '#5856d6' : 'var(--white)';
-    document.getElementById('poiUnitMin').style.color = u === 'min' ? 'white' : '#888';
-}
-
 function aggiungiBPoi() { apriPoiModal(-1); }
 
 function apriPoiModal(idx) {
@@ -5325,11 +5323,11 @@ function apriPoiModal(idx) {
     const p = idx >= 0 ? _bPoiList[idx] : null;
     document.getElementById('poiModalTitle').textContent = idx >= 0 ? 'Modifica punto' : 'Nuovo punto di interesse';
     document.getElementById('poiNome').value = p?.nome || '';
-    const distVal = p?.distanza ?? p?.km ?? '';
-    document.getElementById('poiDistanza').value = distVal !== '' ? distVal : '';
-    _poiUnit = p?.unita || 'km';
+    const kmVal = p?.km ?? (p?.unita === 'km' ? p?.distanza : null) ?? '';
+    const minVal = p?.min ?? (p?.unita === 'min' ? p?.distanza : null) ?? '';
+    document.getElementById('poiDistKm').value = kmVal !== '' && kmVal != null ? kmVal : '';
+    document.getElementById('poiDistMin').value = minVal !== '' && minVal != null ? minVal : '';
     _poiMezzo = p?.mezzo || null;
-    setPoiUnit(_poiUnit);
     _renderPoiMezziChips();
     document.getElementById('modalPoiEdit').classList.add('open');
     setTimeout(() => document.getElementById('poiNome').focus(), 300);
@@ -5356,9 +5354,11 @@ function confermaPoiEdit() {
     const nomeRaw = document.getElementById('poiNome').value.trim();
     if (!nomeRaw) { return; }
     const nome = nomeRaw.charAt(0).toUpperCase() + nomeRaw.slice(1);
-    const distRaw = parseFloat(document.getElementById('poiDistanza').value);
-    const distanza = !isNaN(distRaw) && distRaw > 0 ? distRaw : null;
-    const entry = { nome, distanza, unita: _poiUnit, mezzo: _poiMezzo };
+    const kmRaw = parseFloat(document.getElementById('poiDistKm').value);
+    const minRaw = parseFloat(document.getElementById('poiDistMin').value);
+    const km = !isNaN(kmRaw) && kmRaw > 0 ? kmRaw : null;
+    const min = !isNaN(minRaw) && minRaw > 0 ? minRaw : null;
+    const entry = { nome, km, min, mezzo: _poiMezzo };
     if (_poiEditIdx >= 0) _bPoiList[_poiEditIdx] = entry;
     else _bPoiList.push(entry);
     chiudiModalPoi();
