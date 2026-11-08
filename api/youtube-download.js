@@ -7,11 +7,11 @@ function extractVideoId(url) {
     return m ? m[1] : null;
 }
 
-// Clients ordinati dal più affidabile al meno.
-// Nessuno richiede PO token (problema datacenter IP).
-// TV_EMBED (85): embed context, bypass bot detection.
-// ANDROID (3): mobile client, spesso OK da datacenter.
-// IOS (5): fallback, qualche video lo accetta ancora.
+// Client ordinati dal più affidabile al meno (IP datacenter Vercel).
+// TV_EMBED (85): embed context con URL video specifico, non richiede PO token.
+// ANDROID v17 (3): versione vecchia, body minimale — 400 su v19 con campi extra.
+// IOS v17 (5): stessa logica.
+// WEB (1): ultimo tentativo, richiede cookie ma a volte passa con cookies.
 const CLIENTS = [
     {
         name: 'TV_EMBED',
@@ -30,7 +30,7 @@ const CLIENTS = [
                     clientVersion: '2.0',
                     hl: 'en', gl: 'US',
                 },
-                thirdParty: { embedUrl: 'https://www.youtube.com/' },
+                thirdParty: { embedUrl: `https://www.youtube.com/embed/${videoId}` },
             },
         }),
     },
@@ -38,17 +38,15 @@ const CLIENTS = [
         name: 'ANDROID',
         headers: {
             'X-YouTube-Client-Name': '3',
-            'X-YouTube-Client-Version': '19.44.38',
-            'User-Agent': 'com.google.android.youtube/19.44.38 (Linux; U; Android 14) gzip',
+            'X-YouTube-Client-Version': '17.31.35',
+            'User-Agent': 'com.google.android.youtube/17.31.35 (Linux; U; Android 11) gzip',
         },
         body: (videoId) => ({
             videoId,
             context: {
                 client: {
                     clientName: 'ANDROID',
-                    clientVersion: '19.44.38',
-                    androidSdkVersion: 34,
-                    userAgent: 'com.google.android.youtube/19.44.38 (Linux; U; Android 14) gzip',
+                    clientVersion: '17.31.35',
                     hl: 'en', gl: 'US',
                 },
             },
@@ -58,20 +56,36 @@ const CLIENTS = [
         name: 'IOS',
         headers: {
             'X-YouTube-Client-Name': '5',
-            'X-YouTube-Client-Version': '19.45.4',
-            'User-Agent': 'com.google.ios.youtube/19.45.4 (iPhone16,2; U; CPU iOS 17_5_1 like Mac OS X;)',
+            'X-YouTube-Client-Version': '17.33.2',
+            'User-Agent': 'com.google.ios.youtube/17.33.2 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)',
         },
         body: (videoId) => ({
             videoId,
             context: {
                 client: {
                     clientName: 'IOS',
-                    clientVersion: '19.45.4',
-                    deviceModel: 'iPhone16,2',
-                    deviceMake: 'Apple',
-                    osName: 'iPhone',
-                    osVersion: '17.5.1.21F90',
-                    userAgent: 'com.google.ios.youtube/19.45.4 (iPhone16,2; U; CPU iOS 17_5_1 like Mac OS X;)',
+                    clientVersion: '17.33.2',
+                    deviceModel: 'iPhone14,3',
+                    hl: 'en', gl: 'US',
+                },
+            },
+        }),
+    },
+    {
+        name: 'WEB',
+        headers: {
+            'X-YouTube-Client-Name': '1',
+            'X-YouTube-Client-Version': '2.20231121.08.00',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+            'Origin': 'https://www.youtube.com',
+            'Referer': 'https://www.youtube.com/',
+        },
+        body: (videoId) => ({
+            videoId,
+            context: {
+                client: {
+                    clientName: 'WEB',
+                    clientVersion: '2.20231121.08.00',
                     hl: 'en', gl: 'US',
                 },
             },
