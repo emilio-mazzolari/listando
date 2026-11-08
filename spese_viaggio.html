@@ -482,12 +482,15 @@
         .rip-result-breakdown { font-size: 11px; color: #aaa; font-weight: 600; margin-top: 2px; }
         .rip-result-amount { font-weight: 900; font-size: 16px; color: var(--accent); flex-shrink: 0; }
         .alloggio-box { background: var(--grey-light); border-radius: 14px; padding: 12px 14px; margin-bottom: 10px; }
-        .poi-row { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1.5px solid rgba(0,0,0,0.06); }
+        .poi-row { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1.5px solid rgba(0,0,0,0.06); }
         .poi-row:last-child { border-bottom: none; }
-        .poi-nome { flex: 1; font-weight: 700; font-size: 13px; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .poi-km { font-size: 12px; color: #888; font-weight: 700; flex-shrink: 0; }
+        .poi-info { flex: 1; min-width: 0; }
+        .poi-nome { font-weight: 700; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .poi-dist { font-size: 11px; color: #888; font-weight: 700; margin-top: 2px; }
         .poi-maps { width: 30px; height: 30px; border-radius: 9px; border: 2px solid #5856d6; background: var(--white); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 14px; }
         .poi-del { width: 30px; height: 30px; border-radius: 9px; border: 2px solid #fcc; background: var(--white); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--red); font-size: 16px; }
+        .poi-mezzo-chip { padding: 5px 10px; border-radius: 20px; border: 2px solid var(--grey); background: var(--white); font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; font-family: inherit; color: #555; transition: all 0.15s; }
+        .poi-mezzo-chip.active { border-color: #5856d6; background: rgba(88,86,214,0.1); color: #5856d6; }
 
         @media (prefers-color-scheme: dark) {
             :root {
@@ -1125,8 +1128,28 @@
         <label class="form-label">Categoria *</label>
         <select class="form-input" id="bCat" onchange="setBudgetCat(this.value)" style="margin-bottom:14px"></select>
 
-        <label class="form-label">Titolo *</label>
-        <input class="form-input" id="bTitolo" placeholder="es. Voli andata/ritorno…" type="text">
+        <div id="bAlloggioTopBox" style="display:none">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+                <div>
+                    <label class="form-label">Check-in</label>
+                    <input class="form-input" id="bCheckIn" type="date" style="margin:0">
+                </div>
+                <div>
+                    <label class="form-label">Check-out</label>
+                    <input class="form-input" id="bCheckOut" type="date" style="margin:0">
+                </div>
+            </div>
+            <div style="display:flex;gap:10px;align-items:flex-end;margin-bottom:12px">
+                <div style="flex:1">
+                    <label class="form-label">Tassa di soggiorno</label>
+                    <input class="form-input" id="bTassaSoggiorno" type="number" min="0" step="0.01" placeholder="es. 6.00" style="margin:0">
+                </div>
+                <div style="padding-bottom:14px;white-space:nowrap;font-size:12px;font-weight:700;color:#888">€ / pers / notte</div>
+            </div>
+        </div>
+
+        <label class="form-label" id="bTitoloLabel">Titolo *</label>
+        <input class="form-input" id="bTitolo" placeholder="es. Voli andata/ritorno…" type="text" autocapitalize="sentences">
 
         <div style="display:flex;gap:8px">
             <div style="flex:1.6">
@@ -1170,26 +1193,9 @@
 
         <div id="bAlloggioBox" style="display:none">
             <div style="height:1px;background:var(--grey);margin:4px 0 14px"></div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
-                <div>
-                    <label class="form-label">Check-in</label>
-                    <input class="form-input" id="bCheckIn" type="date" style="margin:0">
-                </div>
-                <div>
-                    <label class="form-label">Check-out</label>
-                    <input class="form-input" id="bCheckOut" type="date" style="margin:0">
-                </div>
-            </div>
-            <div style="display:flex;gap:10px;align-items:flex-end;margin-bottom:12px">
-                <div style="flex:1">
-                    <label class="form-label">Tassa di soggiorno</label>
-                    <input class="form-input" id="bTassaSoggiorno" type="number" min="0" step="0.01" placeholder="es. 6.00" style="margin:0">
-                </div>
-                <div style="padding-bottom:14px;white-space:nowrap;font-size:12px;font-weight:700;color:#888">€ / pers / notte</div>
-            </div>
             <label class="form-label">Indirizzo alloggio</label>
             <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">
-                <input class="form-input" id="bAlloggioAddr" type="text" placeholder="Via Roma 12, Firenze…" style="margin:0;flex:1">
+                <input class="form-input" id="bAlloggioAddr" type="text" placeholder="Via Roma 12, Firenze…" style="margin:0;flex:1" autocapitalize="sentences" oninput="if(this.value)this.value=this.value[0].toUpperCase()+this.value.slice(1)">
                 <button onclick="_apriMapsAlloggio()" style="width:44px;height:48px;border-radius:12px;border:2px solid var(--grey);background:var(--white);cursor:pointer;font-size:20px;flex-shrink:0" title="Apri in Google Maps">📍</button>
             </div>
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
@@ -1206,6 +1212,27 @@
         <button class="btn-save-modal" id="btnEliminaBudget" style="display:none;background:#fff0f0;color:var(--red);border:2px solid #fcc;margin-top:8px" onclick="eliminaBudgetItemModal()">ELIMINA</button>
         <button style="width:100%;padding:14px;border-radius:14px;border:2px solid var(--grey);background:var(--white);font-weight:800;font-size:15px;cursor:pointer;font-family:inherit;margin-top:8px;color:#aaa" onclick="document.getElementById('modalBudgetItem').classList.remove('open')">Chiudi</button>
     </div>
+</div>
+
+<!-- Modal: Aggiungi/Modifica POI -->
+<div class="modal-overlay" id="modalPoiEdit" style="z-index:1200">
+<div class="modal-box">
+    <div style="font-weight:900;font-size:17px;margin-bottom:16px" id="poiModalTitle">Punto di interesse</div>
+    <label class="form-label">Nome *</label>
+    <input class="form-input" id="poiNome" placeholder="Es. Spiaggia, Centro storico, Supermercato…" autocapitalize="sentences">
+    <label class="form-label">Distanza dall'alloggio</label>
+    <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center">
+        <input class="form-input" id="poiDistanza" type="number" min="0" step="0.1" placeholder="es. 1.2" style="flex:1;margin:0">
+        <div style="display:flex;border-radius:12px;border:2px solid var(--grey);overflow:hidden;flex-shrink:0;height:48px">
+            <button id="poiUnitKm" onclick="setPoiUnit('km')" style="padding:0 14px;border:none;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit;background:#5856d6;color:white">km</button>
+            <button id="poiUnitMin" onclick="setPoiUnit('min')" style="padding:0 14px;border:none;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit;background:var(--white);color:#888">min</button>
+        </div>
+    </div>
+    <label class="form-label">Mezzo di trasporto</label>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px" id="poiMezziChips"></div>
+    <button class="btn-save-modal" style="background:#5856d6" onclick="confermaPoiEdit()">Salva</button>
+    <button style="width:100%;padding:13px;border-radius:14px;border:2px solid var(--grey);background:transparent;font-weight:800;font-size:14px;cursor:pointer;font-family:inherit;margin-top:8px;color:#aaa" onclick="chiudiModalPoi()">Annulla</button>
+</div>
 </div>
 
 <!-- Modal: Budget da Piano -->
@@ -5185,12 +5212,18 @@ function _ripTrovaQuota(ris, nome) {
 
 function _toggleAlloggioBox(cat) {
     const isAlloggio = cat === 'alloggio';
+    const topBox = document.getElementById('bAlloggioTopBox');
+    if (topBox) topBox.style.display = isAlloggio ? '' : 'none';
     const box = document.getElementById('bAlloggioBox');
     if (box) box.style.display = isAlloggio ? '' : 'none';
     const modeRow = document.getElementById('bAlloggioModeRow');
     if (modeRow) modeRow.style.display = isAlloggio ? 'flex' : 'none';
     const btn = document.getElementById('bBtnRipartisci');
     if (btn) btn.style.display = (isAlloggio && budgetAlloggioMode === 'ripartire') ? '' : 'none';
+    const lbl = document.getElementById('bTitoloLabel');
+    if (lbl) lbl.textContent = isAlloggio ? 'Nome alloggio *' : 'Titolo *';
+    const inp = document.getElementById('bTitolo');
+    if (inp) inp.placeholder = isAlloggio ? 'es. YD 2 Bright Bedroom…' : 'es. Voli andata/ritorno…';
 }
 
 function setBudgetAlloggioMode(mode) {
@@ -5211,6 +5244,23 @@ function setBudgetAlloggioMode(mode) {
     if (lbl) lbl.textContent = mode === 'ripartire' ? 'La tua quota (da ripartire)' : 'Importo previsto *';
 }
 
+const POI_MEZZI = [
+    { id: 'auto',   emoji: '🚗', label: 'Auto',     maps: 'driving' },
+    { id: 'piedi',  emoji: '🚶', label: 'A piedi',  maps: 'walking' },
+    { id: 'mezzi',  emoji: '🚌', label: 'Mezzi',    maps: 'transit' },
+    { id: 'bici',   emoji: '🚲', label: 'Bici',     maps: 'bicycling' },
+    { id: 'moto',   emoji: '🛵', label: 'Moto',     maps: 'driving' },
+    { id: 'barca',  emoji: '⛵', label: 'Barca',    maps: null },
+];
+
+function _poiDistLabel(p) {
+    if (!p.distanza && p.km == null) return '';
+    const val = p.distanza ?? p.km;
+    const unit = p.unita || 'km';
+    const m = POI_MEZZI.find(x => x.id === p.mezzo);
+    return `${m ? m.emoji + ' ' : ''}${val} ${unit}`;
+}
+
 function renderBPoiList() {
     const el = document.getElementById('bPoiList');
     if (!el) return;
@@ -5218,34 +5268,72 @@ function renderBPoiList() {
         el.innerHTML = '<div style="font-size:12px;color:#aaa;font-weight:600;padding:4px 0 8px">Nessun punto aggiunto</div>';
         return;
     }
-    el.innerHTML = _bPoiList.map((p, i) => `
-        <div class="poi-row">
-            <span class="poi-nome">${_esc(p.nome)}</span>
-            ${p.km != null ? `<span class="poi-km">${p.km} km</span>` : ''}
+    el.innerHTML = _bPoiList.map((p, i) => {
+        const dist = _poiDistLabel(p);
+        return `<div class="poi-row">
+            <div class="poi-info">
+                <div class="poi-nome">${_esc(p.nome)}</div>
+                ${dist ? `<div class="poi-dist">${dist}</div>` : ''}
+            </div>
             <button class="poi-maps" onclick="apriBPoiMaps(${i})" title="Apri Maps">🗺️</button>
-            <button class="poi-maps" onclick="modificaBPoi(${i})" title="Modifica" style="border-color:#aaa;font-size:13px">✏️</button>
+            <button class="poi-maps" onclick="apriPoiModal(${i})" title="Modifica" style="border-color:#aaa;font-size:13px">✏️</button>
             <button class="poi-del" onclick="_bPoiList.splice(${i},1);renderBPoiList()">×</button>
-        </div>`).join('');
+        </div>`;
+    }).join('');
 }
 
-function aggiungiBPoi() {
-    const nome = prompt('Nome del punto di interesse\n(es. Spiaggia, Centro storico, Supermercato…)');
-    if (!nome?.trim()) return;
-    const kmStr = prompt('Distanza in km dall\'alloggio?\n(lascia vuoto se non sai)');
-    const km = kmStr?.trim() ? parseFloat(kmStr.replace(',', '.')) : null;
-    const n = nome.trim();
-    _bPoiList.push({ nome: n.charAt(0).toUpperCase() + n.slice(1), km: (km != null && !isNaN(km)) ? km : null });
-    renderBPoiList();
+let _poiEditIdx = -1, _poiUnit = 'km', _poiMezzo = null;
+
+function _renderPoiMezziChips() {
+    document.getElementById('poiMezziChips').innerHTML = POI_MEZZI.map(m =>
+        `<button class="poi-mezzo-chip${_poiMezzo === m.id ? ' active' : ''}" onclick="selPoiMezzo('${m.id}')">${m.emoji} ${m.label}</button>`
+    ).join('');
 }
 
-function modificaBPoi(i) {
-    const p = _bPoiList[i];
-    const nome = prompt('Nome del punto di interesse', p.nome);
-    if (nome === null) return;
-    const kmStr = prompt('Distanza in km dall\'alloggio?\n(lascia vuoto se non sai)', p.km != null ? String(p.km) : '');
-    const km = kmStr?.trim() ? parseFloat(kmStr.replace(',', '.')) : null;
-    const n = nome.trim();
-    _bPoiList[i] = { nome: n.charAt(0).toUpperCase() + n.slice(1), km: (km != null && !isNaN(km)) ? km : null };
+function selPoiMezzo(id) {
+    _poiMezzo = _poiMezzo === id ? null : id;
+    _renderPoiMezziChips();
+}
+
+function setPoiUnit(u) {
+    _poiUnit = u;
+    document.getElementById('poiUnitKm').style.background = u === 'km' ? '#5856d6' : 'var(--white)';
+    document.getElementById('poiUnitKm').style.color = u === 'km' ? 'white' : '#888';
+    document.getElementById('poiUnitMin').style.background = u === 'min' ? '#5856d6' : 'var(--white)';
+    document.getElementById('poiUnitMin').style.color = u === 'min' ? 'white' : '#888';
+}
+
+function aggiungiBPoi() { apriPoiModal(-1); }
+
+function apriPoiModal(idx) {
+    _poiEditIdx = idx;
+    const p = idx >= 0 ? _bPoiList[idx] : null;
+    document.getElementById('poiModalTitle').textContent = idx >= 0 ? 'Modifica punto' : 'Nuovo punto di interesse';
+    document.getElementById('poiNome').value = p?.nome || '';
+    const distVal = p?.distanza ?? p?.km ?? '';
+    document.getElementById('poiDistanza').value = distVal !== '' ? distVal : '';
+    _poiUnit = p?.unita || 'km';
+    _poiMezzo = p?.mezzo || null;
+    setPoiUnit(_poiUnit);
+    _renderPoiMezziChips();
+    document.getElementById('modalPoiEdit').classList.add('open');
+    setTimeout(() => document.getElementById('poiNome').focus(), 300);
+}
+
+function chiudiModalPoi() {
+    document.getElementById('modalPoiEdit').classList.remove('open');
+}
+
+function confermaPoiEdit() {
+    const nomeRaw = document.getElementById('poiNome').value.trim();
+    if (!nomeRaw) { return; }
+    const nome = nomeRaw.charAt(0).toUpperCase() + nomeRaw.slice(1);
+    const distRaw = parseFloat(document.getElementById('poiDistanza').value);
+    const distanza = !isNaN(distRaw) && distRaw > 0 ? distRaw : null;
+    const entry = { nome, distanza, unita: _poiUnit, mezzo: _poiMezzo };
+    if (_poiEditIdx >= 0) _bPoiList[_poiEditIdx] = entry;
+    else _bPoiList.push(entry);
+    chiudiModalPoi();
     renderBPoiList();
 }
 
@@ -5254,8 +5342,10 @@ function apriBPoiMaps(i) {
     const addr = document.getElementById('bAlloggioAddr')?.value?.trim();
     const dest = encodeURIComponent(poi.nome);
     const from = addr ? encodeURIComponent(addr) : '';
+    const mapsMode = POI_MEZZI.find(m => m.id === poi.mezzo)?.maps;
+    const modeParam = mapsMode ? `&travelmode=${mapsMode}` : '';
     const url = from
-        ? `https://www.google.com/maps/dir/${from}/${dest}`
+        ? `https://www.google.com/maps/dir/${from}/${dest}?${modeParam}`
         : `https://www.google.com/maps/search/${dest}`;
     window.open(url, '_blank');
 }
