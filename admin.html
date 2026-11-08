@@ -262,9 +262,9 @@ async function init() {
 // ── Stats ─────────────────────────────────────────────────────────────
 async function caricaStats() {
     const [rP, rS, rF] = await Promise.all([
-        fetch(`${URL_S}/profili?select=email_utente`, { headers: _HR }),
-        fetch(`${URL_S}/push_subscriptions?select=email_utente`, { headers: _HR }),
-        fetch(`${URL_S}/app_feedback?select=id`, { headers: _HR }),
+        fetch(`${URL_S}/profili?select=email_utente&limit=1000`, { headers: _HR }),
+        fetch(`${URL_S}/push_subscriptions?select=email_utente&limit=1000`, { headers: _HR }),
+        fetch(`${URL_S}/app_feedback?select=id&limit=1000`, { headers: _HR }),
     ]);
     const profili = rP.ok ? await rP.json() : [];
     const subs    = rS.ok ? await rS.json() : [];
@@ -405,8 +405,8 @@ async function caricaFeedback() {
 async function caricaIscritti() {
     const list = document.getElementById('iscrittiList');
     const [rP, rS] = await Promise.all([
-        fetch(`${URL_S}/profili?select=email_utente,nome,cognome,foto,created_at&order=created_at.desc`, { headers: _HR }),
-        fetch(`${URL_S}/push_subscriptions?select=email_utente`, { headers: _HR }),
+        fetch(`${URL_S}/profili?select=email_utente,nome,cognome,foto,created_at&order=created_at.desc&limit=1000`, { headers: _HR }),
+        fetch(`${URL_S}/push_subscriptions?select=email_utente&limit=1000`, { headers: _HR }),
     ]);
     const profili = rP.ok ? await rP.json() : [];
     const subs    = rS.ok ? await rS.json() : [];
