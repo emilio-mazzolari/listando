@@ -286,7 +286,7 @@ async function inviaNotifica() {
     btn.disabled = true; btn.textContent = 'Invio…';
     res_el.style.display = 'none';
     try {
-        const res = await fetch('/api/admin-broadcast', {
+        const res = await fetch('/api/broadcast', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ adminEmail: userEmail, title, body, url }),

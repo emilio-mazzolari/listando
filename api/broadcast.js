@@ -10,17 +10,25 @@ webpush.setVapidDetails(
     process.env.VAPID_PRIVATE_KEY
 );
 
+const ADMIN_EMAIL = 'emilio.mazzolari@gmail.com';
+
 module.exports = async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
     if (req.method === 'OPTIONS') return res.status(200).end();
     if (req.method !== 'POST') return res.status(405).end();
 
-    const secret = process.env.CRON_SECRET;
-    if (secret && req.headers.authorization !== `Bearer ${secret}`) {
-        return res.status(401).json({ error: 'Non autorizzato' });
-    }
+    const { adminEmail, title, body, url } = req.body || {};
 
-    const { title, body, url } = req.body || {};
+    // Admin UI path: check adminEmail
+    if (adminEmail !== undefined) {
+        if (adminEmail !== ADMIN_EMAIL) return res.status(401).json({ error: 'Non autorizzato' });
+    } else {
+        // Cron/server path: check Bearer token
+        const secret = process.env.CRON_SECRET;
+        if (secret && req.headers.authorization !== `Bearer ${secret}`) {
+            return res.status(401).json({ error: 'Non autorizzato' });
+        }
+    }
     if (!title || !body) return res.status(400).json({ error: 'title e body richiesti' });
 
     const { data: subs, error } = await sb.from('push_subscriptions').select('*');
