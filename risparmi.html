@@ -322,11 +322,29 @@ body{ font-family:'Segoe UI',system-ui,sans-serif; background:var(--bg); color:v
 </div>
 </div>
 
+<!-- Modal: Trasferisci tra conti -->
+<div class="modal-overlay" id="modalTrasferisciConti">
+<div class="modal-box">
+    <div class="modal-title">Trasferisci tra conti</div>
+    <div id="trasferisciContiBody"></div>
+    <label class="form-label">Conto destinazione</label>
+    <select class="form-input" id="tcDestId"></select>
+    <label class="form-label">Importo (€)</label>
+    <input class="form-input" id="tcImporto" type="number" min="0.01" step="0.01" placeholder="0.00">
+    <label class="form-label">Note (opzionale)</label>
+    <input class="form-input" id="tcNote" placeholder="Es. accredito stipendio…">
+    <button class="btn-modal-primary" onclick="confermaTrasferisciConti()">Trasferisci</button>
+    <button class="btn-modal-secondary" onclick="chiudiModal('modalTrasferisciConti')">Annulla</button>
+</div>
+</div>
+
 <!-- Modal: Trasferisci al C/C -->
 <div class="modal-overlay" id="modalTrasferisci">
 <div class="modal-box">
     <div class="modal-title">Investimento scaduto</div>
     <div id="trasferisciBody"></div>
+    <label class="form-label">Interessi netti effettivi (€)</label>
+    <input class="form-input" id="trasferisciInteressi" type="number" min="0" step="0.01" placeholder="0.00 — lascia vuoto se non ancora accreditati">
     <button class="btn-modal-primary" onclick="confermaTrasferimenToCC()">Trasferisci al C/C</button>
     <button class="btn-modal-secondary" onclick="chiudiModal('modalTrasferisci')">Ignora per ora</button>
 </div>
@@ -796,6 +814,10 @@ function renderInstrumentCard(p) {
     const investiBtnCard = p.tipologia === 'Conto corrente' && p.capitale > 0
         ? `<button onclick="apriInvestiDaCC('${p.id}')" style="margin-top:8px;padding:6px 12px;border-radius:9px;border:none;background:var(--green);color:white;font-weight:800;font-size:11px;cursor:pointer;font-family:inherit">Crea investimento</button>`
         : '';
+    const altriCC = posizioni.filter(x => x.tipologia === 'Conto corrente' && String(x.id) !== String(p.id));
+    const trasferisciContiBtnCard = p.tipologia === 'Conto corrente' && altriCC.length > 0
+        ? `<button onclick="apriTrasferisciConti('${p.id}')" style="margin-top:8px;padding:6px 12px;border-radius:9px;border:none;background:#3384d4;color:white;font-weight:800;font-size:11px;cursor:pointer;font-family:inherit">Trasferisci</button>`
+        : '';
 
     return `<div class="instrument-card">
         <div class="instr-body">
@@ -807,7 +829,7 @@ function renderInstrumentCard(p) {
             </div>
             ${noteHtml}
             ${trasferisciBtnCard}
-            ${investiBtnCard}
+            <div style="display:flex;gap:6px;flex-wrap:wrap">${trasferisciContiBtnCard}${investiBtnCard}</div>
         </div>
         <div class="instr-actions">
             <button class="btn-instr-edit" onclick="apriModalEditPosizione('${p.id}')" title="Modifica">Mod</button>
@@ -1076,6 +1098,48 @@ async function eliminaPosizione(id) {
     toast('Eliminata');
 }
 
+// ── Trasferimento C/C → C/C ─────────────────────────────────────────
+let _tcSourceId = null;
+
+function apriTrasferisciConti(ccId) {
+    const cc = posizioni.find(x => String(x.id) === String(ccId));
+    if (!cc) return;
+    _tcSourceId = ccId;
+    document.getElementById('trasferisciContiBody').innerHTML = `
+        <div style="background:var(--grey-light);border-radius:16px;padding:16px;margin-bottom:12px">
+            <div style="font-size:11px;color:#999;font-weight:800;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:4px">Da — ${cc.banca}</div>
+            <div style="font-size:22px;font-weight:900">${eur(cc.capitale)}</div>
+        </div>`;
+    const altriCC = posizioni.filter(x => x.tipologia === 'Conto corrente' && String(x.id) !== String(ccId));
+    const sel = document.getElementById('tcDestId');
+    sel.innerHTML = altriCC.length
+        ? altriCC.map(c => `<option value="${c.id}">${c.banca} (${eur(c.capitale)})</option>`).join('')
+        : '<option value="">Nessun altro conto disponibile</option>';
+    document.getElementById('tcImporto').value = '';
+    document.getElementById('tcNote').value = '';
+    document.getElementById('modalTrasferisciConti').classList.add('open');
+}
+
+async function confermaTrasferisciConti() {
+    const importo = parseFloat(document.getElementById('tcImporto').value);
+    const destId = document.getElementById('tcDestId').value;
+    if (!destId) { toast('Nessun conto destinazione disponibile'); return; }
+    if (!importo || importo <= 0) { toast('Inserisci un importo valido'); return; }
+    const src = posizioni.find(x => String(x.id) === String(_tcSourceId));
+    const dst = posizioni.find(x => String(x.id) === String(destId));
+    if (!src || !dst) return;
+    if (importo > src.capitale) { toast('Importo superiore al saldo disponibile'); return; }
+    chiudiModal('modalTrasferisciConti');
+    const today = new Date().toISOString().slice(0, 10);
+    await Promise.all([
+        sb.from('sv_risparmi').update({ capitale: src.capitale - importo, data_inizio: today }).eq('id', src.id),
+        sb.from('sv_risparmi').update({ capitale: dst.capitale + importo, data_inizio: today }).eq('id', dst.id),
+    ]);
+    await loadPosizioni();
+    renderTab(tabCorrente);
+    toast('Trasferimento completato ✓');
+}
+
 // ── Trasferimento investimento → C/C ────────────────────────────────
 let _trasferisciPosId = null;
 let _investiDaCC = null;
@@ -1118,42 +1182,49 @@ function apriTrasferisciCC(id) {
     if (!p) return;
     _trasferisciPosId = id;
     const cc = posizioni.find(x => x.banca === p.banca && x.tipologia === 'Conto corrente');
+    const intStimati = calcInterestNet(p);
     const nuovoSaldo = cc ? cc.capitale + p.capitale : p.capitale;
     document.getElementById('trasferisciBody').innerHTML = `
         <div style="background:var(--grey-light);border-radius:16px;padding:16px;margin-bottom:12px">
             <div style="font-size:11px;color:#999;font-weight:800;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:4px">${p.tipologia}</div>
             <div style="font-size:22px;font-weight:900">${eur(p.capitale)}</div>
             <div style="font-size:12px;color:#888;font-weight:700;margin-top:3px">${p.banca} · scaduto il ${fmtDate(p.data_fine)}</div>
+            ${intStimati > 0 ? `<div style="font-size:11px;color:var(--green);font-weight:800;margin-top:4px">Interessi stimati netti: ${eur(intStimati)}</div>` : ''}
         </div>
         <div style="text-align:center;font-size:20px;color:#999;margin:4px 0">↓</div>
-        <div style="background:rgba(51,132,212,0.1);border-radius:16px;padding:16px;margin-bottom:16px">
+        <div style="background:rgba(51,132,212,0.1);border-radius:16px;padding:16px;margin-bottom:12px">
             <div style="font-size:11px;color:#3384d4;font-weight:800;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:4px">Conto Corrente — ${p.banca}</div>
             ${cc
                 ? `<div style="font-size:16px;font-weight:900">${eur(cc.capitale)} <span style="color:#999;font-size:13px">→</span> <span style="color:var(--green)">${eur(nuovoSaldo)}</span></div>`
                 : `<div style="font-size:14px;font-weight:800;color:#3384d4">Verrà creato automaticamente</div><div style="font-size:22px;font-weight:900;margin-top:4px">${eur(p.capitale)}</div>`
             }
         </div>`;
+    const intInput = document.getElementById('trasferisciInteressi');
+    intInput.value = intStimati > 0 ? intStimati.toFixed(2) : '';
+    intInput.placeholder = intStimati > 0 ? `Stimati: ${eur(intStimati)}` : '0.00 — lascia vuoto se non ancora accreditati';
     document.getElementById('modalTrasferisci').classList.add('open');
 }
 
 async function confermaTrasferimenToCC() {
     const p = posizioni.find(x => String(x.id) === String(_trasferisciPosId));
     if (!p) return;
+    const intNetti = parseFloat(document.getElementById('trasferisciInteressi').value) || 0;
+    const totaleAccreditato = p.capitale + intNetti;
     chiudiModal('modalTrasferisci');
     const today = new Date().toISOString().slice(0, 10);
     await sb.from('sv_risparmi').update({ attivo: false }).eq('id', p.id);
     const cc = posizioni.find(x => x.banca === p.banca && x.tipologia === 'Conto corrente');
     if (cc) {
-        await sb.from('sv_risparmi').update({ capitale: cc.capitale + p.capitale, data_inizio: today }).eq('id', cc.id);
+        await sb.from('sv_risparmi').update({ capitale: cc.capitale + totaleAccreditato, data_inizio: today }).eq('id', cc.id);
     } else {
         await sb.from('sv_risparmi').insert({
             email_utente: userEmail, banca: p.banca, tipologia: 'Conto corrente',
-            capitale: p.capitale, data_inizio: today, attivo: true, ordine: posizioni.length + 1
+            capitale: totaleAccreditato, data_inizio: today, attivo: true, ordine: posizioni.length + 1
         });
     }
     await loadPosizioni();
     renderTab(tabCorrente);
-    toast('Trasferimento completato ✓');
+    toast(`Trasferimento ${eur(totaleAccreditato)} completato ✓${intNetti > 0 ? ` (+${eur(intNetti)} interessi)` : ''}`);
 }
 
 // ── CRUD: Snapshot ───────────────────────────────────────────────────
