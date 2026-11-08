@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Listando — Fitness</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <style>
+    :root {
+        --accent:#f97316; --accent2:#ea580c;
+        --green:#16a34a; --red:#ef4444; --blue:#3b82f6;
+        --grey:#d8dddc; --grey-light:#f2f2f7;
+        --dark:#111; --bg:#f2f2f7; --white:#fff;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{overflow-x:hidden;max-width:100%;font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--dark)}
+    /* header */
+    .page-header{position:sticky;top:0;z-index:100;background:var(--accent);display:flex;align-items:center;gap:10px;padding:14px 20px;padding-top:max(14px,env(safe-area-inset-top,14px))}
+    .btn-back{width:40px;height:40px;border-radius:12px;border:2px solid rgba(255,255,255,.3);background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+    .btn-back svg{width:18px;height:18px;stroke:white;fill:none;stroke-width:2.5}
+    .header-title{font-weight:900;font-size:18px;color:white;flex:1;letter-spacing:.5px}
+    .header-edit{font-size:12px;font-weight:800;color:white;background:rgba(255,255,255,.18);border:none;border-radius:10px;padding:6px 12px;cursor:pointer;font-family:inherit}
+    /* tabs */
+    .tab-top{display:flex;background:var(--white);border-bottom:2px solid var(--grey-light);position:sticky;top:calc(44px + env(safe-area-inset-top,0px));z-index:99}
+    .tab-top-btn{flex:1;padding:14px 8px;font-size:14px;font-weight:800;color:#888;background:none;border:none;cursor:pointer;font-family:inherit;border-bottom:3px solid transparent;transition:all .15s}
+    .tab-top-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
+    /* content */
+    .content{padding:16px 16px 110px;display:flex;flex-direction:column;gap:16px}
+    /* cards */
+    .card{background:var(--white);border-radius:20px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.05)}
+    .card-header{padding:16px 18px 12px;display:flex;align-items:center;justify-content:space-between}
+    .card-title{font-size:13px;font-weight:900;text-transform:uppercase;letter-spacing:.5px;color:#666}
+    .card-body{padding:0 18px 16px}
+    /* profilo riepilogo */
+    .profilo-strip{display:flex;gap:8px;flex-wrap:wrap;padding:0 18px 14px}
+    .profilo-chip{font-size:12px;font-weight:700;padding:5px 10px;border-radius:10px;background:var(--grey-light);color:#555}
+    .profilo-chip.accent{background:#fff3e8;color:var(--accent)}
+    /* day cards */
+    .day-card{background:var(--white);border-radius:16px;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,.06);margin-bottom:10px}
+    .day-header{display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer}
+    .day-num{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;color:white;background:var(--accent);flex-shrink:0}
+    .day-num.riposo{background:#ccc}
+    .day-info{flex:1}
+    .day-nome{font-weight:800;font-size:15px}
+    .day-sub{font-size:12px;color:#888;margin-top:2px;font-weight:500}
+    .day-arrow{font-size:12px;color:#bbb;transition:transform .2s}
+    .day-body{display:none;border-top:1.5px solid var(--grey-light)}
+    .day-body.open{display:block}
+    .ex-row{display:flex;align-items:flex-start;gap:12px;padding:12px 16px;border-bottom:1px solid var(--grey-light)}
+    .ex-row:last-child{border-bottom:none}
+    .ex-emoji{font-size:22px;flex-shrink:0;margin-top:1px}
+    .ex-info{flex:1}
+    .ex-nome{font-weight:800;font-size:14px}
+    .ex-desc{font-size:12px;color:#888;margin-top:2px;line-height:1.4}
+    .ex-badge{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+    .badge{font-size:11px;font-weight:700;padding:3px 8px;border-radius:7px}
+    .badge-serie{background:#fff3e8;color:var(--accent)}
+    .badge-reps{background:#f0f9ff;color:#0369a1}
+    .badge-rest{background:#f0fdf4;color:var(--green)}
+    /* nutrition */
+    .macro-bar{display:flex;border-radius:10px;overflow:hidden;height:10px;margin:10px 0}
+    .macro-p{background:#ef4444}
+    .macro-c{background:#f97316}
+    .macro-g{background:#3b82f6}
+    .macro-legend{display:flex;gap:16px;font-size:12px;font-weight:700}
+    .macro-dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:4px}
+    .meal-row{padding:14px 18px;border-bottom:1px solid var(--grey-light)}
+    .meal-row:last-child{border-bottom:none}
+    .meal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+    .meal-nome{font-weight:800;font-size:14px}
+    .meal-kcal{font-size:12px;font-weight:700;color:var(--accent)}
+    .meal-items{font-size:13px;color:#555;line-height:1.6}
+    /* setup */
+    .setup-card{background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:20px;padding:28px 20px;text-align:center;color:white;margin-bottom:16px}
+    .setup-icon{font-size:48px;margin-bottom:12px}
+    .setup-title{font-size:20px;font-weight:900;margin-bottom:8px}
+    .setup-sub{font-size:14px;opacity:.85;line-height:1.5}
+    /* form */
+    .form-label{font-size:11px;font-weight:800;color:#999;text-transform:uppercase;letter-spacing:.4px;display:block;margin:14px 0 6px}
+    .form-input{width:100%;padding:12px 14px;border:2px solid var(--grey);border-radius:14px;font-size:15px;font-family:inherit;outline:none;transition:border .15s;color:var(--dark);background:var(--white)}
+    .form-input:focus{border-color:var(--accent)}
+    .pills-row{display:flex;gap:6px;flex-wrap:wrap}
+    .pill{padding:9px 16px;border-radius:12px;border:2px solid var(--grey);background:var(--white);font-weight:700;font-size:13px;cursor:pointer;font-family:inherit;color:#666;transition:all .15s;white-space:nowrap}
+    .pill.active{border-color:var(--accent);background:#fff3e8;color:var(--accent)}
+    .pill.small{font-size:12px;padding:7px 12px}
+    .btn-genera{width:100%;padding:16px;border-radius:16px;border:none;background:var(--accent);color:white;font-weight:900;font-size:16px;cursor:pointer;font-family:inherit;margin-top:20px;transition:opacity .15s}
+    .btn-genera:disabled{opacity:.4}
+    .btn-rigenera{width:100%;padding:14px;border-radius:14px;border:2px solid var(--accent);background:white;color:var(--accent);font-weight:800;font-size:14px;cursor:pointer;font-family:inherit;margin-top:4px}
+    .btn-rigenera:hover{background:#fff3e8}
+    /* modal */
+    .modal-overlay{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.5);align-items:flex-end;justify-content:center}
+    .modal-overlay.open{display:flex}
+    .modal-box{background:var(--white);border-radius:28px 28px 0 0;padding:24px 20px;padding-bottom:max(28px,env(safe-area-inset-bottom,28px));width:100%;max-width:560px;max-height:92vh;overflow-y:auto}
+    @media(min-width:600px){.modal-overlay{align-items:center}.modal-box{border-radius:28px;max-height:85vh;padding-bottom:24px}}
+    .modal-handle{width:40px;height:4px;background:var(--grey);border-radius:4px;margin:0 auto 20px}
+    .modal-title{font-weight:900;font-size:18px;margin-bottom:4px}
+    /* summary totale */
+    .total-kcal{text-align:center;padding:16px;border-bottom:1.5px solid var(--grey-light)}
+    .kcal-num{font-size:36px;font-weight:900;color:var(--accent)}
+    .kcal-label{font-size:12px;color:#888;font-weight:600;margin-top:2px}
+    /* stato vuoto */
+    .empty-state{text-align:center;padding:40px 20px;color:#bbb}
+    .empty-state .ei{font-size:48px;margin-bottom:12px}
+    .empty-state p{font-weight:700;font-size:14px}
+    /* toast */
+    .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--dark);color:white;padding:12px 20px;border-radius:14px;font-weight:700;font-size:14px;opacity:0;transition:all .25s;white-space:nowrap;z-index:999;pointer-events:none}
+    .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+    </style>
+</head>
+<body>
+
+<div class="page-header">
+    <button class="btn-back" onclick="history.back()">
+        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div class="header-title">🏋️ FITNESS</div>
+    <button class="header-edit" onclick="apriSetup()">Modifica profilo</button>
+</div>
+
+<div class="tab-top">
+    <button class="tab-top-btn active" id="tabBtnEs" onclick="showTab('es')">🏋️ Esercizi</button>
+    <button class="tab-top-btn" id="tabBtnAl" onclick="showTab('al')">🥗 Alimentazione</button>
+</div>
+
+<!-- ══ TAB ESERCIZI ══ -->
+<div id="secEs" class="content">
+    <div id="esSetupCard" class="setup-card" style="display:none">
+        <div class="setup-icon">🏋️</div>
+        <div class="setup-title">Crea il tuo piano</div>
+        <div class="setup-sub">Inserisci i tuoi dati e genero un piano di allenamento personalizzato</div>
+    </div>
+    <div id="esProfiloStrip" class="card" style="display:none">
+        <div class="card-header"><span class="card-title">Il tuo profilo</span></div>
+        <div class="profilo-strip" id="profiloChips"></div>
+    </div>
+    <div id="esPianoWrap"></div>
+    <div id="esBtnWrap" style="display:none">
+        <button class="btn-genera" onclick="generaEsercizi()">🏋️ GENERA PIANO ESERCIZI</button>
+    </div>
+    <div id="esRigenBtnWrap" style="display:none">
+        <button class="btn-rigenera" onclick="generaEsercizi()">🔄 Rigenera piano</button>
+    </div>
+</div>
+
+<!-- ══ TAB ALIMENTARE ══ -->
+<div id="secAl" class="content" style="display:none">
+    <div id="alSetupCard" class="setup-card" style="display:none">
+        <div class="setup-icon">🥗</div>
+        <div class="setup-title">Piano alimentare</div>
+        <div class="setup-sub">Inserisci il tuo profilo e le preferenze alimentari</div>
+    </div>
+    <div id="alDietaCard" class="card" style="display:none">
+        <div class="card-header"><span class="card-title">Preferenze alimentari</span></div>
+        <div class="card-body">
+            <div class="pills-row" id="dietaPills"></div>
+        </div>
+    </div>
+    <div id="alPianoWrap"></div>
+    <div id="alBtnWrap" style="display:none">
+        <button class="btn-genera" onclick="generaAlimentare()">🥗 GENERA PIANO ALIMENTARE</button>
+    </div>
+    <div id="alRigenBtnWrap" style="display:none">
+        <button class="btn-rigenera" onclick="generaAlimentare()">🔄 Rigenera piano</button>
+    </div>
+</div>
+
+<!-- ══ MODAL SETUP PROFILO ══ -->
+<div class="modal-overlay" id="modalSetup" onclick="if(event.target===this)chiudiSetup()">
+<div class="modal-box">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Profilo Fitness</div>
+    <p style="font-size:13px;color:#888;margin-bottom:4px">Più dati inserisci, più il piano sarà preciso</p>
+
+    <label class="form-label">Sesso</label>
+    <div class="pills-row" id="pillsSesso">
+        <button class="pill active" data-val="m" onclick="setPill('sesso','m',this)">👨 Uomo</button>
+        <button class="pill" data-val="f" onclick="setPill('sesso','f',this)">👩 Donna</button>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+        <div><label class="form-label">Età</label><input class="form-input" id="fEta" type="number" min="10" max="99" placeholder="30"></div>
+        <div><label class="form-label">Altezza cm</label><input class="form-input" id="fAlt" type="number" min="100" max="220" placeholder="175"></div>
+        <div><label class="form-label">Peso kg</label><input class="form-input" id="fPeso" type="number" min="30" max="250" placeholder="70" step=".1"></div>
+    </div>
+
+    <label class="form-label">Livello di allenamento</label>
+    <div class="pills-row" id="pillsLivello">
+        <button class="pill active" data-val="principiante" onclick="setPill('livello','principiante',this)">🌱 Principiante</button>
+        <button class="pill" data-val="intermedio" onclick="setPill('livello','intermedio',this)">⚡ Intermedio</button>
+        <button class="pill" data-val="avanzato" onclick="setPill('livello','avanzato',this)">🔥 Avanzato</button>
+    </div>
+
+    <label class="form-label">Obiettivo principale</label>
+    <div class="pills-row" id="pillsObiettivo">
+        <button class="pill small active" data-val="perdere_peso" onclick="setPill('obiettivo','perdere_peso',this)">⬇️ Perdere peso</button>
+        <button class="pill small" data-val="aumentare_massa" onclick="setPill('obiettivo','aumentare_massa',this)">💪 Aumentare massa</button>
+        <button class="pill small" data-val="resistenza" onclick="setPill('obiettivo','resistenza',this)">🫀 Resistenza</button>
+        <button class="pill small" data-val="mantenersi" onclick="setPill('obiettivo','mantenersi',this)">⚖️ Mantenersi</button>
+        <button class="pill small" data-val="flessibilita" onclick="setPill('obiettivo','flessibilita',this)">🧘 Flessibilità</button>
+    </div>
+
+    <label class="form-label">Attrezzatura disponibile</label>
+    <div class="pills-row" id="pillsAttr">
+        <button class="pill active" data-val="casa" onclick="setPill('attr','casa',this)">🏠 Solo corpo libero</button>
+        <button class="pill" data-val="casa_attrezzi" onclick="setPill('attr','casa_attrezzi',this)">🏠💪 Casa con attrezzi</button>
+        <button class="pill" data-val="palestra" onclick="setPill('attr','palestra',this)">🏋️ Palestra completa</button>
+    </div>
+
+    <label class="form-label">Giorni di allenamento a settimana</label>
+    <div class="pills-row" id="pillsGiorni">
+        <button class="pill" data-val="3" onclick="setPill('giorni','3',this)">3 giorni</button>
+        <button class="pill active" data-val="4" onclick="setPill('giorni','4',this)">4 giorni</button>
+        <button class="pill" data-val="5" onclick="setPill('giorni','5',this)">5 giorni</button>
+        <button class="pill" data-val="6" onclick="setPill('giorni','6',this)">6 giorni</button>
+    </div>
+
+    <label class="form-label">Restrizioni alimentari</label>
+    <div class="pills-row" id="pillsDieta" style="margin-bottom:4px"></div>
+
+    <button class="btn-genera" onclick="salvaProfilo()">SALVA PROFILO</button>
+    <button style="width:100%;padding:14px;border-radius:14px;border:2px solid var(--grey);background:var(--white);font-weight:800;font-size:14px;cursor:pointer;font-family:inherit;margin-top:8px;color:#aaa" onclick="chiudiSetup()">Annulla</button>
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// DATI
+// ═══════════════════════════════════════════════════════════
+const GIORNI_NOMI = ['Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato','Domenica'];
+
+const OBJ_LABEL = {
+    perdere_peso:'Perdere peso', aumentare_massa:'Aumentare massa',
+    resistenza:'Resistenza', mantenersi:'Mantenersi', flessibilita:'Flessibilità'
+};
+const ATTR_LABEL = { casa:'Corpo libero', casa_attrezzi:'Casa con attrezzi', palestra:'Palestra' };
+const LVL_LABEL  = { principiante:'Principiante', intermedio:'Intermedio', avanzato:'Avanzato' };
+
+const RESTRIZIONI_LIST = [
+    {id:'vegetariano', label:'🌿 Vegetariano'},
+    {id:'vegano',      label:'🌱 Vegano'},
+    {id:'senza_lattosio', label:'🥛 Senza lattosio'},
+    {id:'senza_glutine',  label:'🌾 Senza glutine'},
+    {id:'senza_maiale',   label:'🐷 Senza maiale'},
+    {id:'senza_pesce',    label:'🐟 Senza pesce'},
+    {id:'halal',          label:'☪️ Halal'},
+    {id:'low_carb',       label:'🥩 Low carb'},
+    {id:'keto',           label:'🥑 Keto'},
+    {id:'diabetico',      label:'💊 Diabetico-friendly'},
+];
+
+// LIBRERIA ESERCIZI
+const EX = {
+    casa: {
+        petto:[
+            {n:'Push-up',e:'💪',d:'Posizione plank, abbassa il petto verso il pavimento tenendo i gomiti vicini al corpo'},
+            {n:'Push-up ampio',e:'💪',d:'Mani più larghe delle spalle, enfasi sul petto'},
+            {n:'Push-up diamante',e:'💎',d:'Mani unite a formare un diamante, lavora i tricipiti'},
+            {n:'Dip su sedia',e:'🪑',d:'Mani sul bordo della sedia dietro di te, piega i gomiti a 90°'},
+            {n:'Push-up declinato',e:'📐',d:'Piedi su una sedia, corpo inclinato: parte alta del petto'},
+            {n:'Push-up Pike',e:'🔺',d:'Posizione a V rovesciata, abbassa la testa verso il suolo'},
+        ],
+        schiena:[
+            {n:'Superman',e:'🦸',d:'A terra in posizione prona, solleva insieme braccia e gambe contraendo la schiena'},
+            {n:'Bird-dog',e:'🐕',d:'In quadrupedia, estendi braccio sinistro e gamba destra insieme, poi scambia'},
+            {n:'Pull-up (porta)',e:'🚪',d:'Sbarra da porta o struttura solida, presa prona, porta il mento sopra'},
+            {n:'Rematore con zaino',e:'🎒',d:'Piegato in avanti, manubrio o zaino pesante, traina verso il fianco'},
+            {n:'Hyperextension',e:'↩️',d:'A terra, mani dietro la testa, solleva il busto contraendo i lombari'},
+        ],
+        gambe:[
+            {n:'Squat',e:'🏋️',d:'Piedi larghezza spalle, scendi fin dove puoi, ginocchia in linea con i piedi'},
+            {n:'Squat Sumo',e:'🤼',d:'Piedi molto larghi, punte in fuori, enfasi su adduttori e glutei'},
+            {n:'Affondo avanti',e:'🦵',d:'Passo lungo in avanti, ginocchio posteriore sfiora terra, ritorno esplosivo'},
+            {n:'Affondo laterale',e:'↔️',d:'Passo laterale ampio, piegati su quel lato, gambe alternate'},
+            {n:'Glute bridge',e:'🍑',d:'A terra schiena, piedi a terra, solleva i fianchi e spingi con i glutei'},
+            {n:'Wall sit',e:'🧱',d:'Schiena al muro, ginocchia a 90° — tieni per il tempo indicato'},
+            {n:'Step-up',e:'🪜',d:'Sali su gradino o sedia alternando le gambe, gomiti al petto'},
+            {n:'Jump squat',e:'🦘',d:'Squat profondo poi salto esplosivo, ammortizza rientrando'},
+            {n:'Calf raise',e:'👟',d:'Alzati sulle punte dei piedi, mantieni un secondo in cima, scendi lentamente'},
+        ],
+        spalle:[
+            {n:'Pike push-up',e:'🔼',d:'Posizione a V rovesciata, piegati fino a sfiorare il suolo con la testa'},
+            {n:'Shoulder tap',e:'🤚',d:'Plank, tocca la spalla opposta alternativamente senza oscillare il corpo'},
+            {n:'Handstand push-up (muro)',e:'🤸',d:'Verticale al muro, piega i gomiti fino a sfiorare il suolo'},
+        ],
+        addome:[
+            {n:'Plank',e:'⏱️',d:'Posizione push-up sugli avambracci, corpo rigido come una tavola'},
+            {n:'Crunch',e:'🤸',d:'A terra, mani dietro la testa, solleva le spalle contraendo gli addominali'},
+            {n:'Bicycle crunch',e:'🚴',d:'Gomito al ginocchio opposto alternando, gambe in aria'},
+            {n:'Mountain climber',e:'⛰️',d:'Plank, porta le ginocchia al petto in alternanza veloce'},
+            {n:'Leg raise',e:'🦵',d:'A terra, gambe tese a 90°, abbassale senza toccare il suolo'},
+            {n:'Russian twist',e:'🌀',d:'Seduto a 45°, ruota il busto da un lato all\'altro tenendo i piedi sollevati'},
+            {n:'Plank laterale',e:'↔️',d:'Su un avambraccio e il bordo del piede, corpo allineato di lato'},
+            {n:'Dead bug',e:'🐛',d:'A terra, braccia tese verso il soffitto, estendi braccio e gamba opposta insieme'},
+        ],
+        cardio:[
+            {n:'Jumping jacks',e:'⭐',d:'Salti aprendo gambe e braccia lateralmente, ritmo costante'},
+            {n:'Burpee',e:'💥',d:'Dal suolo (push-up) alla posizione in piedi con salto verticale esplosivo'},
+            {n:'High knees',e:'🏃',d:'Corri sul posto portando le ginocchia all\'altezza dei fianchi velocemente'},
+            {n:'Skipping',e:'⏭️',d:'Corri sul posto a ritmo molto veloce, talloni verso i glutei'},
+            {n:'Bear crawl',e:'🐻',d:'Avanza quadrupede a 4 appoggi, coordinazione e forza'},
+            {n:'Box jump',e:'📦',d:'Salta su una sedia/gradino solido a piedi uniti, scendi piano'},
+        ],
+        mobilita:[
+            {n:'World\'s greatest stretch',e:'🌍',d:'Affondo largo, ruota il busto verso la gamba davanti'},
+            {n:'Hip circle',e:'⭕',d:'Mani sui fianchi, rotazioni ampie delle anche'},
+            {n:'Cat-cow',e:'🐱',d:'Quadrupedia, alterna inarcamento ed arrotondamento della schiena'},
+            {n:'Thread the needle',e:'🧵',d:'Quadrupedia, porta un braccio sotto il corpo girando la spina dorsale'},
+            {n:'Couch stretch',e:'🛋️',d:'Ginocchio a terra vicino alla parete, schiena diritta — allungamento quadricipite'},
+            {n:'Pigeon pose',e:'🕊️',d:'Gamba anteriore piegata a 90°, posteriore tesa — anca aperta profonda'},
+        ],
+    },
+    palestra: {
+        petto:[
+            {n:'Panca piana',e:'🏆',d:'Re del petto — bilanciere o manubri, abbassa fino al petto, pressa verso l\'alto'},
+            {n:'Panca inclinata',e:'📐',d:'Panca a 30-45°, enfasi sulla parte alta del petto'},
+            {n:'Croci manubri',e:'🦋',d:'Braccia aperte, porta le mani insieme sopra il petto ad arco'},
+            {n:'Croci ai cavi',e:'🔗',d:'Cavi alti, unisci le mani in basso davanti per massima contrazione'},
+            {n:'Chest press macchina',e:'🤖',d:'Sicura per principianti, traiettoria guidata, ottima per imparare il movimento'},
+            {n:'Dip alle parallele',e:'⚡',d:'Gomiti verso l\'esterno, busto inclinato leggermente avanti per enfasi sul petto'},
+            {n:'Panca declinata',e:'📉',d:'Panca negativa, enfasi sulla parte bassa del petto'},
+        ],
+        schiena:[
+            {n:'Stacco da terra',e:'👑',d:'Bilanciere da terra, schiena dritta, spingere i talloni — esercizio fondamentale'},
+            {n:'Lat machine',e:'↘️',d:'Bilanciere davanti al collo, porta alla clavicola allargando le scapole'},
+            {n:'Rematore bilanciere',e:'🚣',d:'Piegato a 45°, bilanciere al petto con schiena parallela — massa dorsale'},
+            {n:'Pull-up',e:'💪',d:'Presa prona larga, porta il mento sopra la sbarra — schiena a V'},
+            {n:'Chin-up',e:'💪',d:'Presa supina stretta, bicipite molto coinvolto'},
+            {n:'Rematore cavi seduto',e:'🔗',d:'Cavo basso con triangolo, tira verso l\'ombelico stringendo le scapole'},
+            {n:'Face pull',e:'👤',d:'Cavo alto con corda, porta alla faccia allargando — salute spalle'},
+        ],
+        gambe:[
+            {n:'Squat bilanciere',e:'👑',d:'Barra sulle trapezie, squat profondo — re degli esercizi per le gambe'},
+            {n:'Leg press',e:'🦵',d:'Macchina, piedi larghi alti per glutei oppure stretti bassi per quadricipiti'},
+            {n:'Stacco rumeno',e:'🇷🇴',d:'Bilanciere o manubri, gambe quasi tese, discesa controllata — femorali'},
+            {n:'Leg curl sdraiato',e:'🌀',d:'Macchina per bicipite femorale, contrai fino al massimo'},
+            {n:'Leg extension',e:'↗️',d:'Macchina per quadricipite, contrazione completa in cima'},
+            {n:'Hip thrust',e:'🍑',d:'Spalle sulla panca, bilanciere sui fianchi, spingere il bacino verso l\'alto'},
+            {n:'Affondo con bilanciere',e:'🦵',d:'Bilanciere sulle spalle, passo lungo, ginocchio quasi a terra'},
+            {n:'Calf raise in piedi',e:'👟',d:'Pressa calf o gradino, massima estensione, 2 secondi in cima'},
+        ],
+        spalle:[
+            {n:'Lento avanti bilanciere',e:'🎯',d:'Bilanciere davanti alla testa, spingi verso l\'alto — massa spalle'},
+            {n:'Military press manubri',e:'🏋️',d:'Manubri alle orecchie, pressa verticale — più range di movimento'},
+            {n:'Alzate laterali',e:'↔️',d:'Manubri, porta le braccia all\'altezza delle spalle a gomiti leggermente piegati'},
+            {n:'Alzate frontali',e:'⬆️',d:'Manubri o disco, porta le braccia avanti fino all\'altezza spalla'},
+            {n:'Arnold press',e:'🌟',d:'Partenza con palmi verso di te, ruota esternamente salendo'},
+            {n:'Rear delt fly',e:'🦅',d:'Piegato in avanti, manubri ai lati — spalle posteriori fondamentali'},
+        ],
+        braccia:[
+            {n:'Curl bilanciere',e:'💪',d:'Bilanciere dritto o EZ, fletti i bicipiti tenendo i gomiti fissi'},
+            {n:'Curl manubri',e:'💪',d:'Manubri alternati — più range, supina alla fine per massima contrazione'},
+            {n:'Curl martello',e:'🔨',d:'Presa neutra (pollice in su) — brachioradiale e bicipite'},
+            {n:'Curl concentrato',e:'🎯',d:'Gomito sul ginocchio, isolamento totale del bicipite'},
+            {n:'Tricipiti cavi',e:'🔗',d:'Cavo alto con barra o corda, estendi i gomiti verso il basso'},
+            {n:'Skull crusher',e:'💀',d:'Panca, bilanciere EZ verso la fronte, gomiti fissi — tricipiti lungo'},
+            {n:'Dip stretti (parallele)',e:'⚡',d:'Gomiti vicini al corpo, busto verticale — enfasi tricipiti'},
+            {n:'French press',e:'🇫🇷',d:'Bilanciere o manubrio sopra la testa, gomiti fissi'},
+        ],
+        addome:[
+            {n:'Cable crunch',e:'🔗',d:'Cavo alto con corda, inginocchiato, fletti il busto verso il basso'},
+            {n:'Leg raise alle parallele',e:'🏋️',d:'Sbarra o parallele, solleva le gambe tese a 90°'},
+            {n:'Ab machine',e:'🤖',d:'Macchina per addominali, contrazione controllata'},
+            {n:'Plank',e:'⏱️',d:'Avambracci a terra, corpo rigido — tieni il tempo'},
+            {n:'Russian twist con disco',e:'🌀',d:'Seduto a 45° con disco o palla medica, rotazione del busto'},
+            {n:'Rollout (ab wheel)',e:'🎡',d:'Ruota per addominali — advanced, massimo stretch e contrazione'},
+        ],
+        cardio:[
+            {n:'Tapis roulant',e:'🏃',d:'Corsa o camminata inclinata (12-15%) — ottimo bruciagrassi'},
+            {n:'Cyclette HIIT',e:'🚴',d:'Intervalli: 20s max sforzo / 40s recupero — 10 round'},
+            {n:'Ellittica',e:'⭕',d:'Basso impatto articolare, tutto il corpo, mantieni intensità moderata-alta'},
+            {n:'Vogatore',e:'🚣',d:'Full body eccellente — tira con la schiena, spinge con i piedi'},
+            {n:'Corda per saltare',e:'🪢',d:'Intervalli 30s on / 30s off — cardio ad altissima intensità'},
+            {n:'Assault bike',e:'💨',d:'Cycling con braccia — bruciagrassi estremo'},
+        ],
+    }
+};
+
+// SPLITS settimanali per obiettivo e giorni
+function getSplit(obiettivo, giorni, attr) {
+    const isGym = attr === 'palestra';
+    const g = parseInt(giorni);
+    const R = {nome:'🛌 Riposo', sub:'Recupero attivo', gruppi:[], riposo:true};
+    const splits = {
+        perdere_peso: {
+            3: [
+                {nome:'Full Body A + Cardio',   sub:'Circuito bruciagrassi',  gruppi:['petto','schiena','gambe','addome','cardio']},
+                R,
+                {nome:'Full Body B + Core',     sub:'Circuito intenso',       gruppi:['spalle','gambe','schiena','addome','cardio']},
+                R,
+                {nome:'HIIT + Addome',          sub:'Alta intensità',         gruppi:['cardio','addome','gambe']},
+                R, R,
+            ],
+            4: [
+                {nome:'Upper Body + Cardio',    sub:'Petto, schiena, spalle', gruppi:['petto','schiena','spalle','addome','cardio']},
+                {nome:'Lower Body + HIIT',      sub:'Gambe, glutei',          gruppi:['gambe','addome','cardio']},
+                R,
+                {nome:'Full Body Circuito',     sub:'Tutto il corpo',         gruppi:['petto','schiena','gambe','cardio']},
+                R,
+                {nome:'HIIT + Core',            sub:'Alta intensità + core',  gruppi:['cardio','addome']},
+                R,
+            ],
+            5: [
+                {nome:'Upper A + Cardio',       sub:'Petto, schiena',         gruppi:['petto','schiena','cardio']},
+                {nome:'Lower + Glutei',         sub:'Gambe, glutei',          gruppi:['gambe','addome']},
+                {nome:'HIIT',                   sub:'Intervalli ad alta intensità', gruppi:['cardio','gambe']},
+                {nome:'Upper B + Cardio',       sub:'Spalle, braccia',        gruppi:['spalle', isGym?'braccia':'petto','cardio']},
+                {nome:'Full Body Finisher',     sub:'Circuito totale',        gruppi:['gambe','addome','cardio']},
+                R, R,
+            ],
+            6: [
+                {nome:'Upper A + Cardio',       sub:'Petto, schiena',         gruppi:['petto','schiena','cardio']},
+                {nome:'Lower + Core',           sub:'Gambe, addome',          gruppi:['gambe','addome']},
+                {nome:'HIIT',                   sub:'Intervalli intensi',     gruppi:['cardio']},
+                {nome:'Upper B + Cardio',       sub:'Spalle, braccia',        gruppi:['spalle', isGym?'braccia':'petto']},
+                {nome:'Lower Glutei Focus',     sub:'Glutei e femorali',      gruppi:['gambe','addome','cardio']},
+                {nome:'Cardio + Core',          sub:'Resistenza + core',      gruppi:['cardio','addome']},
+                R,
+            ],
+        },
+        aumentare_massa: {
+            3: [
+                {nome:'Petto & Tricipiti',      sub:'Spingi orizzontale e verticale', gruppi:['petto', isGym?'braccia':'addome']},
+                R,
+                {nome:'Schiena & Bicipiti',     sub:'Trazioni e rematori',    gruppi:['schiena', isGym?'braccia':'addome']},
+                R,
+                {nome:'Gambe & Spalle',         sub:'Full lower + deltoidi',  gruppi:['gambe','spalle','addome']},
+                R, R,
+            ],
+            4: [
+                {nome:'Upper A — Petto & Tri',  sub:'Volume push',            gruppi:['petto', isGym?'braccia':'spalle','addome']},
+                {nome:'Lower A — Quad focus',   sub:'Quadricipiti dominante', gruppi:['gambe','addome']},
+                R,
+                {nome:'Upper B — Schiena & Bi', sub:'Volume pull',            gruppi:['schiena', isGym?'braccia':'addome', 'spalle']},
+                {nome:'Lower B — Post. catena', sub:'Glutei e femorali',      gruppi:['gambe','addome']},
+                R, R,
+            ],
+            5: [
+                {nome:'Petto & Tricipiti',      sub:'Push day',               gruppi:['petto', isGym?'braccia':'spalle']},
+                {nome:'Schiena & Bicipiti',     sub:'Pull day',               gruppi:['schiena', isGym?'braccia':'addome']},
+                {nome:'Gambe',                  sub:'Leg day completo',       gruppi:['gambe','addome']},
+                {nome:'Spalle & Core',          sub:'Deltoidi + stabilità',   gruppi:['spalle','addome']},
+                {nome:'Full Body Forza',        sub:'Movimenti base pesanti', gruppi:['petto','schiena','gambe']},
+                R, R,
+            ],
+            6: [
+                {nome:'Push A',                 sub:'Petto, spalle, tricipiti', gruppi:['petto','spalle', isGym?'braccia':'addome']},
+                {nome:'Pull A',                 sub:'Schiena, bicipiti',      gruppi:['schiena', isGym?'braccia':'addome']},
+                {nome:'Legs A',                 sub:'Quad focus',             gruppi:['gambe','addome']},
+                {nome:'Push B',                 sub:'Volume petto e spalle',  gruppi:['petto','spalle']},
+                {nome:'Pull B',                 sub:'Volume schiena',         gruppi:['schiena','addome']},
+                {nome:'Legs B',                 sub:'Posteriore + glutei',    gruppi:['gambe','addome']},
+                R,
+            ],
+        },
+        resistenza: {
+            3: [
+                {nome:'Cardio + Upper',         sub:'Corsa + circuito superiore', gruppi:['cardio','petto','schiena','addome']},
+                R,
+                {nome:'Intervalli HIIT',        sub:'Alta intensità metabolica',  gruppi:['cardio','gambe']},
+                R,
+                {nome:'Full Body Resistenza',   sub:'Circuit training totale',    gruppi:['gambe','petto','schiena','addome','cardio']},
+                R, R,
+            ],
+            4: [
+                {nome:'Cardio Lungo',           sub:'Corsa o bike 40-60 min',    gruppi:['cardio']},
+                {nome:'Upper Circuit',          sub:'Circuito parte alta',        gruppi:['petto','schiena','spalle','addome']},
+                R,
+                {nome:'HIIT Legs',              sub:'Intervalli gambe',           gruppi:['cardio','gambe']},
+                {nome:'Full Body Circuit',      sub:'Tutto il corpo ad alta rep', gruppi:['petto','schiena','gambe','addome','cardio']},
+                R, R,
+            ],
+            5: [
+                {nome:'Cardio Lungo',           sub:'40-60 min zona 2',          gruppi:['cardio']},
+                {nome:'Upper Body Circuit',     sub:'Circuito parte alta',        gruppi:['petto','schiena','spalle','addome']},
+                {nome:'HIIT',                   sub:'Intervalli ad alta intensità', gruppi:['cardio','gambe']},
+                {nome:'Lower Body Circuit',     sub:'Gambe e core',              gruppi:['gambe','addome']},
+                {nome:'Full Body Long',         sub:'Circuito completo 45 min',  gruppi:['petto','schiena','gambe','cardio','addome']},
+                R, R,
+            ],
+            6: [
+                {nome:'Corsa facile',           sub:'Zona 2, passo comodo',      gruppi:['cardio']},
+                {nome:'Upper Circuit',          sub:'Petto, schiena, spalle',    gruppi:['petto','schiena','spalle','addome']},
+                {nome:'HIIT + Core',            sub:'Esplosivo + core',          gruppi:['cardio','addome','gambe']},
+                {nome:'Corsa media',            sub:'Zona 3, ritmo medio',       gruppi:['cardio']},
+                {nome:'Lower Circuit',          sub:'Gambe, glutei',             gruppi:['gambe','addome']},
+                {nome:'Long run / ride',        sub:'Cardio lungo recupero',     gruppi:['cardio']},
+                R,
+            ],
+        },
+        mantenersi: {
+            3: [
+                {nome:'Full Body A',            sub:'Lavoro completo equilibrato',  gruppi:['petto','schiena','gambe','addome']},
+                R,
+                {nome:'Full Body B',            sub:'Variante circuito',           gruppi:['spalle','gambe','schiena','addome','cardio']},
+                R,
+                {nome:'Full Body C + Cardio',   sub:'Finisher metabolico',         gruppi:['petto','schiena','gambe','addome','cardio']},
+                R, R,
+            ],
+            4: [
+                {nome:'Upper Body',             sub:'Petto, schiena, spalle',      gruppi:['petto','schiena','spalle']},
+                {nome:'Lower Body',             sub:'Gambe, glutei, core',         gruppi:['gambe','addome']},
+                R,
+                {nome:'Full Body + Cardio',     sub:'Circuito completo',           gruppi:['petto','schiena','gambe','addome','cardio']},
+                {nome:'Cardio + Core',          sub:'Resistenza e stabilità',      gruppi:['cardio','addome']},
+                R, R,
+            ],
+            5: [
+                {nome:'Petto & Schiena',        sub:'Spingere e tirare',          gruppi:['petto','schiena']},
+                {nome:'Gambe & Glutei',         sub:'Lower body completo',        gruppi:['gambe','addome']},
+                {nome:'Cardio Leggero',         sub:'30 min zona 2',             gruppi:['cardio']},
+                {nome:'Spalle & Braccia',       sub:'Piccoli muscoli',            gruppi:['spalle', isGym?'braccia':'addome']},
+                {nome:'Full Body Finish',       sub:'Tutto il corpo',             gruppi:['petto','schiena','gambe','cardio','addome']},
+                R, R,
+            ],
+            6: [
+                {nome:'Petto & Spalle',         sub:'Push',                       gruppi:['petto','spalle']},
+                {nome:'Schiena & Bicipiti',     sub:'Pull',                       gruppi:['schiena', isGym?'braccia':'addome']},
+                {nome:'Gambe',                  sub:'Lower body',                 gruppi:['gambe','addome']},
+                {nome:'Upper Full',             sub:'Tutto upper body',           gruppi:['petto','schiena','spalle']},
+                {nome:'Cardio + Core',          sub:'Resistenza + core',          gruppi:['cardio','addome']},
+                {nome:'Lower + Stretching',     sub:'Gambe + mobilità',           gruppi:['gambe','addome']},
+                R,
+            ],
+        },
+        flessibilita: {
+            3: [
+                {nome:'Yoga — Full Body',       sub:'Flusso completo 45 min',      gruppi:['mobilita']},
+                R,
+                {nome:'Mobilità Fianchi & Spalle', sub:'Zone più rigide',         gruppi:['mobilita']},
+                R,
+                {nome:'Stretching Profondo',    sub:'Posizioni mantenute 60s',     gruppi:['mobilita']},
+                R, R,
+            ],
+            4: [
+                {nome:'Yoga Mattutino',         sub:'Sveglio il corpo, 30 min',    gruppi:['mobilita']},
+                {nome:'Mobilità Colonna',       sub:'Schiena sana, 40 min',        gruppi:['mobilita']},
+                R,
+                {nome:'Flessibilità Gambe',     sub:'Hamstring, fianchi, polpacci', gruppi:['mobilita']},
+                {nome:'Yoga Serale',            sub:'Rilassamento profondo',       gruppi:['mobilita']},
+                R, R,
+            ],
+            5: [
+                {nome:'Sun salutation',         sub:'Vinyasa flow mattutino',      gruppi:['mobilita']},
+                {nome:'Apertura fianchi',       sub:'Posizioni fianchi 40 min',    gruppi:['mobilita']},
+                {nome:'Colonna vertebrale',     sub:'Cat-cow, twist, estensioni',  gruppi:['mobilita']},
+                R,
+                {nome:'Stretching Gambe',       sub:'Hamstring, quad, polpacci',   gruppi:['mobilita']},
+                {nome:'Yin Yoga',               sub:'Posizioni mantenute 3-5 min', gruppi:['mobilita']},
+                R,
+            ],
+            6: [
+                {nome:'Yoga Vinyasa',           sub:'Flusso dinamico 45 min',      gruppi:['mobilita']},
+                {nome:'Apertura spalle',        sub:'Rotatori, bicipiti, petto',   gruppi:['mobilita']},
+                {nome:'Fianchi & Glutei',       sub:'Pigeon, lizard, squat hold',  gruppi:['mobilita']},
+                {nome:'Core & Stabilità',       sub:'Plank, roll, respirazione',   gruppi:['mobilita']},
+                {nome:'Flessibilità Gambe',     sub:'Hamstring, polpacci',         gruppi:['mobilita']},
+                {nome:'Yin & Rilassamento',     sub:'Recupero profondo',           gruppi:['mobilita']},
+                R,
+            ],
+        },
+    };
+    return splits[obiettivo]?.[g] || splits[obiettivo]?.[4] || [];
+}
+
+// Parametri serie/rep/riposo
+function getParams(obiettivo, livello) {
+    const P = {
+        perdere_peso:    { principiante:{s:3,r:'12-15',rs:'30s'}, intermedio:{s:4,r:'15-20',rs:'20s'}, avanzato:{s:4,r:'15-25',rs:'15s'} },
+        aumentare_massa: { principiante:{s:3,r:'8-12',rs:'90s'},  intermedio:{s:4,r:'6-10',rs:'90s'},  avanzato:{s:5,r:'4-8',rs:'2-3min'} },
+        resistenza:      { principiante:{s:3,r:'15-20',rs:'45s'}, intermedio:{s:4,r:'20-25',rs:'30s'}, avanzato:{s:5,r:'20-30',rs:'20s'} },
+        mantenersi:      { principiante:{s:3,r:'10-12',rs:'60s'}, intermedio:{s:3,r:'10-15',rs:'60s'}, avanzato:{s:4,r:'10-15',rs:'45s'} },
+        flessibilita:    { principiante:{s:2,r:'30-45s',rs:'10s'},intermedio:{s:3,r:'45-60s',rs:'10s'},avanzato:{s:3,r:'60-90s',rs:'10s'} },
+    };
+    return P[obiettivo]?.[livello] || {s:3,r:'10-12',rs:'60s'};
+}
+
+// Prende N esercizi casuali da un gruppo
+function pickEx(lib, gruppo, n) {
+    const pool = lib[gruppo] || [];
+    const shuffled = [...pool].sort(() => Math.random() - .5);
+    return shuffled.slice(0, n);
+}
+
+// ═══════════════════════════════════════════════════════════
+// NUTRITION
+// ═══════════════════════════════════════════════════════════
+function calcTDEE(profilo) {
+    const { sesso, eta, altezza, peso, giorni } = profilo;
+    if (!eta || !altezza || !peso) return 2000;
+    let bmr = sesso === 'm'
+        ? 10 * peso + 6.25 * altezza - 5 * eta + 5
+        : 10 * peso + 6.25 * altezza - 5 * eta - 161;
+    const g = parseInt(giorni);
+    const act = g >= 6 ? 1.725 : g >= 5 ? 1.55 : g >= 3 ? 1.375 : 1.2;
+    return Math.round(bmr * act);
+}
+
+function getKcalTarget(tdee, obiettivo) {
+    const adj = {perdere_peso:-400, aumentare_massa:+300, resistenza:-100, mantenersi:0, flessibilita:-150};
+    return tdee + (adj[obiettivo] || 0);
+}
+
+function getMacros(kcal, obiettivo) {
+    const splits = {
+        perdere_peso:    {p:.40, c:.30, g:.30},
+        aumentare_massa: {p:.30, c:.45, g:.25},
+        resistenza:      {p:.25, c:.55, g:.20},
+        mantenersi:      {p:.30, c:.40, g:.30},
+        flessibilita:    {p:.28, c:.42, g:.30},
+    };
+    const s = splits[obiettivo] || splits.mantenersi;
+    return {
+        p: Math.round(kcal * s.p / 4),
+        c: Math.round(kcal * s.c / 4),
+        g: Math.round(kcal * s.g / 9),
+    };
+}
+
+// Template pasti con tag restrizioni
+// tag: esclude dalla selezione se restrizione attiva
+function getMealTemplates(restrizioni, kcal, obiettivo) {
+    const r = restrizioni || [];
+    const noLatte   = r.includes('senza_lattosio');
+    const veg       = r.includes('vegetariano') || r.includes('vegano');
+    const vegan     = r.includes('vegano');
+    const noPesce   = r.includes('senza_pesce') || veg;
+    const noCarne   = veg;
+    const noGlut    = r.includes('senza_glutine');
+    const noMaiale  = r.includes('senza_maiale') || r.includes('halal');
+    const keto      = r.includes('keto');
+    const lowCarb   = r.includes('low_carb') || keto;
+    const diabetico = r.includes('diabetico');
+
+    // Calcola calorie per pasto (% distribuzione)
+    const col  = Math.round(kcal * .22); // colazione 22%
+    const sp1  = Math.round(kcal * .10); // spuntino mattina 10%
+    const pran = Math.round(kcal * .33); // pranzo 33%
+    const sp2  = Math.round(kcal * .10); // spuntino pom 10%
+    const cena = Math.round(kcal * .25); // cena 25%
+
+    // ── COLAZIONE ──
+    const col_opts = [];
+    if (!keto && !lowCarb) {
+        if (!noLatte && !vegan) col_opts.push(`Yogurt greco 150g + 40g fiocchi d'avena + frutti di bosco + 1 caffè`);
+        if (!noGlut) col_opts.push(`2 uova strapazzate + 2 fette pane integrale + 1 arancia`);
+        col_opts.push(`Porridge d'avena (60g) con banana e cannella + tè verde`);
+        if (!noLatte && !vegan) col_opts.push(`Frullato: 250ml latte p.s. + 1 banana + 30g proteine + 20g avena`);
+    }
+    if (keto || lowCarb) {
+        col_opts.push(`3 uova strapazzate con spinaci saltati in olio EVO + avocado 1/2`);
+        col_opts.push(`2 uova al tegamino + 3 fette pancetta + insalata verde`);
+    }
+    if (vegan) col_opts.push(`Overnight oats: 60g avena + latte di riso + chia 1 cucchiaio + frutti di bosco`);
+    if (vegan && lowCarb) col_opts.push(`Tofu scramble con spinaci e pomodorini + avocado`);
+    if (!col_opts.length) col_opts.push(`2 uova bollite + frutta fresca di stagione`);
+
+    // ── SPUNTINO MATTINA ──
+    const sp1_opts = [];
+    if (!noLatte && !vegan) sp1_opts.push(`1 yogurt greco 125g con 1 cucchiaio di miele`);
+    sp1_opts.push(`1 mela + 20g mandorle`);
+    sp1_opts.push(`1 banana + 1 cucchiaio di burro di arachidi`);
+    if (!noCarne && !keto) sp1_opts.push(`60g affettati magri (tacchino/bresaola) + crackers integrali`);
+    if (keto || lowCarb) sp1_opts.push(`30g noci miste + 2 quadretti cioccolato fondente 85%`);
+    if (vegan) sp1_opts.push(`30g anacardi + 1 arancia`);
+
+    // ── PRANZO ──
+    const pran_opts = [];
+    if (!noCarne && !keto) pran_opts.push(`150g petto di pollo ai ferri + 80g riso integrale + insalata mista con olio EVO`);
+    if (!noCarne && !noGlut && !keto) pran_opts.push(`150g tacchino al forno + 80g pasta integrale + zucchine grigliate`);
+    if (!noPesce && !keto) pran_opts.push(`200g salmone al vapore + 80g quinoa + insalata di spinaci e pomodori`);
+    if (!noPesce && !keto) pran_opts.push(`150g tonno in scatola (al naturale) + 80g riso basmati + pomodori + olio EVO`);
+    if (veg && !keto) pran_opts.push(`200g legumi misti (ceci, lenticchie) + 80g farro + verdure grigliate`);
+    if (veg && !keto) pran_opts.push(`Tofu saltato 200g con verdure di stagione + 80g riso integrale`);
+    if (keto) pran_opts.push(`200g pollo o manzo + insalata grande con avocado, olive, formaggio`);
+    if (keto && veg) pran_opts.push(`200g tofu alla piastra + insalata con avocado, noci e olio EVO`);
+    if (!pran_opts.length) pran_opts.push(`150g proteina a scelta + verdure grigliate + cereale integrale`);
+
+    // ── SPUNTINO POMERIGGIO ──
+    const sp2_opts = [];
+    if (!noLatte && !vegan) sp2_opts.push(`Protein shake 1 misurino + 200ml latte p.s.`);
+    sp2_opts.push(`2 uova sode + 1 frutto`);
+    if (!noLatte && !vegan) sp2_opts.push(`100g fiocchi di latte magri + 1 frutto`);
+    if (keto || lowCarb) sp2_opts.push(`30g formaggio stagionato + 20g noci`);
+    if (vegan) sp2_opts.push(`Frullato proteico vegetale + 1 banana`);
+    sp2_opts.push(`Barretta proteica (>15g proteine, <20g zuccheri)`);
+
+    // ── CENA ──
+    const cena_opts = [];
+    if (!noCarne) cena_opts.push(`200g filetto di manzo o petto di pollo + verdure al vapore + 1 filo olio EVO`);
+    if (!noCarne && !noMaiale) cena_opts.push(`150g lonza di maiale + broccoli al vapore + insalata verde`);
+    if (!noPesce) cena_opts.push(`200g pesce bianco al forno (branzino, orata) + zucchine grigliate + pomodori`);
+    if (!noPesce) cena_opts.push(`200g gamberi saltati all'aglio + insalata mista grande + 1/2 avocado`);
+    if (veg) cena_opts.push(`200g tempeh marinato + verdure di stagione saltate + tofu`);
+    if (veg) cena_opts.push(`200g legumi (lenticchie rosse) + cavolo riccio saltato + 1 cucchiaio olio EVO`);
+    if (keto && !noCarne) cena_opts.push(`200g carne grassa (ribeye o agnello) + insalata con olio EVO e aceto`);
+    if (!cena_opts.length) cena_opts.push(`200g proteina a scelta + abbondanti verdure di stagione`);
+
+    const rnd = arr => arr[Math.floor(Math.random() * arr.length)];
+    return [
+        { nome:'☀️ Colazione',          kcal: col,  testo: rnd(col_opts)  },
+        { nome:'🍎 Spuntino mattina',   kcal: sp1,  testo: rnd(sp1_opts)  },
+        { nome:'🍽️ Pranzo',            kcal: pran, testo: rnd(pran_opts)  },
+        { nome:'🥛 Spuntino pomeriggio',kcal: sp2,  testo: rnd(sp2_opts)  },
+        { nome:'🌙 Cena',               kcal: cena, testo: rnd(cena_opts)  },
+    ];
+}
+
+// ═══════════════════════════════════════════════════════════
+// STATO
+// ═══════════════════════════════════════════════════════════
+let profilo = JSON.parse(localStorage.getItem('fitness_profilo') || 'null') || {
+    sesso:'m', livello:'principiante', obiettivo:'perdere_peso',
+    attr:'casa', giorni:'4', dieta:[]
+};
+let pianoEs  = JSON.parse(localStorage.getItem('fitness_piano_es')  || 'null');
+let pianoAl  = JSON.parse(localStorage.getItem('fitness_piano_al')  || 'null');
+let activeTab = 'es';
+
+// ═══════════════════════════════════════════════════════════
+// SETUP MODAL
+// ═══════════════════════════════════════════════════════════
+function apriSetup() {
+    // popola pills
+    ['sesso','livello','obiettivo','attr','giorni'].forEach(k => {
+        const map = {sesso:'pillsSesso',livello:'pillsLivello',obiettivo:'pillsObiettivo',attr:'pillsAttr',giorni:'pillsGiorni'};
+        document.querySelectorAll(`#${map[k]} .pill`).forEach(b => {
+            b.classList.toggle('active', b.dataset.val === String(profilo[k] || ''));
+        });
+    });
+    document.getElementById('fEta').value   = profilo.eta   || '';
+    document.getElementById('fAlt').value   = profilo.altezza || '';
+    document.getElementById('fPeso').value  = profilo.peso  || '';
+    // dieta pills
+    const dp = document.getElementById('pillsDieta');
+    dp.innerHTML = RESTRIZIONI_LIST.map(r =>
+        `<button class="pill small${(profilo.dieta||[]).includes(r.id) ? ' active':''}" data-val="${r.id}" onclick="toggleDieta('${r.id}',this)">${r.label}</button>`
+    ).join('');
+    document.getElementById('modalSetup').classList.add('open');
+}
+function chiudiSetup() { document.getElementById('modalSetup').classList.remove('open'); }
+
+function setPill(gruppo, val, el) {
+    el.closest('.pills-row').querySelectorAll('.pill').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    profilo[gruppo === 'attr' ? 'attr' : gruppo === 'giorni' ? 'giorni' : gruppo] = val;
+}
+function toggleDieta(id, el) {
+    el.classList.toggle('active');
+    profilo.dieta = [...document.querySelectorAll('#pillsDieta .pill.active')].map(b => b.dataset.val);
+}
+
+function salvaProfilo() {
+    profilo.eta      = parseFloat(document.getElementById('fEta').value)  || null;
+    profilo.altezza  = parseFloat(document.getElementById('fAlt').value)  || null;
+    profilo.peso     = parseFloat(document.getElementById('fPeso').value) || null;
+    localStorage.setItem('fitness_profilo', JSON.stringify(profilo));
+    chiudiSetup();
+    renderAll();
+    toast('✓ Profilo salvato');
+}
+
+// ═══════════════════════════════════════════════════════════
+// GENERAZIONE ESERCIZI
+// ═══════════════════════════════════════════════════════════
+function generaEsercizi() {
+    const lib = profilo.attr === 'palestra' ? EX.palestra : EX.casa;
+    const splits = getSplit(profilo.obiettivo, profilo.giorni, profilo.attr);
+    const params = getParams(profilo.obiettivo, profilo.livello);
+    const nExPerGruppo = profilo.livello === 'avanzato' ? 3 : 2;
+
+    pianoEs = {
+        generato: new Date().toISOString(),
+        splits: splits.map((sp, idx) => {
+            if (sp.riposo) return { idx, nome: sp.nome, sub: sp.sub, riposo: true, esercizi: [] };
+            const esercizi = sp.gruppi.flatMap(g => pickEx(lib, g, nExPerGruppo));
+            return { idx, nome: sp.nome, sub: sp.sub, riposo: false, esercizi, params };
+        })
+    };
+    localStorage.setItem('fitness_piano_es', JSON.stringify(pianoEs));
+    renderEsercizi();
+    toast('✓ Piano esercizi generato!');
+}
+
+// ═══════════════════════════════════════════════════════════
+// GENERAZIONE ALIMENTARE
+// ═══════════════════════════════════════════════════════════
+function generaAlimentare() {
+    const tdee   = calcTDEE(profilo);
+    const kcal   = getKcalTarget(tdee, profilo.obiettivo);
+    const macros = getMacros(kcal, profilo.obiettivo);
+    const pasti  = getMealTemplates(profilo.dieta, kcal, profilo.obiettivo);
+    pianoAl = { generato: new Date().toISOString(), tdee, kcal, macros, pasti };
+    localStorage.setItem('fitness_piano_al', JSON.stringify(pianoAl));
+    renderAlimentare();
+    toast('✓ Piano alimentare generato!');
+}
+
+// ═══════════════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════════════
+function renderAll() { renderProfiloStrip(); renderEsercizi(); renderAlimentare(); }
+
+function renderProfiloStrip() {
+    const hasProfile = profilo.eta && profilo.altezza && profilo.peso;
+    const strip = document.getElementById('esProfiloStrip');
+    const chips = document.getElementById('profiloChips');
+    strip.style.display = '';
+    const tdee = calcTDEE(profilo);
+    chips.innerHTML = [
+        profilo.sesso === 'm' ? '👨 Uomo' : '👩 Donna',
+        profilo.eta ? `${profilo.eta} anni` : null,
+        profilo.altezza ? `${profilo.altezza} cm` : null,
+        profilo.peso ? `${profilo.peso} kg` : null,
+        LVL_LABEL[profilo.livello],
+        OBJ_LABEL[profilo.obiettivo],
+        ATTR_LABEL[profilo.attr],
+        `${profilo.giorni} giorni/sett.`,
+        hasProfile ? `~${tdee} kcal/giorno` : null,
+    ].filter(Boolean).map((t, i) => `<div class="profilo-chip${i===7||i===8?' accent':''}">${t}</div>`).join('');
+}
+
+function renderEsercizi() {
+    const wrap = document.getElementById('esPianoWrap');
+    const btnW = document.getElementById('esBtnWrap');
+    const rigW = document.getElementById('esRigenBtnWrap');
+    const setC = document.getElementById('esSetupCard');
+
+    if (!pianoEs) {
+        setC.style.display = '';
+        btnW.style.display = '';
+        rigW.style.display = 'none';
+        wrap.innerHTML = '';
+        return;
+    }
+    setC.style.display = 'none';
+    btnW.style.display = 'none';
+    rigW.style.display = '';
+
+    const datag = new Date(pianoEs.generato).toLocaleDateString('it-IT',{day:'numeric',month:'long'});
+    wrap.innerHTML = `<div style="font-size:11px;color:#aaa;font-weight:700;margin-bottom:8px;text-align:center">Piano generato il ${datag} · 1 settimana tipo</div>`;
+
+    pianoEs.splits.forEach((sp, si) => {
+        const giorno = GIORNI_NOMI[si] || `Giorno ${si+1}`;
+        const card = document.createElement('div');
+        card.className = 'day-card';
+        const numBg = sp.riposo ? 'riposo' : '';
+        const exHtml = sp.riposo ? '' : sp.esercizi.map(ex => `
+            <div class="ex-row">
+                <div class="ex-emoji">${ex.e}</div>
+                <div class="ex-info">
+                    <div class="ex-nome">${ex.n}</div>
+                    <div class="ex-desc">${ex.d}</div>
+                    <div class="ex-badge">
+                        <span class="badge badge-serie">${sp.params.s} serie</span>
+                        <span class="badge badge-reps">${sp.params.r} rip.</span>
+                        <span class="badge badge-rest">⏱ ${sp.params.rs}</span>
+                    </div>
+                </div>
+            </div>`).join('');
+
+        card.innerHTML = `
+            <div class="day-header" onclick="toggleDay(this)">
+                <div class="day-num ${numBg}">${si+1}</div>
+                <div class="day-info">
+                    <div class="day-nome">${giorno} — ${sp.nome}</div>
+                    <div class="day-sub">${sp.sub}${sp.esercizi?.length ? ` · ${sp.esercizi.length} esercizi` : ''}</div>
+                </div>
+                <div class="day-arrow">▼</div>
+            </div>
+            <div class="day-body ${si === 0 && !sp.riposo ? 'open' : ''}">
+                ${sp.riposo ? `<div style="padding:16px 18px;color:#aaa;font-weight:700;font-size:14px">Nessun allenamento. Stretching leggero o camminata 20 min.</div>` : exHtml}
+            </div>`;
+        wrap.appendChild(card);
+    });
+}
+
+function toggleDay(header) {
+    const body = header.nextElementSibling;
+    const arr  = header.querySelector('.day-arrow');
+    const open = body.classList.toggle('open');
+    arr.style.transform = open ? 'rotate(180deg)' : '';
+}
+
+function renderAlimentare() {
+    const wrap  = document.getElementById('alPianoWrap');
+    const btnW  = document.getElementById('alBtnWrap');
+    const rigW  = document.getElementById('alRigenBtnWrap');
+    const setC  = document.getElementById('alSetupCard');
+    const dietC = document.getElementById('alDietaCard');
+    const dietP = document.getElementById('dietaPills');
+
+    // dieta pills
+    dietP.innerHTML = RESTRIZIONI_LIST.map(r =>
+        `<button class="pill small${(profilo.dieta||[]).includes(r.id)?' active':''}" onclick="toggleDietaAl('${r.id}',this)">${r.label}</button>`
+    ).join('');
+    dietC.style.display = '';
+
+    if (!pianoAl) {
+        setC.style.display = '';
+        btnW.style.display = '';
+        rigW.style.display = 'none';
+        wrap.innerHTML = '';
+        return;
+    }
+    setC.style.display = 'none';
+    btnW.style.display = 'none';
+    rigW.style.display = '';
+
+    const { kcal, tdee, macros, pasti } = pianoAl;
+    const pP = Math.round(macros.p*4/kcal*100);
+    const pC = Math.round(macros.c*4/kcal*100);
+    const pG = 100-pP-pC;
+
+    wrap.innerHTML = `
+    <div class="card">
+        <div class="total-kcal">
+            <div class="kcal-num">${kcal}</div>
+            <div class="kcal-label">kcal/giorno · TDEE ${tdee} kcal</div>
+        </div>
+        <div style="padding:14px 18px 16px">
+            <div class="macro-bar">
+                <div class="macro-p" style="width:${pP}%"></div>
+                <div class="macro-c" style="width:${pC}%"></div>
+                <div class="macro-g" style="width:${pG}%"></div>
+            </div>
+            <div class="macro-legend">
+                <span><span class="macro-dot" style="background:#ef4444"></span>Proteine ${macros.p}g</span>
+                <span><span class="macro-dot" style="background:#f97316"></span>Carboidrati ${macros.c}g</span>
+                <span><span class="macro-dot" style="background:#3b82f6"></span>Grassi ${macros.g}g</span>
+            </div>
+            <div style="font-size:11px;color:#aaa;margin-top:10px;font-weight:600">
+                * Piano indicativo. Consulta un nutrizionista per piani personalizzati certificati.
+            </div>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header"><span class="card-title">Menu giornaliero tipo</span></div>
+        ${pasti.map(p => `
+        <div class="meal-row">
+            <div class="meal-header">
+                <div class="meal-nome">${p.nome}</div>
+                <div class="meal-kcal">${p.kcal} kcal</div>
+            </div>
+            <div class="meal-items">${p.testo}</div>
+        </div>`).join('')}
+    </div>`;
+}
+
+function toggleDietaAl(id, el) {
+    el.classList.toggle('active');
+    profilo.dieta = [...document.querySelectorAll('#dietaPills .pill.active')].map(b => b.dataset.val);
+    // rispecchia in setup modal
+    document.querySelectorAll('#pillsDieta .pill').forEach(b => {
+        if (b.dataset.val === id) b.classList.toggle('active', (profilo.dieta).includes(id));
+    });
+    localStorage.setItem('fitness_profilo', JSON.stringify(profilo));
+}
+
+// ═══════════════════════════════════════════════════════════
+// TABS
+// ═══════════════════════════════════════════════════════════
+function showTab(tab) {
+    activeTab = tab;
+    document.getElementById('secEs').style.display  = tab === 'es'  ? '' : 'none';
+    document.getElementById('secAl').style.display  = tab === 'al'  ? '' : 'none';
+    document.getElementById('tabBtnEs').classList.toggle('active', tab === 'es');
+    document.getElementById('tabBtnAl').classList.toggle('active', tab === 'al');
+}
+
+// ═══════════════════════════════════════════════════════════
+// TOAST & INIT
+// ═══════════════════════════════════════════════════════════
+let _tt;
+function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(_tt); _tt = setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+renderAll();
+</script>
+<script>if("serviceWorker"in navigator)navigator.serviceWorker.addEventListener("controllerchange",()=>location.reload());</script>
+</body>
+</html>
