@@ -7,9 +7,11 @@ function extractVideoId(url) {
     return m ? m[1] : null;
 }
 
-// TVHTML5_SIMPLY_EMBEDDED_PLAYER (client 85): non richiede PO token,
-// usato per embed legittimi su siti terzi — funziona da datacenter IP.
-// IOS come fallback: mobile client, controlli meno restrittivi.
+// Clients ordinati dal più affidabile al meno.
+// Nessuno richiede PO token (problema datacenter IP).
+// TV_EMBED (85): embed context, bypass bot detection.
+// ANDROID (3): mobile client, spesso OK da datacenter.
+// IOS (5): fallback, qualche video lo accetta ancora.
 const CLIENTS = [
     {
         name: 'TV_EMBED',
@@ -33,18 +35,44 @@ const CLIENTS = [
         }),
     },
     {
-        name: 'IOS',
+        name: 'ANDROID',
         headers: {
-            'X-YouTube-Client-Name': '5',
-            'X-YouTube-Client-Version': '19.29.1',
-            'User-Agent': 'com.google.ios.youtube/19.29.1 (iPhone16,2; U; CPU iOS 17_5_1 like Mac OS X;)',
+            'X-YouTube-Client-Name': '3',
+            'X-YouTube-Client-Version': '19.44.38',
+            'User-Agent': 'com.google.android.youtube/19.44.38 (Linux; U; Android 14) gzip',
         },
         body: (videoId) => ({
             videoId,
             context: {
                 client: {
-                    clientName: 'IOS', clientVersion: '19.29.1',
-                    deviceModel: 'iPhone16,2', hl: 'en', gl: 'US',
+                    clientName: 'ANDROID',
+                    clientVersion: '19.44.38',
+                    androidSdkVersion: 34,
+                    userAgent: 'com.google.android.youtube/19.44.38 (Linux; U; Android 14) gzip',
+                    hl: 'en', gl: 'US',
+                },
+            },
+        }),
+    },
+    {
+        name: 'IOS',
+        headers: {
+            'X-YouTube-Client-Name': '5',
+            'X-YouTube-Client-Version': '19.45.4',
+            'User-Agent': 'com.google.ios.youtube/19.45.4 (iPhone16,2; U; CPU iOS 17_5_1 like Mac OS X;)',
+        },
+        body: (videoId) => ({
+            videoId,
+            context: {
+                client: {
+                    clientName: 'IOS',
+                    clientVersion: '19.45.4',
+                    deviceModel: 'iPhone16,2',
+                    deviceMake: 'Apple',
+                    osName: 'iPhone',
+                    osVersion: '17.5.1.21F90',
+                    userAgent: 'com.google.ios.youtube/19.45.4 (iPhone16,2; U; CPU iOS 17_5_1 like Mac OS X;)',
+                    hl: 'en', gl: 'US',
                 },
             },
         }),
@@ -52,27 +80,27 @@ const CLIENTS = [
 ];
 
 async function getYTAudio(videoId, cookies) {
-    let lastErr = 'Tutti i client bloccati';
+    const errors = [];
     for (const client of CLIENTS) {
         try {
             const headers = { 'Content-Type': 'application/json', ...client.headers };
             if (cookies) headers['Cookie'] = cookies;
 
-            const r = await fetch('https://www.youtube.com/youtubei/v1/player', {
+            const r = await fetch('https://www.youtube.com/youtubei/v1/player?prettyPrint=false', {
                 method: 'POST',
                 headers,
                 body: JSON.stringify(client.body(videoId)),
             });
-            if (!r.ok) { lastErr = `${client.name}: HTTP ${r.status}`; continue; }
+            if (!r.ok) { errors.push(`${client.name}: HTTP ${r.status}`); continue; }
 
             const data = await r.json();
             const status = data.playabilityStatus?.status;
             if (status === 'LOGIN_REQUIRED') throw new Error('Video privato o richiede login');
-            if (status !== 'OK') { lastErr = `${client.name}: ${data.playabilityStatus?.reason || status}`; continue; }
+            if (status !== 'OK') { errors.push(`${client.name}: ${data.playabilityStatus?.reason || status}`); continue; }
 
             const formats = (data.streamingData?.adaptiveFormats || [])
                 .filter(f => f.mimeType?.startsWith('audio/') && f.url);
-            if (!formats.length) { lastErr = `${client.name}: nessun formato audio`; continue; }
+            if (!formats.length) { errors.push(`${client.name}: nessun formato audio`); continue; }
 
             const best = formats.sort((a, b) => {
                 const sA = (a.mimeType.includes('mp4') ? 1e9 : 0) + (a.bitrate || 0);
@@ -89,10 +117,10 @@ async function getYTAudio(videoId, cookies) {
             };
         } catch (e) {
             if (e.message.includes('privato')) throw e;
-            lastErr = `${client.name}: ${e.message}`;
+            errors.push(`${client.name}: ${e.message}`);
         }
     }
-    throw new Error(lastErr);
+    throw new Error(errors.join(' | '));
 }
 
 module.exports = async function handler(req, res) {
