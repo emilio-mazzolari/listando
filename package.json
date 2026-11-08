@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "dependencies": {
+    "@distube/ytdl-core": "^4.16.12",
     "@supabase/supabase-js": "^2",
     "web-push": "^3.6.7"
   }

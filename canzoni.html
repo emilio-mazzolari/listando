@@ -38,6 +38,7 @@
         .btn-icon-hdr { width: 40px; height: 40px; border-radius: 12px; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 18px; }
         .btn-icon-hdr.add { background: var(--music); color: white; }
         .btn-icon-hdr.upload { background: var(--blue); color: white; }
+        .btn-icon-hdr.yt { background: #ff3b30; color: white; font-size: 15px; }
 
         /* ── Playlists ── */
         .section-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 16px 8px; }
@@ -299,6 +300,7 @@
     </button>
     <div class="header-title" id="headerTitle">CANZONI</div>
     <div class="header-actions">
+        <button class="btn-icon-hdr yt" onclick="apriYoutube()" title="Scarica da YouTube">▶</button>
         <button class="btn-icon-hdr upload" id="btnUpload" onclick="document.getElementById('fileInput').click()" title="Carica MP3">⬆️</button>
         <button class="btn-icon-hdr add" onclick="apriNuovaPlaylist()" title="Nuova raccolta">+</button>
     </div>
@@ -1303,9 +1305,54 @@ async function eliminaSongById(id) {
     if (currentPlaylistId) renderPlaylistView();
 }
 
-[document.getElementById('modalePlaylist'), document.getElementById('modaleSong'), document.getElementById('modaleCondividi'), document.getElementById('modaleSpostaPl')].forEach(m => {
+[document.getElementById('modalePlaylist'), document.getElementById('modaleSong'), document.getElementById('modaleCondividi'), document.getElementById('modaleSpostaPl'), document.getElementById('modaleYoutube')].forEach(m => {
     m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
 });
+
+// ── YouTube download ───────────────────────────────────────────────────
+function apriYoutube() {
+    document.getElementById('ytUrl').value = '';
+    document.getElementById('ytStatus').style.display = 'none';
+    document.getElementById('btnYtScarica').disabled = false;
+    document.getElementById('btnYtScarica').textContent = 'SCARICA';
+    document.getElementById('modaleYoutube').classList.add('open');
+    setTimeout(() => document.getElementById('ytUrl').focus(), 300);
+}
+
+async function avviaYoutube() {
+    const url = document.getElementById('ytUrl').value.trim();
+    if (!url) { toast('Incolla un link YouTube'); return; }
+
+    const btn = document.getElementById('btnYtScarica');
+    const status = document.getElementById('ytStatus');
+    btn.disabled = true;
+    btn.textContent = 'SCARICO…';
+    status.style.display = '';
+    status.textContent = '⏳ Download in corso, può volerci un minuto…';
+
+    try {
+        const res = await fetch('/api/youtube-download', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                url,
+                email_utente: userEmail,
+                playlist_id: currentPlaylistId || null
+            })
+        });
+        const data = await res.json();
+        if (!res.ok || !data.ok) throw new Error(data.error || 'Errore sconosciuto');
+
+        document.getElementById('modaleYoutube').classList.remove('open');
+        toast('✓ ' + (data.song?.titolo || 'Canzone scaricata'));
+        await carica();
+        if (currentPlaylistId) renderPlaylistView();
+    } catch (e) {
+        status.textContent = '❌ ' + (e.message || 'Errore, riprova');
+        btn.disabled = false;
+        btn.textContent = 'RIPROVA';
+    }
+}
 
 // ── Utilities ──────────────────────────────────────────────────────────
 function fmtTime(sec) {
@@ -1349,6 +1396,21 @@ carica().then(() => {
         finally { btn.disabled = false; btn.textContent = 'Invia'; }
     }
 </script>
+
+<!-- YouTube download modal -->
+<div class="modal-overlay" id="modaleYoutube">
+    <div class="modal-box">
+        <div class="modal-handle"></div>
+        <div class="modal-title">▶ Scarica da YouTube</div>
+        <div class="form-group">
+            <label class="form-label">Link YouTube</label>
+            <input class="form-input" id="ytUrl" type="url" placeholder="https://www.youtube.com/watch?v=…"
+                   onkeydown="if(event.key==='Enter') avviaYoutube()">
+        </div>
+        <div id="ytStatus" style="display:none; padding:10px 0; font-size:14px; font-weight:700; color:#666; text-align:center"></div>
+        <button class="btn-save-modal" id="btnYtScarica" onclick="avviaYoutube()">SCARICA</button>
+    </div>
+</div>
 
 <!-- feedback -->
 <button class="fab-feedback" onclick="_fbApri()" title="Invia feedback">
