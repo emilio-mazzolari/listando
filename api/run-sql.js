@@ -355,6 +355,14 @@ const STATEMENTS = [
         ordine int default 0
     )`,
     `ALTER TABLE IF EXISTS documenti_foto DISABLE ROW LEVEL SECURITY`,
+    `CREATE TABLE IF NOT EXISTS vendita_coeditori (
+        id bigint generated always as identity primary key,
+        annuncio_id bigint not null references vendita_annunci(id) on delete cascade,
+        email_utente text not null,
+        created_at timestamptz default now(),
+        unique(annuncio_id, email_utente)
+    )`,
+    `ALTER TABLE IF EXISTS vendita_coeditori DISABLE ROW LEVEL SECURITY`,
     `CREATE TABLE IF NOT EXISTS sv_documenti_viaggio (
         id bigint generated always as identity primary key,
         viaggio_id bigint not null references sv_viaggi(id) on delete cascade,

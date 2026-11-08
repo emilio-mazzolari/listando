@@ -347,6 +347,25 @@
     </div>
 </div>
 
+<!-- ───── Co-editor modal ───── -->
+<div class="modal-ov" id="modaleCoeditori">
+    <div class="modal-box">
+        <div class="modal-handle"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div class="modal-title" style="margin-bottom:0">👥 Condividi con editor</div>
+            <button onclick="document.getElementById('modaleCoeditori').classList.remove('open')" style="width:32px;height:32px;border-radius:50%;border:none;background:#f2f2f7;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">✕</button>
+        </div>
+        <p style="font-size:13px;color:#666;margin-bottom:16px;line-height:1.5">Gli utenti che aggiungi possono modificare questo annuncio come vogliono.</p>
+        <div id="coeditorList" style="margin-bottom:12px"></div>
+        <label class="form-label">Aggiungi per email</label>
+        <div style="display:flex;gap:8px;align-items:center">
+            <input class="form-input" id="coeditorInput" type="email" placeholder="email@esempio.it" style="flex:1;margin-bottom:0"
+                onkeydown="if(event.key==='Enter'){event.preventDefault();aggiungiCoeditore();}">
+            <button onclick="aggiungiCoeditore()" style="flex-shrink:0;padding:12px 16px;border-radius:14px;border:none;background:var(--teal);color:white;font-weight:800;cursor:pointer;font-family:inherit">Aggiungi</button>
+        </div>
+    </div>
+</div>
+
 <div class="toast" id="toast"></div>
 <div class="spin-ov" id="spinOv"><div class="spinner"></div></div>
 
@@ -374,6 +393,7 @@ const CONS_LABELS = { ritiro:'🤝 Ritiro a mano', spedizione:'📦 Spedizione',
 const SPEDIAMO_URL = 'https://www.spediamo.it/';
 
 let annunci = [], miei = [], currentTab = 'miei';
+let coeditoreDi = new Set();
 let selectedAnnuncio = null;
 let editId = null;
 let fCond = 'buono', fCat = 'Altro', fVis = 'pubblico', fCons = 'ritiro', fTrattabile = false, fPerConto = false;
@@ -426,7 +446,25 @@ async function caricaMiei() {
         .eq('email_utente', userEmail)
         .order('created_at', { ascending: false });
     miei = (data || []).map(a => { sortFoto(a); return a; });
+
+    const { data: coEdits } = await sb.from('vendita_coeditori')
+        .select('annuncio_id').eq('email_utente', userEmail);
+    coeditoreDi = new Set((coEdits || []).map(c => c.annuncio_id));
+    if (coEdits?.length) {
+        const ids = coEdits.map(c => c.annuncio_id);
+        const { data: coAnn } = await sb.from('vendita_annunci')
+            .select('*, vendita_foto(id,url,ordine)').in('id', ids);
+        const myIds = new Set(miei.map(a => a.id));
+        for (const a of (coAnn || [])) {
+            if (!myIds.has(a.id)) { sortFoto(a); miei.push(a); }
+        }
+    }
+
     renderGrid(document.getElementById('searchInput').value);
+}
+
+function possoModificare(a) {
+    return a.email_utente === userEmail || coeditoreDi.has(a.id);
 }
 
 function sortFoto(a) {
@@ -480,9 +518,10 @@ function cardHtml(a) {
     const statoBadge = a.stato !== 'attivo'
         ? `<span class="badge bs-${a.stato}">${a.stato === 'venduto' ? 'Venduto' : 'Riservato'}</span>` : '';
     const isMine = a.email_utente === userEmail;
-    const mineBadge = '';
+    const isCoeditor = !isMine && coeditoreDi.has(a.id);
+    const mineBadge = isCoeditor ? `<div class="badge-mine" style="background:#3b82f6">Co-editor</div>` : '';
     const privBadge = a.visibilita === 'privato' ? `<div class="badge-priv">🔒</div>` : (a.visibilita === 'selezionati' ? `<div class="badge-priv">👥</div>` : '');
-    return `<div class="listing-card${isMine ? ' is-mine' : ''}" onclick="apriDettaglio(${a.id})">
+    return `<div class="listing-card${(isMine || isCoeditor) ? ' is-mine' : ''}" onclick="apriDettaglio(${a.id})">
         ${mineBadge}${privBadge}
         ${photoEl}
         <div class="listing-info">
@@ -502,10 +541,10 @@ async function apriDettaglio(id) {
     if (!a) return;
     selectedAnnuncio = a;
     document.getElementById('detailHdrTitle').textContent = a.titolo;
-    document.getElementById('detailEditBtn').style.display = a.email_utente === userEmail ? '' : 'none';
+    document.getElementById('detailEditBtn').style.display = possoModificare(a) ? '' : 'none';
     document.getElementById('detailContent').innerHTML = buildDetailHtml(a);
     bindCarouselDots();
-    if (a.email_utente === userEmail) await loadConversazioni(a.id);
+    if (possoModificare(a)) await loadConversazioni(a.id);
     document.getElementById('detailOv').classList.add('open');
 }
 
@@ -543,7 +582,9 @@ function buildDetailHtml(a) {
     const consegnaHtml = buildConsegnaHtml(a);
 
     let actionsHtml = '';
-    if (a.email_utente === userEmail) {
+    const isOwner = a.email_utente === userEmail;
+    const canEdit = isOwner || coeditoreDi.has(a.id);
+    if (canEdit) {
         actionsHtml = `
             <div class="section-title">Stato annuncio</div>
             <div class="stato-row">
@@ -552,7 +593,8 @@ function buildDetailHtml(a) {
                 <button class="btn-stato${a.stato==='venduto'?' on':''}" onclick="aggiornaStato('venduto')">Venduto</button>
             </div>
             <div class="section-title">Conversazioni</div>
-            <div id="convList"><div class="no-chat">Caricamento…</div></div>`;
+            <div id="convList"><div class="no-chat">Caricamento…</div></div>
+            ${isOwner ? `<button class="btn-outline" onclick="apriGestioneCoeditori()" style="margin-top:12px">👥 Condividi con editor</button>` : ''}`;
     } else if (a.stato === 'attivo') {
         actionsHtml = `<button class="btn-chat" data-partner="${esc(a.email_utente)}" onclick="apriChat(${a.id}, this.dataset.partner)">💬  Chatta col venditore</button>`;
     } else {
@@ -710,7 +752,7 @@ function apriModifica() {
     document.getElementById('fPerConto').checked = !!a.per_conto;
     document.getElementById('fPerContoNome').value = a.per_conto_nome || '';
     document.getElementById('perContoWrap').style.display = a.per_conto ? '' : 'none';
-    document.getElementById('btnDelAnnuncio').style.display = '';
+    document.getElementById('btnDelAnnuncio').style.display = a.email_utente === userEmail ? '' : 'none';
     document.getElementById('modaleTitolo').textContent = 'Modifica annuncio';
     // Load existing photos
     photoSlots = [null, null, null, null];
@@ -1151,7 +1193,7 @@ function apriChat(annuncioId, partner) {
 function renderChatHdrActions(annuncioId) {
     const wrap = document.getElementById('chatHdrActions');
     const a = [...annunci, ...miei].find(x => x.id === annuncioId);
-    if (!a || a.email_utente !== userEmail || a.stato === 'venduto') { wrap.innerHTML = ''; return; }
+    if (!a || !possoModificare(a) || a.stato === 'venduto') { wrap.innerHTML = ''; return; }
     const stati = a.stato === 'riservato'
         ? [{ v: 'attivo', label: '✓ Attivo' }]
         : [{ v: 'riservato', label: '⏳ Riservato' }, { v: 'venduto', label: '✓ Venduto' }];
@@ -1172,7 +1214,7 @@ async function aggiornaStatoChat(stato) {
 function renderQuickRow() {
     const row = document.getElementById('quickRow');
     const a = [...annunci, ...miei].find(x => x.id === chatAnnuncioId);
-    const isBuyer = a && a.email_utente !== userEmail;
+    const isBuyer = a && !possoModificare(a);
     const chips = [];
     if (isBuyer) {
         chips.push('È ancora disponibile?');
@@ -1400,6 +1442,63 @@ document.getElementById('modaleAnnuncio').addEventListener('click', e => {
     if (e.target === document.getElementById('modaleAnnuncio'))
         document.getElementById('modaleAnnuncio').classList.remove('open');
 });
+document.getElementById('modaleCoeditori').addEventListener('click', e => {
+    if (e.target === document.getElementById('modaleCoeditori'))
+        document.getElementById('modaleCoeditori').classList.remove('open');
+});
+
+// ── Co-editor management ──────────────────────────────────
+let coeditorAnnuncioId = null;
+let coeditorEmails = [];
+
+async function apriGestioneCoeditori() {
+    if (!selectedAnnuncio) return;
+    coeditorAnnuncioId = selectedAnnuncio.id;
+    const { data } = await sb.from('vendita_coeditori')
+        .select('email_utente').eq('annuncio_id', coeditorAnnuncioId);
+    coeditorEmails = (data || []).map(r => r.email_utente);
+    renderCoeditorList();
+    document.getElementById('coeditorInput').value = '';
+    document.getElementById('modaleCoeditori').classList.add('open');
+}
+
+function renderCoeditorList() {
+    const el = document.getElementById('coeditorList');
+    if (!coeditorEmails.length) {
+        el.innerHTML = '<div style="color:#aaa;font-size:13px;text-align:center;padding:8px 0">Nessun editor aggiunto</div>';
+        return;
+    }
+    el.innerHTML = coeditorEmails.map(email => `
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #f0f0f0">
+            <div style="width:32px;height:32px;border-radius:50%;background:var(--teal);color:white;display:flex;align-items:center;justify-content:center;font-weight:900;flex-shrink:0">${esc(email[0].toUpperCase())}</div>
+            <div style="flex:1;font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(email)}</div>
+            <button onclick="rimuoviCoeditore('${esc(email)}')" style="border:none;background:#fff0f0;color:var(--red);padding:6px 10px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:800;font-family:inherit;flex-shrink:0">Rimuovi</button>
+        </div>`).join('');
+}
+
+async function aggiungiCoeditore() {
+    const input = document.getElementById('coeditorInput');
+    const email = input.value.trim().toLowerCase();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { toast('Email non valida'); return; }
+    if (email === userEmail) { toast('Non puoi aggiungere te stesso'); return; }
+    if (coeditorEmails.includes(email)) { toast('Già aggiunto'); return; }
+    const { error } = await sb.from('vendita_coeditori')
+        .insert({ annuncio_id: coeditorAnnuncioId, email_utente: email });
+    if (error) { toast('Errore: ' + errMsg(error)); return; }
+    coeditorEmails.push(email);
+    input.value = '';
+    renderCoeditorList();
+    toast('✓ Editor aggiunto');
+}
+
+async function rimuoviCoeditore(email) {
+    const { error } = await sb.from('vendita_coeditori')
+        .delete().eq('annuncio_id', coeditorAnnuncioId).eq('email_utente', email);
+    if (error) { toast('Errore: ' + errMsg(error)); return; }
+    coeditorEmails = coeditorEmails.filter(e => e !== email);
+    renderCoeditorList();
+    toast('Editor rimosso');
+}
 
 // ── Helpers ───────────────────────────────────────────────
 function esc(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
