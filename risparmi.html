@@ -322,6 +322,20 @@ body{ font-family:'Segoe UI',system-ui,sans-serif; background:var(--bg); color:v
 </div>
 </div>
 
+<!-- Modal: Rettifica saldo C/C -->
+<div class="modal-overlay" id="modalRettificaSaldo">
+<div class="modal-box">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Rettifica saldo</div>
+    <input type="hidden" id="rettificaId">
+    <div id="rettificaInfo"></div>
+    <label class="form-label">Saldo corretto (€)</label>
+    <input class="form-input" id="rettificaSaldo" type="number" min="0" step="0.01" placeholder="0.00">
+    <button class="btn-modal-primary" onclick="confermaRettificaSaldo()">Salva</button>
+    <button class="btn-modal-secondary" onclick="chiudiModal('modalRettificaSaldo')">Annulla</button>
+</div>
+</div>
+
 <!-- Modal: Trasferisci tra conti -->
 <div class="modal-overlay" id="modalTrasferisciConti">
 <div class="modal-box">
@@ -818,6 +832,9 @@ function renderInstrumentCard(p) {
     const trasferisciContiBtnCard = p.tipologia === 'Conto corrente' && altriCC.length > 0
         ? `<button onclick="apriTrasferisciConti('${p.id}')" style="margin-top:8px;padding:6px 12px;border-radius:9px;border:none;background:#3384d4;color:white;font-weight:800;font-size:11px;cursor:pointer;font-family:inherit">Trasferisci</button>`
         : '';
+    const rettificaBtn = p.tipologia === 'Conto corrente'
+        ? `<button onclick="apriRettificaSaldo('${p.id}')" style="margin-top:8px;padding:6px 12px;border-radius:9px;border:2px solid #3384d4;background:white;color:#3384d4;font-weight:800;font-size:11px;cursor:pointer;font-family:inherit">Rettifica</button>`
+        : '';
 
     return `<div class="instrument-card">
         <div class="instr-body">
@@ -829,7 +846,7 @@ function renderInstrumentCard(p) {
             </div>
             ${noteHtml}
             ${trasferisciBtnCard}
-            <div style="display:flex;gap:6px;flex-wrap:wrap">${trasferisciContiBtnCard}${investiBtnCard}</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">${trasferisciContiBtnCard}${rettificaBtn}${investiBtnCard}</div>
         </div>
         <div class="instr-actions">
             <button class="btn-instr-edit" onclick="apriModalEditPosizione('${p.id}')" title="Modifica">Mod</button>
@@ -1096,6 +1113,34 @@ async function eliminaPosizione(id) {
     await loadPosizioni();
     renderTab(tabCorrente);
     toast('Eliminata');
+}
+
+// ── Rettifica saldo C/C ──────────────────────────────────────────────
+let _rettificaId = null;
+
+function apriRettificaSaldo(ccId) {
+    const cc = posizioni.find(x => String(x.id) === String(ccId));
+    if (!cc) return;
+    _rettificaId = ccId;
+    document.getElementById('rettificaInfo').innerHTML = `
+        <div style="background:var(--grey-light);border-radius:16px;padding:16px;margin-bottom:16px">
+            <div style="font-size:11px;color:#999;font-weight:800;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:4px">${cc.banca}</div>
+            <div style="font-size:22px;font-weight:900">${eur(cc.capitale)}</div>
+            <div style="font-size:12px;color:#aaa;margin-top:2px">saldo attuale</div>
+        </div>`;
+    document.getElementById('rettificaSaldo').value = cc.capitale;
+    document.getElementById('modalRettificaSaldo').classList.add('open');
+    setTimeout(() => document.getElementById('rettificaSaldo').select(), 300);
+}
+
+async function confermaRettificaSaldo() {
+    const nuovoSaldo = parseFloat(document.getElementById('rettificaSaldo').value);
+    if (isNaN(nuovoSaldo) || nuovoSaldo < 0) { toast('Inserisci un saldo valido'); return; }
+    chiudiModal('modalRettificaSaldo');
+    await sb.from('sv_risparmi').update({ capitale: nuovoSaldo }).eq('id', _rettificaId);
+    await loadPosizioni();
+    renderTab(tabCorrente);
+    toast('Saldo rettificato ✓');
 }
 
 // ── Trasferimento C/C → C/C ─────────────────────────────────────────
