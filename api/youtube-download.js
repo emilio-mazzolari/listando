@@ -118,21 +118,42 @@ async function getYTAudioViaCobalt(videoId) {
     try {
         const r = await fetch('https://api.cobalt.tools/', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-            body: JSON.stringify({ url: `https://www.youtube.com/watch?v=${videoId}`, downloadMode: 'audio', aFormat: 'best' }),
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            },
+            body: JSON.stringify({
+                url: `https://www.youtube.com/watch?v=${videoId}`,
+                downloadMode: 'audio',
+                audioFormat: 'best',
+            }),
         });
+        const text = await r.text();
+        console.log(`cobalt status=${r.status} body=${text.slice(0, 200)}`);
         if (!r.ok) return null;
-        const data = await r.json();
+        const data = JSON.parse(text);
         if (!data.url || !['redirect', 'tunnel', 'stream'].includes(data.status)) return null;
         return { proxyUrl: data.url, filename: data.filename || `audio_${videoId}` };
-    } catch { return null; }
+    } catch (e) {
+        console.error('cobalt error:', e.message);
+        return null;
+    }
 }
 
 async function getYTAudioViaPiped(videoId) {
-    const INSTANCES = ['https://pipedapi.kavin.rocks', 'https://api.piped.yt'];
+    const INSTANCES = [
+        'https://pipedapi.kavin.rocks',
+        'https://api.piped.yt',
+        'https://pipedapi.in.projectsegfau.lt',
+        'https://pipedapi.darkness.services',
+    ];
     for (const base of INSTANCES) {
         try {
-            const r = await fetch(`${base}/streams/${videoId}`, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+            const r = await fetch(`${base}/streams/${videoId}`, {
+                headers: { 'User-Agent': 'Mozilla/5.0' },
+            });
+            console.log(`piped ${base} status=${r.status}`);
             if (!r.ok) continue;
             const data = await r.json();
             const streams = (data.audioStreams || []).filter(s => s.url);
@@ -145,7 +166,9 @@ async function getYTAudioViaPiped(videoId) {
                 ext: best.mimeType?.includes('mp4') ? 'm4a' : 'webm',
                 contentType: best.mimeType?.split(';')[0] || 'audio/mp4',
             };
-        } catch {}
+        } catch (e) {
+            console.error(`piped ${base} error:`, e.message);
+        }
     }
     return null;
 }
