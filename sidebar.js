@@ -43,6 +43,9 @@
             .tab-bar { display: none !important; }
             .hdr { left: 240px !important; right: 0 !important; }
             .upload-bar { left: 240px !important; }
+            .modal-overlay { align-items: center !important; padding: 20px !important; }
+            .modal-box { border-radius: 24px !important; padding-bottom: 24px !important; }
+            .modal-handle { display: none !important; }
         }
         @media (min-width: 1280px) {
             body { padding-left: 260px !important; }
