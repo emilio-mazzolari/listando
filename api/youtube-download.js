@@ -114,18 +114,25 @@ async function getYTAudio(videoId, cookies) {
     throw new Error(errors.join(' | '));
 }
 
+async function getYTAudioViaCobalt(videoId) {
+    try {
+        const r = await fetch('https://api.cobalt.tools/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify({ url: `https://www.youtube.com/watch?v=${videoId}`, downloadMode: 'audio', aFormat: 'best' }),
+        });
+        if (!r.ok) return null;
+        const data = await r.json();
+        if (!data.url || !['redirect', 'tunnel', 'stream'].includes(data.status)) return null;
+        return { proxyUrl: data.url, filename: data.filename || `audio_${videoId}` };
+    } catch { return null; }
+}
+
 async function getYTAudioViaPiped(videoId) {
-    const INSTANCES = [
-        'https://pipedapi.kavin.rocks',
-        'https://api.piped.yt',
-        'https://piped-api.codeberg.page',
-    ];
+    const INSTANCES = ['https://pipedapi.kavin.rocks', 'https://api.piped.yt'];
     for (const base of INSTANCES) {
         try {
-            const r = await fetch(`${base}/streams/${videoId}`, {
-                headers: { 'User-Agent': 'Mozilla/5.0' },
-                signal: AbortSignal.timeout(8000),
-            });
+            const r = await fetch(`${base}/streams/${videoId}`, { headers: { 'User-Agent': 'Mozilla/5.0' } });
             if (!r.ok) continue;
             const data = await r.json();
             const streams = (data.audioStreams || []).filter(s => s.url);
@@ -189,13 +196,41 @@ module.exports = async function handler(req, res) {
         const cookies = await getCookies(sb);
 
         let audioInfo;
+        let cobaltProxy = null;
         try {
             audioInfo = await getYTAudio(videoId, cookies);
         } catch (ytErr) {
-            // Fallback: Piped (proxy YouTube open-source, IP non datacenter)
-            audioInfo = await getYTAudioViaPiped(videoId);
-            if (!audioInfo) throw ytErr;
+            // Fallback 1: cobalt.tools (servizio dedicato al download media)
+            cobaltProxy = await getYTAudioViaCobalt(videoId);
+            if (!cobaltProxy) {
+                // Fallback 2: Piped
+                audioInfo = await getYTAudioViaPiped(videoId);
+                if (!audioInfo) throw ytErr;
+            }
         }
+
+        // Se cobalt ha restituito un URL diretto, scarica da lì e salta il parsing metadata
+        if (cobaltProxy) {
+            const audioRes = await fetch(cobaltProxy.proxyUrl);
+            if (!audioRes.ok) throw new Error(`Cobalt download fallito (${audioRes.status})`);
+            const buffer = Buffer.from(await audioRes.arrayBuffer());
+            const fname = cobaltProxy.filename || `audio_${videoId}`;
+            const ext2 = fname.endsWith('.webm') ? 'webm' : 'm4a';
+            const slug = email_utente.replace(/[^a-zA-Z0-9]/g, '_');
+            const storagePath = `${slug}/audio/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext2}`;
+            const { error: upErr } = await sb.storage.from('canzoni').upload(storagePath, buffer, { contentType: ext2 === 'webm' ? 'audio/webm' : 'audio/mp4' });
+            if (upErr) return res.status(500).json({ error: 'Storage: ' + upErr.message });
+            const { data: { publicUrl } } = sb.storage.from('canzoni').getPublicUrl(storagePath);
+            const titolo = videoId;
+            const { data: song, error: dbErr } = await sb.from('canzoni').insert({
+                email_utente, playlist_id: playlist_id || null, titolo, artista: null,
+                storage_path: storagePath, url: publicUrl,
+                size_bytes: buffer.length, durata_sec: null, sort_order: Date.now()
+            }).select().single();
+            if (dbErr) { await sb.storage.from('canzoni').remove([storagePath]); return res.status(500).json({ error: 'DB: ' + dbErr.message }); }
+            return res.status(200).json({ ok: true, song });
+        }
+
         const { title: rawTitle, duration, audioUrl, ext, contentType } = audioInfo;
 
         let titolo = rawTitle;
