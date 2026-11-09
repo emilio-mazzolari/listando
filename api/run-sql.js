@@ -34,7 +34,7 @@ const STATEMENTS = [
         created_at timestamptz default now()
     )`,
     `ALTER TABLE canzoni_playlist ADD COLUMN IF NOT EXISTS parent_id bigint REFERENCES canzoni_playlist(id) ON DELETE SET NULL`,
-    `ALTER TABLE IF EXISTS canzoni ADD COLUMN IF NOT EXISTS note text`,
+    `ALTER TABLE IF EXISTS canzoni ADD COLUMN IF NOT EXISTS note text -- canzoni_note`,
     `CREATE TABLE IF NOT EXISTS vendita_annunci (
         id bigint generated always as identity primary key,
         email_utente text not null,
@@ -524,6 +524,9 @@ module.exports = async function handler(req, res) {
         const r = await runSql(key, sql);
         results.push({ sql: label, ok: r.ok, status: r.status, body: r.body });
     }
+
+    // Forza reload schema cache PostgREST dopo ogni migrazione
+    await runSql(key, `SELECT pg_notify('pgrst', 'reload schema')`).catch(() => {});
 
     const allOk = results.every(r => r.ok);
     return res.status(200).json({ allOk, results });

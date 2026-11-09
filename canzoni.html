@@ -1210,6 +1210,7 @@ async function salvaSong() {
     let { error } = await sb.from('canzoni').update(updateData).eq('id', editSongId);
     if (error?.message?.includes('note')) {
         await fetch('/api/run-sql?solo=canzoni_note').catch(() => {});
+        await new Promise(r => setTimeout(r, 1500));
         ({ error } = await sb.from('canzoni').update(updateData).eq('id', editSongId));
     }
     if (error) { toast('Errore: ' + error.message); return; }
