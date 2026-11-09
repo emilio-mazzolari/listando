@@ -101,7 +101,12 @@
             font-size: 11px; font-weight: 800; color: #888;
             text-transform: uppercase; letter-spacing: 0.6px;
             padding: 0 4px; margin-bottom: 8px;
+            cursor: pointer; display: flex; align-items: center;
+            justify-content: space-between; user-select: none;
         }
+        .grp-chv { transition: transform 0.22s; flex-shrink: 0; }
+        .grp-chv.closed { transform: rotate(-90deg); }
+        .group-body { overflow: hidden; transition: max-height 0.25s ease; max-height: 2000px; }
         .group-card {
             background: var(--white); border-radius: 20px;
             overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05);
@@ -941,6 +946,25 @@ function toast(msg) {
 }
 
 init();
+
+(function initAccordion() {
+    const chvSvg = '<svg class="grp-chv" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>';
+    document.querySelectorAll('.settings-group').forEach(group => {
+        const label = group.querySelector(':scope > .group-label');
+        if (!label) return;
+        label.insertAdjacentHTML('beforeend', chvSvg);
+        const body = document.createElement('div');
+        body.className = 'group-body';
+        body.style.maxHeight = '2000px';
+        [...group.children].filter(c => c !== label).forEach(c => body.appendChild(c));
+        group.appendChild(body);
+        label.addEventListener('click', () => {
+            const open = body.style.maxHeight !== '0px';
+            body.style.maxHeight = open ? '0px' : '2000px';
+            label.querySelector('.grp-chv').classList.toggle('closed', open);
+        });
+    });
+})();
 
 // ── Feedback ──────────────────────────────────────────────────────────
 const ADMIN_EMAIL = 'emilio.mazzolari@gmail.com';
