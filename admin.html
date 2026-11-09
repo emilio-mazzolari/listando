@@ -54,10 +54,20 @@
         .content { padding: 20px 16px 100px; display: flex; flex-direction: column; gap: 24px; }
 
         .group-label {
-            font-size: 11px; font-weight: 800; color: #888;
-            text-transform: uppercase; letter-spacing: 0.6px;
-            padding: 0 4px; margin-bottom: 8px;
+            font-size: 15px; font-weight: 800; color: #111;
+            text-transform: none; letter-spacing: 0;
+            padding: 13px 16px; margin-bottom: 0;
+            cursor: pointer; display: flex; align-items: center; gap: 10px;
+            background: var(--white); border-radius: 18px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+            user-select: none;
         }
+        .group-label:active { background: #f5f5f5; }
+        .grp-icon { width:34px;height:34px;border-radius:9px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:17px; }
+        .grp-txt { flex: 1; }
+        .grp-chv { transition: transform 0.22s; flex-shrink:0; }
+        .grp-chv.closed { transform: rotate(-90deg); }
+        .admin-body { overflow:hidden; transition:max-height 0.28s ease; padding-top:6px; }
         .group-card {
             background: var(--white); border-radius: 20px;
             overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05);
@@ -189,40 +199,54 @@
 
     <!-- Invia notifica push -->
     <div>
-        <div class="group-label">Notifiche push</div>
-        <div class="group-card">
-            <div class="notif-form">
-                <label class="field-label">Titolo *</label>
-                <input class="field-input" id="nTitolo" type="text" placeholder="es. Novità in Listando!" autocomplete="off">
-                <label class="field-label">Messaggio *</label>
-                <textarea class="field-input" id="nBody" rows="3" placeholder="Testo della notifica…"></textarea>
-                <label class="field-label">URL destinazione</label>
-                <input class="field-input" id="nUrl" type="text" placeholder="/index.html">
-                <button class="btn-invia" id="btnInvia" onclick="inviaNotifica()">📢 INVIA A TUTTI</button>
-                <div class="notif-result" id="notifResult"></div>
+        <div class="group-label" onclick="toggleAdmin('pushBody',this)">
+            <span class="grp-icon" style="background:#eef2ff">📢</span>
+            <span class="grp-txt">Notifiche push</span>
+            <svg class="grp-chv closed" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="admin-body" id="pushBody" style="max-height:0;overflow:hidden">
+            <div class="group-card">
+                <div class="notif-form">
+                    <label class="field-label">Titolo *</label>
+                    <input class="field-input" id="nTitolo" type="text" placeholder="es. Novità in Listando!" autocomplete="off">
+                    <label class="field-label">Messaggio *</label>
+                    <textarea class="field-input" id="nBody" rows="3" placeholder="Testo della notifica…"></textarea>
+                    <label class="field-label">URL destinazione</label>
+                    <input class="field-input" id="nUrl" type="text" placeholder="/index.html">
+                    <button class="btn-invia" id="btnInvia" onclick="inviaNotifica()">📢 INVIA A TUTTI</button>
+                    <div class="notif-result" id="notifResult"></div>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- Feedback ricevuti -->
     <div>
-        <div class="group-label" style="display:flex;justify-content:space-between;align-items:center;padding-right:4px">
-            <span>Feedback ricevuti</span>
-            <span id="feedbackCount" style="font-size:11px;color:#aaa;font-weight:700"></span>
+        <div class="group-label" onclick="toggleAdmin('feedbackBody',this)">
+            <span class="grp-icon" style="background:#f0f9ff">💬</span>
+            <span class="grp-txt">Feedback ricevuti</span>
+            <span id="feedbackCount" style="font-size:11px;color:#aaa;font-weight:700;margin-right:4px"></span>
+            <svg class="grp-chv closed" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
         </div>
-        <div class="group-card">
-            <div id="feedbackList"><div class="loading-msg">Caricamento…</div></div>
+        <div class="admin-body" id="feedbackBody" style="max-height:0;overflow:hidden">
+            <div class="group-card">
+                <div id="feedbackList"><div class="loading-msg">Caricamento…</div></div>
+            </div>
         </div>
     </div>
 
     <!-- Iscritti -->
     <div>
-        <div class="group-label" style="display:flex;justify-content:space-between;align-items:center;padding-right:4px">
-            <span>Iscritti a Listando</span>
-            <span id="iscrittiCount" style="font-size:11px;color:#aaa;font-weight:700"></span>
+        <div class="group-label" onclick="toggleAdmin('iscrittiBody',this)">
+            <span class="grp-icon" style="background:#e8f5e9">👥</span>
+            <span class="grp-txt">Iscritti a Listando</span>
+            <span id="iscrittiCount" style="font-size:11px;color:#aaa;font-weight:700;margin-right:4px"></span>
+            <svg class="grp-chv closed" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
         </div>
-        <div class="group-card">
-            <div id="iscrittiList"><div class="loading-msg">Caricamento…</div></div>
+        <div class="admin-body" id="iscrittiBody" style="max-height:0;overflow:hidden">
+            <div class="group-card">
+                <div id="iscrittiList"><div class="loading-msg">Caricamento…</div></div>
+            </div>
         </div>
     </div>
 
@@ -231,6 +255,14 @@
 <div class="toast" id="toast"></div>
 
 <script>
+function toggleAdmin(bodyId, label) {
+    const body = document.getElementById(bodyId);
+    const chv = label.querySelector('.grp-chv');
+    const isOpen = body.style.maxHeight !== '0px' && body.style.maxHeight !== '';
+    body.style.maxHeight = isOpen ? '0px' : '4000px';
+    if (chv) chv.classList.toggle('closed', isOpen);
+}
+
 const ADMIN_EMAIL  = 'emilio.mazzolari@gmail.com';
 const SUPABASE_URL = 'https://eejdpophfxsrqdvsucye.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlamRwb3BoZnhzcnFkdnN1Y3llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2NTMzMDQsImV4cCI6MjA5MzIyOTMwNH0.mpxbwlJyIdZgqKIdutHbLd85JR1P11yiglbYeApi17k';
