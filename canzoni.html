@@ -1420,7 +1420,7 @@ carica().then(() => {
             <div style="font-weight:600;margin-bottom:6px;color:#333">Se il download fallisce (video bloccato):</div>
             <div style="margin-bottom:8px">1. Accedi a YouTube nel browser</div>
             <div style="margin-bottom:8px">2. Trascina questo segnalibro nella barra dei preferiti:</div>
-            <a href="javascript:(function(){fetch('https://listando.it/api/yt-cookies',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cookies:document.cookie,token:'yt2026listando'})}).then(r=>r.json()).then(d=>alert(d.ok?'Cookie aggiornati!':'Errore: '+d.error)).catch(e=>alert('Errore di rete'));})();"
+            <a href="javascript:(function(){fetch('https://listando.it/api/youtube-download',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'save-cookies',cookies:document.cookie,token:'yt2026listando'})}).then(r=>r.json()).then(d=>alert(d.ok?'Cookie aggiornati!':'Errore: '+d.error)).catch(e=>alert('Errore di rete'));})();"
                onclick="return false"
                style="display:inline-block;padding:6px 14px;background:#ff0000;color:#fff;border-radius:8px;font-weight:600;font-size:13px;text-decoration:none;cursor:grab">
                 ▶ YT Cookies → Listando
