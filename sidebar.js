@@ -55,7 +55,7 @@
     const sidebar = document.createElement('div');
     sidebar.className = 'ls-sidebar';
     sidebar.innerHTML =
-        `<div class="ls-logo">LISTANDO</div>` +
+        `<a href="index.html" class="ls-logo" style="text-decoration:none">LISTANDO</a>` +
         NAV.map(n =>
             `<a href="${n.href}" class="ls-item${page === n.href ? ' active' : ''}">` +
             `<svg viewBox="0 0 24 24">${n.svg}</svg>${n.label}</a>`
