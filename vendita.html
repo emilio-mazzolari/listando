@@ -358,10 +358,15 @@
         <p style="font-size:13px;color:#666;margin-bottom:16px;line-height:1.5">Gli utenti che aggiungi possono modificare questo annuncio come vogliono.</p>
         <div id="coeditorList" style="margin-bottom:12px"></div>
         <label class="form-label">Aggiungi per email</label>
-        <div style="display:flex;gap:8px;align-items:center">
-            <input class="form-input" id="coeditorInput" type="email" placeholder="email@esempio.it" style="flex:1;margin-bottom:0"
-                onkeydown="if(event.key==='Enter'){event.preventDefault();aggiungiCoeditore();}">
-            <button onclick="aggiungiCoeditore()" style="flex-shrink:0;padding:12px 16px;border-radius:14px;border:none;background:var(--teal);color:white;font-weight:800;cursor:pointer;font-family:inherit">Aggiungi</button>
+        <div style="position:relative">
+            <div style="display:flex;gap:8px;align-items:center">
+                <input class="form-input" id="coeditorInput" type="email" placeholder="email@esempio.it" style="flex:1;margin-bottom:0"
+                    autocomplete="off"
+                    oninput="mostraSuggerimentiCoeditor(this.value)"
+                    onkeydown="if(event.key==='Enter'){event.preventDefault();aggiungiCoeditore();}">
+                <button onclick="aggiungiCoeditore()" style="flex-shrink:0;padding:12px 16px;border-radius:14px;border:none;background:var(--teal);color:white;font-weight:800;cursor:pointer;font-family:inherit">Aggiungi</button>
+            </div>
+            <div id="coeditorSuggest" style="display:none;position:absolute;top:100%;left:0;right:52px;background:white;border:1.5px solid #e5e5e5;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.1);z-index:10;overflow:hidden;margin-top:4px"></div>
         </div>
     </div>
 </div>
@@ -1486,6 +1491,9 @@ async function aggiungiCoeditore() {
         .insert({ annuncio_id: coeditorAnnuncioId, email_utente: email });
     if (error) { toast('Errore: ' + errMsg(error)); return; }
     coeditorEmails.push(email);
+    // Memorizza email per autocomplete futuro
+    const known = JSON.parse(localStorage.getItem('coeditor_known_emails') || '[]');
+    if (!known.includes(email)) { known.unshift(email); localStorage.setItem('coeditor_known_emails', JSON.stringify(known.slice(0, 20))); }
     input.value = '';
     renderCoeditorList();
     toast('✓ Editor aggiunto');
@@ -1499,6 +1507,18 @@ async function rimuoviCoeditore(email) {
     renderCoeditorList();
     toast('Editor rimosso');
 }
+
+function mostraSuggerimentiCoeditor(val) {
+    const box = document.getElementById('coeditorSuggest');
+    const known = JSON.parse(localStorage.getItem('coeditor_known_emails') || '[]');
+    const matches = val.length > 0 ? known.filter(e => e.includes(val.toLowerCase()) && !coeditorEmails.includes(e)) : [];
+    if (!matches.length) { box.style.display = 'none'; return; }
+    box.innerHTML = matches.slice(0, 5).map(e =>
+        `<div onclick="document.getElementById('coeditorInput').value='${esc(e)}';document.getElementById('coeditorSuggest').style.display='none'" style="padding:11px 14px;cursor:pointer;font-size:14px;font-weight:600;border-bottom:1px solid #f2f2f7" onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background=''">${esc(e)}</div>`
+    ).join('');
+    box.style.display = 'block';
+}
+document.addEventListener('click', e => { if (!e.target.closest('#modaleCoeditori')) document.getElementById('coeditorSuggest').style.display = 'none'; });
 
 // ── Helpers ───────────────────────────────────────────────
 function esc(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
