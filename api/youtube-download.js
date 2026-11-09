@@ -7,11 +7,6 @@ function extractVideoId(url) {
     return m ? m[1] : null;
 }
 
-// Client ordinati dal più affidabile al meno (IP datacenter Vercel).
-// TV_EMBED (85): embed context con URL video specifico, non richiede PO token.
-// ANDROID v17 (3): versione vecchia, body minimale — 400 su v19 con campi extra.
-// IOS v17 (5): stessa logica.
-// WEB (1): ultimo tentativo, richiede cookie ma a volte passa con cookies.
 const CLIENTS = [
     {
         name: 'TV_EMBED',
@@ -25,11 +20,7 @@ const CLIENTS = [
         body: (videoId) => ({
             videoId,
             context: {
-                client: {
-                    clientName: 'TVHTML5_SIMPLY_EMBEDDED_PLAYER',
-                    clientVersion: '2.0',
-                    hl: 'en', gl: 'US',
-                },
+                client: { clientName: 'TVHTML5_SIMPLY_EMBEDDED_PLAYER', clientVersion: '2.0', hl: 'en', gl: 'US' },
                 thirdParty: { embedUrl: `https://www.youtube.com/embed/${videoId}` },
             },
         }),
@@ -44,11 +35,7 @@ const CLIENTS = [
         body: (videoId) => ({
             videoId,
             context: {
-                client: {
-                    clientName: 'ANDROID',
-                    clientVersion: '17.31.35',
-                    hl: 'en', gl: 'US',
-                },
+                client: { clientName: 'ANDROID', clientVersion: '17.31.35', hl: 'en', gl: 'US' },
             },
         }),
     },
@@ -62,12 +49,7 @@ const CLIENTS = [
         body: (videoId) => ({
             videoId,
             context: {
-                client: {
-                    clientName: 'IOS',
-                    clientVersion: '17.33.2',
-                    deviceModel: 'iPhone14,3',
-                    hl: 'en', gl: 'US',
-                },
+                client: { clientName: 'IOS', clientVersion: '17.33.2', deviceModel: 'iPhone14,3', hl: 'en', gl: 'US' },
             },
         }),
     },
@@ -83,11 +65,7 @@ const CLIENTS = [
         body: (videoId) => ({
             videoId,
             context: {
-                client: {
-                    clientName: 'WEB',
-                    clientVersion: '2.20231121.08.00',
-                    hl: 'en', gl: 'US',
-                },
+                client: { clientName: 'WEB', clientVersion: '2.20231121.08.00', hl: 'en', gl: 'US' },
             },
         }),
     },
@@ -109,7 +87,7 @@ async function getYTAudio(videoId, cookies) {
 
             const data = await r.json();
             const status = data.playabilityStatus?.status;
-            if (status === 'LOGIN_REQUIRED') throw new Error('Video privato o richiede login');
+            // LOGIN_REQUIRED senza cookie = IP datacenter bloccato: prova il prossimo client
             if (status !== 'OK') { errors.push(`${client.name}: ${data.playabilityStatus?.reason || status}`); continue; }
 
             const formats = (data.streamingData?.adaptiveFormats || [])
@@ -130,11 +108,22 @@ async function getYTAudio(videoId, cookies) {
                 contentType: best.mimeType.split(';')[0],
             };
         } catch (e) {
-            if (e.message.includes('privato')) throw e;
             errors.push(`${client.name}: ${e.message}`);
         }
     }
+    // Se tutti i client chiedono login, suggerisci di aggiornare i cookie
+    const needsLogin = errors.every(e => e.includes('LOGIN_REQUIRED') || e.includes('login'));
+    if (needsLogin) throw new Error('YouTube richiede autenticazione — aggiorna i cookie dal bookmarklet');
     throw new Error(errors.join(' | '));
+}
+
+async function getCookies(sb) {
+    if (process.env.YT_COOKIES) return process.env.YT_COOKIES;
+    try {
+        const { data, error } = await sb.storage.from('canzoni').download('_config/yt_cookies.txt');
+        if (data && !error) return (await data.text()).trim() || null;
+    } catch {}
+    return null;
 }
 
 module.exports = async function handler(req, res) {
@@ -154,8 +143,10 @@ module.exports = async function handler(req, res) {
         const videoId = extractVideoId(url);
         if (!videoId) return res.status(400).json({ error: 'URL YouTube non valido' });
 
-        const { title: rawTitle, duration, audioUrl, ext, contentType } =
-            await getYTAudio(videoId, process.env.YT_COOKIES || null);
+        const sb = createClient(SUPABASE_URL, key, { auth: { persistSession: false } });
+        const cookies = await getCookies(sb);
+
+        const { title: rawTitle, duration, audioUrl, ext, contentType } = await getYTAudio(videoId, cookies);
 
         let titolo = rawTitle;
         let artista = null;
@@ -169,7 +160,6 @@ module.exports = async function handler(req, res) {
         if (!audioRes.ok) return res.status(500).json({ error: `Download audio fallito (${audioRes.status})` });
         const buffer = Buffer.from(await audioRes.arrayBuffer());
 
-        const sb = createClient(SUPABASE_URL, key, { auth: { persistSession: false } });
         const slug = email_utente.replace(/[^a-zA-Z0-9]/g, '_');
         const fname = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
         const storagePath = `${slug}/audio/${fname}`;
