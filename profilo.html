@@ -249,7 +249,7 @@
 <div class="content">
 
     <!-- Dati personali -->
-    <div class="settings-group">
+    <div class="settings-group" data-section="dati-personali">
         <div class="group-label">Dati personali</div>
         <div class="group-card">
             <div class="row">
@@ -290,7 +290,7 @@
     </div>
 
     <!-- Metodi di pagamento -->
-    <div class="settings-group">
+    <div class="settings-group" data-section="pagamento">
         <div class="group-label">Metodi di pagamento</div>
         <div class="group-card">
             <div class="row">
@@ -324,7 +324,7 @@
     </div>
 
     <!-- Notifiche -->
-    <div class="settings-group">
+    <div class="settings-group" data-section="notifiche">
         <div class="group-label">Notifiche push</div>
         <div class="group-card">
             <!-- Stato dispositivo corrente -->
@@ -371,7 +371,7 @@
     </div>
 
     <!-- Supporto -->
-    <div class="settings-group">
+    <div class="settings-group" data-section="supporto">
         <div class="group-label">Supporto</div>
         <div class="group-card">
             <div class="row" style="cursor:pointer" onclick="apriFeedback()">
@@ -405,7 +405,7 @@
     </div>
 
     <!-- Backup -->
-    <div class="settings-group">
+    <div class="settings-group" data-section="backup">
         <div class="group-label">Backup dati</div>
         <div class="group-card">
             <div class="row" style="cursor:pointer" onclick="scaricaBackup()">
@@ -432,7 +432,7 @@
     </div>
 
     <!-- Account -->
-    <div class="settings-group">
+    <div class="settings-group" data-section="account">
         <div class="group-label">Account</div>
         <div class="group-card">
             <div class="row" style="cursor:pointer" onclick="logout()">
@@ -948,20 +948,73 @@ function toast(msg) {
 init();
 
 (function initAccordion() {
+    const LS_ORDER = 'profilo_section_order';
+    const container = document.querySelector('.content');
     const chvSvg = '<svg class="grp-chv" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>';
+    const dragSvg = '<svg class="grp-drag" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="2.5" style="cursor:grab;flex-shrink:0;margin-right:4px"><circle cx="9" cy="5" r="1" fill="#ccc"/><circle cx="15" cy="5" r="1" fill="#ccc"/><circle cx="9" cy="12" r="1" fill="#ccc"/><circle cx="15" cy="12" r="1" fill="#ccc"/><circle cx="9" cy="19" r="1" fill="#ccc"/><circle cx="15" cy="19" r="1" fill="#ccc"/></svg>';
+
+    // Restore saved order
+    const savedOrder = JSON.parse(localStorage.getItem(LS_ORDER) || 'null');
+    if (savedOrder) {
+        const groups = [...document.querySelectorAll('.settings-group[data-section]')];
+        savedOrder.forEach(id => {
+            const g = groups.find(g => g.dataset.section === id);
+            if (g) container.appendChild(g);
+        });
+    }
+
+    let dragSrc = null;
     document.querySelectorAll('.settings-group').forEach(group => {
         const label = group.querySelector(':scope > .group-label');
         if (!label) return;
+
+        // Add drag handle + chevron
+        label.insertAdjacentHTML('afterbegin', dragSvg);
         label.insertAdjacentHTML('beforeend', chvSvg);
+
+        // Wrap body — start CLOSED
         const body = document.createElement('div');
         body.className = 'group-body';
-        body.style.maxHeight = '2000px';
+        body.style.maxHeight = '0px';
         [...group.children].filter(c => c !== label).forEach(c => body.appendChild(c));
         group.appendChild(body);
-        label.addEventListener('click', () => {
+        label.querySelector('.grp-chv').classList.add('closed');
+
+        // Toggle on label click (not drag handle)
+        label.addEventListener('click', e => {
+            if (e.target.closest('.grp-drag')) return;
             const open = body.style.maxHeight !== '0px';
             body.style.maxHeight = open ? '0px' : '2000px';
             label.querySelector('.grp-chv').classList.toggle('closed', open);
+        });
+
+        // Drag & drop reorder
+        if (!group.dataset.section) return;
+        group.setAttribute('draggable', 'true');
+        group.addEventListener('dragstart', e => {
+            dragSrc = group;
+            e.dataTransfer.effectAllowed = 'move';
+            group.style.opacity = '0.4';
+        });
+        group.addEventListener('dragend', () => {
+            group.style.opacity = '';
+            // Save new order
+            const order = [...document.querySelectorAll('.settings-group[data-section]')].map(g => g.dataset.section);
+            localStorage.setItem(LS_ORDER, JSON.stringify(order));
+        });
+        group.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; });
+        group.addEventListener('dragenter', () => { if (dragSrc !== group) group.style.outline = '2px dashed #0fba8d'; });
+        group.addEventListener('dragleave', () => { group.style.outline = ''; });
+        group.addEventListener('drop', e => {
+            e.preventDefault();
+            group.style.outline = '';
+            if (dragSrc && dragSrc !== group) {
+                const groups = [...container.querySelectorAll('.settings-group')];
+                const iSrc = groups.indexOf(dragSrc);
+                const iDst = groups.indexOf(group);
+                if (iSrc < iDst) container.insertBefore(dragSrc, group.nextSibling);
+                else container.insertBefore(dragSrc, group);
+            }
         });
     });
 })();
