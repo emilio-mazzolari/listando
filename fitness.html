@@ -107,6 +107,42 @@
  .empty-state p{font-weight:700;font-size:14px}
  /* modal attrezzi sopra modal setup */
  .modal-attrezzi{z-index:300}
+ /* schede personalizzate */
+ .scheda-card{background:var(--white);border-radius:18px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:10px}
+ .scheda-head{display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer}
+ .scheda-emoji-wrap{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+ .scheda-info{flex:1}
+ .scheda-nome{font-weight:800;font-size:15px}
+ .scheda-sub{font-size:12px;color:#888;margin-top:2px;font-weight:500}
+ .scheda-actions{display:flex;gap:6px;flex-shrink:0}
+ .btn-scheda-edit{width:32px;height:32px;border-radius:50%;border:none;background:#f2f2f7;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+ .scheda-body{display:none;border-top:1.5px solid var(--grey-light)}
+ .scheda-body.open{display:block}
+ .sessione-block{padding:12px 16px;border-bottom:1.5px solid var(--grey-light)}
+ .sessione-block:last-child{border-bottom:none}
+ .sessione-nome{font-size:11px;font-weight:800;color:#999;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+ .sch-ex-row{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--grey-light)}
+ .sch-ex-row:last-child{border-bottom:none}
+ .sch-ex-num{width:22px;height:22px;border-radius:7px;background:var(--grey-light);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#666;flex-shrink:0;margin-top:1px}
+ .sch-ex-body{flex:1}
+ .sch-ex-nome{font-size:14px;font-weight:800}
+ .sch-ex-badges{display:flex;gap:5px;margin-top:5px;flex-wrap:wrap}
+ /* sessione editor */
+ .sess-editor{background:var(--grey-light);border-radius:14px;padding:12px 14px;margin-bottom:10px}
+ .sess-editor-head{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+ .sess-editor-input{flex:1;border:2px solid var(--grey);border-radius:10px;padding:8px 12px;font-size:14px;font-weight:700;font-family:inherit;outline:none;background:var(--white)}
+ .sess-editor-input:focus{border-color:var(--accent)}
+ .btn-del-sess{width:28px;height:28px;border-radius:50%;border:none;background:#ffd7d7;color:#ef4444;font-size:16px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+ .sess-ex-list{display:flex;flex-direction:column;gap:6px;margin-bottom:8px}
+ .sess-ex-pill{display:flex;align-items:center;gap:8px;background:var(--white);border-radius:10px;padding:8px 12px}
+ .sess-ex-pill-name{flex:1;font-size:13px;font-weight:700}
+ .sess-ex-pill-sub{font-size:11px;color:#888;font-weight:600}
+ .btn-del-ex{width:22px;height:22px;border-radius:50%;border:none;background:#ffd7d7;color:#ef4444;font-size:12px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+ .btn-add-ex{width:100%;padding:9px;border-radius:10px;border:2px dashed var(--grey);background:transparent;font-size:13px;font-weight:700;color:#aaa;cursor:pointer;font-family:inherit}
+ .btn-add-ex:hover{border-color:var(--accent);color:var(--accent)}
+ /* schede colori */
+ .colore-pill{width:28px;height:28px;border-radius:50%;cursor:pointer;border:3px solid transparent;flex-shrink:0;transition:transform .1s}
+ .colore-pill.sel{border-color:var(--dark);transform:scale(1.15)}
  /* toast */
  .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--dark);color:white;padding:12px 20px;border-radius:14px;font-weight:700;font-size:14px;opacity:0;transition:all .25s;white-space:nowrap;z-index:999;pointer-events:none}
  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
@@ -125,6 +161,7 @@
 <div class="tab-top">
  <button class="tab-top-btn active" id="tabBtnEs" onclick="showTab('es')">Esercizi</button>
  <button class="tab-top-btn" id="tabBtnAl" onclick="showTab('al')">Alimentazione</button>
+ <button class="tab-top-btn" id="tabBtnSch" onclick="showTab('sch')">Schede</button>
 </div>
 
 <!-- ══ TAB ESERCIZI ══ -->
@@ -167,6 +204,64 @@
  <div id="alRigenBtnWrap" style="display:none">
  <button class="btn-rigenera" onclick="generaAlimentare()">Rigenera piano</button>
  </div>
+</div>
+
+<!-- ══ TAB SCHEDE ══ -->
+<div id="secSchede" class="content" style="display:none">
+ <div id="schedeList"></div>
+ <button class="btn-genera" onclick="apriNuovaScheda()">+ NUOVA SCHEDA</button>
+</div>
+
+<!-- ══ MODAL SCHEDA ══ -->
+<div class="modal-overlay" id="modalScheda" onclick="if(event.target===this)chiudiModalScheda()">
+<div class="modal-box" style="max-height:95vh">
+ <div class="modal-handle"></div>
+ <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+  <div class="modal-title" style="margin-bottom:0" id="modalSchedaTitolo">Nuova scheda</div>
+  <button onclick="chiudiModalScheda()" style="width:32px;height:32px;border-radius:50%;border:none;background:#f2f2f7;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">✕</button>
+ </div>
+ <label class="form-label">Nome scheda *</label>
+ <input class="form-input" id="schedaNome" type="text" placeholder="es. Scheda A — Upper/Lower" autocapitalize="sentences">
+ <div style="display:flex;gap:10px;margin-top:12px">
+  <div style="flex:1">
+   <label class="form-label">Emoji</label>
+   <input class="form-input" id="schedaEmoji" type="text" placeholder="💪" maxlength="2" style="font-size:22px;text-align:center">
+  </div>
+  <div style="flex:3">
+   <label class="form-label">Colore</label>
+   <div class="pills-row" id="schedaColoriRow" style="margin-top:4px"></div>
+  </div>
+ </div>
+
+ <div style="display:flex;align-items:center;justify-content:space-between;margin:18px 0 10px">
+  <span style="font-size:12px;font-weight:800;color:#999;text-transform:uppercase;letter-spacing:.4px">Sessioni</span>
+  <button onclick="aggiungiSessione()" style="font-size:13px;font-weight:800;color:var(--accent);background:none;border:none;cursor:pointer;font-family:inherit">+ Aggiungi</button>
+ </div>
+ <div id="sessioniList"></div>
+
+ <button class="btn-genera" onclick="salvaScheda()" style="margin-top:16px">SALVA SCHEDA</button>
+</div>
+</div>
+
+<!-- ══ MODAL ESERCIZIO ══ -->
+<div class="modal-overlay" id="modalEsercizio" style="z-index:300" onclick="if(event.target===this)chiudiModalEsercizio()">
+<div class="modal-box">
+ <div class="modal-handle"></div>
+ <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+  <div class="modal-title" style="margin-bottom:0" id="modalEsTitolo">Aggiungi esercizio</div>
+  <button onclick="chiudiModalEsercizio()" style="width:32px;height:32px;border-radius:50%;border:none;background:#f2f2f7;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">✕</button>
+ </div>
+ <label class="form-label">Nome esercizio *</label>
+ <input class="form-input" id="esNome" type="text" placeholder="es. Panca piana con bilanciere" autocapitalize="sentences">
+ <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:4px">
+  <div><label class="form-label">Serie</label><input class="form-input" id="esSerie" type="text" placeholder="4"></div>
+  <div><label class="form-label">Reps / Tempo</label><input class="form-input" id="esReps" type="text" placeholder="8-10"></div>
+  <div><label class="form-label">Riposo</label><input class="form-input" id="esRiposo" type="text" placeholder="90s"></div>
+ </div>
+ <label class="form-label">Note (opzionale)</label>
+ <input class="form-input" id="esNote" type="text" placeholder="es. Presa larga, discesa controllata">
+ <button class="btn-genera" onclick="salvaEsercizio()" style="margin-top:14px">AGGIUNGI</button>
+</div>
 </div>
 
 <!-- ══ MODAL SETUP PROFILO ══ -->
@@ -1051,9 +1146,218 @@ function showTab(tab) {
  activeTab = tab;
  document.getElementById('secEs').style.display = tab === 'es' ? '' : 'none';
  document.getElementById('secAl').style.display = tab === 'al' ? '' : 'none';
+ document.getElementById('secSchede').style.display = tab === 'sch' ? '' : 'none';
  document.getElementById('tabBtnEs').classList.toggle('active', tab === 'es');
  document.getElementById('tabBtnAl').classList.toggle('active', tab === 'al');
+ document.getElementById('tabBtnSch').classList.toggle('active', tab === 'sch');
+ if (tab === 'sch') renderSchede();
 }
+
+// ═══════════════════════════════════════════════════════════
+// SCHEDE PERSONALIZZATE
+// ═══════════════════════════════════════════════════════════
+const SCHEDE_KEY = 'fitness_schede_v1';
+const COLORI_SCH = ['#f97316','#ef4444','#8b5cf6','#3b82f6','#10b981','#f59e0b','#ec4899','#111827'];
+
+function schedeLoad() { try { return JSON.parse(localStorage.getItem(SCHEDE_KEY) || '[]'); } catch { return []; } }
+function schedeSave(arr) { localStorage.setItem(SCHEDE_KEY, JSON.stringify(arr)); }
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+
+let _schedaEdit = null;      // scheda corrente in editing
+let _sessEditIdx = null;     // sessione corrente in cui aggiungere/modificare esercizio
+let _esEditIdx = null;       // indice esercizio in editing (null = nuovo)
+
+function renderSchede() {
+ const schede = schedeLoad();
+ const list = document.getElementById('schedeList');
+ if (!schede.length) {
+  list.innerHTML = '<div class="empty-state"><div class="ei">📋</div><p>Nessuna scheda personalizzata.<br>Creane una con il pulsante qui sotto.</p></div>';
+  return;
+ }
+ list.innerHTML = schede.map((s, i) => {
+  const totEx = s.sessioni.reduce((a, ss) => a + ss.esercizi.length, 0);
+  const col = s.colore || '#f97316';
+  const sessHtml = s.sessioni.map(ss => {
+   const exHtml = ss.esercizi.map((ex, ei) => `
+    <div class="sch-ex-row">
+     <div class="sch-ex-num">${ei+1}</div>
+     <div class="sch-ex-body">
+      <div class="sch-ex-nome">${_esc(ex.nome)}</div>
+      <div class="sch-ex-badges">
+       ${ex.serie ? `<span class="badge badge-serie">${_esc(ex.serie)} serie</span>` : ''}
+       ${ex.reps ? `<span class="badge badge-reps">${_esc(ex.reps)} reps</span>` : ''}
+       ${ex.riposo ? `<span class="badge badge-rest">⏱ ${_esc(ex.riposo)}</span>` : ''}
+       ${ex.note ? `<span class="badge" style="background:#f5f5f5;color:#666">${_esc(ex.note)}</span>` : ''}
+      </div>
+     </div>
+    </div>`).join('');
+   return `<div class="sessione-block"><div class="sessione-nome">${_esc(ss.nome)}</div>${exHtml || '<div style="font-size:12px;color:#bbb;padding:4px 0">Nessun esercizio</div>'}</div>`;
+  }).join('');
+  return `<div class="scheda-card">
+   <div class="scheda-head" onclick="toggleScheda(${i})">
+    <div class="scheda-emoji-wrap" style="background:${col}20">${s.emoji || '💪'}</div>
+    <div class="scheda-info">
+     <div class="scheda-nome">${_esc(s.nome)}</div>
+     <div class="scheda-sub">${s.sessioni.length} sessioni · ${totEx} esercizi</div>
+    </div>
+    <div class="scheda-actions" onclick="event.stopPropagation()">
+     <button class="btn-scheda-edit" onclick="apriModificaScheda(${i})" title="Modifica">✏️</button>
+     <button class="btn-scheda-edit" onclick="eliminaScheda(${i})" title="Elimina" style="background:#ffd7d7">🗑️</button>
+    </div>
+    <div class="day-arrow" id="schedaArrow${i}">▾</div>
+   </div>
+   <div class="scheda-body" id="schedaBody${i}">${sessHtml}</div>
+  </div>`;
+ }).join('');
+}
+
+function toggleScheda(i) {
+ const body = document.getElementById('schedaBody' + i);
+ const arrow = document.getElementById('schedaArrow' + i);
+ const isOpen = body.classList.toggle('open');
+ arrow.style.transform = isOpen ? 'rotate(180deg)' : '';
+}
+
+function eliminaScheda(i) {
+ if (!confirm('Eliminare questa scheda?')) return;
+ const arr = schedeLoad();
+ arr.splice(i, 1);
+ schedeSave(arr);
+ renderSchede();
+}
+
+function apriNuovaScheda() {
+ _schedaEdit = { id: uid(), nome: '', emoji: '💪', colore: COLORI_SCH[0], sessioni: [] };
+ _apriModalScheda('Nuova scheda');
+}
+
+function apriModificaScheda(i) {
+ _schedaEdit = JSON.parse(JSON.stringify(schedeLoad()[i]));
+ _schedaEdit._editIdx = i;
+ _apriModalScheda('Modifica scheda');
+}
+
+function _apriModalScheda(titolo) {
+ document.getElementById('modalSchedaTitolo').textContent = titolo;
+ document.getElementById('schedaNome').value = _schedaEdit.nome;
+ document.getElementById('schedaEmoji').value = _schedaEdit.emoji || '💪';
+ _renderColoriPills();
+ _renderSessioniEditor();
+ document.getElementById('modalScheda').classList.add('open');
+}
+
+function chiudiModalScheda() {
+ document.getElementById('modalScheda').classList.remove('open');
+ _schedaEdit = null;
+}
+
+function _renderColoriPills() {
+ document.getElementById('schedaColoriRow').innerHTML = COLORI_SCH.map(c =>
+  `<div class="colore-pill${_schedaEdit.colore === c ? ' sel' : ''}" style="background:${c}" onclick="_selColore('${c}')"></div>`
+ ).join('');
+}
+
+function _selColore(c) {
+ _schedaEdit.colore = c;
+ _renderColoriPills();
+}
+
+function _renderSessioniEditor() {
+ const html = (_schedaEdit.sessioni || []).map((ss, si) => {
+  const exHtml = (ss.esercizi || []).map((ex, ei) => `
+   <div class="sess-ex-pill">
+    <div style="flex:1">
+     <div class="sess-ex-pill-name">${_esc(ex.nome)}</div>
+     <div class="sess-ex-pill-sub">${[ex.serie ? ex.serie+' serie' : '', ex.reps || '', ex.riposo ? '⏱'+ex.riposo : ''].filter(Boolean).join(' · ')}</div>
+    </div>
+    <button class="btn-del-ex" onclick="_delEsercizio(${si},${ei})">✕</button>
+   </div>`).join('');
+  return `<div class="sess-editor">
+   <div class="sess-editor-head">
+    <input class="sess-editor-input" value="${_esc(ss.nome)}" placeholder="Nome sessione" oninput="_renameSessione(${si}, this.value)">
+    <button class="btn-del-sess" onclick="_delSessione(${si})">✕</button>
+   </div>
+   <div class="sess-ex-list" id="sessExList${si}">${exHtml}</div>
+   <button class="btn-add-ex" onclick="_apriModalEsercizio(${si})">+ Aggiungi esercizio</button>
+  </div>`;
+ }).join('');
+ document.getElementById('sessioniList').innerHTML = html;
+}
+
+function aggiungiSessione() {
+ if (!_schedaEdit) return;
+ _schedaEdit.sessioni.push({ id: uid(), nome: 'Giorno ' + (_schedaEdit.sessioni.length + 1), esercizi: [] });
+ _renderSessioniEditor();
+ setTimeout(() => document.getElementById('sessioniList').lastElementChild?.querySelector('input')?.focus(), 50);
+}
+
+function _delSessione(si) {
+ _schedaEdit.sessioni.splice(si, 1);
+ _renderSessioniEditor();
+}
+
+function _renameSessione(si, val) {
+ if (_schedaEdit.sessioni[si]) _schedaEdit.sessioni[si].nome = val;
+}
+
+function _delEsercizio(si, ei) {
+ _schedaEdit.sessioni[si].esercizi.splice(ei, 1);
+ _renderSessioniEditor();
+}
+
+function _apriModalEsercizio(si) {
+ _sessEditIdx = si;
+ _esEditIdx = null;
+ document.getElementById('esNome').value = '';
+ document.getElementById('esSerie').value = '';
+ document.getElementById('esReps').value = '';
+ document.getElementById('esRiposo').value = '';
+ document.getElementById('esNote').value = '';
+ document.getElementById('modalEsTitolo').textContent = 'Aggiungi esercizio';
+ document.getElementById('modalEsercizio').classList.add('open');
+ setTimeout(() => document.getElementById('esNome').focus(), 300);
+}
+
+function chiudiModalEsercizio() {
+ document.getElementById('modalEsercizio').classList.remove('open');
+}
+
+function salvaEsercizio() {
+ const nome = document.getElementById('esNome').value.trim();
+ if (!nome) { toast('Inserisci il nome'); return; }
+ const ex = {
+  id: uid(),
+  nome,
+  serie: document.getElementById('esSerie').value.trim(),
+  reps: document.getElementById('esReps').value.trim(),
+  riposo: document.getElementById('esRiposo').value.trim(),
+  note: document.getElementById('esNote').value.trim(),
+ };
+ if (!_schedaEdit || _sessEditIdx === null) return;
+ _schedaEdit.sessioni[_sessEditIdx].esercizi.push(ex);
+ chiudiModalEsercizio();
+ _renderSessioniEditor();
+}
+
+function salvaScheda() {
+ const nome = document.getElementById('schedaNome').value.trim();
+ if (!nome) { toast('Inserisci il nome della scheda'); return; }
+ _schedaEdit.nome = nome;
+ _schedaEdit.emoji = document.getElementById('schedaEmoji').value.trim() || '💪';
+ const arr = schedeLoad();
+ if (_schedaEdit._editIdx !== undefined) {
+  arr[_schedaEdit._editIdx] = _schedaEdit;
+  delete arr[_schedaEdit._editIdx]._editIdx;
+ } else {
+  arr.push(_schedaEdit);
+ }
+ schedeSave(arr);
+ chiudiModalScheda();
+ renderSchede();
+ toast('✓ Scheda salvata');
+}
+
+function _esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 // ═══════════════════════════════════════════════════════════
 // TOAST & INIT
