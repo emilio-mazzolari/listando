@@ -143,6 +143,18 @@
  /* schede colori */
  .colore-pill{width:28px;height:28px;border-radius:50%;cursor:pointer;border:3px solid transparent;flex-shrink:0;transition:transform .1s}
  .colore-pill.sel{border-color:var(--dark);transform:scale(1.15)}
+ /* settimana */
+ .week-strip{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px}
+ .week-day{background:var(--white);border-radius:12px;padding:8px 3px 10px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:2px;box-shadow:0 1px 4px rgba(0,0,0,.05);min-height:64px}
+ .week-day.today{background:var(--accent)}
+ .week-day.has-train{box-shadow:0 0 0 2px var(--accent)}
+ .week-day.today.has-train{box-shadow:none}
+ .wd-label{font-size:10px;font-weight:900;letter-spacing:.3px;color:#aaa;text-transform:uppercase}
+ .week-day.today .wd-label{color:rgba(255,255,255,.8)}
+ .wd-dot{width:7px;height:7px;border-radius:50%;margin-top:2px;flex-shrink:0}
+ .wd-sess{font-size:8px;font-weight:800;line-height:1.2;text-align:center;word-break:break-word;color:var(--accent);padding:0 2px}
+ .week-day.today .wd-sess{color:rgba(255,255,255,.95)}
+ .wd-riposo{font-size:12px;margin-top:4px;opacity:.3}
  /* toast */
  .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--dark);color:white;padding:12px 20px;border-radius:14px;font-weight:700;font-size:14px;opacity:0;transition:all .25s;white-space:nowrap;z-index:999;pointer-events:none}
  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
@@ -208,6 +220,7 @@
 
 <!-- ══ TAB SCHEDE ══ -->
 <div id="secSchede" class="content" style="display:none">
+ <div id="weekStrip"></div>
  <div id="schedeList"></div>
  <button class="btn-genera" onclick="apriNuovaScheda()">+ NUOVA SCHEDA</button>
 </div>
@@ -1167,7 +1180,36 @@ let _schedaEdit = null;      // scheda corrente in editing
 let _sessEditIdx = null;     // sessione corrente in cui aggiungere/modificare esercizio
 let _esEditIdx = null;       // indice esercizio in editing (null = nuovo)
 
+function renderWeekStrip() {
+ const el = document.getElementById('weekStrip');
+ if (!el) return;
+ const LABELS = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
+ const KEYS   = ['dom','lun','mar','mer','gio','ven','sab'];
+ const todayKey = KEYS[new Date().getDay()];
+ const schede = schedeLoad();
+ const perGiorno = {};
+ KEYS.forEach(k => perGiorno[k] = []);
+ schede.forEach(s => (s.sessioni||[]).forEach(ss => (ss.giorni||[]).forEach(gg => {
+  if (perGiorno[gg]) perGiorno[gg].push({ nome: ss.nome, colore: s.colore || '#f97316' });
+ })));
+ const hasAny = KEYS.some(k => perGiorno[k].length);
+ if (!hasAny) { el.innerHTML = ''; return; }
+ el.innerHTML = `<div class="week-strip">${KEYS.map((k, i) => {
+  const isToday = k === todayKey;
+  const sess = perGiorno[k];
+  const hasTrain = sess.length > 0;
+  return `<div class="week-day${isToday?' today':''}${hasTrain?' has-train':''}">
+   <div class="wd-label">${LABELS[i]}</div>
+   ${hasTrain ? sess.map(s =>
+    `<div class="wd-dot" style="background:${isToday?'rgba(255,255,255,.85)':s.colore}"></div>
+     <div class="wd-sess">${_esc(s.nome)}</div>`).join('')
+   : `<div class="wd-riposo">💤</div>`}
+  </div>`;
+ }).join('')}</div>`;
+}
+
 function renderSchede() {
+ renderWeekStrip();
  const schede = schedeLoad();
  const list = document.getElementById('schedeList');
  if (!schede.length) {
@@ -1191,7 +1233,10 @@ function renderSchede() {
       </div>
      </div>
     </div>`).join('');
-   return `<div class="sessione-block"><div class="sessione-nome">${_esc(ss.nome)}</div>${exHtml || '<div style="font-size:12px;color:#bbb;padding:4px 0">Nessun esercizio</div>'}</div>`;
+   const giorniTag = ss.giorni?.length
+    ? `<div style="font-size:11px;color:var(--accent);font-weight:800;margin-bottom:6px;letter-spacing:.2px">${ss.giorni.map(g=>g.charAt(0).toUpperCase()+g.slice(1)).join(' · ')}</div>`
+    : '';
+   return `<div class="sessione-block"><div class="sessione-nome">${_esc(ss.nome)}</div>${giorniTag}${exHtml || '<div style="font-size:12px;color:#bbb;padding:4px 0">Nessun esercizio</div>'}</div>`;
   }).join('');
   return `<div class="scheda-card">
    <div class="scheda-head" onclick="toggleScheda(${i})">
@@ -1272,10 +1317,19 @@ function _renderSessioniEditor() {
     </div>
     <button class="btn-del-ex" onclick="_delEsercizio(${si},${ei})">✕</button>
    </div>`).join('');
+  const GG = ['lun','mar','mer','gio','ven','sab','dom'];
+  const ggHtml = GG.map(g => {
+   const on = (ss.giorni||[]).includes(g);
+   return `<button onclick="_toggleGiorno(${si},'${g}')" style="padding:5px 9px;border-radius:9px;border:2px solid ${on?'var(--accent)':'var(--grey)'};background:${on?'#fff3e8':'var(--white)'};color:${on?'var(--accent)':'#999'};font-size:11px;font-weight:800;cursor:pointer;font-family:inherit;transition:all .12s">${g.charAt(0).toUpperCase()+g.slice(1)}</button>`;
+  }).join('');
   return `<div class="sess-editor">
    <div class="sess-editor-head">
     <input class="sess-editor-input" value="${_esc(ss.nome)}" placeholder="Nome sessione" oninput="_renameSessione(${si}, this.value)">
     <button class="btn-del-sess" onclick="_delSessione(${si})">✕</button>
+   </div>
+   <div style="margin-bottom:10px">
+    <div style="font-size:10px;font-weight:800;color:#999;text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px">Giorni</div>
+    <div style="display:flex;gap:4px;flex-wrap:wrap">${ggHtml}</div>
    </div>
    <div class="sess-ex-list" id="sessExList${si}">${exHtml}</div>
    <button class="btn-add-ex" onclick="_apriModalEsercizio(${si})">+ Aggiungi esercizio</button>
@@ -1298,6 +1352,16 @@ function _delSessione(si) {
 
 function _renameSessione(si, val) {
  if (_schedaEdit.sessioni[si]) _schedaEdit.sessioni[si].nome = val;
+}
+
+function _toggleGiorno(si, gg) {
+ const ss = _schedaEdit?.sessioni[si];
+ if (!ss) return;
+ if (!ss.giorni) ss.giorni = [];
+ const idx = ss.giorni.indexOf(gg);
+ if (idx >= 0) ss.giorni.splice(idx, 1);
+ else ss.giorni.push(gg);
+ _renderSessioniEditor();
 }
 
 function _delEsercizio(si, ei) {
