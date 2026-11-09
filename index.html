@@ -1665,6 +1665,11 @@
     animation: bd-confetti linear infinite;
     pointer-events:none;
 }
+@media (min-width: 1024px) {
+    #impostazioniOverlay { align-items:center !important; justify-content:center !important; }
+    #impostazioniOverlay > div { border-radius:24px !important; width:480px !important; max-width:90vw !important; padding-bottom:24px !important; }
+    #impostazioniOverlay > div > div:first-child { display:none !important; }
+}
 </style>
 <div id="birthdayPopup" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.72);align-items:center;justify-content:center;padding:20px">
     <div id="birthdayCard" style="background:#fff;border-radius:28px;padding:36px 24px 28px;max-width:320px;width:100%;text-align:center;position:relative;overflow:hidden">

@@ -1,9 +1,4 @@
 {
-  "functions": {
-    "api/youtube-download.js": {
-      "maxDuration": 60
-    }
-  },
   "headers": [
     {
       "source": "/sw.js",

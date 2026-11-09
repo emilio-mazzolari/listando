@@ -302,7 +302,6 @@
     </button>
     <div class="header-title" id="headerTitle">CANZONI</div>
     <div class="header-actions">
-        <button class="btn-icon-hdr yt" onclick="apriYoutube()" title="Scarica da YouTube">▶</button>
         <button class="btn-icon-hdr upload" id="btnUpload" onclick="document.getElementById('fileInput').click()" title="Carica MP3">⬆️</button>
         <button class="btn-icon-hdr add" onclick="apriNuovaPlaylist()" title="Nuova raccolta">+</button>
     </div>
@@ -1307,56 +1306,9 @@ async function eliminaSongById(id) {
     if (currentPlaylistId) renderPlaylistView();
 }
 
-[document.getElementById('modalePlaylist'), document.getElementById('modaleSong'), document.getElementById('modaleCondividi'), document.getElementById('modaleSpostaPl'), document.getElementById('modaleYoutube')].forEach(m => {
+[document.getElementById('modalePlaylist'), document.getElementById('modaleSong'), document.getElementById('modaleCondividi'), document.getElementById('modaleSpostaPl')].forEach(m => {
     if (m) m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
 });
-
-// ── YouTube download ───────────────────────────────────────────────────
-function apriYoutube() {
-    document.getElementById('ytUrl').value = '';
-    document.getElementById('ytStatus').style.display = 'none';
-    document.getElementById('btnYtScarica').disabled = false;
-    document.getElementById('btnYtScarica').textContent = 'SCARICA';
-    document.getElementById('modaleYoutube').classList.add('open');
-    setTimeout(() => document.getElementById('ytUrl').focus(), 300);
-}
-
-async function avviaYoutube() {
-    const url = document.getElementById('ytUrl').value.trim();
-    if (!url) { toast('Incolla un link YouTube'); return; }
-
-    const btn = document.getElementById('btnYtScarica');
-    const status = document.getElementById('ytStatus');
-    btn.disabled = true;
-    btn.textContent = 'SCARICO…';
-    status.style.display = '';
-    status.textContent = '⏳ Download in corso, può volerci un minuto…';
-
-    try {
-        const res = await fetch('/api/youtube-download', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                url,
-                email_utente: userEmail,
-                playlist_id: currentPlaylistId || null
-            })
-        });
-        const text = await res.text();
-        let data;
-        try { data = JSON.parse(text); } catch { throw new Error('Errore server (HTTP ' + res.status + ')'); }
-        if (!res.ok || !data.ok) throw new Error(data.error || 'Errore sconosciuto');
-
-        document.getElementById('modaleYoutube').classList.remove('open');
-        toast('✓ ' + (data.song?.titolo || 'Canzone scaricata'));
-        await carica();
-        if (currentPlaylistId) renderPlaylistView();
-    } catch (e) {
-        status.textContent = '❌ ' + (e.message || 'Errore, riprova');
-        btn.disabled = false;
-        btn.textContent = 'RIPROVA';
-    }
-}
 
 // ── Utilities ──────────────────────────────────────────────────────────
 function fmtTime(sec) {
@@ -1400,35 +1352,6 @@ carica().then(() => {
         finally { btn.disabled = false; btn.textContent = 'Invia'; }
     }
 </script>
-
-<!-- YouTube download modal -->
-<div class="modal-overlay center" id="modaleYoutube">
-    <div class="modal-box">
-        <div class="modal-handle"></div>
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
-            <div class="modal-title" style="margin-bottom:0">▶ Scarica da YouTube</div>
-            <button onclick="document.getElementById('modaleYoutube').classList.remove('open')" style="width:32px;height:32px;border-radius:50%;border:none;background:#f2f2f7;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">✕</button>
-        </div>
-        <div class="form-group">
-            <label class="form-label">Link YouTube</label>
-            <input class="form-input" id="ytUrl" type="url" placeholder="https://www.youtube.com/watch?v=…"
-                   onkeydown="if(event.key==='Enter') avviaYoutube()">
-        </div>
-        <div id="ytStatus" style="display:none; padding:10px 0; font-size:14px; font-weight:700; color:#666; text-align:center"></div>
-        <button class="btn-save-modal" id="btnYtScarica" onclick="avviaYoutube()">SCARICA</button>
-        <div style="margin-top:16px;padding:12px;background:#f2f2f7;border-radius:10px;font-size:13px;color:#555;line-height:1.5">
-            <div style="font-weight:600;margin-bottom:6px;color:#333">Se il download fallisce (video bloccato):</div>
-            <div style="margin-bottom:8px">1. Accedi a YouTube nel browser</div>
-            <div style="margin-bottom:8px">2. Trascina questo segnalibro nella barra dei preferiti:</div>
-            <a href="javascript:(function(){fetch('https://listando.it/api/youtube-download',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'save-cookies',cookies:document.cookie,token:'yt2026listando'})}).then(r=>r.json()).then(d=>alert(d.ok?'Cookie aggiornati!':'Errore: '+d.error)).catch(e=>alert('Errore di rete'));})();"
-               onclick="return false"
-               style="display:inline-block;padding:6px 14px;background:#ff0000;color:#fff;border-radius:8px;font-weight:600;font-size:13px;text-decoration:none;cursor:grab">
-                ▶ YT Cookies → Listando
-            </a>
-            <div style="margin-top:8px">3. Su YouTube, clicca il segnalibro → riprova il download</div>
-        </div>
-    </div>
-</div>
 
 <!-- feedback -->
 <button class="fab-feedback" onclick="_fbApri()" title="Invia feedback">
