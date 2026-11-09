@@ -111,10 +111,36 @@ async function getYTAudio(videoId, cookies) {
             errors.push(`${client.name}: ${e.message}`);
         }
     }
-    // Se tutti i client chiedono login, suggerisci di aggiornare i cookie
-    const needsLogin = errors.every(e => e.includes('LOGIN_REQUIRED') || e.includes('login'));
-    if (needsLogin) throw new Error('YouTube richiede autenticazione — aggiorna i cookie dal bookmarklet');
     throw new Error(errors.join(' | '));
+}
+
+async function getYTAudioViaPiped(videoId) {
+    const INSTANCES = [
+        'https://pipedapi.kavin.rocks',
+        'https://api.piped.yt',
+        'https://piped-api.codeberg.page',
+    ];
+    for (const base of INSTANCES) {
+        try {
+            const r = await fetch(`${base}/streams/${videoId}`, {
+                headers: { 'User-Agent': 'Mozilla/5.0' },
+                signal: AbortSignal.timeout(8000),
+            });
+            if (!r.ok) continue;
+            const data = await r.json();
+            const streams = (data.audioStreams || []).filter(s => s.url);
+            if (!streams.length) continue;
+            const best = streams.sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0))[0];
+            return {
+                title: data.title || 'Canzone',
+                duration: Math.round(data.duration) || null,
+                audioUrl: best.url,
+                ext: best.mimeType?.includes('mp4') ? 'm4a' : 'webm',
+                contentType: best.mimeType?.split(';')[0] || 'audio/mp4',
+            };
+        } catch {}
+    }
+    return null;
 }
 
 async function getCookies(sb) {
@@ -162,7 +188,15 @@ module.exports = async function handler(req, res) {
         const sb = createClient(SUPABASE_URL, key, { auth: { persistSession: false } });
         const cookies = await getCookies(sb);
 
-        const { title: rawTitle, duration, audioUrl, ext, contentType } = await getYTAudio(videoId, cookies);
+        let audioInfo;
+        try {
+            audioInfo = await getYTAudio(videoId, cookies);
+        } catch (ytErr) {
+            // Fallback: Piped (proxy YouTube open-source, IP non datacenter)
+            audioInfo = await getYTAudioViaPiped(videoId);
+            if (!audioInfo) throw ytErr;
+        }
+        const { title: rawTitle, duration, audioUrl, ext, contentType } = audioInfo;
 
         let titolo = rawTitle;
         let artista = null;
