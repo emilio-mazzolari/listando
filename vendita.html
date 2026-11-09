@@ -592,9 +592,9 @@ function buildDetailHtml(a) {
                 <button class="btn-stato${a.stato==='riservato'?' on':''}" onclick="aggiornaStato('riservato')">Riservato</button>
                 <button class="btn-stato${a.stato==='venduto'?' on':''}" onclick="aggiornaStato('venduto')">Venduto</button>
             </div>
+            ${isOwner ? `<button onclick="apriGestioneCoeditori()" style="width:100%;margin:12px 0 4px;padding:13px;border-radius:14px;border:1.5px dashed #0fba8d;background:#f0fdf8;color:#0fba8d;font-weight:800;font-size:14px;cursor:pointer;font-family:inherit">👥 Condividi con co-venditore</button>` : ''}
             <div class="section-title">Conversazioni</div>
-            <div id="convList"><div class="no-chat">Caricamento…</div></div>
-            ${isOwner ? `<button class="btn-outline" onclick="apriGestioneCoeditori()" style="margin-top:12px">👥 Condividi con editor</button>` : ''}`;
+            <div id="convList"><div class="no-chat">Caricamento…</div></div>`;
     } else if (a.stato === 'attivo') {
         actionsHtml = `<button class="btn-chat" data-partner="${esc(a.email_utente)}" onclick="apriChat(${a.id}, this.dataset.partner)">💬  Chatta col venditore</button>`;
     } else {
