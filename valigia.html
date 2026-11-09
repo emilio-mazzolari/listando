@@ -815,7 +815,7 @@ async function apriDocumento(id, tipo) {
     </div>
 </div>
 <script>if("serviceWorker"in navigator){navigator.serviceWorker.addEventListener("controllerchange",()=>location.reload());navigator.serviceWorker.ready.then(r=>r.update());}</script>
-</body></html>`);
+<script src="/sidebar.js"></script></body></html>`);
     try {
         const r = await fetch(`${URL}/documenti_valigia?id=eq.${id}&select=data,tipo,nome`, { headers: HR });
         const [doc] = await r.json();
@@ -1233,5 +1233,5 @@ caricaValigie();
     }
 </script>
 <script>if("serviceWorker"in navigator){navigator.serviceWorker.addEventListener("controllerchange",()=>location.reload());navigator.serviceWorker.ready.then(r=>r.update());}</script>
-</body>
+<script src="/sidebar.js"></script></body>
 </html>
