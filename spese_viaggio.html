@@ -1221,6 +1221,11 @@
                 <button onclick="aggiungiBPoi()" style="background:none;border:none;color:#5856d6;font-weight:900;font-size:13px;cursor:pointer;font-family:inherit;padding:4px 8px">+ Aggiungi</button>
             </div>
             <div id="bPoiList"></div>
+            <div style="height:1px;background:var(--grey);margin:14px 0 10px"></div>
+            <label class="form-label">Recensione</label>
+            <div id="bStelleBox" style="display:flex;gap:2px;margin-bottom:14px"></div>
+            <label class="form-label">Servizi disponibili</label>
+            <div id="bServiziBox" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:4px"></div>
         </div>
 
         <label class="form-label" style="margin-top:4px">Note</label>
@@ -4878,12 +4883,36 @@ const COMP_SERVIZI = [
 function _compGetServizi(id) { try { return JSON.parse(localStorage.getItem(`sv_srv_${viaggioCorrenteId}_${id}`) || '[]'); } catch { return []; } }
 function _compSetServizi(id, arr) { localStorage.setItem(`sv_srv_${viaggioCorrenteId}_${id}`, JSON.stringify(arr)); }
 function _compGetStelle(id) { return parseInt(localStorage.getItem(`sv_stelle_${viaggioCorrenteId}_${id}`)) || 0; }
-function _compSetStelle(id, v) { localStorage.setItem(`sv_stelle_${viaggioCorrenteId}_${id}`, v); renderComparatore(); }
+function _compSetStelle(id, v) { localStorage.setItem(`sv_stelle_${viaggioCorrenteId}_${id}`, v); }
 function _compToggleServizio(id, srvId) {
     const arr = _compGetServizi(id);
     const idx = arr.indexOf(srvId);
     if (idx >= 0) arr.splice(idx, 1); else arr.push(srvId);
-    _compSetServizi(id, arr); renderComparatore();
+    _compSetServizi(id, arr);
+}
+function _renderBStelle(id) {
+    const stelle = _compGetStelle(id);
+    const box = document.getElementById('bStelleBox');
+    if (!box) return;
+    box.innerHTML = [1,2,3,4,5].map(i =>
+        `<button type="button" style="background:none;border:none;font-size:26px;cursor:pointer;padding:2px;line-height:1" onclick="_setBStella(${i === stelle ? 0 : i})">${i <= stelle ? '⭐' : '☆'}</button>`
+    ).join('');
+}
+function _setBStella(v) {
+    _compSetStelle(budgetItemEditId, v);
+    _renderBStelle(budgetItemEditId);
+}
+function _renderBServiziModal(id) {
+    const servizi = _compGetServizi(id);
+    const box = document.getElementById('bServiziBox');
+    if (!box) return;
+    box.innerHTML = COMP_SERVIZI.map(s =>
+        `<button type="button" class="comp-servizio${servizi.includes(s.id) ? ' on' : ''}" onclick="_toggleBServizio('${s.id}')">${s.emoji} ${s.label}</button>`
+    ).join('');
+}
+function _toggleBServizio(srvId) {
+    _compToggleServizio(budgetItemEditId, srvId);
+    _renderBServiziModal(budgetItemEditId);
 }
 function renderComparatore() {
     const alloggi = budgetAttuale.filter(b => b.categoria === 'alloggio' && b.stato !== 'annullata');
@@ -4906,11 +4935,11 @@ function renderComparatore() {
         const dateStr = cin && cout ? `${_fmtD(cin)} → ${_fmtD(cout)}${notti ? ` · ${notti} nott${notti===1?'e':'i'}` : ''}` : '—';
         const linkBtn = b.link_prenotazione ? `<a href="${_esc(b.link_prenotazione)}" target="_blank" style="font-size:11px;font-weight:800;color:rgba(255,255,255,.85);text-decoration:none">🔗 Prenotazione</a>` : '';
         const stelleHtml = [1,2,3,4,5].map(i =>
-            `<button class="comp-stelle-btn" onclick="event.stopPropagation();_compSetStelle('${b.id}',${i === stelle ? 0 : i})">${i <= stelle ? '⭐' : '☆'}</button>`
+            `<span style="font-size:20px">${i <= stelle ? '⭐' : '☆'}</span>`
         ).join('');
-        const serviziHtml = COMP_SERVIZI.map(s =>
-            `<button class="comp-servizio${servizi.includes(s.id) ? ' on' : ''}" onclick="event.stopPropagation();_compToggleServizio('${b.id}','${s.id}')">${s.emoji} ${s.label}</button>`
-        ).join('');
+        const serviziHtml = COMP_SERVIZI.filter(s => servizi.includes(s.id)).map(s =>
+            `<span class="comp-servizio on" style="cursor:default">${s.emoji} ${s.label}</span>`
+        ).join('') || '<span style="font-size:12px;color:#ccc;font-weight:600">—</span>';
         const poiHtml = poi.length ? poi.map(p => {
             const kmV = p.km ?? (p.unita === 'km' ? p.distanza : null);
             const minV = p.min ?? (p.unita === 'min' ? p.distanza : null);
@@ -5095,6 +5124,7 @@ function apriModalEditBudgetItem(id) {
     setBudgetAlloggioMode(budgetAlloggioMode);
     _renderRipPreviewInModal(id);
     _aggiornaTassaTotale();
+    if (b.categoria === 'alloggio') { _renderBStelle(id); _renderBServiziModal(id); }
     document.getElementById('modalBudgetItem').classList.add('open');
 }
 
