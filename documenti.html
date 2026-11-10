@@ -114,6 +114,9 @@
         .carousel-dots { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); display: flex; gap: 5px; }
         .cdot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,.4); }
         .cdot.on { background: white; width: 14px; border-radius: 3px; }
+        .car-btn { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,.45); border: none; color: white; font-size: 28px; line-height: 1; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 2; }
+        .car-prev { left: 10px; }
+        .car-next { right: 10px; }
         .no-photo-big { height: 160px; background: var(--accent-bg); display: flex; align-items: center; justify-content: center; font-size: 64px; }
         .detail-body { padding: 20px 16px 100px; }
         .detail-row { display: flex; gap: 8px; margin-bottom: 10px; align-items: flex-start; }
@@ -423,7 +426,8 @@ function apriDettaglio(id) {
     if (foto.length) {
         const slides = foto.map(f => `<div class="carousel-slide"><img src="${f.url}" loading="lazy"></div>`).join('');
         const dots = foto.length > 1 ? `<div class="carousel-dots">${foto.map((_, i) => `<div class="cdot${i===0?' on':''}"></div>`).join('')}</div>` : '';
-        carouselHtml = `<div class="carousel"><div class="carousel-inner" id="carInner">${slides}</div>${dots}</div>`;
+        const nav = foto.length > 1 ? `<button class="car-btn car-prev" onclick="carNav(-1)">&#8249;</button><button class="car-btn car-next" onclick="carNav(1)">&#8250;</button>` : '';
+        carouselHtml = `<div class="carousel"><div class="carousel-inner" id="carInner">${slides}</div>${dots}${nav}</div>`;
     } else {
         carouselHtml = `<div class="no-photo-big">${tipo.emoji}</div>`;
     }
@@ -453,6 +457,12 @@ function apriDettaglio(id) {
             document.querySelectorAll('#detailContent .cdot').forEach((d, i) => d.classList.toggle('on', i === idx));
         }, { passive: true });
     }
+}
+
+function carNav(dir) {
+    const inner = document.getElementById('carInner');
+    if (!inner) return;
+    inner.scrollBy({ left: dir * inner.clientWidth, behavior: 'smooth' });
 }
 
 function chiudiDettaglio() {
