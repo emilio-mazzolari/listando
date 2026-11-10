@@ -1735,3 +1735,10 @@ function _bdCoriandoli(card) {
     }
 }
 </script>
+<script>
+(function(){
+    const open = new URLSearchParams(location.search).get('open');
+    if (open === 'promo') apriPromo();
+    else if (open === 'impostazioni') apriImpostazioni();
+})();
+</script>
