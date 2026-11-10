@@ -35,6 +35,8 @@
         .ls-item.active { background: rgba(15,186,141,0.1); color: #0fba8d; }
         .ls-item svg { width: 20px; height: 20px; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
         .ls-spacer { flex: 1; min-height: 20px; }
+        .ls-esci { position: sticky; bottom: 0; background: #fff; padding-top: 8px; }
+        @media (prefers-color-scheme: dark) { .ls-esci { background: #1c1c1e; } }
         @media (prefers-color-scheme: dark) {
             .ls-sidebar { background: #1c1c1e; border-color: #48484a; }
             .ls-item { color: #e8e8ec; }
@@ -66,8 +68,8 @@
             `<svg viewBox="0 0 24 24">${n.svg}</svg>${n.label}</a>`
         ).join('') +
         `<div class="ls-spacer"></div>` +
-        `<button class="ls-item" onclick="localStorage.clear();location.href='login.html'" style="color:#0fba8d">` +
-        `<svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>ESCI</button>`;
+        `<div class="ls-esci"><button class="ls-item" onclick="localStorage.clear();location.href='login.html'" style="color:#0fba8d">` +
+        `<svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>ESCI</button></div>`;
 
     const style = document.createElement('style');
     style.textContent = css;
