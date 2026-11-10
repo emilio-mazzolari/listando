@@ -356,6 +356,7 @@
             <div id="plDetailName" style="font-weight:900;font-size:20px"></div>
             <div id="plDetailCount" style="font-size:13px;color:#888;font-weight:600;margin-top:4px"></div>
         </div>
+        <button id="btnCondividiPlaylist" onclick="apriCondividiPl(currentPlaylistId)" style="flex-shrink:0;padding:8px 14px;border-radius:12px;border:2px solid var(--grey);background:none;font-size:13px;font-weight:800;cursor:pointer;color:var(--dark);font-family:inherit">🔗 Condividi</button>
         <button id="btnModificaPlaylist" onclick="modificaPlaylistCorrente()" style="flex-shrink:0;padding:8px 14px;border-radius:12px;border:2px solid var(--grey);background:none;font-size:13px;font-weight:800;cursor:pointer;color:var(--dark);font-family:inherit">✏️ Modifica</button>
         <button id="btnRimuoviSharedPl" onclick="rimuoviSharedPlaylist()" style="display:none;flex-shrink:0;padding:8px 14px;border-radius:12px;border:2px solid #ffd7d7;background:none;font-size:13px;font-weight:800;cursor:pointer;color:var(--red);font-family:inherit">✕ Rimuovi</button>
     </div>
@@ -758,6 +759,7 @@ function renderPlaylistView() {
         ? playlists.find(p => p.id === playlistStack[playlistStack.length - 2])?.nome || 'Raccolte'
         : 'Raccolte';
     document.querySelector('.back-playlist span').textContent = parentName;
+    document.getElementById('btnCondividiPlaylist').style.display = '';
     document.getElementById('btnModificaPlaylist').style.display = '';
     document.getElementById('btnRimuoviSharedPl').style.display = 'none';
     renderSubFolders(subPls);
@@ -1359,6 +1361,7 @@ function renderSharedPlaylistView() {
     document.getElementById('plDetailCount').textContent = `da ${mittente} · carico…`;
     document.querySelector('.back-playlist span').textContent = 'Raccolte';
     document.getElementById('subFolderSection').style.display = 'none';
+    document.getElementById('btnCondividiPlaylist').style.display = 'none';
     document.getElementById('btnModificaPlaylist').style.display = 'none';
     document.getElementById('btnRimuoviSharedPl').style.display = '';
     document.getElementById('playlistSongsList').innerHTML = '';
