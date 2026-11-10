@@ -1176,7 +1176,7 @@
         <div style="display:flex;gap:8px">
             <div style="flex:1.6">
                 <label class="form-label" id="bImportoLabel">Importo previsto *</label>
-                <input class="form-input" id="bImporto" type="number" min="0" step="0.01" placeholder="0.00" inputmode="decimal" style="margin:0;padding:10px 12px">
+                <input class="form-input" id="bImporto" type="text" inputmode="decimal" placeholder="0.00" autocomplete="off" style="margin:0;padding:10px 12px" onblur="_evalImporto()">
             </div>
             <div id="bValutaCol" style="flex:1">
                 <label class="form-label">Valuta</label>
@@ -5185,6 +5185,7 @@ function _renderRipPreviewInModal(itemId) {
 }
 
 async function salvaBudgetItem() {
+    _evalImporto();
     const titolo = document.getElementById('bTitolo').value.trim();
     let importo;
     if (budgetAlloggioMode === 'ripartire' && budgetItemEditId) {
@@ -5600,6 +5601,22 @@ function _caricaTassaLocale(itemId) {
     return localStorage.getItem(`sv_tassa_${viaggioCorrenteId}_${itemId}`) || '';
 }
 
+function _evalImporto() {
+    const inp = document.getElementById('bImporto');
+    if (!inp) return;
+    const raw = inp.value.trim().replace(/,/g, '.');
+    if (!raw || /^[\d.]+$/.test(raw)) return;
+    if (!/^[\d\s+\-*/.()÷×]+$/.test(raw)) return;
+    try {
+        const expr = raw.replace(/÷/g, '/').replace(/×/g, '*');
+        // eslint-disable-next-line no-new-func
+        const result = Function('"use strict";return(' + expr + ')')();
+        if (typeof result === 'number' && isFinite(result)) {
+            inp.value = parseFloat(result.toFixed(2));
+        }
+    } catch(e) {}
+}
+
 function _aggiornaTassaTotale() {
     const tassa = parseFloat(document.getElementById('bTassaSoggiorno')?.value) || 0;
     const nottiInput = document.getElementById('bTassaNotti');
@@ -5637,6 +5654,7 @@ function _caricaBudgetPoiLocale(itemId) {
 }
 
 async function salvaBudgetEApriRipartisci() {
+    _evalImporto();
     const titolo = document.getElementById('bTitolo').value.trim();
     const importo = budgetAlloggioMode === 'ripartire'
         ? (parseFloat(document.getElementById('bImporto').value) || 0)
