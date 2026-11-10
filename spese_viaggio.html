@@ -1157,7 +1157,7 @@
                     <input class="form-input" id="bCheckOut" type="date" style="margin:0" onchange="_aggiornaTassaTotale()">
                 </div>
             </div>
-            <div style="display:flex;gap:10px;align-items:flex-end;margin-bottom:12px">
+            <div style="display:flex;gap:10px;align-items:flex-end;margin-bottom:4px">
                 <div style="flex:1">
                     <label class="form-label">Tassa di soggiorno</label>
                     <input class="form-input" id="bTassaSoggiorno" type="number" min="0" step="0.01" placeholder="es. 6.00" style="margin:0" oninput="_aggiornaTassaTotale()">
@@ -1166,6 +1166,10 @@
                     <div style="font-size:12px;font-weight:700;color:#888;white-space:nowrap">€ / pers / notte</div>
                     <div id="bTassaTotaleHint" style="font-size:13px;font-weight:900;color:#5856d6;white-space:nowrap;margin-top:3px"></div>
                 </div>
+            </div>
+            <div id="bMiaQuotaTassaRow" style="display:none;margin-bottom:12px">
+                <label class="form-label">Mia quota tassa</label>
+                <input class="form-input" id="bMiaQuotaTassa" readonly style="margin:0;background:#f4f4f8;color:#555;cursor:default">
             </div>
         </div>
 
@@ -1178,6 +1182,10 @@
                 <label class="form-label">Valuta</label>
                 <select class="form-input" id="bValuta" style="margin:0;padding:10px 12px"></select>
             </div>
+        </div>
+        <div id="bMioCostoRow" style="display:none;margin-top:8px">
+            <label class="form-label">Mio costo alloggio</label>
+            <input class="form-input" id="bMioCostoAlloggio" readonly style="margin:0;background:#f4f4f8;color:#555;cursor:default">
         </div>
         <div id="bAlloggioModeRow" style="display:none;gap:6px;margin-top:10px">
             <button class="period-pill active" id="bModeFisso" onclick="setBudgetAlloggioMode('fisso')">Fisso</button>
@@ -5130,11 +5138,17 @@ function apriModalEditBudgetItem(id) {
 
 function _renderRipPreviewInModal(itemId) {
     const prev = document.getElementById('bRipPreview');
+    const miaCostoRow = document.getElementById('bMioCostoRow');
+    const miaTassaRow = document.getElementById('bMiaQuotaTassaRow');
+    const _hideQuotaFields = () => {
+        if (miaCostoRow) miaCostoRow.style.display = 'none';
+        if (miaTassaRow) miaTassaRow.style.display = 'none';
+    };
     if (!prev) return;
     const rip = ripartizioniCache[itemId];
-    if (!rip) { prev.style.display = 'none'; return; }
+    if (!rip) { prev.style.display = 'none'; _hideQuotaFields(); return; }
     const ris = Array.isArray(rip.risultati) ? rip.risultati : (rip.risultati ? JSON.parse(rip.risultati) : []);
-    if (!ris.length) { prev.style.display = 'none'; return; }
+    if (!ris.length) { prev.style.display = 'none'; _hideQuotaFields(); return; }
     const vs = symb(rip.valuta || viaggioCorrenteValuta);
     const meP = partecipantiAttuali.find(p => (p.email_collegata || '').toLowerCase() === _me());
     const meNome = meP?.nome || '';
@@ -5148,8 +5162,22 @@ function _renderRipPreviewInModal(itemId) {
             html += `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;font-weight:700;color:#555"><span>Tassa di soggiorno</span><span>${vs}${Number(quota.quota_tassa).toFixed(2)}</span></div>`;
         }
         html += `<div style="display:flex;justify-content:space-between;padding:7px 0 2px;font-size:15px;font-weight:900;border-top:1.5px solid rgba(88,86,214,.2);margin-top:6px"><span style="color:#5856d6">Totale mia quota</span><span style="color:#5856d6">${vs}${Number(quota.totale).toFixed(2)}</span></div>`;
+        // popola i campi read-only dedicati
+        if (miaCostoRow) {
+            document.getElementById('bMioCostoAlloggio').value = `${vs}${Number(quota.quota_alloggio).toFixed(2)}`;
+            miaCostoRow.style.display = '';
+        }
+        if (miaTassaRow) {
+            if (tassa > 0 && quota.quota_tassa != null) {
+                document.getElementById('bMiaQuotaTassa').value = `${vs}${Number(quota.quota_tassa).toFixed(2)}`;
+                miaTassaRow.style.display = '';
+            } else {
+                miaTassaRow.style.display = 'none';
+            }
+        }
     } else {
         html += ris.map(r => `<div style="display:flex;justify-content:space-between;font-size:13px;font-weight:700;padding:3px 0"><span>${_esc(r.nome)} <span style="color:#aaa;font-size:11px">(${r.notti}n)</span></span><span style="font-weight:900">${vs}${Number(r.totale).toFixed(2)}</span></div>`).join('');
+        _hideQuotaFields();
     }
     prev.style.display = '';
     prev.innerHTML = html;
@@ -5416,7 +5444,13 @@ function setBudgetAlloggioMode(mode) {
         inp.placeholder = '0.00';
     }
     const lbl = document.getElementById('bImportoLabel');
-    if (lbl) lbl.textContent = mode === 'ripartire' ? 'Importo totale alloggio *' : 'Importo previsto *';
+    if (lbl) lbl.textContent = mode === 'ripartire' ? 'Costo alloggio *' : 'Importo previsto *';
+    if (mode === 'fisso') {
+        const r1 = document.getElementById('bMioCostoRow');
+        const r2 = document.getElementById('bMiaQuotaTassaRow');
+        if (r1) r1.style.display = 'none';
+        if (r2) r2.style.display = 'none';
+    }
 }
 
 const POI_MEZZI = [
