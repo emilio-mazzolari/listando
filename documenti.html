@@ -44,7 +44,10 @@
 
         /* List */
         .list-body { padding: 8px 16px 110px; }
-        .section-label { font-size: 11px; font-weight: 800; color: #aaa; text-transform: uppercase; letter-spacing: 0.8px; margin: 14px 0 6px; }
+        .section-label { font-size: 11px; font-weight: 800; color: #aaa; text-transform: uppercase; letter-spacing: 0.8px; margin: 14px 0 6px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; }
+        .section-label:hover { color: #888; }
+        .section-arrow { font-size: 10px; transition: transform .2s; }
+        .section-items.collapsed { display: none; }
         .empty-msg { text-align: center; padding: 64px 24px; color: #bbb; font-weight: 700; font-size: 15px; line-height: 1.6; }
 
         /* Cards */
@@ -314,6 +317,12 @@ let items = [];
 let filtroChip = 'Tutti';
 let editId = null;
 let selectedDoc = null;
+const collapsedGroups = new Set();
+function toggleGroup(label) {
+    if (collapsedGroups.has(label)) collapsedGroups.delete(label);
+    else collapsedGroups.add(label);
+    render();
+}
 // fotoSlots: array of up to 5 { type:'existing'|'new', url, file, id }
 let fotoSlots = [];
 let slotTarget = -1;
@@ -377,9 +386,9 @@ function render() {
         'Senza scadenza':             list.filter(i => statoDoc(i) === 'noscad'),
     };
 
-    body.innerHTML = Object.entries(gruppi).filter(([, arr]) => arr.length).map(([label, arr]) =>
-        `<div class="section-label">${label}</div>` +
-        arr.map(i => {
+    body.innerHTML = Object.entries(gruppi).filter(([, arr]) => arr.length).map(([label, arr]) => {
+        const collapsed = collapsedGroups.has(label);
+        const cards = arr.map(i => {
             const stato = statoDoc(i);
             const tipo = TIPI_MAP[i.tipo] || TIPI_MAP['altro'];
             const semCol = { scaduto:'rosso', presto:'arancione', valido:'verde', noscad:'grigio' }[stato];
@@ -409,8 +418,13 @@ function render() {
                     </div>
                 </div>
             </div>`;
-        }).join('')
-    ).join('');
+        }).join('');
+        return `<div class="section-label" onclick="toggleGroup('${label.replace(/'/g,"\\'")}')">
+            <span>${label} <span style="font-weight:600;color:#ccc">(${arr.length})</span></span>
+            <span class="section-arrow">${collapsed ? '▶' : '▼'}</span>
+        </div>
+        <div class="section-items${collapsed ? ' collapsed' : ''}">${cards}</div>`;
+    }).join('');
 }
 
 // ── Detail ────────────────────────────────────────────────
