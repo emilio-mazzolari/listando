@@ -120,6 +120,15 @@ const STATEMENTS = [
         unique(playlist_id, email_destinatario)
     )`,
     `ALTER TABLE IF EXISTS canzoni_pl_condivisioni DISABLE ROW LEVEL SECURITY`,
+    `CREATE TABLE IF NOT EXISTS documenti_condivisioni (
+        id bigint generated always as identity primary key,
+        documento_id bigint not null references documenti(id) on delete cascade,
+        email_mittente text not null,
+        email_destinatario text not null,
+        created_at timestamptz default now(),
+        unique(documento_id, email_destinatario)
+    )`,
+    `ALTER TABLE IF EXISTS documenti_condivisioni DISABLE ROW LEVEL SECURITY`,
     `CREATE TABLE IF NOT EXISTS password_vault (
         id bigint generated always as identity primary key,
         email_utente text not null,

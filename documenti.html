@@ -258,9 +258,26 @@
             <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
         </button>
         <div class="detail-hdr-title" id="detailHdrTitle"></div>
-        <button class="detail-hdr-btn" onclick="apriModificaDettaglio()">✏️</button>
+        <button class="detail-hdr-btn" id="btnCondividiDoc" onclick="apriCondividiDoc()" style="font-size:14px">🔗</button>
+        <button class="detail-hdr-btn" id="btnModificaDoc" onclick="apriModificaDettaglio()">✏️</button>
     </div>
     <div id="detailContent"></div>
+</div>
+
+<!-- ── Modal condivisione documento ── -->
+<div class="modal-overlay" id="modaleCondividiDoc">
+    <div class="modal-box">
+        <div class="modal-title">🔗 Condividi documento</div>
+        <div class="form-group">
+            <label class="form-label">Email destinatario</label>
+            <div style="display:flex;gap:8px">
+                <input class="form-input" id="condividiDocEmail" type="email" placeholder="email@esempio.com" style="margin:0;flex:1">
+                <button onclick="aggiungiCondivisioneDoc()" style="flex-shrink:0;padding:0 16px;height:48px;border-radius:14px;border:none;background:var(--accent);color:white;font-weight:800;font-size:14px;cursor:pointer;font-family:inherit">Aggiungi</button>
+            </div>
+        </div>
+        <div id="condividiDocLista" style="margin-top:4px"></div>
+        <button class="btn-delete-modal" style="background:#f5f5f5;color:#888;margin-top:12px" onclick="document.getElementById('modaleCondividiDoc').classList.remove('open')">Chiudi</button>
+    </div>
 </div>
 
 <!-- File input nascosto -->
@@ -317,6 +334,8 @@ let items = [];
 let filtroChip = 'Tutti';
 let editId = null;
 let selectedDoc = null;
+let sharedDocs = [];
+let condividiDocTargetId = null;
 const collapsedGroups = new Set();
 function toggleGroup(label) {
     if (collapsedGroups.has(label)) collapsedGroups.delete(label);
@@ -329,15 +348,20 @@ let slotTarget = -1;
 
 // ── Data load ─────────────────────────────────────────────
 async function carica() {
-    const { data, error } = await sb.from('documenti')
-        .select('*, documenti_foto(*)')
-        .eq('email_utente', userEmail)
-        .order('created_at', { ascending: true });
+    const [{ data, error }, { data: shData }] = await Promise.all([
+        sb.from('documenti').select('*, documenti_foto(*)').eq('email_utente', userEmail).order('created_at', { ascending: true }),
+        sb.from('documenti_condivisioni').select('*, documenti(*, documenti_foto(*))').eq('email_destinatario', userEmail),
+    ]);
     if (error) { toast('Errore: ' + error.message); return; }
     items = (data || []).map(d => {
         if (d.documenti_foto) d.documenti_foto.sort((a, b) => a.ordine - b.ordine);
         return d;
     });
+    sharedDocs = (shData || []).map(s => {
+        const d = s.documenti;
+        if (d?.documenti_foto) d.documenti_foto.sort((a, b) => a.ordine - b.ordine);
+        return { _shareId: s.id, _mittente: s.email_mittente, ...d };
+    }).filter(d => d.id);
     renderChips();
     render();
 }
@@ -374,10 +398,6 @@ function render() {
     );
 
     const body = document.getElementById('listBody');
-    if (!list.length) {
-        body.innerHTML = `<div class="empty-msg">Nessun documento.<br>Tocca + per aggiungerne uno.</div>`;
-        return;
-    }
 
     const gruppi = {
         'Scaduti':                    list.filter(i => statoDoc(i) === 'scaduto'),
@@ -386,52 +406,89 @@ function render() {
         'Senza scadenza':             list.filter(i => statoDoc(i) === 'noscad'),
     };
 
-    body.innerHTML = Object.entries(gruppi).filter(([, arr]) => arr.length).map(([label, arr]) => {
-        const collapsed = collapsedGroups.has(label);
-        const cards = arr.map(i => {
-            const stato = statoDoc(i);
-            const tipo = TIPI_MAP[i.tipo] || TIPI_MAP['altro'];
-            const semCol = { scaduto:'rosso', presto:'arancione', valido:'verde', noscad:'grigio' }[stato];
-            const badgeCol = { scaduto:'badge-rosso', presto:'badge-arancione', valido:'badge-verde', noscad:'badge-grey' }[stato];
-            let scadLabel = '';
-            if (i.data_scadenza) {
-                const diff = diffGiorni(i.data_scadenza);
-                const fmt = new Date(i.data_scadenza + 'T00:00:00').toLocaleDateString('it-IT', { day:'numeric', month:'short', year:'numeric' });
-                scadLabel = diff < 0 ? `Scaduto ${Math.abs(diff)}gg fa` : diff === 0 ? 'Scade oggi' : diff <= 90 ? `Scade tra ${diff}gg` : `Valido fino al ${fmt}`;
-            }
-            const firstFoto = i.documenti_foto?.[0];
-            const thumbHtml = firstFoto
-                ? `<img class="doc-thumb" src="${firstFoto.url}" loading="lazy">`
-                : `<div class="doc-thumb-emoji">${tipo.emoji}</div>`;
-            return `<div class="doc-card" onclick="apriDettaglio(${i.id})">
-                ${thumbHtml}
-                <div class="doc-body">
-                    <div style="display:flex;align-items:center">
-                        <div class="doc-nome">${esc(i.nome)}</div>
-                        <span class="semaforo ${semCol}"></span>
-                    </div>
-                    ${i.intestatario ? `<div class="doc-intestatario">${esc(i.intestatario)}</div>` : ''}
-                    ${i.numero ? `<div class="doc-numero">${esc(i.numero)}</div>` : ''}
-                    <div class="doc-meta">
-                        <span class="badge badge-tipo">${tipo.label}</span>
-                        ${scadLabel ? `<span class="badge ${badgeCol}">${scadLabel}</span>` : ''}
-                    </div>
+    const docCard = (i, shared = false) => {
+        const stato = statoDoc(i);
+        const tipo = TIPI_MAP[i.tipo] || TIPI_MAP['altro'];
+        const semCol = { scaduto:'rosso', presto:'arancione', valido:'verde', noscad:'grigio' }[stato];
+        const badgeCol = { scaduto:'badge-rosso', presto:'badge-arancione', valido:'badge-verde', noscad:'badge-grey' }[stato];
+        let scadLabel = '';
+        if (i.data_scadenza) {
+            const diff = diffGiorni(i.data_scadenza);
+            const fmt = new Date(i.data_scadenza + 'T00:00:00').toLocaleDateString('it-IT', { day:'numeric', month:'short', year:'numeric' });
+            scadLabel = diff < 0 ? `Scaduto ${Math.abs(diff)}gg fa` : diff === 0 ? 'Scade oggi' : diff <= 90 ? `Scade tra ${diff}gg` : `Valido fino al ${fmt}`;
+        }
+        const firstFoto = i.documenti_foto?.[0];
+        const thumbHtml = firstFoto
+            ? `<img class="doc-thumb" src="${firstFoto.url}" loading="lazy">`
+            : `<div class="doc-thumb-emoji">${tipo.emoji}</div>`;
+        const fn = shared ? `apriDettaglioShared(${i.id})` : `apriDettaglio(${i.id})`;
+        return `<div class="doc-card" onclick="${fn}">
+            ${thumbHtml}
+            <div class="doc-body">
+                <div style="display:flex;align-items:center">
+                    <div class="doc-nome">${esc(i.nome)}</div>
+                    <span class="semaforo ${semCol}"></span>
                 </div>
-            </div>`;
-        }).join('');
+                ${i.intestatario ? `<div class="doc-intestatario">${esc(i.intestatario)}</div>` : ''}
+                ${i.numero ? `<div class="doc-numero">${esc(i.numero)}</div>` : ''}
+                <div class="doc-meta">
+                    <span class="badge badge-tipo">${tipo.label}</span>
+                    ${shared ? `<span class="badge" style="background:#e8f5e9;color:#16a34a">da ${esc((i._mittente||'').split('@')[0])}</span>` : ''}
+                    ${scadLabel ? `<span class="badge ${badgeCol}">${scadLabel}</span>` : ''}
+                </div>
+            </div>
+        </div>`;
+    };
+
+    const gruppiHtml = Object.entries(gruppi).filter(([, arr]) => arr.length).map(([label, arr]) => {
+        const collapsed = collapsedGroups.has(label);
         return `<div class="section-label" onclick="toggleGroup('${label.replace(/'/g,"\\'")}')">
             <span>${label} <span style="font-weight:600;color:#ccc">(${arr.length})</span></span>
             <span class="section-arrow">${collapsed ? '▶' : '▼'}</span>
         </div>
-        <div class="section-items${collapsed ? ' collapsed' : ''}">${cards}</div>`;
+        <div class="section-items${collapsed ? ' collapsed' : ''}">${arr.map(i => docCard(i)).join('')}</div>`;
     }).join('');
+
+    const shFiltered = sharedDocs.filter(i =>
+        !q || i.nome.toLowerCase().includes(q) ||
+        (i.intestatario || '').toLowerCase().includes(q) ||
+        (i.numero || '').toLowerCase().includes(q)
+    );
+    const sharedHtml = shFiltered.length ? (() => {
+        const label = 'Condivisi con me';
+        const collapsed = collapsedGroups.has(label);
+        return `<div class="section-label" onclick="toggleGroup('${label}')">
+            <span>${label} <span style="font-weight:600;color:#ccc">(${shFiltered.length})</span></span>
+            <span class="section-arrow">${collapsed ? '▶' : '▼'}</span>
+        </div>
+        <div class="section-items${collapsed ? ' collapsed' : ''}">${shFiltered.map(i => docCard(i, true)).join('')}</div>`;
+    })() : '';
+
+    if (!gruppiHtml && !sharedHtml) {
+        body.innerHTML = `<div class="empty-msg">Nessun documento.<br>Tocca + per aggiungerne uno.</div>`;
+        return;
+    }
+    body.innerHTML = gruppiHtml + sharedHtml;
 }
 
 // ── Detail ────────────────────────────────────────────────
+function apriDettaglioShared(id) {
+    const d = sharedDocs.find(x => x.id === id);
+    if (!d) return;
+    selectedDoc = d;
+    _apriDettaglioDoc(d, false);
+}
+
 function apriDettaglio(id) {
     const d = items.find(x => x.id === id);
     if (!d) return;
     selectedDoc = d;
+    _apriDettaglioDoc(d, true);
+}
+
+function _apriDettaglioDoc(d, isOwn) {
+    document.getElementById('btnCondividiDoc').style.display = isOwn ? '' : 'none';
+    document.getElementById('btnModificaDoc').style.display = isOwn ? '' : 'none';
     const tipo = TIPI_MAP[d.tipo] || TIPI_MAP['altro'];
     document.getElementById('detailHdrTitle').textContent = d.nome;
 
@@ -488,6 +545,48 @@ function apriModificaDettaglio() {
     const id = selectedDoc?.id;
     chiudiDettaglio();
     if (id) apriModifica(id);
+}
+
+// ── Condivisione documenti ────────────────────────────────
+function apriCondividiDoc() {
+    condividiDocTargetId = selectedDoc?.id;
+    if (!condividiDocTargetId) return;
+    document.getElementById('condividiDocEmail').value = '';
+    refreshCondividiDocLista();
+    document.getElementById('modaleCondividiDoc').classList.add('open');
+}
+
+async function refreshCondividiDocLista() {
+    const { data } = await sb.from('documenti_condivisioni')
+        .select('id, email_destinatario').eq('documento_id', condividiDocTargetId);
+    const lista = document.getElementById('condividiDocLista');
+    if (!data?.length) { lista.innerHTML = '<div style="color:#aaa;font-size:13px;font-weight:600;padding:4px 0">Nessuna condivisione attiva</div>'; return; }
+    lista.innerHTML = data.map(s =>
+        `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f2f2f7">
+            <span style="font-size:14px;font-weight:600">${esc(s.email_destinatario)}</span>
+            <button onclick="eliminaCondivisioneDoc(${s.id})" style="background:none;border:none;color:#ef4444;font-size:18px;cursor:pointer;padding:0 4px">×</button>
+        </div>`
+    ).join('');
+}
+
+async function aggiungiCondivisioneDoc() {
+    const email = document.getElementById('condividiDocEmail').value.trim().toLowerCase();
+    if (!email || !condividiDocTargetId) return;
+    if (email === userEmail.toLowerCase()) { toast('Non puoi condividere con te stesso'); return; }
+    const { error } = await sb.from('documenti_condivisioni').insert({
+        documento_id: condividiDocTargetId,
+        email_mittente: userEmail,
+        email_destinatario: email,
+    });
+    if (error && error.code !== '23505') { toast('Errore: ' + error.message); return; }
+    document.getElementById('condividiDocEmail').value = '';
+    toast('✓ Condiviso');
+    refreshCondividiDocLista();
+}
+
+async function eliminaCondivisioneDoc(shareId) {
+    await sb.from('documenti_condivisioni').delete().eq('id', shareId);
+    refreshCondividiDocLista();
 }
 
 // ── Foto slots ────────────────────────────────────────────
