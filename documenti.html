@@ -104,7 +104,7 @@
         .detail-ov { display: none; position: fixed; inset: 0; z-index: 300; background: var(--bg); overflow-y: auto; }
         .detail-ov.open { display: block; }
         .detail-hdr { position: sticky; top: 0; z-index: 10; background: var(--white); border-bottom: 1.5px solid var(--grey-light); display: flex; align-items: center; gap: 10px; padding: 14px 16px; padding-top: max(14px, env(safe-area-inset-top, 14px)); }
-        .detail-hdr-title { font-weight: 900; font-size: 16px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .detail-hdr-title { font-weight: 900; font-size: 16px; flex: 1; word-break: break-word; }
         .detail-hdr-btn { width: 36px; height: 36px; border-radius: 10px; border: none; background: var(--grey-light); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 16px; }
         .carousel { position: relative; background: #111; }
         .carousel-inner { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
@@ -461,8 +461,9 @@ function chiudiDettaglio() {
 }
 
 function apriModificaDettaglio() {
+    const id = selectedDoc?.id;
     chiudiDettaglio();
-    if (selectedDoc) apriModifica(selectedDoc.id);
+    if (id) apriModifica(id);
 }
 
 // ── Foto slots ────────────────────────────────────────────
