@@ -1157,14 +1157,14 @@
                     <input class="form-input" id="bCheckOut" type="date" style="margin:0" onchange="_aggiornaTassaTotale()">
                 </div>
             </div>
-            <div style="display:flex;gap:10px;align-items:flex-end;margin-bottom:4px">
-                <div style="flex:1">
-                    <label class="form-label">Tassa di soggiorno</label>
-                    <input class="form-input" id="bTassaSoggiorno" type="number" min="0" step="0.01" placeholder="es. 6.00" style="margin:0" oninput="_aggiornaTassaTotale()">
-                </div>
-                <div style="flex-shrink:0;padding-bottom:14px">
-                    <div style="font-size:12px;font-weight:700;color:#888;white-space:nowrap">€ / pers / notte</div>
-                    <div id="bTassaTotaleHint" style="font-size:13px;font-weight:900;color:#5856d6;white-space:nowrap;margin-top:3px"></div>
+            <div style="margin-bottom:4px">
+                <label class="form-label">Tassa di soggiorno</label>
+                <div style="display:flex;gap:6px;align-items:center">
+                    <input class="form-input" id="bTassaSoggiorno" type="number" min="0" step="0.01" placeholder="es. 6.00" style="margin:0;flex:1.4" oninput="_aggiornaTassaTotale()">
+                    <span style="font-size:11px;font-weight:700;color:#aaa;white-space:nowrap;flex-shrink:0">€/p/n ×</span>
+                    <input class="form-input" id="bTassaNotti" type="number" min="1" step="1" placeholder="notti" style="margin:0;flex:1" oninput="_aggiornaTassaTotale()">
+                    <span style="font-size:11px;font-weight:700;color:#aaa;flex-shrink:0">=</span>
+                    <div id="bTassaTotaleHint" style="font-size:14px;font-weight:900;color:#5856d6;white-space:nowrap;flex-shrink:0;min-width:60px"></div>
                 </div>
             </div>
             <div id="bMiaQuotaTassaRow" style="display:none;margin-bottom:12px">
@@ -1178,14 +1178,14 @@
                 <label class="form-label" id="bImportoLabel">Importo previsto *</label>
                 <input class="form-input" id="bImporto" type="number" min="0" step="0.01" placeholder="0.00" inputmode="decimal" style="margin:0;padding:10px 12px">
             </div>
-            <div style="flex:1">
+            <div id="bValutaCol" style="flex:1">
                 <label class="form-label">Valuta</label>
                 <select class="form-input" id="bValuta" style="margin:0;padding:10px 12px"></select>
             </div>
-        </div>
-        <div id="bMioCostoRow" style="display:none;margin-top:8px">
-            <label class="form-label">Mio costo alloggio</label>
-            <input class="form-input" id="bMioCostoAlloggio" readonly style="margin:0;background:#f4f4f8;color:#555;cursor:default">
+            <div id="bMioCostoRow" style="display:none;flex:1">
+                <label class="form-label">Mio costo</label>
+                <input class="form-input" id="bMioCostoAlloggio" readonly style="margin:0;padding:10px 12px;background:#f4f4f8;color:#555;cursor:default">
+            </div>
         </div>
         <div id="bAlloggioModeRow" style="display:none;gap:6px;margin-top:10px">
             <button class="period-pill active" id="bModeFisso" onclick="setBudgetAlloggioMode('fisso')">Fisso</button>
@@ -5119,6 +5119,7 @@ function apriModalEditBudgetItem(id) {
     document.getElementById('bLinkPrenotazione').value = b.link_prenotazione || '';
     document.getElementById('bAlloggioAddr').value = _caricaAddrLocale(id) || b.indirizzo_alloggio || '';
     document.getElementById('bTassaSoggiorno').value = _caricaTassaLocale(id) || '';
+    document.getElementById('bTassaNotti').value = localStorage.getItem(`sv_tassa_notti_${viaggioCorrenteId}_${id}`) || '';
     document.getElementById('bCheckIn').value  = localStorage.getItem(`sv_cin_${viaggioCorrenteId}_${id}`)  || '';
     document.getElementById('bCheckOut').value = localStorage.getItem(`sv_cout_${viaggioCorrenteId}_${id}`) || '';
     renderBPoiList();
@@ -5445,11 +5446,15 @@ function setBudgetAlloggioMode(mode) {
     }
     const lbl = document.getElementById('bImportoLabel');
     if (lbl) lbl.textContent = mode === 'ripartire' ? 'Costo alloggio *' : 'Importo previsto *';
+    const valutaCol = document.getElementById('bValutaCol');
+    const r1 = document.getElementById('bMioCostoRow');
+    const r2 = document.getElementById('bMiaQuotaTassaRow');
     if (mode === 'fisso') {
-        const r1 = document.getElementById('bMioCostoRow');
-        const r2 = document.getElementById('bMiaQuotaTassaRow');
+        if (valutaCol) valutaCol.style.display = '';
         if (r1) r1.style.display = 'none';
         if (r2) r2.style.display = 'none';
+    } else {
+        if (valutaCol) valutaCol.style.display = 'none';
     }
 }
 
@@ -5576,6 +5581,8 @@ function _salvaBudgetPoiLocale(itemId) {
     if (addr !== undefined) localStorage.setItem(`sv_addr_${viaggioCorrenteId}_${itemId}`, addr);
     const tassa = document.getElementById('bTassaSoggiorno')?.value?.trim();
     if (tassa !== undefined) localStorage.setItem(`sv_tassa_${viaggioCorrenteId}_${itemId}`, tassa);
+    const tassaNotti = document.getElementById('bTassaNotti')?.value?.trim();
+    if (tassaNotti !== undefined) localStorage.setItem(`sv_tassa_notti_${viaggioCorrenteId}_${itemId}`, tassaNotti);
     const cin  = document.getElementById('bCheckIn')?.value  || '';
     const cout = document.getElementById('bCheckOut')?.value || '';
     localStorage.setItem(`sv_cin_${viaggioCorrenteId}_${itemId}`,  cin);
@@ -5595,15 +5602,20 @@ function _caricaTassaLocale(itemId) {
 
 function _aggiornaTassaTotale() {
     const tassa = parseFloat(document.getElementById('bTassaSoggiorno')?.value) || 0;
+    const nottiInput = document.getElementById('bTassaNotti');
     const cin  = document.getElementById('bCheckIn')?.value;
     const cout = document.getElementById('bCheckOut')?.value;
+    // auto-popola notti da check-in/out se il campo è vuoto
+    if (nottiInput && !nottiInput.value && cin && cout) {
+        const n = Math.round((new Date(cout) - new Date(cin)) / 86400000);
+        if (n > 0) nottiInput.value = n;
+    }
+    const notti = parseInt(nottiInput?.value) || 0;
     const hint = document.getElementById('bTassaTotaleHint');
     if (!hint) return;
-    if (!tassa || !cin || !cout) { hint.textContent = ''; return; }
-    const notti = Math.round((new Date(cout) - new Date(cin)) / 86400000);
-    if (notti <= 0) { hint.textContent = ''; return; }
+    if (!tassa || !notti) { hint.textContent = ''; return; }
     const vs = symb(document.getElementById('bValuta')?.value || viaggioCorrenteValuta);
-    hint.textContent = `= ${vs}${(tassa * notti).toFixed(2)} · ${notti} nott${notti === 1 ? 'e' : 'i'}`;
+    hint.textContent = `${vs}${(tassa * notti).toFixed(2)}`;
 }
 
 function _apreLinkPrenotazione() {
@@ -5861,6 +5873,9 @@ async function salvaRipartizione() {
     }
     toast(res.ok ? '✓ Ripartizione salvata' : '✓ Salvato');
     renderBudget();
+    const _reopenId = _ripBudgetItemId;
+    document.getElementById('modalRipartizione').classList.remove('open');
+    setTimeout(() => apriModalEditBudgetItem(_reopenId), 300);
 }
 
 async function apriRipartizionePerId() {
