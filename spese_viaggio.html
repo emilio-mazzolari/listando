@@ -1267,6 +1267,7 @@
     <div style="font-weight:900;font-size:17px;margin-bottom:16px" id="poiModalTitle">Punto di interesse</div>
     <label class="form-label">Nome *</label>
     <input class="form-input" id="poiNome" placeholder="Es. Spiaggia, Centro storico, Supermercato…" autocapitalize="sentences">
+    <div id="poiSuggerimenti" style="display:none;margin:6px 0 8px"></div>
     <button type="button" onclick="_apriMapsPoi()" style="width:100%;margin:10px 0 4px;padding:12px;border-radius:14px;border:2px solid #5856d6;background:#f5f4ff;color:#5856d6;font-weight:800;font-size:14px;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px">🗺️ Apri Maps per verificare la distanza</button>
     <label class="form-label">Distanza dall'alloggio</label>
     <div style="display:flex;gap:10px;margin-bottom:12px">
@@ -5019,7 +5020,7 @@ function renderComparatore() {
 
     // Prepare data per alloggio
     const rows = alloggi.map(b => {
-        const rip = ripartizioniCache[b.id];
+        const rip = ripartizioniCache[b.id] || (() => { try { return JSON.parse(localStorage.getItem(`sv_rip_${viaggioCorrenteId}_${b.id}`) || 'null'); } catch { return null; } })();
         const ris = Array.isArray(rip?.risultati) ? rip.risultati : (rip?.risultati ? JSON.parse(rip.risultati) : []);
         const quota = meNome ? _ripTrovaQuota(ris, meNome) : null;
         const cin  = localStorage.getItem(`sv_cin_${viaggioCorrenteId}_${b.id}`) || rip?.check_in || '';
@@ -5098,23 +5099,29 @@ function renderComparatore() {
         rows.forEach(() => html += td('<span style="color:#ccc;font-size:12px">—</span>'));
     }
 
-    // ── Punti di interesse ───────────────────────────────────
-    html += sep();
-    html += lbl('POI');
-    rows.forEach(r => {
-        const poiHtml = r.poi.length
-            ? r.poi.map(p => {
-                const kmV = p.km ?? (p.unita === 'km' ? p.distanza : null);
-                const minV = p.min ?? (p.unita === 'min' ? p.distanza : null);
-                const m = POI_MEZZI.find(x => x.id === p.mezzo);
-                const distHtml = (kmV != null || minV != null)
-                    ? `<span style="font-size:11px;font-weight:800;white-space:nowrap;margin-left:6px">${m ? m.emoji + ' ' : ''}${kmV != null ? `<span style="color:#5856d6">${kmV}km</span>` : ''}${kmV != null && minV != null ? ' ' : ''}${minV != null ? `<span style="color:#0fba8d">${minV}min</span>` : ''}</span>`
-                    : '';
-                return `<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--grey-light)"><span style="font-size:12px;font-weight:700;color:#333">${_esc(p.nome)}</span>${distHtml}</div>`;
-            }).join('')
-            : '<span style="font-size:11px;color:#ccc;font-weight:600">—</span>';
-        html += td(poiHtml);
-    });
+    // ── Punti di interesse (una riga per POI, come i servizi) ────
+    const allPoiNames = [...new Set(rows.flatMap(r => r.poi.map(p => p.nome)))];
+    if (allPoiNames.length) {
+        html += sep();
+        allPoiNames.forEach(nome => {
+            html += lbl(_esc(nome));
+            rows.forEach(r => {
+                const p = r.poi.find(pp => pp.nome === nome);
+                if (p) {
+                    const kmV = p.km ?? (p.unita === 'km' ? p.distanza : null);
+                    const minV = p.min ?? (p.unita === 'min' ? p.distanza : null);
+                    const m = POI_MEZZI.find(x => x.id === p.mezzo);
+                    const parts = [];
+                    if (kmV != null) parts.push(`<span style="color:#5856d6;font-weight:800">${kmV}km</span>`);
+                    if (minV != null) parts.push(`<span style="color:#0fba8d;font-weight:800">${minV}min</span>`);
+                    const distHtml = parts.length ? `<div style="font-size:11px;font-weight:700;margin-top:3px">${m ? m.emoji + ' ' : ''}${parts.join(' ')}</div>` : '';
+                    html += td(`<span class="cmp-srv-y" style="font-size:16px">✓</span>${distHtml}`);
+                } else {
+                    html += td(`<span class="cmp-srv-n">—</span>`);
+                }
+            });
+        });
+    }
 
     html += '</div>';
     el.innerHTML = html;
@@ -5748,6 +5755,7 @@ function apriPoiModal(idx) {
     document.getElementById('poiDistMin').value = minVal !== '' && minVal != null ? minVal : '';
     _poiMezzo = p?.mezzo || null;
     _renderPoiMezziChips();
+    _renderPoiSuggerimenti();
     document.getElementById('modalPoiEdit').classList.add('open');
     setTimeout(() => document.getElementById('poiNome').focus(), 300);
 }
@@ -5780,6 +5788,7 @@ function confermaPoiEdit() {
     const entry = { nome, km, min, mezzo: _poiMezzo };
     if (_poiEditIdx >= 0) _bPoiList[_poiEditIdx] = entry;
     else _bPoiList.push(entry);
+    _poiViaggioSave(entry);
     chiudiModalPoi();
     renderBPoiList();
 }
@@ -5816,6 +5825,41 @@ function _salvaBudgetPoiLocale(itemId) {
 function _caricaAddrLocale(itemId) {
     if (!itemId || !viaggioCorrenteId) return '';
     return localStorage.getItem(`sv_addr_${viaggioCorrenteId}_${itemId}`) || '';
+}
+
+// POI memoria viaggio (suggerimenti tra alloggi)
+let _poiSuggestList = [];
+function _poiViaggioGet() {
+    try { return JSON.parse(localStorage.getItem(`sv_poi_viaggio_${viaggioCorrenteId}`) || '[]'); } catch { return []; }
+}
+function _poiViaggioSave(entry) {
+    if (!viaggioCorrenteId || !entry.nome) return;
+    const list = _poiViaggioGet();
+    const i = list.findIndex(p => p.nome.toLowerCase() === entry.nome.toLowerCase());
+    if (i >= 0) list[i] = entry; else list.push(entry);
+    localStorage.setItem(`sv_poi_viaggio_${viaggioCorrenteId}`, JSON.stringify(list));
+}
+function _prefillPoi(i) {
+    const p = _poiSuggestList[i];
+    if (!p) return;
+    document.getElementById('poiNome').value = p.nome;
+    document.getElementById('poiDistKm').value = p.km != null ? p.km : '';
+    document.getElementById('poiDistMin').value = p.min != null ? p.min : '';
+    _poiMezzo = p.mezzo || null;
+    _renderPoiMezziChips();
+    _renderPoiSuggerimenti();
+}
+function _renderPoiSuggerimenti() {
+    const el = document.getElementById('poiSuggerimenti');
+    if (!el) return;
+    _poiSuggestList = _poiViaggioGet().filter(p => !_bPoiList.some(x => x.nome.toLowerCase() === p.nome.toLowerCase()));
+    if (!_poiSuggestList.length) { el.style.display = 'none'; return; }
+    el.style.display = '';
+    el.innerHTML = `<div style="font-size:10px;font-weight:800;color:#aaa;text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px">Da questo viaggio</div>` +
+        _poiSuggestList.map((p, i) => {
+            const dist = [p.km != null ? p.km + 'km' : '', p.min != null ? p.min + 'min' : ''].filter(Boolean).join(' ');
+            return `<button onclick="_prefillPoi(${i})" style="display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:20px;border:1.5px solid #e0e0e0;background:#fafafa;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;color:#333;margin:0 4px 5px 0">${_esc(p.nome)}${dist ? `<span style="color:#aaa;font-size:11px"> ${dist}</span>` : ''}</button>`;
+        }).join('');
 }
 
 function _caricaTassaLocale(itemId) {
