@@ -1,5 +1,5 @@
-const CACHE_NAME = "lista-spesa-cache-v256";
-const API_CACHE  = "lista-spesa-api-v256";
+const CACHE_NAME = "lista-spesa-cache-v257";
+const API_CACHE  = "lista-spesa-api-v257";
 
 const FILES = [
   "/manifest.json",
