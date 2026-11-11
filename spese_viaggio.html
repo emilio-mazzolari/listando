@@ -1241,7 +1241,12 @@
                 <input class="form-input" id="bPunteggio" type="number" min="1" max="10" step="0.1" placeholder="es. 8.5" style="margin:0;width:130px" oninput="_savePunteggio()">
             </div>
             <label class="form-label">Servizi disponibili</label>
-            <div id="bServiziBox" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:4px"></div>
+            <div id="bServiziBox" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px"></div>
+            <div id="bServizioInputWrap" style="display:none;gap:6px;align-items:center;margin-bottom:8px">
+                <input class="form-input" id="bServizioInput" type="text" placeholder="es. Giardino, Vista mare…" maxlength="30" style="margin:0;flex:1;height:40px;font-size:13px;padding:4px 10px" onkeydown="if(event.key==='Enter')_confermaServizioExtra();if(event.key==='Escape')_nascondiInputServizio()">
+                <button type="button" onclick="_confermaServizioExtra()" style="height:40px;padding:0 14px;border-radius:12px;border:2px solid #5856d6;background:#eef2ff;color:#5856d6;font-weight:900;font-size:15px;cursor:pointer;font-family:inherit;flex-shrink:0">✓</button>
+                <button type="button" onclick="_nascondiInputServizio()" style="height:40px;padding:0 12px;border-radius:12px;border:2px solid var(--grey);background:var(--white);color:#aaa;font-weight:900;font-size:15px;cursor:pointer;font-family:inherit;flex-shrink:0">✕</button>
+            </div>
         </div>
 
         <label class="form-label" style="margin-top:4px">Note</label>
@@ -4886,18 +4891,22 @@ function renderBudget() {
 
 // ── Comparatore alloggi ───────────────────────────────────────────────
 const COMP_SERVIZI = [
-    { id:'wifi',       emoji:'📶', label:'WiFi' },
-    { id:'parcheggio', emoji:'🅿️', label:'Parcheggio' },
-    { id:'colazione',  emoji:'🍳', label:'Colazione' },
-    { id:'ac',         emoji:'❄️', label:'A/C' },
-    { id:'piscina',    emoji:'🏊', label:'Piscina' },
-    { id:'lavatrice',  emoji:'🧺', label:'Lavatrice' },
-    { id:'cucina',     emoji:'🍽️', label:'Cucina' },
-    { id:'animali',    emoji:'🐾', label:'Animali' },
-    { id:'palestra',   emoji:'💪', label:'Palestra' },
+    { id:'wifi',              emoji:'📶', label:'WiFi' },
+    { id:'colazione',         emoji:'🍳', label:'Colazione' },
+    { id:'parcheggio',        emoji:'🅿️', label:'Parcheggio' },
+    { id:'bagno',             emoji:'🚿', label:'Bagno privato' },
+    { id:'biancheria_bagno',  emoji:'🛁', label:'Biancheria bagno' },
+    { id:'biancheria_letto',  emoji:'🛏️', label:'Biancheria letto' },
+    { id:'ac',                emoji:'❄️', label:'Aria condizionata' },
+    { id:'tv',                emoji:'📺', label:'TV' },
+    { id:'ascensore',         emoji:'🛗', label:'Ascensore' },
+    { id:'balcone',           emoji:'🌿', label:'Balcone' },
+    { id:'lavatrice',         emoji:'🧺', label:'Lavatrice' },
 ];
 function _compGetServizi(id) { try { return JSON.parse(localStorage.getItem(`sv_srv_${viaggioCorrenteId}_${id}`) || '[]'); } catch { return []; } }
 function _compSetServizi(id, arr) { localStorage.setItem(`sv_srv_${viaggioCorrenteId}_${id}`, JSON.stringify(arr)); }
+function _compGetServiziExtra(id) { try { return JSON.parse(localStorage.getItem(`sv_srv_extra_${viaggioCorrenteId}_${id}`) || '[]'); } catch { return []; } }
+function _compSetServiziExtra(id, arr) { localStorage.setItem(`sv_srv_extra_${viaggioCorrenteId}_${id}`, JSON.stringify(arr)); }
 function _compGetStelle(id) { return parseInt(localStorage.getItem(`sv_stelle_${viaggioCorrenteId}_${id}`)) || 0; }
 function _compSetStelle(id, v) { localStorage.setItem(`sv_stelle_${viaggioCorrenteId}_${id}`, v); }
 function _compGetPunteggio(id) { return parseFloat(localStorage.getItem(`sv_punteggio_${viaggioCorrenteId}_${id}`)) || 0; }
@@ -4949,15 +4958,48 @@ function _savePunteggio() {
 }
 function _renderBServiziModal(id) {
     const servizi = _compGetServizi(id);
+    const extra = _compGetServiziExtra(id);
     const box = document.getElementById('bServiziBox');
     if (!box) return;
-    box.innerHTML = COMP_SERVIZI.map(s =>
+    const stdHtml = COMP_SERVIZI.map(s =>
         `<button type="button" class="comp-servizio${servizi.includes(s.id) ? ' on' : ''}" onclick="_toggleBServizio('${s.id}')">${s.emoji} ${s.label}</button>`
     ).join('');
+    const extraHtml = extra.map((label, i) =>
+        `<span class="comp-servizio on" style="display:inline-flex;align-items:center;gap:3px">${_esc(label)}<button type="button" onclick="_rimuoviServizioExtra(${i})" style="background:none;border:none;cursor:pointer;font-size:11px;padding:0;color:#5856d6;line-height:1;margin-left:2px">✕</button></span>`
+    ).join('');
+    const addBtn = `<button type="button" onclick="_mostraInputServizio()" class="comp-servizio" style="color:#5856d6;border-style:dashed;border-color:#5856d6">＋ Aggiungi</button>`;
+    box.innerHTML = stdHtml + extraHtml + addBtn;
 }
 function _toggleBServizio(srvId) {
     _compToggleServizio(budgetItemEditId, srvId);
     _renderBServiziModal(budgetItemEditId);
+}
+function _mostraInputServizio() {
+    const wrap = document.getElementById('bServizioInputWrap');
+    if (wrap) { wrap.style.display = 'flex'; document.getElementById('bServizioInput')?.focus(); }
+}
+function _nascondiInputServizio() {
+    const wrap = document.getElementById('bServizioInputWrap');
+    if (wrap) wrap.style.display = 'none';
+    const inp = document.getElementById('bServizioInput');
+    if (inp) inp.value = '';
+}
+function _confermaServizioExtra() {
+    const inp = document.getElementById('bServizioInput');
+    const label = inp?.value.trim();
+    if (!label) { _nascondiInputServizio(); return; }
+    const id = budgetItemEditId;
+    const extra = _compGetServiziExtra(id);
+    if (!extra.includes(label)) { extra.push(label); _compSetServiziExtra(id, extra); }
+    _nascondiInputServizio();
+    _renderBServiziModal(id);
+}
+function _rimuoviServizioExtra(idx) {
+    const id = budgetItemEditId;
+    const extra = _compGetServiziExtra(id);
+    extra.splice(idx, 1);
+    _compSetServiziExtra(id, extra);
+    _renderBServiziModal(id);
 }
 function renderComparatore() {
     const alloggi = budgetAttuale.filter(b => b.categoria === 'alloggio' && b.stato !== 'annullata');
@@ -4979,14 +5021,18 @@ function renderComparatore() {
         const punteggio = _compGetPunteggio(b.id);
         const recMode = _compGetRecMode(b.id);
         const servizi = _compGetServizi(b.id);
+        const serviziExtra = _compGetServiziExtra(b.id);
         const dateStr = cin && cout ? `${_fmtD(cin)} → ${_fmtD(cout)}${notti ? ` · ${notti} nott${notti===1?'e':'i'}` : ''}` : '—';
         const linkBtn = b.link_prenotazione ? `<a href="${_esc(b.link_prenotazione)}" target="_blank" style="font-size:11px;font-weight:800;color:rgba(255,255,255,.85);text-decoration:none">🔗 Prenotazione</a>` : '';
         const recHtml = recMode === 'punteggio' && punteggio
             ? `<span style="font-size:22px;font-weight:900;color:#5856d6">${punteggio.toFixed(1)}<span style="font-size:12px;font-weight:700;color:#aaa;margin-left:1px">/10</span></span>`
             : [1,2,3,4,5].map(i => `<span style="font-size:20px">${i <= stelle ? '⭐' : '☆'}</span>`).join('');
-        const serviziHtml = COMP_SERVIZI.filter(s => servizi.includes(s.id)).map(s =>
-            `<span class="comp-servizio on" style="cursor:default">${s.emoji} ${s.label}</span>`
-        ).join('') || '<span style="font-size:12px;color:#ccc;font-weight:600">—</span>';
+        const serviziHtml = [
+            ...COMP_SERVIZI.filter(s => servizi.includes(s.id)).map(s =>
+                `<span class="comp-servizio on" style="cursor:default">${s.emoji} ${s.label}</span>`),
+            ...serviziExtra.map(label =>
+                `<span class="comp-servizio on" style="cursor:default">${_esc(label)}</span>`),
+        ].join('') || '<span style="font-size:12px;color:#ccc;font-weight:600">—</span>';
         const poiHtml = poi.length ? poi.map(p => {
             const kmV = p.km ?? (p.unita === 'km' ? p.distanza : null);
             const minV = p.min ?? (p.unita === 'min' ? p.distanza : null);
@@ -5263,7 +5309,6 @@ async function salvaBudgetItem() {
         savedId = rows[0]?.id || null;
     }
     if (savedId) _salvaBudgetPoiLocale(savedId);
-    document.getElementById('modalBudgetItem').classList.remove('open');
     toast('✓ Salvato');
     await caricaBudget();
     renderBudget();
@@ -5445,6 +5490,7 @@ let _ripPersone = [];
 
 // ── Budget alloggio: POI helpers ───────────────────────────────────
 let _bPoiList = [];
+let _bPoiSortMode = 'libero';
 
 function _ripTrovaQuota(ris, nome) {
     if (!nome || !ris?.length) return null;
@@ -5521,13 +5567,40 @@ function _poiDistLabel(p) {
 function renderBPoiList() {
     const el = document.getElementById('bPoiList');
     if (!el) return;
+    const SORT_LABELS = { libero:'↕ Libero', alpha:'A→Z', km:'📍 km', min:'⏱ min' };
+    const sortBar = `<div style="display:flex;gap:5px;margin-bottom:8px;flex-wrap:wrap">` +
+        Object.keys(SORT_LABELS).map(m =>
+            `<button onclick="_bPoiSortMode='${m}';renderBPoiList()" class="period-pill${_bPoiSortMode===m?' active':''}" style="font-size:11px;padding:4px 10px">${SORT_LABELS[m]}</button>`
+        ).join('') + `</div>`;
     if (!_bPoiList.length) {
-        el.innerHTML = '<div style="font-size:12px;color:#aaa;font-weight:600;padding:4px 0 8px">Nessun punto aggiunto</div>';
+        el.innerHTML = sortBar + '<div style="font-size:12px;color:#aaa;font-weight:600;padding:4px 0 8px">Nessun punto aggiunto</div>';
         return;
     }
-    el.innerHTML = _bPoiList.map((p, i) => {
+    let display = _bPoiList.map((p, i) => ({ ...p, _oi: i }));
+    if (_bPoiSortMode === 'alpha') {
+        display.sort((a, b) => a.nome.localeCompare(b.nome, 'it'));
+    } else if (_bPoiSortMode === 'km') {
+        display.sort((a, b) => {
+            const av = a.km ?? (a.unita === 'km' ? a.distanza : null) ?? Infinity;
+            const bv = b.km ?? (b.unita === 'km' ? b.distanza : null) ?? Infinity;
+            return av - bv;
+        });
+    } else if (_bPoiSortMode === 'min') {
+        display.sort((a, b) => {
+            const av = a.min ?? (a.unita === 'min' ? a.distanza : null) ?? Infinity;
+            const bv = b.min ?? (b.unita === 'min' ? b.distanza : null) ?? Infinity;
+            return av - bv;
+        });
+    }
+    el.innerHTML = sortBar + display.map(p => {
+        const i = p._oi;
         const dist = _poiDistLabel(p);
+        const moveHtml = _bPoiSortMode === 'libero'
+            ? `<button onclick="_bPoiMove(${i},-1)" style="background:none;border:none;cursor:pointer;font-size:16px;padding:0 2px;color:${i===0?'#ddd':'#aaa'}" ${i===0?'disabled':''}>↑</button>` +
+              `<button onclick="_bPoiMove(${i},1)" style="background:none;border:none;cursor:pointer;font-size:16px;padding:0 2px;color:${i===_bPoiList.length-1?'#ddd':'#aaa'}" ${i===_bPoiList.length-1?'disabled':''}>↓</button>`
+            : '';
         return `<div class="poi-row">
+            ${moveHtml}
             <div class="poi-info">
                 <div class="poi-nome">${_esc(p.nome)}</div>
                 ${dist ? `<div class="poi-dist">${dist}</div>` : ''}
@@ -5537,6 +5610,12 @@ function renderBPoiList() {
             <button class="poi-del" onclick="_bPoiList.splice(${i},1);renderBPoiList()">×</button>
         </div>`;
     }).join('');
+}
+function _bPoiMove(idx, dir) {
+    const ni = idx + dir;
+    if (ni < 0 || ni >= _bPoiList.length) return;
+    [_bPoiList[idx], _bPoiList[ni]] = [_bPoiList[ni], _bPoiList[idx]];
+    renderBPoiList();
 }
 
 let _poiEditIdx = -1, _poiMezzo = null;

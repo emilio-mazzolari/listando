@@ -1,13 +1,15 @@
 const AMENITY_MAP = {
-    wifi:       ['wifi', 'wi-fi', 'free wifi', 'internet', 'wireless', 'hotspot'],
-    parcheggio: ['parking', 'free parking', 'car park', 'garage', 'parcheggio', 'estacionamiento'],
-    colazione:  ['breakfast', 'free breakfast', 'continental breakfast', 'buffet breakfast', 'colazione'],
-    ac:         ['air conditioning', 'air-conditioning', 'cooling', 'climatizzazione', 'aria condizionata', 'ac'],
-    piscina:    ['pool', 'swimming pool', 'outdoor pool', 'indoor pool', 'piscina', 'heated pool'],
-    lavatrice:  ['washing machine', 'laundry', 'washer', 'lavatrice', 'laundry facilities', 'laundry service'],
-    cucina:     ['kitchen', 'kitchenette', 'cucina', 'cooking facilities', 'full kitchen'],
-    animali:    ['pets allowed', 'pet-friendly', 'pets', 'animali', 'dog', 'cat'],
-    palestra:   ['fitness', 'gym', 'fitness center', 'palestra', 'fitness room', 'fitness facilities', 'workout'],
+    wifi:             ['wifi', 'wi-fi', 'free wifi', 'internet', 'wireless', 'hotspot'],
+    colazione:        ['breakfast', 'free breakfast', 'continental breakfast', 'buffet breakfast', 'colazione'],
+    parcheggio:       ['parking', 'free parking', 'car park', 'garage', 'parcheggio'],
+    bagno:            ['private bathroom', 'en suite', 'ensuite', 'bagno privato', 'private bath'],
+    biancheria_bagno: ['towels', 'bath towels', 'bathroom towels', 'biancheria bagno', 'asciugamani'],
+    biancheria_letto: ['bed linen', 'linen', 'sheets', 'bedding', 'biancheria letto', 'biancheria da letto'],
+    ac:               ['air conditioning', 'air-conditioning', 'cooling', 'climatizzazione', 'aria condizionata'],
+    tv:               ['television', 'tv', 'smart tv', 'flat-screen tv', 'flat screen', 'cable tv'],
+    ascensore:        ['elevator', 'lift', 'ascensore'],
+    balcone:          ['balcony', 'terrace', 'terrazza', 'terrazzo', 'balcone', 'patio'],
+    lavatrice:        ['washing machine', 'laundry', 'washer', 'lavatrice', 'laundry facilities'],
 };
 
 function mapAmenities(names) {
