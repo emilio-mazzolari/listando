@@ -10,6 +10,7 @@ const AMENITY_MAP = {
     ascensore:        ['elevator', 'lift', 'ascensore'],
     balcone:          ['balcony', 'terrace', 'terrazza', 'terrazzo', 'balcone', 'patio'],
     lavatrice:        ['washing machine', 'laundry', 'washer', 'lavatrice', 'laundry facilities'],
+    asciugacapelli:   ['hair dryer', 'hairdryer', 'hair-dryer', 'asciugacapelli'],
 };
 
 function mapAmenities(names) {

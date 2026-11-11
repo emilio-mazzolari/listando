@@ -4891,17 +4891,18 @@ function renderBudget() {
 
 // ── Comparatore alloggi ───────────────────────────────────────────────
 const COMP_SERVIZI = [
-    { id:'wifi',              emoji:'📶', label:'WiFi' },
-    { id:'colazione',         emoji:'🍳', label:'Colazione' },
-    { id:'parcheggio',        emoji:'🅿️', label:'Parcheggio' },
-    { id:'bagno',             emoji:'🚿', label:'Bagno privato' },
-    { id:'biancheria_bagno',  emoji:'🛁', label:'Biancheria bagno' },
-    { id:'biancheria_letto',  emoji:'🛏️', label:'Biancheria letto' },
-    { id:'ac',                emoji:'❄️', label:'Aria condizionata' },
-    { id:'tv',                emoji:'📺', label:'TV' },
-    { id:'ascensore',         emoji:'🛗', label:'Ascensore' },
-    { id:'balcone',           emoji:'🌿', label:'Balcone' },
-    { id:'lavatrice',         emoji:'🧺', label:'Lavatrice' },
+    { id:'ac',                emoji:'', label:'Aria condizionata' },
+    { id:'ascensore',         emoji:'', label:'Ascensore' },
+    { id:'asciugacapelli',    emoji:'', label:'Asciugacapelli' },
+    { id:'bagno',             emoji:'', label:'Bagno privato' },
+    { id:'balcone',           emoji:'', label:'Balcone' },
+    { id:'biancheria_bagno',  emoji:'', label:'Biancheria bagno' },
+    { id:'biancheria_letto',  emoji:'', label:'Biancheria letto' },
+    { id:'colazione',         emoji:'', label:'Colazione' },
+    { id:'lavatrice',         emoji:'', label:'Lavatrice' },
+    { id:'parcheggio',        emoji:'', label:'Parcheggio' },
+    { id:'tv',                emoji:'', label:'TV' },
+    { id:'wifi',              emoji:'', label:'WiFi' },
 ];
 function _compGetServizi(id) { try { return JSON.parse(localStorage.getItem(`sv_srv_${viaggioCorrenteId}_${id}`) || '[]'); } catch { return []; } }
 function _compSetServizi(id, arr) { localStorage.setItem(`sv_srv_${viaggioCorrenteId}_${id}`, JSON.stringify(arr)); }
@@ -4962,7 +4963,7 @@ function _renderBServiziModal(id) {
     const box = document.getElementById('bServiziBox');
     if (!box) return;
     const stdHtml = COMP_SERVIZI.map(s =>
-        `<button type="button" class="comp-servizio${servizi.includes(s.id) ? ' on' : ''}" onclick="_toggleBServizio('${s.id}')">${s.emoji} ${s.label}</button>`
+        `<button type="button" class="comp-servizio${servizi.includes(s.id) ? ' on' : ''}" onclick="_toggleBServizio('${s.id}')">${s.emoji ? s.emoji + ' ' : ''}${s.label}</button>`
     ).join('');
     const extraHtml = extra.map((label, i) =>
         `<span class="comp-servizio on" style="display:inline-flex;align-items:center;gap:3px">${_esc(label)}<button type="button" onclick="_rimuoviServizioExtra(${i})" style="background:none;border:none;cursor:pointer;font-size:11px;padding:0;color:#5856d6;line-height:1;margin-left:2px">✕</button></span>`
@@ -5029,7 +5030,7 @@ function renderComparatore() {
             : [1,2,3,4,5].map(i => `<span style="font-size:20px">${i <= stelle ? '⭐' : '☆'}</span>`).join('');
         const serviziHtml = [
             ...COMP_SERVIZI.filter(s => servizi.includes(s.id)).map(s =>
-                `<span class="comp-servizio on" style="cursor:default">${s.emoji} ${s.label}</span>`),
+                `<span class="comp-servizio on" style="cursor:default">${s.emoji ? s.emoji + ' ' : ''}${s.label}</span>`),
             ...serviziExtra.map(label =>
                 `<span class="comp-servizio on" style="cursor:default">${_esc(label)}</span>`),
         ].join('') || '<span style="font-size:12px;color:#ccc;font-weight:600">—</span>';
@@ -5541,6 +5542,9 @@ function setBudgetAlloggioMode(mode) {
         if (r2) r2.style.display = 'none';
     } else {
         if (valutaCol) valutaCol.style.display = 'none';
+    }
+    if (budgetItemEditId && viaggioCorrenteId) {
+        localStorage.setItem(`sv_allomode_${viaggioCorrenteId}_${budgetItemEditId}`, mode);
     }
 }
 
