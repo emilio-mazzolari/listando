@@ -291,6 +291,7 @@ async function fetchAll(url) {
     const all = [];
     let offset = 0;
     const pageSize = 1000;
+    let total = null;
     while (true) {
         const r = await fetch(`${url}&limit=${pageSize}&offset=${offset}`, {
             headers: { ..._HR, 'Prefer': 'count=exact' }
@@ -300,10 +301,10 @@ async function fetchAll(url) {
         if (!Array.isArray(page) || !page.length) break;
         all.push(...page);
         const cr = r.headers.get('Content-Range'); // es. "0-9/127"
-        const total = cr ? parseInt(cr.split('/')[1]) : null;
+        if (cr) total = parseInt(cr.split('/')[1]) || null;
         if (total != null && all.length >= total) break;
-        if (page.length < pageSize) break;
-        offset += all.length;
+        if (total == null && page.length < pageSize) break; // ultima pagina senza count header
+        offset += page.length;
     }
     return all;
 }
