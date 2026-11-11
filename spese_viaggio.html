@@ -1215,6 +1215,7 @@
         <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">
             <input class="form-input" id="bLinkPrenotazione" type="url" placeholder="https://booking.com/…" autocomplete="off" style="margin:0;flex:1">
             <button onclick="_apreLinkPrenotazione()" style="width:44px;height:48px;border-radius:12px;border:2px solid var(--grey);background:var(--white);cursor:pointer;font-size:20px;flex-shrink:0" title="Apri link">🔗</button>
+            <button id="bBtnAutocompila" onclick="_autocompilaAlloggio()" style="width:44px;height:48px;border-radius:12px;border:2px solid var(--grey);background:var(--white);cursor:pointer;font-size:20px;flex-shrink:0" title="Compila automaticamente da link">✨</button>
         </div>
 
         <div id="bAlloggioBox" style="display:none">
@@ -5639,6 +5640,44 @@ function _apreLinkPrenotazione() {
     const url = document.getElementById('bLinkPrenotazione').value.trim();
     if (!url) { toast('Inserisci prima un link di prenotazione'); return; }
     window.open(url, '_blank');
+}
+
+async function _autocompilaAlloggio() {
+    const link = document.getElementById('bLinkPrenotazione').value.trim();
+    if (!link) { toast('Inserisci prima un link'); return; }
+    const btn = document.getElementById('bBtnAutocompila');
+    btn.textContent = '⏳'; btn.disabled = true;
+    try {
+        const res = await fetch(`/api/scrape-alloggio?url=${encodeURIComponent(link)}`);
+        const data = await res.json();
+        const id = budgetItemEditId;
+        const trovati = [];
+
+        if (data.stelle) {
+            _compSetStelle(id, data.stelle);
+            if (budgetCatScelta === 'alloggio') _renderBStelle(id);
+            trovati.push(`${data.stelle}⭐`);
+        }
+        if (data.servizi?.length) {
+            _compSetServizi(id, data.servizi);
+            if (budgetCatScelta === 'alloggio') _renderBServiziModal(id);
+            trovati.push(`${data.servizi.length} servizi`);
+        }
+        if (data.indirizzo) {
+            const addrEl = document.getElementById('bAlloggioAddr');
+            if (addrEl && !addrEl.value) { addrEl.value = data.indirizzo; trovati.push('indirizzo'); }
+        }
+        if (data.punteggio && data.recensioni) {
+            trovati.push(`voto ${data.punteggio} (${data.recensioni} rec.)`);
+        }
+
+        if (trovati.length) toast(`✓ ${trovati.join(' · ')}`);
+        else toast('Nessun dato trovato per questo link');
+    } catch {
+        toast('Errore durante la lettura del link');
+    } finally {
+        btn.textContent = '✨'; btn.disabled = false;
+    }
 }
 
 function _apriMapsAlloggio() {
