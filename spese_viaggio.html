@@ -1248,7 +1248,13 @@
             <div id="bPunteggioBox" style="display:none;margin-bottom:14px">
                 <input class="form-input" id="bPunteggio" type="number" min="1" max="10" step="0.1" placeholder="es. 8.5" style="margin:0;width:130px" oninput="_savePunteggio()">
             </div>
-            <label class="form-label">Servizi disponibili</label>
+            <label class="form-label">Posti letto</label>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+                <button type="button" onclick="_plAdj(-1)" style="width:36px;height:36px;border-radius:10px;border:2px solid var(--grey);background:var(--white);font-size:20px;font-weight:900;cursor:pointer;font-family:inherit;color:#555;line-height:1;display:flex;align-items:center;justify-content:center">−</button>
+                <span id="bPostiLettoVal" style="font-size:22px;font-weight:900;color:#333;min-width:32px;text-align:center">—</span>
+                <button type="button" onclick="_plAdj(1)" style="width:36px;height:36px;border-radius:10px;border:2px solid var(--grey);background:var(--white);font-size:20px;font-weight:900;cursor:pointer;font-family:inherit;color:#555;line-height:1;display:flex;align-items:center;justify-content:center">＋</button>
+            </div>
+            <label class="form-label">Servizi</label>
             <div id="bServiziBox" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px"></div>
             <div id="bServizioInputWrap" style="display:none;gap:6px;align-items:center;margin-bottom:8px">
                 <input class="form-input" id="bServizioInput" type="text" placeholder="es. Giardino, Vista mare…" maxlength="30" style="margin:0;flex:1;height:40px;font-size:13px;padding:4px 10px" onkeydown="if(event.key==='Enter')_confermaServizioExtra();if(event.key==='Escape')_nascondiInputServizio()">
@@ -4968,17 +4974,18 @@ function _savePunteggio() {
     const v = parseFloat(document.getElementById('bPunteggio')?.value);
     if (!isNaN(v) && v >= 1 && v <= 10) _compSetPunteggio(budgetItemEditId, parseFloat(v.toFixed(1)));
 }
+function _renderBPostiLetto(id) {
+    const el = document.getElementById('bPostiLettoVal');
+    if (!el) return;
+    const pl = _compGetPostiLetto(id);
+    el.textContent = pl > 0 ? pl : '—';
+    el.style.color = pl > 0 ? '#5856d6' : '#ccc';
+}
 function _renderBServiziModal(id) {
     const servizi = _compGetServizi(id);
     const extra = _compGetServiziExtra(id);
-    const pl = _compGetPostiLetto(id);
     const box = document.getElementById('bServiziBox');
     if (!box) return;
-    const on = pl > 0;
-    const plHtml = `<span class="comp-servizio${on ? ' on' : ''}" style="gap:6px">Posti letto` +
-        `<button type="button" onclick="_plAdj(-1)" style="background:none;border:none;cursor:pointer;font-size:14px;font-weight:900;padding:0;color:inherit;line-height:1;width:16px">−</button>` +
-        `<span style="min-width:14px;text-align:center;font-size:13px">${on ? pl : '—'}</span>` +
-        `<button type="button" onclick="_plAdj(1)" style="background:none;border:none;cursor:pointer;font-size:14px;font-weight:900;padding:0;color:inherit;line-height:1;width:16px">＋</button></span>`;
     const stdHtml = COMP_SERVIZI.map(s =>
         `<button type="button" class="comp-servizio${servizi.includes(s.id) ? ' on' : ''}" onclick="_toggleBServizio('${s.id}')">${s.emoji ? s.emoji + ' ' : ''}${s.label}</button>`
     ).join('');
@@ -4986,13 +4993,13 @@ function _renderBServiziModal(id) {
         `<span class="comp-servizio on" style="display:inline-flex;align-items:center;gap:3px">${_esc(label)}<button type="button" onclick="_rimuoviServizioExtra(${i})" style="background:none;border:none;cursor:pointer;font-size:11px;padding:0;color:#5856d6;line-height:1;margin-left:2px">✕</button></span>`
     ).join('');
     const addBtn = `<button type="button" onclick="_mostraInputServizio()" class="comp-servizio" style="color:#5856d6;border-style:dashed;border-color:#5856d6">＋ Aggiungi</button>`;
-    box.innerHTML = plHtml + stdHtml + extraHtml + addBtn;
+    box.innerHTML = stdHtml + extraHtml + addBtn;
 }
 function _plAdj(delta) {
     const id = budgetItemEditId;
     if (!id) return;
     _compSetPostiLetto(id, _compGetPostiLetto(id) + delta);
-    _renderBServiziModal(id);
+    _renderBPostiLetto(id);
 }
 function _toggleBServizio(srvId) {
     _compToggleServizio(budgetItemEditId, srvId);
@@ -5361,7 +5368,7 @@ function apriModalEditBudgetItem(id) {
     setBudgetAlloggioMode(budgetAlloggioMode);
     _renderRipPreviewInModal(id);
     _aggiornaTassaTotale();
-    if (b.categoria === 'alloggio') { _renderBStelle(id); _renderBServiziModal(id); }
+    if (b.categoria === 'alloggio') { _renderBStelle(id); _renderBPostiLetto(id); _renderBServiziModal(id); }
     document.getElementById('modalBudgetItem').classList.add('open');
     setTimeout(_budgetTakeSnapshot, 50);
 }
