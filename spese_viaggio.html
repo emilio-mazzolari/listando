@@ -5030,9 +5030,8 @@ function renderComparatore() {
         const costoAlloggio = rip?.costo || parseFloat(b.importo_previsto) || 0;
         const costoTotale = ris.length
             ? ris.reduce((s, r) => s + Number(r.totale), 0)
-            : costoAlloggio + (tassaRaw && notti ? tassaRaw * notti * nPersone : 0);
-        const quotaAlloggio = quota?.quota_alloggio ?? costoAlloggio;
-        const mioCosto = quota ? quota.totale : (quotaAlloggio + (tassaRaw && notti ? tassaRaw * notti : 0));
+            : costoAlloggio;
+        const mioCosto = quota ? quota.totale : parseFloat(b.importo_previsto) || 0;
         const dateStr = cin && cout ? `${_fmtD(cin)} → ${_fmtD(cout)}${notti ? ` · ${notti}n` : ''}` : '—';
         return {
             b, cin, cout, notti, costoTotale, mioCosto, dateStr,
@@ -5105,8 +5104,13 @@ function renderComparatore() {
     rows.forEach(r => {
         const poiHtml = r.poi.length
             ? r.poi.map(p => {
-                const dist = _poiDistLabel(p);
-                return `<div style="font-size:12px;font-weight:700;padding:3px 0;border-bottom:1px solid var(--grey-light);color:#555">${_esc(p.nome)}${dist ? ` <span style="color:#aaa">· ${dist}</span>` : ''}</div>`;
+                const kmV = p.km ?? (p.unita === 'km' ? p.distanza : null);
+                const minV = p.min ?? (p.unita === 'min' ? p.distanza : null);
+                const m = POI_MEZZI.find(x => x.id === p.mezzo);
+                const distHtml = (kmV != null || minV != null)
+                    ? `<span style="font-size:11px;font-weight:800;white-space:nowrap;margin-left:6px">${m ? m.emoji + ' ' : ''}${kmV != null ? `<span style="color:#5856d6">${kmV}km</span>` : ''}${kmV != null && minV != null ? ' ' : ''}${minV != null ? `<span style="color:#0fba8d">${minV}min</span>` : ''}</span>`
+                    : '';
+                return `<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--grey-light)"><span style="font-size:12px;font-weight:700;color:#333">${_esc(p.nome)}</span>${distHtml}</div>`;
             }).join('')
             : '<span style="font-size:11px;color:#ccc;font-weight:600">—</span>';
         html += td(poiHtml);
