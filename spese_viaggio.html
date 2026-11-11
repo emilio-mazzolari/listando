@@ -529,19 +529,22 @@
         .fb-send { width: 100%; margin-top: 14px; padding: 14px; border-radius: 14px; background: var(--accent,#5856d6); color: #fff; font-size: 16px; font-weight: 700; border: none; cursor: pointer; }
         /* Comparatore alloggi */
         .comp-scroll { display: flex; gap: 12px; overflow-x: auto; padding: 4px 2px 12px; -webkit-overflow-scrolling: touch; }
-        .comp-card { min-width: 240px; max-width: 260px; background: var(--white); border-radius: 18px; border: 2px solid var(--grey); flex-shrink: 0; overflow: hidden; }
-        .comp-card-head { background: #5856d6; color: white; padding: 14px 14px 10px; }
-        .comp-card-nome { font-weight: 900; font-size: 15px; line-height: 1.3; word-break: break-word; }
-        .comp-card-date { font-size: 11px; opacity: .8; margin-top: 3px; font-weight: 700; }
-        .comp-card-body { padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
-        .comp-row-label { font-size: 10px; font-weight: 800; color: #aaa; text-transform: uppercase; letter-spacing: .4px; margin-bottom: 3px; }
-        .comp-costo { font-size: 22px; font-weight: 900; color: #5856d6; }
-        .comp-stelle-btn { background: none; border: none; font-size: 20px; cursor: pointer; padding: 2px; line-height: 1; }
         .comp-servizio { display: inline-flex; align-items: center; gap: 4px; padding: 5px 9px; border-radius: 9px; border: 2px solid var(--grey); background: var(--white); font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; color: #666; transition: all .12s; }
         .comp-servizio.on { border-color: #5856d6; background: #eef2ff; color: #5856d6; }
-        .comp-poi-row { font-size: 12px; font-weight: 700; color: #555; padding: 3px 0; border-bottom: 1px solid var(--grey-light); }
-        .comp-poi-row:last-child { border-bottom: none; }
-        .comp-divider { height: 1px; background: var(--grey-light); margin: 0 -14px; }
+        .cmp-grid { display: grid; }
+        .cmp-hd { background: #5856d6; color: #fff; padding: 12px 14px; vertical-align: top; }
+        .cmp-hd-empty { padding: 12px 6px; background: var(--white); }
+        .cmp-lbl { font-size: 10px; font-weight: 800; color: #999; text-transform: uppercase; letter-spacing: .3px; padding: 10px 8px 10px 2px; border-right: 2px solid var(--grey-light); display: flex; align-items: center; background: var(--white); word-break: break-word; hyphens: auto; }
+        .cmp-td { padding: 10px 12px; border-bottom: 1px solid var(--grey-light); }
+        .cmp-sep { grid-column: 1/-1; height: 3px; background: var(--grey-light); }
+        .cmp-srv-y { color: #0fba8d; font-size: 20px; font-weight: 900; }
+        .cmp-srv-n { color: #d8d8d8; font-size: 16px; }
+        @media (prefers-color-scheme: dark) {
+            .cmp-hd-empty { background: #1c1c1e; }
+            .cmp-lbl { background: #1c1c1e; border-color: #3a3a3c; }
+            .cmp-td { border-color: #3a3a3c; }
+            .cmp-sep { background: #3a3a3c; }
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -1315,12 +1318,12 @@
 
 <!-- Modal: Comparatore alloggi -->
 <div class="modal-overlay" id="modalComparatoreAlloggi">
-<div class="modal-box" style="max-height:92vh;padding:20px 16px">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+<div class="modal-box" style="max-height:92vh;padding:20px 16px 0;display:flex;flex-direction:column">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-shrink:0">
         <div style="font-weight:900;font-size:18px">Confronta alloggi</div>
         <button onclick="document.getElementById('modalComparatoreAlloggi').classList.remove('open')" style="width:36px;height:36px;border-radius:10px;border:2px solid var(--grey);background:var(--white);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center">×</button>
     </div>
-    <div class="comp-scroll" id="compScroll"></div>
+    <div id="compScroll" style="overflow:auto;flex:1;min-height:0;margin:0 -16px;padding-bottom:20px"></div>
 </div>
 </div>
 
@@ -5005,71 +5008,112 @@ function _rimuoviServizioExtra(idx) {
 function renderComparatore() {
     const alloggi = budgetAttuale.filter(b => b.categoria === 'alloggio' && b.stato !== 'annullata');
     const vs = symb(viaggioCorrenteValuta);
-    document.getElementById('compScroll').innerHTML = alloggi.map(b => {
+    const meP = partecipantiAttuali.find(p => (p.email_collegata || '').toLowerCase() === _me());
+    const meNome = meP?.nome || '';
+    const el = document.getElementById('compScroll');
+
+    if (!alloggi.length) {
+        el.innerHTML = '<div style="padding:24px;text-align:center;color:#aaa;font-weight:700">Nessun alloggio da confrontare</div>';
+        return;
+    }
+
+    // Prepare data per alloggio
+    const rows = alloggi.map(b => {
         const rip = ripartizioniCache[b.id];
         const ris = Array.isArray(rip?.risultati) ? rip.risultati : (rip?.risultati ? JSON.parse(rip.risultati) : []);
-        const meP = partecipantiAttuali.find(p => (p.email_collegata || '').toLowerCase() === _me());
-        const quota = meP?.nome ? _ripTrovaQuota(ris, meP.nome) : null;
+        const quota = meNome ? _ripTrovaQuota(ris, meNome) : null;
         const cin  = localStorage.getItem(`sv_cin_${viaggioCorrenteId}_${b.id}`) || rip?.check_in || '';
         const cout = localStorage.getItem(`sv_cout_${viaggioCorrenteId}_${b.id}`) || rip?.check_out || '';
         const notti = (cin && cout) ? Math.round((new Date(cout) - new Date(cin)) / 86400000) : null;
         const tassaRaw = parseFloat(localStorage.getItem(`sv_tassa_${viaggioCorrenteId}_${b.id}`)) || 0;
-        const tassaTot = tassaRaw && notti ? tassaRaw * notti : 0;
-        const quotaAlloggio = quota?.quota_alloggio ?? parseFloat(b.importo_previsto) ?? 0;
-        const totaleQuota = quota ? quota.totale : (quotaAlloggio + tassaTot);
-        const poi = _caricaBudgetPoiLocale(b.id);
-        const stelle = _compGetStelle(b.id);
-        const punteggio = _compGetPunteggio(b.id);
-        const recMode = _compGetRecMode(b.id);
-        const servizi = _compGetServizi(b.id);
-        const serviziExtra = _compGetServiziExtra(b.id);
-        const dateStr = cin && cout ? `${_fmtD(cin)} → ${_fmtD(cout)}${notti ? ` · ${notti} nott${notti===1?'e':'i'}` : ''}` : '—';
-        const linkBtn = b.link_prenotazione ? `<a href="${_esc(b.link_prenotazione)}" target="_blank" style="font-size:11px;font-weight:800;color:rgba(255,255,255,.85);text-decoration:none">🔗 Prenotazione</a>` : '';
-        const recHtml = recMode === 'punteggio' && punteggio
-            ? `<span style="font-size:22px;font-weight:900;color:#5856d6">${punteggio.toFixed(1)}<span style="font-size:12px;font-weight:700;color:#aaa;margin-left:1px">/10</span></span>`
-            : [1,2,3,4,5].map(i => `<span style="font-size:20px">${i <= stelle ? '⭐' : '☆'}</span>`).join('');
-        const serviziHtml = [
-            ...COMP_SERVIZI.filter(s => servizi.includes(s.id)).map(s =>
-                `<span class="comp-servizio on" style="cursor:default">${s.emoji ? s.emoji + ' ' : ''}${s.label}</span>`),
-            ...serviziExtra.map(label =>
-                `<span class="comp-servizio on" style="cursor:default">${_esc(label)}</span>`),
-        ].join('') || '<span style="font-size:12px;color:#ccc;font-weight:600">—</span>';
-        const poiHtml = poi.length ? poi.map(p => {
-            const kmV = p.km ?? (p.unita === 'km' ? p.distanza : null);
-            const minV = p.min ?? (p.unita === 'min' ? p.distanza : null);
-            const dist = [kmV != null ? `${kmV}km` : null, minV != null ? `${minV}min` : null].filter(Boolean).join(' · ');
-            return `<div class="comp-poi-row">${_esc(p.nome)}${dist ? ` <span style="color:#aaa;font-weight:600">· ${dist}</span>` : ''}</div>`;
-        }).join('') : '<div style="font-size:11px;color:#ccc;font-weight:600">Nessun POI aggiunto</div>';
-        return `<div class="comp-card">
-            <div class="comp-card-head">
-                <div class="comp-card-nome">${_esc(b.titolo || '—')}</div>
-                <div class="comp-card-date">${dateStr}</div>
-                ${linkBtn ? `<div style="margin-top:5px">${linkBtn}</div>` : ''}
-            </div>
-            <div class="comp-card-body">
-                <div>
-                    <div class="comp-row-label">Costo totale mia quota</div>
-                    <div class="comp-costo">${vs}${totaleQuota.toFixed(2)}</div>
-                    ${tassaTot > 0 ? `<div style="font-size:11px;color:#aaa;font-weight:700;margin-top:2px">alloggio ${vs}${quotaAlloggio.toFixed(2)} + tassa ${vs}${tassaTot.toFixed(2)}</div>` : ''}
-                </div>
-                <div class="comp-divider"></div>
-                <div>
-                    <div class="comp-row-label">Recensione</div>
-                    <div style="margin-top:2px">${recHtml}</div>
-                </div>
-                <div class="comp-divider"></div>
-                <div>
-                    <div class="comp-row-label">Servizi</div>
-                    <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:4px">${serviziHtml}</div>
-                </div>
-                <div class="comp-divider"></div>
-                <div>
-                    <div class="comp-row-label">Punti di interesse</div>
-                    <div style="margin-top:4px">${poiHtml}</div>
-                </div>
-            </div>
-        </div>`;
-    }).join('');
+        const nPersone = ris.length || partecipantiAttuali.length || 1;
+        const costoAlloggio = rip?.costo || parseFloat(b.importo_previsto) || 0;
+        const costoTotale = ris.length
+            ? ris.reduce((s, r) => s + Number(r.totale), 0)
+            : costoAlloggio + (tassaRaw && notti ? tassaRaw * notti * nPersone : 0);
+        const quotaAlloggio = quota?.quota_alloggio ?? costoAlloggio;
+        const mioCosto = quota ? quota.totale : (quotaAlloggio + (tassaRaw && notti ? tassaRaw * notti : 0));
+        const dateStr = cin && cout ? `${_fmtD(cin)} → ${_fmtD(cout)}${notti ? ` · ${notti}n` : ''}` : '—';
+        return {
+            b, cin, cout, notti, costoTotale, mioCosto, dateStr,
+            stelle: _compGetStelle(b.id), punteggio: _compGetPunteggio(b.id), recMode: _compGetRecMode(b.id),
+            servizi: _compGetServizi(b.id), serviziExtra: _compGetServiziExtra(b.id),
+            poi: _caricaBudgetPoiLocale(b.id),
+        };
+    });
+
+    const N = rows.length;
+    const cols = `110px repeat(${N}, minmax(155px, 1fr))`;
+    const lbl = txt => `<div class="cmp-lbl">${txt}</div>`;
+    const td = html => `<div class="cmp-td">${html}</div>`;
+    const sep = () => `<div class="cmp-sep"></div>`;
+
+    // Collect all services present in at least one accommodation
+    const serviziPresenti = COMP_SERVIZI.filter(s => rows.some(r => r.servizi.includes(s.id)));
+    const extraPresenti = [...new Set(rows.flatMap(r => r.serviziExtra))];
+
+    let html = `<div class="cmp-grid" style="grid-template-columns:${cols}">`;
+
+    // ── Header ──────────────────────────────────────────────
+    html += `<div class="cmp-hd-empty"></div>`;
+    rows.forEach(r => {
+        const link = r.b.link_prenotazione
+            ? `<a href="${_esc(r.b.link_prenotazione)}" target="_blank" style="font-size:11px;font-weight:800;color:rgba(255,255,255,.8);text-decoration:none;display:block;margin-top:5px">🔗 Prenotazione</a>` : '';
+        html += `<div class="cmp-hd"><div style="font-weight:900;font-size:14px;line-height:1.3">${_esc(r.b.titolo||'—')}</div><div style="font-size:11px;opacity:.75;margin-top:3px">${r.dateStr}</div>${link}</div>`;
+    });
+
+    // ── Costi ────────────────────────────────────────────────
+    html += sep();
+    html += lbl('Costo totale');
+    rows.forEach(r => html += td(`<div style="font-size:20px;font-weight:900;color:#333">${vs}${r.costoTotale.toFixed(2)}</div>`));
+    html += lbl('Mio costo');
+    rows.forEach(r => html += td(`<div style="font-size:20px;font-weight:900;color:#5856d6">${vs}${r.mioCosto.toFixed(2)}</div>`));
+
+    // ── Recensione ───────────────────────────────────────────
+    html += sep();
+    html += lbl('Recensione');
+    rows.forEach(r => {
+        const rec = r.recMode === 'punteggio' && r.punteggio
+            ? `<span style="font-size:20px;font-weight:900;color:#5856d6">${r.punteggio.toFixed(1)}<span style="font-size:11px;color:#aaa">/10</span></span>`
+            : [1,2,3,4,5].map(i => `<span style="font-size:18px">${i <= r.stelle ? '⭐' : '☆'}</span>`).join('');
+        html += td(rec);
+    });
+
+    // ── Servizi (matrice) ────────────────────────────────────
+    html += sep();
+    if (serviziPresenti.length || extraPresenti.length) {
+        serviziPresenti.forEach(s => {
+            html += lbl(s.label);
+            rows.forEach(r => html += td(r.servizi.includes(s.id)
+                ? `<span class="cmp-srv-y">✓</span>`
+                : `<span class="cmp-srv-n">—</span>`));
+        });
+        extraPresenti.forEach(label => {
+            html += lbl(_esc(label));
+            rows.forEach(r => html += td(r.serviziExtra.includes(label)
+                ? `<span class="cmp-srv-y">✓</span>`
+                : `<span class="cmp-srv-n">—</span>`));
+        });
+    } else {
+        html += lbl('Servizi');
+        rows.forEach(() => html += td('<span style="color:#ccc;font-size:12px">—</span>'));
+    }
+
+    // ── Punti di interesse ───────────────────────────────────
+    html += sep();
+    html += lbl('POI');
+    rows.forEach(r => {
+        const poiHtml = r.poi.length
+            ? r.poi.map(p => {
+                const dist = _poiDistLabel(p);
+                return `<div style="font-size:12px;font-weight:700;padding:3px 0;border-bottom:1px solid var(--grey-light);color:#555">${_esc(p.nome)}${dist ? ` <span style="color:#aaa">· ${dist}</span>` : ''}</div>`;
+            }).join('')
+            : '<span style="font-size:11px;color:#ccc;font-weight:600">—</span>';
+        html += td(poiHtml);
+    });
+
+    html += '</div>';
+    el.innerHTML = html;
 }
 function apriComparatoreAlloggi() { renderComparatore(); document.getElementById('modalComparatoreAlloggi').classList.add('open'); }
 
