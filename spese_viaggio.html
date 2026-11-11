@@ -4917,6 +4917,8 @@ function _compGetServizi(id) { try { return JSON.parse(localStorage.getItem(`sv_
 function _compSetServizi(id, arr) { localStorage.setItem(`sv_srv_${viaggioCorrenteId}_${id}`, JSON.stringify(arr)); }
 function _compGetServiziExtra(id) { try { return JSON.parse(localStorage.getItem(`sv_srv_extra_${viaggioCorrenteId}_${id}`) || '[]'); } catch { return []; } }
 function _compSetServiziExtra(id, arr) { localStorage.setItem(`sv_srv_extra_${viaggioCorrenteId}_${id}`, JSON.stringify(arr)); }
+function _compGetPostiLetto(id) { return parseInt(localStorage.getItem(`sv_pl_${viaggioCorrenteId}_${id}`)) || 0; }
+function _compSetPostiLetto(id, v) { localStorage.setItem(`sv_pl_${viaggioCorrenteId}_${id}`, Math.max(0, v)); }
 function _compGetStelle(id) { return parseInt(localStorage.getItem(`sv_stelle_${viaggioCorrenteId}_${id}`)) || 0; }
 function _compSetStelle(id, v) { localStorage.setItem(`sv_stelle_${viaggioCorrenteId}_${id}`, v); }
 function _compGetPunteggio(id) { return parseFloat(localStorage.getItem(`sv_punteggio_${viaggioCorrenteId}_${id}`)) || 0; }
@@ -4969,8 +4971,14 @@ function _savePunteggio() {
 function _renderBServiziModal(id) {
     const servizi = _compGetServizi(id);
     const extra = _compGetServiziExtra(id);
+    const pl = _compGetPostiLetto(id);
     const box = document.getElementById('bServiziBox');
     if (!box) return;
+    const on = pl > 0;
+    const plHtml = `<span class="comp-servizio${on ? ' on' : ''}" style="gap:6px">Posti letto` +
+        `<button type="button" onclick="_plAdj(-1)" style="background:none;border:none;cursor:pointer;font-size:14px;font-weight:900;padding:0;color:inherit;line-height:1;width:16px">−</button>` +
+        `<span style="min-width:14px;text-align:center;font-size:13px">${on ? pl : '—'}</span>` +
+        `<button type="button" onclick="_plAdj(1)" style="background:none;border:none;cursor:pointer;font-size:14px;font-weight:900;padding:0;color:inherit;line-height:1;width:16px">＋</button></span>`;
     const stdHtml = COMP_SERVIZI.map(s =>
         `<button type="button" class="comp-servizio${servizi.includes(s.id) ? ' on' : ''}" onclick="_toggleBServizio('${s.id}')">${s.emoji ? s.emoji + ' ' : ''}${s.label}</button>`
     ).join('');
@@ -4978,7 +4986,13 @@ function _renderBServiziModal(id) {
         `<span class="comp-servizio on" style="display:inline-flex;align-items:center;gap:3px">${_esc(label)}<button type="button" onclick="_rimuoviServizioExtra(${i})" style="background:none;border:none;cursor:pointer;font-size:11px;padding:0;color:#5856d6;line-height:1;margin-left:2px">✕</button></span>`
     ).join('');
     const addBtn = `<button type="button" onclick="_mostraInputServizio()" class="comp-servizio" style="color:#5856d6;border-style:dashed;border-color:#5856d6">＋ Aggiungi</button>`;
-    box.innerHTML = stdHtml + extraHtml + addBtn;
+    box.innerHTML = plHtml + stdHtml + extraHtml + addBtn;
+}
+function _plAdj(delta) {
+    const id = budgetItemEditId;
+    if (!id) return;
+    _compSetPostiLetto(id, _compGetPostiLetto(id) + delta);
+    _renderBServiziModal(id);
 }
 function _toggleBServizio(srvId) {
     _compToggleServizio(budgetItemEditId, srvId);
@@ -5042,7 +5056,7 @@ function renderComparatore() {
         return {
             b, cin, cout, notti, costoTotale, mioCosto, dateStr,
             stelle: _compGetStelle(b.id), punteggio: _compGetPunteggio(b.id), recMode: _compGetRecMode(b.id),
-            servizi: _compGetServizi(b.id), serviziExtra: _compGetServiziExtra(b.id),
+            servizi: _compGetServizi(b.id), serviziExtra: _compGetServiziExtra(b.id), postiLetto: _compGetPostiLetto(b.id),
             poi: _caricaBudgetPoiLocale(b.id),
         };
     });
@@ -5098,6 +5112,12 @@ function renderComparatore() {
 
     // ── Servizi (matrice) ────────────────────────────────────
     html += sep();
+    if (rows.some(r => r.postiLetto > 0)) {
+        html += lbl('Posti letto');
+        rows.forEach(r => html += td(r.postiLetto > 0
+            ? `<span style="font-size:18px;font-weight:900;color:#333">${r.postiLetto}</span>`
+            : `<span class="cmp-srv-n">—</span>`));
+    }
     if (serviziPresenti.length || extraPresenti.length) {
         serviziPresenti.forEach(s => {
             html += lbl(s.label);
