@@ -1232,7 +1232,14 @@
             <div id="bPoiList"></div>
             <div style="height:1px;background:var(--grey);margin:14px 0 10px"></div>
             <label class="form-label">Recensione</label>
+            <div style="display:flex;gap:6px;margin-bottom:8px">
+                <button class="period-pill active" id="bRecModeStelle" onclick="_setRecMode('stelle')">⭐ Stelle</button>
+                <button class="period-pill" id="bRecModePunteggio" onclick="_setRecMode('punteggio')">🔢 Punteggio</button>
+            </div>
             <div id="bStelleBox" style="display:flex;gap:2px;margin-bottom:14px"></div>
+            <div id="bPunteggioBox" style="display:none;margin-bottom:14px">
+                <input class="form-input" id="bPunteggio" type="number" min="1" max="10" step="0.1" placeholder="es. 8.5" style="margin:0;width:130px" oninput="_savePunteggio()">
+            </div>
             <label class="form-label">Servizi disponibili</label>
             <div id="bServiziBox" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:4px"></div>
         </div>
@@ -4893,6 +4900,10 @@ function _compGetServizi(id) { try { return JSON.parse(localStorage.getItem(`sv_
 function _compSetServizi(id, arr) { localStorage.setItem(`sv_srv_${viaggioCorrenteId}_${id}`, JSON.stringify(arr)); }
 function _compGetStelle(id) { return parseInt(localStorage.getItem(`sv_stelle_${viaggioCorrenteId}_${id}`)) || 0; }
 function _compSetStelle(id, v) { localStorage.setItem(`sv_stelle_${viaggioCorrenteId}_${id}`, v); }
+function _compGetPunteggio(id) { return parseFloat(localStorage.getItem(`sv_punteggio_${viaggioCorrenteId}_${id}`)) || 0; }
+function _compSetPunteggio(id, v) { localStorage.setItem(`sv_punteggio_${viaggioCorrenteId}_${id}`, v); }
+function _compGetRecMode(id) { return localStorage.getItem(`sv_recmode_${viaggioCorrenteId}_${id}`) || 'stelle'; }
+function _compSetRecMode(id, v) { localStorage.setItem(`sv_recmode_${viaggioCorrenteId}_${id}`, v); }
 function _compToggleServizio(id, srvId) {
     const arr = _compGetServizi(id);
     const idx = arr.indexOf(srvId);
@@ -4900,16 +4911,41 @@ function _compToggleServizio(id, srvId) {
     _compSetServizi(id, arr);
 }
 function _renderBStelle(id) {
-    const stelle = _compGetStelle(id);
-    const box = document.getElementById('bStelleBox');
-    if (!box) return;
-    box.innerHTML = [1,2,3,4,5].map(i =>
-        `<button type="button" style="background:none;border:none;font-size:26px;cursor:pointer;padding:2px;line-height:1" onclick="_setBStella(${i === stelle ? 0 : i})">${i <= stelle ? '⭐' : '☆'}</button>`
-    ).join('');
+    const mode = _compGetRecMode(id);
+    document.getElementById('bRecModeStelle')?.classList.toggle('active', mode === 'stelle');
+    document.getElementById('bRecModePunteggio')?.classList.toggle('active', mode === 'punteggio');
+    const stelleBox = document.getElementById('bStelleBox');
+    const puntBox = document.getElementById('bPunteggioBox');
+    if (mode === 'punteggio') {
+        if (stelleBox) stelleBox.style.display = 'none';
+        if (puntBox) {
+            puntBox.style.display = '';
+            const v = _compGetPunteggio(id);
+            const inp = document.getElementById('bPunteggio');
+            if (inp) inp.value = v || '';
+        }
+    } else {
+        if (puntBox) puntBox.style.display = 'none';
+        if (stelleBox) {
+            stelleBox.style.display = 'flex';
+            const stelle = _compGetStelle(id);
+            stelleBox.innerHTML = [1,2,3,4,5].map(i =>
+                `<button type="button" style="background:none;border:none;font-size:26px;cursor:pointer;padding:2px;line-height:1" onclick="_setBStella(${i === stelle ? 0 : i})">${i <= stelle ? '⭐' : '☆'}</button>`
+            ).join('');
+        }
+    }
 }
 function _setBStella(v) {
     _compSetStelle(budgetItemEditId, v);
     _renderBStelle(budgetItemEditId);
+}
+function _setRecMode(mode) {
+    _compSetRecMode(budgetItemEditId, mode);
+    _renderBStelle(budgetItemEditId);
+}
+function _savePunteggio() {
+    const v = parseFloat(document.getElementById('bPunteggio')?.value);
+    if (!isNaN(v) && v >= 1 && v <= 10) _compSetPunteggio(budgetItemEditId, parseFloat(v.toFixed(1)));
 }
 function _renderBServiziModal(id) {
     const servizi = _compGetServizi(id);
@@ -4940,12 +4976,14 @@ function renderComparatore() {
         const totaleQuota = quota ? quota.totale : (quotaAlloggio + tassaTot);
         const poi = _caricaBudgetPoiLocale(b.id);
         const stelle = _compGetStelle(b.id);
+        const punteggio = _compGetPunteggio(b.id);
+        const recMode = _compGetRecMode(b.id);
         const servizi = _compGetServizi(b.id);
         const dateStr = cin && cout ? `${_fmtD(cin)} → ${_fmtD(cout)}${notti ? ` · ${notti} nott${notti===1?'e':'i'}` : ''}` : '—';
         const linkBtn = b.link_prenotazione ? `<a href="${_esc(b.link_prenotazione)}" target="_blank" style="font-size:11px;font-weight:800;color:rgba(255,255,255,.85);text-decoration:none">🔗 Prenotazione</a>` : '';
-        const stelleHtml = [1,2,3,4,5].map(i =>
-            `<span style="font-size:20px">${i <= stelle ? '⭐' : '☆'}</span>`
-        ).join('');
+        const recHtml = recMode === 'punteggio' && punteggio
+            ? `<span style="font-size:22px;font-weight:900;color:#5856d6">${punteggio.toFixed(1)}<span style="font-size:12px;font-weight:700;color:#aaa;margin-left:1px">/10</span></span>`
+            : [1,2,3,4,5].map(i => `<span style="font-size:20px">${i <= stelle ? '⭐' : '☆'}</span>`).join('');
         const serviziHtml = COMP_SERVIZI.filter(s => servizi.includes(s.id)).map(s =>
             `<span class="comp-servizio on" style="cursor:default">${s.emoji} ${s.label}</span>`
         ).join('') || '<span style="font-size:12px;color:#ccc;font-weight:600">—</span>';
@@ -4970,7 +5008,7 @@ function renderComparatore() {
                 <div class="comp-divider"></div>
                 <div>
                     <div class="comp-row-label">Recensione</div>
-                    <div style="margin-top:2px">${stelleHtml}</div>
+                    <div style="margin-top:2px">${recHtml}</div>
                 </div>
                 <div class="comp-divider"></div>
                 <div>
@@ -5653,8 +5691,14 @@ async function _autocompilaAlloggio() {
         const id = budgetItemEditId;
         const trovati = [];
 
-        if (data.stelle) {
+        if (data.punteggio) {
+            _compSetPunteggio(id, data.punteggio);
+            _compSetRecMode(id, 'punteggio');
+            if (budgetCatScelta === 'alloggio') _renderBStelle(id);
+            trovati.push(`voto ${data.punteggio.toFixed(1)}/10${data.recensioni ? ` (${data.recensioni} rec.)` : ''}`);
+        } else if (data.stelle) {
             _compSetStelle(id, data.stelle);
+            _compSetRecMode(id, 'stelle');
             if (budgetCatScelta === 'alloggio') _renderBStelle(id);
             trovati.push(`${data.stelle}⭐`);
         }
@@ -5666,9 +5710,6 @@ async function _autocompilaAlloggio() {
         if (data.indirizzo) {
             const addrEl = document.getElementById('bAlloggioAddr');
             if (addrEl && !addrEl.value) { addrEl.value = data.indirizzo; trovati.push('indirizzo'); }
-        }
-        if (data.punteggio && data.recensioni) {
-            trovati.push(`voto ${data.punteggio} (${data.recensioni} rec.)`);
         }
 
         if (trovati.length) toast(`✓ ${trovati.join(' · ')}`);
