@@ -1254,7 +1254,7 @@
 
         <button class="btn-save-modal" style="background:var(--green);margin-top:10px" onclick="salvaBudgetItem()">SALVA</button>
         <button class="btn-save-modal" id="btnEliminaBudget" style="display:none;background:#fff0f0;color:var(--red);border:2px solid #fcc;margin-top:8px" onclick="eliminaBudgetItemModal()">ELIMINA</button>
-        <button style="width:100%;padding:14px;border-radius:14px;border:2px solid var(--grey);background:var(--white);font-weight:800;font-size:15px;cursor:pointer;font-family:inherit;margin-top:8px;color:#aaa" onclick="document.getElementById('modalBudgetItem').classList.remove('open')">Chiudi</button>
+        <button style="width:100%;padding:14px;border-radius:14px;border:2px solid var(--grey);background:var(--white);font-weight:800;font-size:15px;cursor:pointer;font-family:inherit;margin-top:8px;color:#aaa" onclick="chiudiModalBudget()">Chiudi</button>
     </div>
 </div>
 
@@ -5163,6 +5163,56 @@ function budgetPerChiLabel(b) {
     return '';
 }
 
+let _budgetSnapshot = null;
+function _budgetTakeSnapshot() {
+    _budgetSnapshot = {
+        titolo:    document.getElementById('bTitolo')?.value || '',
+        importo:   document.getElementById('bImporto')?.value || '',
+        note:      document.getElementById('bNote')?.value || '',
+        link:      document.getElementById('bLinkPrenotazione')?.value || '',
+        addr:      document.getElementById('bAlloggioAddr')?.value || '',
+        tassa:     document.getElementById('bTassaSoggiorno')?.value || '',
+        tassaN:    document.getElementById('bTassaNotti')?.value || '',
+        cin:       document.getElementById('bCheckIn')?.value || '',
+        cout:      document.getElementById('bCheckOut')?.value || '',
+        valuta:    document.getElementById('bValuta')?.value || '',
+        cat:       budgetCatScelta,
+        stato:     budgetStatoScelto,
+        mode:      budgetAlloggioMode,
+        perChi:    budgetPerChi,
+    };
+}
+function _budgetHasChanges() {
+    if (!_budgetSnapshot) return false;
+    const curr = {
+        titolo:    document.getElementById('bTitolo')?.value || '',
+        importo:   document.getElementById('bImporto')?.value || '',
+        note:      document.getElementById('bNote')?.value || '',
+        link:      document.getElementById('bLinkPrenotazione')?.value || '',
+        addr:      document.getElementById('bAlloggioAddr')?.value || '',
+        tassa:     document.getElementById('bTassaSoggiorno')?.value || '',
+        tassaN:    document.getElementById('bTassaNotti')?.value || '',
+        cin:       document.getElementById('bCheckIn')?.value || '',
+        cout:      document.getElementById('bCheckOut')?.value || '',
+        valuta:    document.getElementById('bValuta')?.value || '',
+        cat:       budgetCatScelta,
+        stato:     budgetStatoScelto,
+        mode:      budgetAlloggioMode,
+        perChi:    budgetPerChi,
+    };
+    return JSON.stringify(curr) !== JSON.stringify(_budgetSnapshot);
+}
+async function chiudiModalBudget() {
+    if (_budgetHasChanges()) {
+        const salva = confirm('Hai modifiche non salvate.\nVuoi salvare prima di chiudere?');
+        if (salva) {
+            await salvaBudgetItem();
+        }
+    }
+    _budgetSnapshot = null;
+    document.getElementById('modalBudgetItem').classList.remove('open');
+}
+
 function apriModalNuovoBudgetItem() {
     budgetItemEditId = null;
     budgetCatScelta = 'altro';
@@ -5187,7 +5237,7 @@ function apriModalNuovoBudgetItem() {
     setBudgetPerChi('tutti');
     renderBudgetCatRow();
     document.getElementById('modalBudgetItem').classList.add('open');
-    setTimeout(() => document.getElementById('bTitolo').focus(), 300);
+    setTimeout(() => { _budgetTakeSnapshot(); document.getElementById('bTitolo').focus(); }, 50);
 }
 
 function apriModalEditBudgetItem(id) {
@@ -5221,6 +5271,7 @@ function apriModalEditBudgetItem(id) {
     _aggiornaTassaTotale();
     if (b.categoria === 'alloggio') { _renderBStelle(id); _renderBServiziModal(id); }
     document.getElementById('modalBudgetItem').classList.add('open');
+    setTimeout(_budgetTakeSnapshot, 50);
 }
 
 function _renderRipPreviewInModal(itemId) {
@@ -5309,8 +5360,9 @@ async function salvaBudgetItem() {
         const rows = await res.json();
         savedId = rows[0]?.id || null;
     }
-    if (savedId) _salvaBudgetPoiLocale(savedId);
+    if (savedId) { budgetItemEditId = savedId; _salvaBudgetPoiLocale(savedId); }
     toast('✓ Salvato');
+    _budgetTakeSnapshot();
     await caricaBudget();
     renderBudget();
 }
