@@ -5100,7 +5100,7 @@ function renderComparatore() {
     }
 
     // ── Punti di interesse (una riga per POI, come i servizi) ────
-    const allPoiNames = [...new Set(rows.flatMap(r => r.poi.map(p => p.nome)))];
+    const allPoiNames = [...new Set(rows.flatMap(r => r.poi.map(p => p.nome)))].sort((a, b) => a.localeCompare(b, 'it'));
     if (allPoiNames.length) {
         html += sep();
         allPoiNames.forEach(nome => {
@@ -5111,11 +5111,11 @@ function renderComparatore() {
                     const kmV = p.km ?? (p.unita === 'km' ? p.distanza : null);
                     const minV = p.min ?? (p.unita === 'min' ? p.distanza : null);
                     const m = POI_MEZZI.find(x => x.id === p.mezzo);
-                    const parts = [];
-                    if (kmV != null) parts.push(`<span style="color:#5856d6;font-weight:800">${kmV}km</span>`);
-                    if (minV != null) parts.push(`<span style="color:#0fba8d;font-weight:800">${minV}min</span>`);
-                    const distHtml = parts.length ? `<div style="font-size:11px;font-weight:700;margin-top:3px">${m ? m.emoji + ' ' : ''}${parts.join(' ')}</div>` : '';
-                    html += td(`<span class="cmp-srv-y" style="font-size:16px">✓</span>${distHtml}`);
+                    const kmHtml  = kmV  != null ? `<div style="font-size:14px;font-weight:900;color:#5856d6">${kmV}km</div>` : '';
+                    const botHtml = (m || minV != null)
+                        ? `<div style="font-size:12px;font-weight:800;color:#555;margin-top:2px">${m ? m.emoji + ' ' : ''}<span style="color:#0fba8d">${minV != null ? minV + 'min' : ''}</span></div>`
+                        : '';
+                    html += td(kmHtml || botHtml ? kmHtml + botHtml : '<span class="cmp-srv-n">·</span>');
                 } else {
                     html += td(`<span class="cmp-srv-n">—</span>`);
                 }
