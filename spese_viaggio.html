@@ -4977,14 +4977,17 @@ function _renderBStelle(id) {
     }
 }
 function _setBStella(v) {
+    if (!budgetItemEditId) return;
     _compSetStelle(budgetItemEditId, v);
     _renderBStelle(budgetItemEditId);
 }
 function _setRecMode(mode) {
+    if (!budgetItemEditId) return;
     _compSetRecMode(budgetItemEditId, mode);
     _renderBStelle(budgetItemEditId);
 }
 function _savePunteggio() {
+    if (!budgetItemEditId) return;
     const v = parseFloat(document.getElementById('bPunteggio')?.value);
     if (!isNaN(v) && v >= 1 && v <= 10) _compSetPunteggio(budgetItemEditId, parseFloat(v.toFixed(1)));
 }
@@ -5029,6 +5032,7 @@ function _plAdj(delta) {
     _renderBPostiLetto(id);
 }
 function _toggleBServizio(srvId) {
+    if (!budgetItemEditId) return;
     _compToggleServizio(budgetItemEditId, srvId);
     _renderBServiziModal(budgetItemEditId);
 }
@@ -5045,7 +5049,7 @@ function _nascondiInputServizio() {
 function _confermaServizioExtra() {
     const inp = document.getElementById('bServizioInput');
     const label = inp?.value.trim();
-    if (!label) { _nascondiInputServizio(); return; }
+    if (!label || !budgetItemEditId) { _nascondiInputServizio(); return; }
     const id = budgetItemEditId;
     const extra = _compGetServiziExtra(id);
     if (!extra.includes(label)) { extra.push(label); _compSetServiziExtra(id, extra); }
@@ -5053,6 +5057,7 @@ function _confermaServizioExtra() {
     _renderBServiziModal(id);
 }
 function _rimuoviServizioExtra(idx) {
+    if (!budgetItemEditId) return;
     const id = budgetItemEditId;
     const extra = _compGetServiziExtra(id);
     extra.splice(idx, 1);
@@ -5083,7 +5088,7 @@ function renderComparatore() {
         const nPersone = ris.length || partecipantiAttuali.length || 1;
         const costoAlloggio = rip?.costo || parseFloat(b.importo_previsto) || 0;
         const costoTotale = ris.length
-            ? ris.reduce((s, r) => s + Number(r.totale), 0)
+            ? ris.reduce((s, r) => s + (Number(r.totale) || 0), 0)
             : costoAlloggio;
         const mioCosto = quota ? quota.totale : parseFloat(b.importo_previsto) || 0;
         const dateStr = cin && cout ? `${_fmtD(cin)} → ${_fmtD(cout)}${notti ? ` · ${notti}n` : ''}` : '—';
@@ -5907,6 +5912,7 @@ function _caricaAddrLocale(itemId) {
 // POI memoria viaggio (suggerimenti tra alloggi)
 let _poiSuggestList = [];
 function _poiViaggioGet() {
+    if (!viaggioCorrenteId) return [];
     try { return JSON.parse(localStorage.getItem(`sv_poi_viaggio_${viaggioCorrenteId}`) || '[]'); } catch { return []; }
 }
 function _poiViaggioSave(entry) {
@@ -5987,6 +5993,7 @@ function _apreLinkPrenotazione() {
 async function _autocompilaAlloggio() {
     const link = document.getElementById('bLinkPrenotazione').value.trim();
     if (!link) { toast('Inserisci prima un link'); return; }
+    if (!budgetItemEditId) { toast('Salva la voce prima di auto-compilare'); return; }
     const btn = document.getElementById('bBtnAutocompila');
     btn.textContent = '⏳'; btn.disabled = true;
     try {
