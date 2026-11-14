@@ -1178,6 +1178,7 @@
         function saveOrder() {
             const ids = [...document.querySelectorAll('#menuGrid [data-id]')].map(el => el.dataset.id);
             localStorage.setItem(ORDER_KEY, JSON.stringify(ids));
+            salvaPreferenzeProfilo();
         }
 
         function toggleEditMode() {
@@ -1257,6 +1258,7 @@
             hidden = visible ? hidden.filter(h => h !== id) : [...new Set([...hidden, id])];
             localStorage.setItem(HIDDEN_KEY, JSON.stringify(hidden));
             applyHidden();
+            salvaPreferenzeProfilo();
         }
 
         // ── Colori sezioni (per-user) ─────────────────────────────────────
@@ -1348,15 +1350,22 @@
             if (dalSelettore) aggiornaAnteprima(document.querySelector(`#menuGrid [data-id="${paletteId}"]`));
             else chiudiPalette();
         }
-        // Sincronizzazione col profilo Supabase (colonna profili.home_colori), così i colori
-        // seguono l'account su tutti i dispositivi. localStorage resta la copia immediata/offline.
-        let salvaColoriTimer = null;
-        function salvaColoriProfilo() {
-            clearTimeout(salvaColoriTimer); // il selettore libero chiama di continuo: si salva a fine scelta
-            salvaColoriTimer = setTimeout(async () => {
+        // Sincronizzazione col profilo Supabase (colonna profili.home_colori).
+        // Formato versionato: { _v:2, colori:{...}, ordine:[...], nascosti:[...] }
+        // Così ordine e sezioni nascoste seguono l'account su tutti i dispositivi.
+        // localStorage resta la copia immediata/offline.
+        let _prefTimer = null;
+        function salvaPreferenzeProfilo() {
+            clearTimeout(_prefTimer);
+            _prefTimer = setTimeout(async () => {
                 const email = localStorage.getItem('userEmail');
                 if (!email) return;
-                const home_colori = getColors();
+                const home_colori = {
+                    _v: 2,
+                    colori:   getColors(),
+                    ordine:   JSON.parse(localStorage.getItem(ORDER_KEY)  || '[]'),
+                    nascosti: JSON.parse(localStorage.getItem(HIDDEN_KEY) || '[]'),
+                };
                 try {
                     const { data, error } = await supabaseClient.from('profili')
                         .update({ home_colori }).eq('email_utente', email).select('email_utente');
@@ -1365,10 +1374,13 @@
                         const { error: insErr } = await supabaseClient.from('profili').insert({ email_utente: email, home_colori });
                         if (insErr) throw insErr;
                     }
-                } catch (e) { console.warn('Colori non salvati nel profilo:', e?.message || e); }
+                } catch (e) { console.warn('Preferenze non salvate nel profilo:', e?.message || e); }
             }, 600);
         }
-        async function caricaColoriProfilo() {
+        // Alias per compatibilità con chiamate esistenti a salvaColoriProfilo()
+        function salvaColoriProfilo() { salvaPreferenzeProfilo(); }
+
+        async function caricaPreferenzeProfilo() {
             const email = localStorage.getItem('userEmail');
             if (!email) return;
             try {
@@ -1376,12 +1388,36 @@
                     .select('home_colori').eq('email_utente', email).limit(1).maybeSingle();
                 if (error) throw error;
                 if (data?.home_colori && typeof data.home_colori === 'object') {
-                    localStorage.setItem(COLORS_KEY, JSON.stringify(data.home_colori));
-                    applyColors();
-                } else if (Object.keys(getColors()).length) {
-                    salvaColoriProfilo(); // colori scelti prima della sincronizzazione: li porta nel profilo
+                    const pref = data.home_colori;
+                    if (pref._v === 2) {
+                        // Formato nuovo: colori + ordine + nascosti
+                        if (pref.colori && Object.keys(pref.colori).length) {
+                            localStorage.setItem(COLORS_KEY, JSON.stringify(pref.colori));
+                            applyColors();
+                        }
+                        if (Array.isArray(pref.ordine) && pref.ordine.length) {
+                            localStorage.setItem(ORDER_KEY, JSON.stringify(pref.ordine));
+                            applyOrder();
+                        }
+                        if (Array.isArray(pref.nascosti)) {
+                            localStorage.setItem(HIDDEN_KEY, JSON.stringify(pref.nascosti));
+                            applyHidden();
+                        }
+                    } else {
+                        // Formato vecchio: solo colori, compatibilità backward
+                        localStorage.setItem(COLORS_KEY, JSON.stringify(pref));
+                        applyColors();
+                        // Porta i dati locali nel nuovo formato al prossimo salvataggio
+                        salvaPreferenzeProfilo();
+                    }
+                } else {
+                    // Nessun dato remoto: se ci sono preferenze locali, le porta nel profilo
+                    const hasColors  = Object.keys(getColors()).length > 0;
+                    const hasOrder   = JSON.parse(localStorage.getItem(ORDER_KEY) || '[]').length > 0;
+                    const hasHidden  = JSON.parse(localStorage.getItem(HIDDEN_KEY) || '[]').length > 0;
+                    if (hasColors || hasOrder || hasHidden) salvaPreferenzeProfilo();
                 }
-            } catch (e) { console.warn('Colori dal profilo non disponibili:', e?.message || e); }
+            } catch (e) { console.warn('Preferenze dal profilo non disponibili:', e?.message || e); }
         }
 
         function ripristinaTuttiColori() {
@@ -1480,7 +1516,7 @@
         applyView();
         applyHidden();
         applyColors();
-        caricaColoriProfilo();
+        caricaPreferenzeProfilo();
 
         const sortable = Sortable.create(document.getElementById('menuGrid'), {
             animation: 200,
