@@ -406,11 +406,16 @@ const STATEMENTS = [
         risultati jsonb default '[]',
         costo numeric,
         tassa numeric,
+        check_in date,
+        check_out date,
         created_at timestamptz not null default now()
     )`,
     `CREATE UNIQUE INDEX IF NOT EXISTS sv_ripartizione_budget_uniq ON sv_ripartizione(budget_item_id)`,
     `ALTER TABLE IF EXISTS sv_ripartizione DISABLE ROW LEVEL SECURITY`,
+    `ALTER TABLE IF EXISTS sv_ripartizione ADD COLUMN IF NOT EXISTS check_in date`,
+    `ALTER TABLE IF EXISTS sv_ripartizione ADD COLUMN IF NOT EXISTS check_out date`,
     `ALTER TABLE IF EXISTS sv_budget ADD COLUMN IF NOT EXISTS indirizzo_alloggio text`,
+    `ALTER TABLE IF EXISTS sv_budget ADD COLUMN IF NOT EXISTS alloggio_dettagli jsonb`,
     `INSERT INTO storage.buckets (id, name, public) VALUES ('documenti-foto', 'documenti-foto', true) ON CONFLICT DO NOTHING`,
     `DO $$ BEGIN
         IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='objects' AND schemaname='storage' AND policyname='allow upload documenti-foto') THEN

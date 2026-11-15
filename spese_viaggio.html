@@ -4781,6 +4781,11 @@ async function caricaBudget() {
     const rips = await apiGetArr(`/sv_ripartizione?viaggio_id=eq.${viaggioCorrenteId}`);
     ripartizioniCache = {};
     rips.forEach(r => { ripartizioniCache[r.budget_item_id] = r; });
+    // Sync cloud dettagli → localStorage (cross-device recovery)
+    budgetAttuale.filter(b => b.categoria === 'alloggio' && b.alloggio_dettagli)
+        .forEach(b => _scriviAlloggioDettagliLocale(b.id, b.alloggio_dettagli));
+    // Push localStorage → cloud for items that have no cloud data yet
+    _migraAlloggioDettagliSuSupabase();
 }
 
 function _budgetVisibileAVediCome(b) {
@@ -4945,6 +4950,86 @@ function _compGetPunteggio(id) { return parseFloat(localStorage.getItem(`sv_punt
 function _compSetPunteggio(id, v) { localStorage.setItem(`sv_punteggio_${viaggioCorrenteId}_${id}`, v); }
 function _compGetRecMode(id) { return localStorage.getItem(`sv_recmode_${viaggioCorrenteId}_${id}`) || 'stelle'; }
 function _compSetRecMode(id, v) { localStorage.setItem(`sv_recmode_${viaggioCorrenteId}_${id}`, v); }
+
+function _leggiAlloggioDettagliLocale(id) {
+    if (!id || !viaggioCorrenteId) return {};
+    const d = {};
+    const poi = localStorage.getItem(`sv_poi_${viaggioCorrenteId}_${id}`);
+    if (poi) try { d.poi = JSON.parse(poi); } catch {}
+    const addr = localStorage.getItem(`sv_addr_${viaggioCorrenteId}_${id}`);
+    if (addr) d.addr = addr;
+    const tassa = localStorage.getItem(`sv_tassa_${viaggioCorrenteId}_${id}`);
+    if (tassa) d.tassa = tassa;
+    const tassaNotti = localStorage.getItem(`sv_tassa_notti_${viaggioCorrenteId}_${id}`);
+    if (tassaNotti) d.tassaNotti = tassaNotti;
+    const cin = localStorage.getItem(`sv_cin_${viaggioCorrenteId}_${id}`);
+    if (cin) d.cin = cin;
+    const cout = localStorage.getItem(`sv_cout_${viaggioCorrenteId}_${id}`);
+    if (cout) d.cout = cout;
+    const allomode = localStorage.getItem(`sv_allomode_${viaggioCorrenteId}_${id}`);
+    if (allomode) d.allomode = allomode;
+    const srv = localStorage.getItem(`sv_srv_${viaggioCorrenteId}_${id}`);
+    if (srv) try { d.servizi = JSON.parse(srv); } catch {}
+    const srvExtra = localStorage.getItem(`sv_srv_extra_${viaggioCorrenteId}_${id}`);
+    if (srvExtra) try { d.serviziExtra = JSON.parse(srvExtra); } catch {}
+    const pl = localStorage.getItem(`sv_pl_${viaggioCorrenteId}_${id}`);
+    if (pl) d.postiLetto = parseInt(pl);
+    const bagni = localStorage.getItem(`sv_bagni_${viaggioCorrenteId}_${id}`);
+    if (bagni) d.bagni = parseInt(bagni);
+    const stelle = localStorage.getItem(`sv_stelle_${viaggioCorrenteId}_${id}`);
+    if (stelle) d.stelle = parseInt(stelle);
+    const punteggio = localStorage.getItem(`sv_punteggio_${viaggioCorrenteId}_${id}`);
+    if (punteggio) d.punteggio = parseFloat(punteggio);
+    const recMode = localStorage.getItem(`sv_recmode_${viaggioCorrenteId}_${id}`);
+    if (recMode) d.recMode = recMode;
+    return d;
+}
+function _scriviAlloggioDettagliLocale(id, d) {
+    if (!id || !viaggioCorrenteId || !d) return;
+    if (d.poi !== undefined) localStorage.setItem(`sv_poi_${viaggioCorrenteId}_${id}`, JSON.stringify(d.poi));
+    if (d.addr !== undefined) localStorage.setItem(`sv_addr_${viaggioCorrenteId}_${id}`, d.addr);
+    if (d.tassa !== undefined) localStorage.setItem(`sv_tassa_${viaggioCorrenteId}_${id}`, d.tassa);
+    if (d.tassaNotti !== undefined) localStorage.setItem(`sv_tassa_notti_${viaggioCorrenteId}_${id}`, d.tassaNotti);
+    if (d.cin !== undefined) localStorage.setItem(`sv_cin_${viaggioCorrenteId}_${id}`, d.cin);
+    if (d.cout !== undefined) localStorage.setItem(`sv_cout_${viaggioCorrenteId}_${id}`, d.cout);
+    if (d.allomode !== undefined) localStorage.setItem(`sv_allomode_${viaggioCorrenteId}_${id}`, d.allomode);
+    if (d.servizi !== undefined) localStorage.setItem(`sv_srv_${viaggioCorrenteId}_${id}`, JSON.stringify(d.servizi));
+    if (d.serviziExtra !== undefined) localStorage.setItem(`sv_srv_extra_${viaggioCorrenteId}_${id}`, JSON.stringify(d.serviziExtra));
+    if (d.postiLetto !== undefined) localStorage.setItem(`sv_pl_${viaggioCorrenteId}_${id}`, d.postiLetto);
+    if (d.bagni !== undefined) localStorage.setItem(`sv_bagni_${viaggioCorrenteId}_${id}`, d.bagni);
+    if (d.stelle !== undefined) localStorage.setItem(`sv_stelle_${viaggioCorrenteId}_${id}`, d.stelle);
+    if (d.punteggio !== undefined) localStorage.setItem(`sv_punteggio_${viaggioCorrenteId}_${id}`, d.punteggio);
+    if (d.recMode !== undefined) localStorage.setItem(`sv_recmode_${viaggioCorrenteId}_${id}`, d.recMode);
+}
+const _alloTimers = {};
+async function salvaAlloggioDettagliSuSupabase(itemId) {
+    if (!itemId || !viaggioCorrenteId) return;
+    clearTimeout(_alloTimers[itemId]);
+    _alloTimers[itemId] = setTimeout(async () => {
+        const d = _leggiAlloggioDettagliLocale(itemId);
+        if (!Object.keys(d).length) return;
+        const res = await apiPatch(`/sv_budget?id=eq.${itemId}`, { alloggio_dettagli: d });
+        if (!res.ok) {
+            const e = await res.json().catch(() => ({}));
+            if (e.code === '42703' || e.message?.includes('alloggio_dettagli')) {
+                await fetch('/api/run-sql?solo=alloggio_dettagli').catch(() => {});
+                await apiPatch(`/sv_budget?id=eq.${itemId}`, { alloggio_dettagli: d });
+            }
+        }
+        const cached = budgetAttuale.find(x => x.id === itemId);
+        if (cached) cached.alloggio_dettagli = d;
+    }, 800);
+}
+async function _migraAlloggioDettagliSuSupabase() {
+    const alloggi = budgetAttuale.filter(b => b.categoria === 'alloggio' && !b.alloggio_dettagli);
+    for (const b of alloggi) {
+        const d = _leggiAlloggioDettagliLocale(b.id);
+        if (!Object.keys(d).length) continue;
+        const res = await apiPatch(`/sv_budget?id=eq.${b.id}`, { alloggio_dettagli: d });
+        if (res.ok) b.alloggio_dettagli = d;
+    }
+}
+
 function _compToggleServizio(id, srvId) {
     const arr = _compGetServizi(id);
     const idx = arr.indexOf(srvId);
@@ -4980,16 +5065,21 @@ function _setBStella(v) {
     if (!budgetItemEditId) return;
     _compSetStelle(budgetItemEditId, v);
     _renderBStelle(budgetItemEditId);
+    salvaAlloggioDettagliSuSupabase(budgetItemEditId);
 }
 function _setRecMode(mode) {
     if (!budgetItemEditId) return;
     _compSetRecMode(budgetItemEditId, mode);
     _renderBStelle(budgetItemEditId);
+    salvaAlloggioDettagliSuSupabase(budgetItemEditId);
 }
 function _savePunteggio() {
     if (!budgetItemEditId) return;
     const v = parseFloat(document.getElementById('bPunteggio')?.value);
-    if (!isNaN(v) && v >= 1 && v <= 10) _compSetPunteggio(budgetItemEditId, parseFloat(v.toFixed(1)));
+    if (!isNaN(v) && v >= 1 && v <= 10) {
+        _compSetPunteggio(budgetItemEditId, parseFloat(v.toFixed(1)));
+        salvaAlloggioDettagliSuSupabase(budgetItemEditId);
+    }
 }
 function _renderBPostiLetto(id) {
     const el = document.getElementById('bPostiLettoVal');
@@ -5010,6 +5100,7 @@ function _bagniAdj(delta) {
     if (!id) return;
     _compSetBagni(id, _compGetBagni(id) + delta);
     _renderBBagni(id);
+    salvaAlloggioDettagliSuSupabase(id);
 }
 function _renderBServiziModal(id) {
     const servizi = _compGetServizi(id);
@@ -5030,11 +5121,13 @@ function _plAdj(delta) {
     if (!id) return;
     _compSetPostiLetto(id, _compGetPostiLetto(id) + delta);
     _renderBPostiLetto(id);
+    salvaAlloggioDettagliSuSupabase(id);
 }
 function _toggleBServizio(srvId) {
     if (!budgetItemEditId) return;
     _compToggleServizio(budgetItemEditId, srvId);
     _renderBServiziModal(budgetItemEditId);
+    salvaAlloggioDettagliSuSupabase(budgetItemEditId);
 }
 function _mostraInputServizio() {
     const wrap = document.getElementById('bServizioInputWrap');
@@ -5055,6 +5148,7 @@ function _confermaServizioExtra() {
     if (!extra.includes(label)) { extra.push(label); _compSetServiziExtra(id, extra); }
     _nascondiInputServizio();
     _renderBServiziModal(id);
+    salvaAlloggioDettagliSuSupabase(id);
 }
 function _rimuoviServizioExtra(idx) {
     if (!budgetItemEditId) return;
@@ -5063,6 +5157,7 @@ function _rimuoviServizioExtra(idx) {
     extra.splice(idx, 1);
     _compSetServiziExtra(id, extra);
     _renderBServiziModal(id);
+    salvaAlloggioDettagliSuSupabase(id);
 }
 function renderComparatore() {
     const alloggi = budgetAttuale.filter(b => b.categoria === 'alloggio' && b.stato !== 'annullata');
@@ -5902,6 +5997,7 @@ function _salvaBudgetPoiLocale(itemId) {
     localStorage.setItem(`sv_cin_${viaggioCorrenteId}_${itemId}`,  cin);
     localStorage.setItem(`sv_cout_${viaggioCorrenteId}_${itemId}`, cout);
     localStorage.setItem(`sv_allomode_${viaggioCorrenteId}_${itemId}`, budgetAlloggioMode);
+    salvaAlloggioDettagliSuSupabase(itemId);
 }
 
 function _caricaAddrLocale(itemId) {
