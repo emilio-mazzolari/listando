@@ -5352,13 +5352,20 @@ function renderComparatore() {
     }
 
     // ── Punti di interesse (una riga per POI, come i servizi) ────
-    const allPoiNames = [...new Set(rows.flatMap(r => r.poi.map(p => p.nome)))].sort((a, b) => a.localeCompare(b, 'it'));
-    if (allPoiNames.length) {
+    // group case-insensitively: key=lowercase, value=first seen display name
+    const _poiKeyMap = new Map();
+    rows.flatMap(r => r.poi.map(p => p.nome)).forEach(nome => {
+        const key = nome.trim().toLowerCase();
+        if (!_poiKeyMap.has(key)) _poiKeyMap.set(key, nome);
+    });
+    const allPoiKeys = [..._poiKeyMap.keys()].sort((a, b) => a.localeCompare(b, 'it'));
+    if (allPoiKeys.length) {
         html += sep();
-        allPoiNames.forEach(nome => {
+        allPoiKeys.forEach(key => {
+            const nome = _poiKeyMap.get(key);
             html += lbl(_esc(nome));
             rows.forEach(r => {
-                const p = r.poi.find(pp => pp.nome === nome);
+                const p = r.poi.find(pp => pp.nome.trim().toLowerCase() === key);
                 if (p) {
                     const kmV = p.km ?? (p.unita === 'km' ? p.distanza : null);
                     const minV = p.min ?? (p.unita === 'min' ? p.distanza : null);
@@ -6041,7 +6048,7 @@ function _apriMapsPoi() {
 function confermaPoiEdit() {
     const nomeRaw = document.getElementById('poiNome').value.trim();
     if (!nomeRaw) { return; }
-    const nome = nomeRaw.charAt(0).toUpperCase() + nomeRaw.slice(1);
+    const nome = nomeRaw.charAt(0).toUpperCase() + nomeRaw.slice(1).toLowerCase();
     const kmRaw = parseFloat(document.getElementById('poiDistKm').value);
     const minRaw = parseFloat(document.getElementById('poiDistMin').value);
     const km = !isNaN(kmRaw) && kmRaw > 0 ? kmRaw : null;
