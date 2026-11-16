@@ -5557,7 +5557,7 @@ function apriModalEditBudgetItem(id) {
     if (b.categoria === 'alloggio') {
         _poiViaggioGet().forEach(vp => {
             if (!_bPoiList.find(p => p.nome.toLowerCase() === vp.nome.toLowerCase()))
-                _bPoiList.push({ nome: vp.nome, km: null, min: null, mezzo: vp.mezzo || null });
+                _bPoiList.push({ nome: vp.nome, km: null, min: null, mezzo: vp.mezzo || null, indirizzo: vp.indirizzo || null });
         });
     }
     document.getElementById('titoloModalBudget').textContent = 'Modifica voce';
@@ -6025,7 +6025,10 @@ function chiudiModalPoi() {
 function _apriMapsPoi() {
     const nome = document.getElementById('poiNome').value.trim();
     const addr = document.getElementById('bAlloggioAddr')?.value?.trim();
-    const dest = encodeURIComponent(nome || '');
+    const existing = _poiEditIdx >= 0 ? _bPoiList[_poiEditIdx] : null;
+    const viPoi = _poiViaggioGet().find(p => p.nome.toLowerCase() === nome.toLowerCase());
+    const indirizzo = existing?.indirizzo || viPoi?.indirizzo;
+    const dest = encodeURIComponent(indirizzo || nome || '');
     const from = addr ? encodeURIComponent(addr) : '';
     const url = nome && from
         ? `https://www.google.com/maps/dir/${from}/${dest}`
@@ -6043,7 +6046,10 @@ function confermaPoiEdit() {
     const minRaw = parseFloat(document.getElementById('poiDistMin').value);
     const km = !isNaN(kmRaw) && kmRaw > 0 ? kmRaw : null;
     const min = !isNaN(minRaw) && minRaw > 0 ? minRaw : null;
-    const entry = { nome, km, min, mezzo: _poiMezzo };
+    const existing = _poiEditIdx >= 0 ? _bPoiList[_poiEditIdx] : null;
+    const viPoi = _poiViaggioGet().find(p => p.nome.toLowerCase() === nome.toLowerCase());
+    const indirizzo = existing?.indirizzo || viPoi?.indirizzo || null;
+    const entry = { nome, km, min, mezzo: _poiMezzo, ...(indirizzo ? { indirizzo } : {}) };
     if (_poiEditIdx >= 0) _bPoiList[_poiEditIdx] = entry;
     else _bPoiList.push(entry);
     _poiViaggioSave(entry);
@@ -6054,7 +6060,7 @@ function confermaPoiEdit() {
 function apriBPoiMaps(i) {
     const poi = _bPoiList[i];
     const addr = document.getElementById('bAlloggioAddr')?.value?.trim();
-    const dest = encodeURIComponent(poi.nome);
+    const dest = encodeURIComponent(poi.indirizzo || poi.nome);
     const from = addr ? encodeURIComponent(addr) : '';
     const mapsMode = POI_MEZZI.find(m => m.id === poi.mezzo)?.maps;
     const modeParam = mapsMode ? `&travelmode=${mapsMode}` : '';
@@ -6096,7 +6102,7 @@ function _poiViaggioSave(entry) {
     if (!viaggioCorrenteId || !entry.nome) return;
     const list = _poiViaggioGet();
     const i = list.findIndex(p => p.nome.toLowerCase() === entry.nome.toLowerCase());
-    if (i >= 0) list[i] = entry; else list.push(entry);
+    if (i >= 0) list[i] = { ...list[i], ...entry }; else list.push(entry);
     localStorage.setItem(`sv_poi_viaggio_${viaggioCorrenteId}`, JSON.stringify(list));
     apiPatch(`/sv_viaggi?id=eq.${viaggioCorrenteId}`, { poi_viaggio: list }).then(res => {
         if (res.ok) { const v = viaggi.find(x => x.id === viaggioCorrenteId); if (v) v.poi_viaggio = list; }
