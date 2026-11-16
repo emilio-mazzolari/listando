@@ -1365,6 +1365,8 @@
                     colori:   getColors(),
                     ordine:   JSON.parse(localStorage.getItem(ORDER_KEY)  || '[]'),
                     nascosti: JSON.parse(localStorage.getItem(HIDDEN_KEY) || '[]'),
+                    sort:     localStorage.getItem(SORT_KEY) || 'custom',
+                    view:     localStorage.getItem(VIEW_KEY) || 'grid',
                 };
                 try {
                     const { data, error } = await supabaseClient.from('profili')
@@ -1402,6 +1404,16 @@
                         if (Array.isArray(pref.nascosti)) {
                             localStorage.setItem(HIDDEN_KEY, JSON.stringify(pref.nascosti));
                             applyHidden();
+                        }
+                        if (pref.sort) {
+                            sortMode = pref.sort;
+                            localStorage.setItem(SORT_KEY, pref.sort);
+                            applySortMode();
+                        }
+                        if (pref.view) {
+                            viewMode = pref.view;
+                            localStorage.setItem(VIEW_KEY, pref.view);
+                            applyView();
                         }
                     } else {
                         // Formato vecchio: solo colori, compatibilità backward
@@ -1491,6 +1503,7 @@
             localStorage.setItem(SORT_KEY, mode);
             chiudiOrdinamento();
             applySortMode();
+            salvaPreferenzeProfilo();
             if (mode === 'custom' && !editMode) toggleEditMode();
         }
 
@@ -1511,6 +1524,7 @@
             viewMode = viewMode === 'grid' ? 'list' : 'grid';
             localStorage.setItem(VIEW_KEY, viewMode);
             applyView();
+            salvaPreferenzeProfilo();
         }
 
         applyView();
