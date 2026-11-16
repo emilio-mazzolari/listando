@@ -624,9 +624,8 @@
     </div>
 
     <!-- Overlay Ordina per -->
-    <div id="ordinamentoOverlay" style="display:none;position:fixed;inset:0;z-index:202;background:rgba(0,0,0,0.45);align-items:flex-end;justify-content:center" onclick="if(event.target===this)chiudiOrdinamento()">
-        <div style="background:white;border-radius:28px 28px 0 0;padding:24px 20px;padding-bottom:max(24px,env(safe-area-inset-bottom,24px));width:100%;max-width:500px">
-            <div style="width:40px;height:4px;background:#ddd;border-radius:4px;margin:0 auto 20px"></div>
+    <div id="ordinamentoOverlay" style="display:none;position:fixed;inset:0;z-index:202;background:rgba(0,0,0,0.45);align-items:center;justify-content:center" onclick="if(event.target===this)chiudiOrdinamento()">
+        <div style="background:white;border-radius:24px;padding:24px 20px;width:calc(100% - 40px);max-width:420px">
             <div style="font-weight:900;font-size:18px;margin-bottom:20px">Ordina sezioni</div>
             <div id="ordinamentoList"></div>
         </div>
