@@ -1350,9 +1350,14 @@
     </div>
     <p style="font-size:13px;color:#888;margin:0 0 14px;flex-shrink:0">Definisci i punti di interesse una volta: vengono aggiunti in automatico a tutti gli alloggi.</p>
     <div id="poiViaggioList" style="overflow:auto;flex:1;min-height:0;margin-bottom:12px"></div>
-    <div style="display:flex;gap:8px;flex-shrink:0;padding-top:10px;border-top:1px solid var(--grey-light)">
-        <input class="form-input" id="poiViaggioInput" placeholder="Nome POI (es. Duomo, Spiaggia…)" autocapitalize="sentences" style="flex:1" onkeydown="if(event.key==='Enter'){event.preventDefault();_aggiungiPoiViaggio();}">
-        <button onclick="_aggiungiPoiViaggio()" style="padding:0 18px;border-radius:12px;border:none;background:#0fba8d;color:#fff;font-weight:900;font-size:15px;cursor:pointer">+</button>
+    <div style="flex-shrink:0;padding-top:10px;border-top:1px solid var(--grey-light)">
+        <div style="display:flex;gap:8px">
+            <div style="flex:1;position:relative">
+                <input class="form-input" id="poiViaggioInput" placeholder="Cerca su Maps o scrivi nome…" autocomplete="off" autocapitalize="sentences" style="width:100%" oninput="_poiViaggioSearch(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();_aggiungiPoiViaggio();}else if(event.key==='Escape'){_poiViaggioHideDrop();}">
+                <div id="poiViaggioDropdown" style="display:none;position:absolute;bottom:calc(100% + 4px);left:0;right:0;background:#fff;border:1.5px solid #e0e0e0;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.12);z-index:200;max-height:200px;overflow:auto"></div>
+            </div>
+            <button onclick="_aggiungiPoiViaggio()" style="padding:0 18px;border-radius:12px;border:none;background:#0fba8d;color:#fff;font-weight:900;font-size:15px;cursor:pointer;flex-shrink:0">+</button>
+        </div>
     </div>
 </div>
 </div>
@@ -6111,17 +6116,60 @@ function _renderPoiViaggioModal() {
         return;
     }
     el.innerHTML = list.map((p, i) => `
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--grey-light)">
-            <span style="font-weight:800;font-size:14px">${_esc(p.nome)}</span>
-            <button onclick="_rimuoviPoiViaggio(${i})" style="background:none;border:1.5px solid #eb445a;border-radius:8px;color:#eb445a;font-weight:900;font-size:12px;padding:3px 10px;cursor:pointer">Rimuovi</button>
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--grey-light)">
+            <div style="flex:1;min-width:0">
+                <div style="font-weight:800;font-size:14px">${_esc(p.nome)}</div>
+                ${p.indirizzo ? `<div style="font-size:11px;color:#888;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_esc(p.indirizzo)}</div>` : ''}
+            </div>
+            <button onclick="_rimuoviPoiViaggio(${i})" style="flex-shrink:0;background:none;border:1.5px solid #eb445a;border-radius:8px;color:#eb445a;font-weight:900;font-size:12px;padding:3px 10px;cursor:pointer">Rimuovi</button>
         </div>`).join('');
 }
-function _aggiungiPoiViaggio() {
+let _poiViaggioDropTimer = null;
+function _poiViaggioSearch(q) {
+    clearTimeout(_poiViaggioDropTimer);
+    const drop = document.getElementById('poiViaggioDropdown');
+    if (!q || q.length < 2) { if (drop) drop.style.display = 'none'; return; }
+    _poiViaggioDropTimer = setTimeout(async () => {
+        const v = viaggi.find(x => x.id === viaggioCorrenteId);
+        const città = v?.nome || '';
+        const query = encodeURIComponent(q + (città ? ' ' + città : ''));
+        try {
+            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=5&addressdetails=1`, {
+                headers: { 'Accept-Language': 'it', 'User-Agent': 'Listando/1.0' }
+            });
+            const results = await res.json();
+            if (!drop) return;
+            if (!results.length) { drop.style.display = 'none'; return; }
+            drop.style.display = 'block';
+            drop.innerHTML = results.map(r => {
+                const nome = r.namedetails?.name || r.name || r.display_name.split(',')[0];
+                const addr = r.display_name;
+                return `<div onclick="_selezionaPoiViaggio(${JSON.stringify(nome).replace(/'/g,"&#39;")}, ${JSON.stringify(addr).replace(/'/g,"&#39;")})" style="padding:10px 14px;cursor:pointer;border-bottom:1px solid #f0f0f0;font-size:13px" onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background=''">
+                    <div style="font-weight:800;color:#333">${_esc(nome)}</div>
+                    <div style="color:#aaa;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_esc(addr)}</div>
+                </div>`;
+            }).join('');
+        } catch { if (drop) drop.style.display = 'none'; }
+    }, 450);
+}
+function _selezionaPoiViaggio(nome, indirizzo) {
     const inp = document.getElementById('poiViaggioInput');
-    const nome = inp?.value.trim();
-    if (!nome) return;
-    _poiViaggioSave({ nome });
+    if (inp) inp.value = nome;
+    _poiViaggioHideDrop();
+    _aggiungiPoiViaggio(indirizzo);
+}
+function _poiViaggioHideDrop() {
+    const drop = document.getElementById('poiViaggioDropdown');
+    if (drop) drop.style.display = 'none';
+}
+function _aggiungiPoiViaggio(indirizzo) {
+    const inp = document.getElementById('poiViaggioInput');
+    const raw = inp?.value.trim();
+    if (!raw) return;
+    const nome = raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
+    _poiViaggioSave({ nome, ...(indirizzo ? { indirizzo } : {}) });
     inp.value = '';
+    _poiViaggioHideDrop();
     _renderPoiViaggioModal();
     renderBudget();
 }
