@@ -1111,6 +1111,7 @@ async function salva() {
     colore_accento:document.getElementById('cAcc').value,
     formato: st.formato, larghezza_mm: W, altezza_mm: H,
     font: st.font, allineamento: st.allineamento,
+    grassetto: st.grassetto, corsivo: st.corsivo, dim_scala: st.dim_scala,
   };
   let err;
   if (editId) {
@@ -1321,6 +1322,7 @@ async function salvaSerie() {
     colore_sfondo: stS.sfondo, colore_testo: stS.testo, colore_accento: stS.acc,
     formato: stS.formato, larghezza_mm: W, altezza_mm: H,
     font: stS.font, allineamento: stS.allineamento,
+    grassetto: stS.grassetto, corsivo: stS.corsivo, dim_scala: stS.dim_scala,
   }));
   const { data, error } = await sb.from('etichette').insert(rows).select('id');
   if (error) { toast('Errore salvataggio'); return; }
