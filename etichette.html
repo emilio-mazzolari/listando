@@ -270,7 +270,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
     <div class="color-pickers">
       <label>Sfondo</label><input type="color" id="cSfondo" oninput="onCustomColor()">
       <label>Testo</label><input type="color" id="cTesto" oninput="onCustomColor()">
-      <label>Accento</label><input type="color" id="cAcc" oninput="onCustomColor()">
+      <span id="accRowMain" style="display:none;align-items:center;gap:6px"><label id="accLabelMain">Banda</label><input type="color" id="cAcc" oninput="onCustomColor()"></span>
     </div>
 
     <label class="form-label">Font</label>
@@ -928,7 +928,16 @@ function setStile(id) {
   st.stile = id;
   document.querySelectorAll('.stile-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('stile_'+id)?.classList.add('active');
+  _aggiornaAccRow();
   aggiornaPrev();
+}
+function _aggiornaAccRow() {
+  const row = document.getElementById('accRowMain');
+  const lbl = document.getElementById('accLabelMain');
+  if (!row) return;
+  const nomi = { banda:'Banda', bordo:'Bordo', barra:'Barra' };
+  if (nomi[st.stile]) { row.style.display='flex'; lbl.textContent=nomi[st.stile]; }
+  else row.style.display='none';
 }
 
 function buildColorGrid() {
