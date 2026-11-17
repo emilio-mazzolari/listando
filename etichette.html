@@ -52,21 +52,20 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 .sort-chip{padding:7px 14px;border-radius:11px;border:2px solid var(--grey);background:var(--white);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--dark);transition:all .15s;}
 .sort-chip.active{border-color:var(--accent);background:var(--accent-bg);color:var(--accent);}
 
-/* ── Catalog grid ── */
-.label-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-@media(min-width:480px){.label-grid{grid-template-columns:repeat(3,1fr);}}
-.label-card{background:var(--white);border-radius:16px;box-shadow:var(--shadow);overflow:hidden;cursor:pointer;transition:transform .15s;position:relative;}
-.label-card:active{transform:scale(.97);}
-.label-card-preview{width:100%;overflow:hidden;position:relative;background:#f8f9fa;}
-.label-card-footer{padding:9px 10px 10px;}
-.label-card-name{font-weight:800;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.label-card-dim{font-size:11px;color:#888;font-weight:600;margin-top:2px;}
-.label-card-actions{display:flex;gap:5px;margin-top:8px;}
-.btn-action{flex:1;padding:6px 2px;border-radius:9px;border:2px solid var(--grey);background:var(--white);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--dark);transition:all .15s;}
-.btn-action.add{background:var(--accent);color:#fff;border-color:var(--accent);}
-.btn-action.add.in{background:#e8f5e9;color:#15803d;border-color:#bbf7d0;}
-.btn-action.del{border-color:#fcc;color:var(--red);}
-.card-sel-badge{position:absolute;top:8px;right:8px;background:var(--accent);color:#fff;border-radius:8px;padding:2px 7px;font-size:10px;font-weight:900;line-height:1.5;pointer-events:none;}
+/* ── Catalog list ── */
+.label-grid{background:var(--white);border-radius:16px;box-shadow:var(--shadow);overflow:hidden;}
+.label-row{display:flex;align-items:center;gap:12px;padding:13px 14px;border-bottom:1.5px solid var(--grey-light);cursor:pointer;transition:background .12s;}
+.label-row:last-child{border-bottom:none;}
+.label-row:hover{background:#fafbff;}
+.label-row-sel{width:28px;height:28px;border-radius:8px;border:2.5px solid var(--grey);background:var(--white);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px;font-weight:900;cursor:pointer;transition:all .15s;}
+.label-row-sel.in{background:var(--accent);border-color:var(--accent);color:#fff;}
+.label-row-body{flex:1;min-width:0;}
+.label-row-title{font-weight:800;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:.01em;}
+.label-row-meta{font-size:11px;color:#94a3b8;font-weight:600;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.label-row-copie{font-size:11px;font-weight:900;color:var(--accent);margin-left:6px;}
+.label-row-actions{display:flex;gap:6px;flex-shrink:0;}
+.btn-row{width:32px;height:32px;border-radius:9px;border:2px solid var(--grey);background:var(--white);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#94a3b8;transition:all .15s;}
+.btn-row.del{border-color:#fcc;color:var(--red);}
 
 /* ── Float bar ── */
 .float-bar{position:fixed;bottom:0;left:0;right:0;background:var(--accent);color:#fff;padding:14px 16px;padding-bottom:max(14px,env(safe-area-inset-bottom,14px));display:flex;align-items:center;gap:10px;z-index:150;transform:translateY(100%);transition:transform .25s;}
@@ -532,24 +531,18 @@ function renderCatalogo() {
   el.innerHTML = list.map(e => {
     const W = e.larghezza_mm || 190;
     const H = e.altezza_mm || 136;
-    const CARD = 160;
-    const sc = CARD / (W * 3.779);
-    const ph = Math.round(H * 3.779 * sc);
     const sel = selezione.find(s => s.id === e.id);
     const inSel = !!sel;
-    return `<div class="label-card" onclick="apriEdit(${e.id})">
-      ${inSel ? `<div class="card-sel-badge">×${sel.copie}</div>` : ''}
-      <div class="label-card-preview" style="height:${ph}px">
-        <div style="transform:scale(${sc.toFixed(4)});transform-origin:top left;position:absolute">${labelHtml(e, W, H)}</div>
+    const meta = [e.sottotitolo, e.periodo, `${W}×${H}mm`].filter(Boolean).join(' · ');
+    return `<div class="label-row" onclick="apriEdit(${e.id})">
+      <button class="label-row-sel${inSel?' in':''}" onclick="event.stopPropagation();toggleSelezione(${e.id})" title="${inSel?'Rimuovi dalla selezione':'Aggiungi alla selezione'}">${inSel?'✓':''}</button>
+      <div class="label-row-body">
+        <div class="label-row-title">${esc(e.titolo||'Senza titolo')}${inSel?`<span class="label-row-copie">×${sel.copie}</span>`:''}</div>
+        <div class="label-row-meta">${esc(meta)}</div>
       </div>
-      <div class="label-card-footer">
-        <div class="label-card-name">${esc(e.titolo||'Senza titolo')}</div>
-        <div class="label-card-dim">${W}×${H}mm</div>
-        <div class="label-card-actions">
-          <button class="btn-action add${inSel?' in':''}" onclick="event.stopPropagation();toggleSelezione(${e.id})">${inSel?'✓ Aggiunta':'⊕ Aggiungi'}</button>
-          <button class="btn-action" onclick="event.stopPropagation();copia(${e.id})">📋</button>
-          <button class="btn-action del" onclick="event.stopPropagation();del(${e.id})">✕</button>
-        </div>
+      <div class="label-row-actions">
+        <button class="btn-row" onclick="event.stopPropagation();copia(${e.id})" title="Duplica">📋</button>
+        <button class="btn-row del" onclick="event.stopPropagation();del(${e.id})" title="Elimina">✕</button>
       </div>
     </div>`;
   }).join('');
