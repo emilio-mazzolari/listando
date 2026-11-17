@@ -183,7 +183,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
     <button class="btn-new" onclick="apriNuova()">+ Nuova</button>
   </div>
   <div class="eti-tabs">
-    <button class="tab-btn active" id="tab_catalogo" onclick="mostraVista('catalogo')">Catalogo<span class="tab-badge" id="badgeCatalogo"></span></button>
+    <button class="tab-btn active" id="tab_catalogo" onclick="mostraVista('catalogo')">Lista<span class="tab-badge" id="badgeCatalogo"></span></button>
     <button class="tab-btn" id="tab_selezione" onclick="mostraVista('selezione')">Selezione<span class="tab-badge" id="badgeSelezione"></span></button>
     <button class="tab-btn" id="tab_stampa" onclick="mostraVista('stampa')">Stampa</button>
   </div>
@@ -604,7 +604,7 @@ function renderSelezione() {
   const el = document.getElementById('selContent');
   updateBadges();
   if (!selezione.length) {
-    el.innerHTML = `<div class="empty-msg">🗳️<br>Nessuna etichetta selezionata.<br>Aggiungile dal <b>Catalogo</b>.</div>`;
+    el.innerHTML = `<div class="empty-msg">🗳️<br>Nessuna etichetta selezionata.<br>Aggiungile dalla <b>Lista</b>.</div>`;
     return;
   }
   const totCopie = selezione.reduce((a,s) => a + s.copie, 0);
@@ -1111,13 +1111,14 @@ async function salva() {
     colore_accento:document.getElementById('cAcc').value,
     formato: st.formato, larghezza_mm: W, altezza_mm: H,
     font: st.font, allineamento: st.allineamento,
-    grassetto: st.grassetto, corsivo: st.corsivo, dim_scala: st.dim_scala,
   };
+  let err;
   if (editId) {
-    await sb.from('etichette').update(row).eq('id', editId);
+    ({ error: err } = await sb.from('etichette').update(row).eq('id', editId));
   } else {
-    await sb.from('etichette').insert(row);
+    ({ error: err } = await sb.from('etichette').insert(row));
   }
+  if (err) { toast('Errore: ' + err.message); console.error(err); return; }
   chiudi(); toast('✓ Salvata'); await carica();
 }
 
@@ -1320,7 +1321,6 @@ async function salvaSerie() {
     colore_sfondo: stS.sfondo, colore_testo: stS.testo, colore_accento: stS.acc,
     formato: stS.formato, larghezza_mm: W, altezza_mm: H,
     font: stS.font, allineamento: stS.allineamento,
-    grassetto: stS.grassetto, corsivo: stS.corsivo, dim_scala: stS.dim_scala,
   }));
   const { data, error } = await sb.from('etichette').insert(rows).select('id');
   if (error) { toast('Errore salvataggio'); return; }
