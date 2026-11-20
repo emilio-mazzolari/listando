@@ -275,6 +275,14 @@
         .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
         input[type="file"] { display: none; }
+
+        /* ── Search ── */
+        .search-wrap { padding: 6px 16px 10px; }
+        .search-box { display: flex; align-items: center; gap: 8px; background: var(--grey-light); border-radius: 14px; padding: 10px 14px; }
+        .search-box svg { flex-shrink: 0; stroke: #aaa; }
+        .search-box input { flex: 1; border: none; background: none; font-size: 15px; font-family: inherit; outline: none; color: var(--dark); }
+        .search-box input::placeholder { color: #aaa; }
+        .btn-search-clear { width: 22px; height: 22px; border-radius: 50%; border: none; background: #bbb; color: #fff; font-size: 12px; font-weight: 900; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
     
         /* ── Feedback fab ── */
         .fab-feedback { position: fixed; bottom: 88px; right: 18px; width: 46px; height: 46px; border-radius: 50%; background: #fff; border: 2.5px solid #e0e0e0; box-shadow: 0 2px 10px rgba(0,0,0,.12); display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 200; }
@@ -341,6 +349,13 @@
         <div class="songs-title">Tutte le canzoni</div>
         <button class="btn-shuffle" onclick="shuffle()">🔀 Shuffle</button>
     </div>
+    <div class="search-wrap">
+        <div class="search-box">
+            <svg width="16" height="16" fill="none" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m16.5 16.5 4 4"/></svg>
+            <input type="search" id="searchMain" placeholder="Cerca canzone o artista…" oninput="onSearchMain()" autocomplete="off">
+            <button class="btn-search-clear" id="searchMainClear" onclick="clearSearchMain()" style="display:none">✕</button>
+        </div>
+    </div>
     <div id="allSongsList"></div>
 </div>
 
@@ -365,6 +380,13 @@
             <div class="section-title" style="font-size:14px">📁 Sottocartelle</div>
         </div>
         <div class="playlists-scroll" id="subFolderScroll"></div>
+    </div>
+    <div class="search-wrap">
+        <div class="search-box">
+            <svg width="16" height="16" fill="none" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m16.5 16.5 4 4"/></svg>
+            <input type="search" id="searchPl" placeholder="Cerca in questa raccolta…" oninput="onSearchPl()" autocomplete="off">
+            <button class="btn-search-clear" id="searchPlClear" onclick="clearSearchPl()" style="display:none">✕</button>
+        </div>
     </div>
     <div id="playlistSongsList"></div>
 </div>
@@ -622,11 +644,51 @@ async function carica() {
 }
 
 // ── Render ─────────────────────────────────────────────────────────────
+let searchMainQ = '';
+let searchPlQ = '';
+
+function onSearchMain() {
+    searchMainQ = (document.getElementById('searchMain').value || '').toLowerCase().trim();
+    document.getElementById('searchMainClear').style.display = searchMainQ ? '' : 'none';
+    const filtered = searchMainQ
+        ? songs.filter(s => (s.titolo||'').toLowerCase().includes(searchMainQ) || (s.artista||'').toLowerCase().includes(searchMainQ))
+        : songs;
+    renderSongList('allSongsList', filtered);
+}
+function clearSearchMain() {
+    document.getElementById('searchMain').value = '';
+    searchMainQ = '';
+    document.getElementById('searchMainClear').style.display = 'none';
+    renderSongList('allSongsList', songs);
+}
+
+function onSearchPl() {
+    searchPlQ = (document.getElementById('searchPl').value || '').toLowerCase().trim();
+    document.getElementById('searchPlClear').style.display = searchPlQ ? '' : 'none';
+    const id = currentPlaylistId;
+    const plSongs = songs.filter(s => s.playlist_id === id);
+    const filtered = searchPlQ
+        ? plSongs.filter(s => (s.titolo||'').toLowerCase().includes(searchPlQ) || (s.artista||'').toLowerCase().includes(searchPlQ))
+        : plSongs;
+    renderSongList('playlistSongsList', filtered);
+}
+function clearSearchPl() {
+    document.getElementById('searchPl').value = '';
+    searchPlQ = '';
+    document.getElementById('searchPlClear').style.display = 'none';
+    const plSongs = songs.filter(s => s.playlist_id === currentPlaylistId);
+    renderSongList('playlistSongsList', plSongs);
+}
+
 function renderMain() {
     renderPlaylists();
     renderSharedPlaylists();
     renderSharedSection();
-    renderSongList('allSongsList', songs);
+    // rispetta eventuale ricerca attiva
+    const filtered = searchMainQ
+        ? songs.filter(s => (s.titolo||'').toLowerCase().includes(searchMainQ) || (s.artista||'').toLowerCase().includes(searchMainQ))
+        : songs;
+    renderSongList('allSongsList', filtered);
 }
 
 function renderSharedSection() {
@@ -736,6 +798,7 @@ function songItemHtml(s, i) {
 function apriPlaylist(id) {
     playlistStack.push(id);
     currentPlaylistId = id;
+    searchPlQ = '';
     sessionStorage.setItem('can_pid', id);
     renderPlaylistView();
 }
@@ -765,7 +828,13 @@ function renderPlaylistView() {
     document.getElementById('btnModificaPlaylist').style.display = '';
     document.getElementById('btnRimuoviSharedPl').style.display = 'none';
     renderSubFolders(subPls);
-    renderSongList('playlistSongsList', plSongs);
+    const plFiltered = searchPlQ
+        ? plSongs.filter(s => (s.titolo||'').toLowerCase().includes(searchPlQ) || (s.artista||'').toLowerCase().includes(searchPlQ))
+        : plSongs;
+    renderSongList('playlistSongsList', plFiltered);
+    // reset input UI
+    const inp = document.getElementById('searchPl');
+    if (inp) { inp.value = searchPlQ; document.getElementById('searchPlClear').style.display = searchPlQ ? '' : 'none'; }
 }
 
 function renderSubFolders(subPls) {
