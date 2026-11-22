@@ -6285,9 +6285,14 @@ function renderBPoiList() {
             </div>
             <button class="poi-maps" onclick="apriBPoiMaps(${i})" title="Apri Maps">🗺️</button>
             <button class="poi-maps" onclick="apriPoiModal(${i})" title="Modifica" style="border-color:#aaa;font-size:13px">✏️</button>
-            <button class="poi-del" onclick="_bPoiList.splice(${i},1);renderBPoiList()">×</button>
+            <button class="poi-del" onclick="_bPoiElimina(${i})">×</button>
         </div>`;
     }).join('');
+}
+function _bPoiElimina(i) {
+    _bPoiList.splice(i, 1);
+    renderBPoiList();
+    if (budgetItemEditId) _salvaBudgetPoiLocale(budgetItemEditId);
 }
 function _bPoiMove(idx, dir) {
     const ni = idx + dir;
@@ -6928,36 +6933,47 @@ async function salvaRipartizione() {
         costo     = parseFloat(document.getElementById('ripCosto').value) || 0;
         risultati = calcolaRipartizioneData(_ripPersone, costo, 0) || [];
     }
-    const saveData  = { viaggio_id: viaggioCorrenteId, budget_item_id: _ripBudgetItemId, persone: _ripPersone, risultati, costo, tassa: 0, check_in, check_out, modoManuale: _ripModoManuale };
+    const saveData = { viaggio_id: viaggioCorrenteId, budget_item_id: _ripBudgetItemId, persone: _ripPersone, risultati, costo, tassa: 0, check_in, check_out, modoManuale: _ripModoManuale };
+
+    // Salva localmente e aggiorna cache — immediato
     localStorage.setItem(`sv_rip_${viaggioCorrenteId}_${_ripBudgetItemId}`, JSON.stringify(saveData));
     ripartizioniCache[_ripBudgetItemId] = saveData;
-    const hdr = { ...(await hdrR()), 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates,return=minimal' };
-    const tryUpsert = () => fetch(`${URL_S}/sv_ripartizione?on_conflict=budget_item_id`, { method: 'POST', headers: hdr, body: JSON.stringify(saveData) });
-    let res = await tryUpsert();
-    if (!res.ok) {
-        const e = await res.json().catch(() => ({}));
-        if (e.code === '42P01' || e.message?.includes('sv_ripartizione')) {
-            // tabella mancante: la creo automaticamente poi riprovo
-            await fetch('/api/run-sql?solo=sv_ripartizione').catch(() => {});
-            res = await tryUpsert();
-        }
-    }
-    // when mode='ripartire', write user's quota back to sv_budget.importo_previsto
-    if (budgetAlloggioMode === 'ripartire' && risultati.length && _ripBudgetItemId) {
+
+    // Aggiorna importo_previsto in cache locale se mode=ripartire
+    if (budgetAlloggioMode === 'ripartire' && risultati.length) {
         const meP = partecipantiAttuali.find(p => (p.email_collegata || '').toLowerCase() === _me());
-        const meNome = meP?.nome || '';
-        const quota = meNome ? _ripTrovaQuota(risultati, meNome) : null;
+        const quota = meP?.nome ? _ripTrovaQuota(risultati, meP.nome) : null;
         if (quota) {
-            await apiPatch(`/sv_budget?id=eq.${_ripBudgetItemId}`, { importo_previsto: quota.totale });
             const cached = budgetAttuale.find(x => x.id === _ripBudgetItemId);
             if (cached) cached.importo_previsto = quota.totale;
         }
     }
-    toast(res.ok ? '✓ Ripartizione salvata' : '✓ Salvato');
+
+    // UI immediata — non aspetta la rete
+    toast('✓ Ripartizione salvata');
     renderBudget();
     const _reopenId = _ripBudgetItemId;
     document.getElementById('modalRipartizione').classList.remove('open');
-    setTimeout(() => apriModalEditBudgetItem(_reopenId), 300);
+    apriModalEditBudgetItem(_reopenId);
+
+    // Sync in background
+    (async () => {
+        const hdr = { ...(await hdrR()), 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates,return=minimal' };
+        const tryUpsert = () => fetch(`${URL_S}/sv_ripartizione?on_conflict=budget_item_id`, { method: 'POST', headers: hdr, body: JSON.stringify(saveData) });
+        let res = await tryUpsert();
+        if (!res.ok) {
+            const e = await res.json().catch(() => ({}));
+            if (e.code === '42P01' || e.message?.includes('sv_ripartizione')) {
+                await fetch('/api/run-sql?solo=sv_ripartizione').catch(() => {});
+                res = await tryUpsert();
+            }
+        }
+        if (budgetAlloggioMode === 'ripartire' && risultati.length) {
+            const meP = partecipantiAttuali.find(p => (p.email_collegata || '').toLowerCase() === _me());
+            const quota = meP?.nome ? _ripTrovaQuota(risultati, meP.nome) : null;
+            if (quota) apiPatch(`/sv_budget?id=eq.${_ripBudgetItemId}`, { importo_previsto: quota.totale }).catch(() => {});
+        }
+    })();
 }
 
 async function apriRipartizionePerId() {
