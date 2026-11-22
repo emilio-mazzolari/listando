@@ -1391,6 +1391,19 @@
 </div>
 </div>
 
+<!-- Modal: Opzioni stampa comparatore -->
+<div class="modal-overlay" id="modalStampaComp">
+<div class="modal-box" style="max-width:420px">
+    <div class="modal-handle"></div>
+    <div style="font-weight:900;font-size:18px;margin-bottom:16px">Opzioni di stampa</div>
+    <div id="stampaCompOpzioni" style="display:flex;flex-direction:column;gap:11px;margin-bottom:24px"></div>
+    <div style="display:flex;gap:10px">
+        <button onclick="document.getElementById('modalStampaComp').classList.remove('open')" style="flex:1;padding:12px;background:var(--grey-light);border:none;border-radius:12px;font-weight:800;font-size:15px;cursor:pointer;font-family:inherit">Annulla</button>
+        <button onclick="eseguiStampaComparatore()" style="flex:1;padding:12px;background:#5856d6;color:#fff;border:none;border-radius:12px;font-weight:800;font-size:15px;cursor:pointer;font-family:inherit">🖨️ Stampa</button>
+    </div>
+</div>
+</div>
+
 <!-- Modal: Ripartizione appartamento -->
 <div class="modal-overlay" id="modalRipartizione">
     <div class="modal-box">
@@ -5317,7 +5330,7 @@ function renderComparatore() {
 
     // ── Costi ────────────────────────────────────────────────
     html += sep();
-    html += lbl('Costo totale');
+    html += lbl('Totale alloggio');
     rows.forEach(r => html += td(`<div style="font-size:20px;font-weight:900;color:#333">${vs}${r.costoTotale.toFixed(2)}</div>`));
     html += lbl('Mio costo');
     rows.forEach(r => html += td(`<div style="font-size:20px;font-weight:900;color:#5856d6">${vs}${r.mioCosto.toFixed(2)}</div>`));
@@ -5411,20 +5424,228 @@ function renderComparatore() {
 function apriComparatoreAlloggi() { _compSel = new Set(); renderComparatore(); document.getElementById('modalComparatoreAlloggi').classList.add('open'); }
 
 function stampaComparatore() {
-    const filtro = document.getElementById('compFiltro')?.innerHTML || '';
-    const tabella = document.getElementById('compScroll')?.innerHTML || '';
+    const alloggi = budgetAttuale.filter(b => b.categoria === 'alloggio' && b.stato !== 'annullata');
+    const meP = partecipantiAttuali.find(p => (p.email_collegata || '').toLowerCase() === _me());
+    const meNome = meP?.nome || '';
+    const hasRip = alloggi.some(b => {
+        const rip = ripartizioniCache[b.id];
+        const ris = rip ? (Array.isArray(rip.risultati) ? rip.risultati : (() => { try { return JSON.parse(rip.risultati); } catch { return []; } })()) : [];
+        return ris.length > 0;
+    });
+    const hasTassa = alloggi.some(b => parseFloat(localStorage.getItem(`sv_tassa_${viaggioCorrenteId}_${b.id}`)) > 0);
+
+    const opts = [
+        { id: 'date',         label: 'Date e prenotazione',              checked: true },
+        { id: 'costoTotale',  label: 'Totale alloggio',                  checked: true },
+        { id: 'mioCosto',     label: 'Mio costo',                        checked: true },
+        ...(hasTassa ? [
+            { id: 'tassa',      label: 'Tassa soggiorno (totale e mia)', checked: true },
+            { id: 'mioTotPern', label: 'Mio totale pernottamento',       checked: true },
+        ] : []),
+        ...(hasRip ? [{ id: 'partecipanti', label: 'Costi per partecipante', checked: true }] : []),
+        { id: 'recensione',   label: 'Recensione',                       checked: true },
+        { id: 'struttura',    label: 'Posti letto / Bagni',              checked: true },
+        { id: 'servizi',      label: 'Servizi',                          checked: true },
+        { id: 'poi',          label: 'Punti di interesse',               checked: false },
+    ];
+    document.getElementById('stampaCompOpzioni').innerHTML = opts.map(o =>
+        `<label style="display:flex;align-items:center;gap:10px;font-size:15px;font-weight:700;cursor:pointer">
+            <input type="checkbox" id="sco_${o.id}" ${o.checked ? 'checked' : ''} style="width:18px;height:18px;accent-color:#5856d6;cursor:pointer">
+            ${o.label}
+        </label>`
+    ).join('');
+    document.getElementById('modalStampaComp').classList.add('open');
+}
+
+function eseguiStampaComparatore() {
+    document.getElementById('modalStampaComp').classList.remove('open');
+    const opt = id => !!document.getElementById('sco_' + id)?.checked;
+    const vs = symb(viaggioCorrenteValuta);
+    const meP = partecipantiAttuali.find(p => (p.email_collegata || '').toLowerCase() === _me());
+    const meNome = meP?.nome || '';
     const titolo = (document.getElementById('viaTitle')?.textContent || 'Viaggio').trim();
+
+    const alloggi = budgetAttuale.filter(b => b.categoria === 'alloggio' && b.stato !== 'annullata');
+    const alloggiFiltrati = _compSel.size > 0 ? alloggi.filter(b => _compSel.has(b.id)) : alloggi;
+
+    const rows = alloggiFiltrati.map(b => {
+        const rip = ripartizioniCache[b.id] || (() => { try { return JSON.parse(localStorage.getItem(`sv_rip_${viaggioCorrenteId}_${b.id}`) || 'null'); } catch { return null; } })();
+        const ris = Array.isArray(rip?.risultati) ? rip.risultati : (rip?.risultati ? (() => { try { return JSON.parse(rip.risultati); } catch { return []; } })() : []);
+        const quota = meNome ? _ripTrovaQuota(ris, meNome) : null;
+        const cin  = localStorage.getItem(`sv_cin_${viaggioCorrenteId}_${b.id}`) || rip?.check_in || '';
+        const cout = localStorage.getItem(`sv_cout_${viaggioCorrenteId}_${b.id}`) || rip?.check_out || '';
+        const notti = (cin && cout) ? Math.round((new Date(cout) - new Date(cin)) / 86400000) : null;
+        const tassaRaw = parseFloat(localStorage.getItem(`sv_tassa_${viaggioCorrenteId}_${b.id}`)) || 0;
+        const nPersone = ris.length || partecipantiAttuali.length || 1;
+        const costoAlloggio = rip?.costo || parseFloat(b.importo_previsto) || 0;
+        const costoTotale = ris.length ? ris.reduce((s, r) => s + (Number(r.quota_alloggio) || Number(r.totale) || 0), 0) : costoAlloggio;
+        const mioCosto = quota ? (Number(quota.quota_alloggio) || Number(quota.totale) || 0) : parseFloat(b.importo_previsto) || 0;
+        const tassaNotti = notti || 0;
+        const tassaTotale = (tassaRaw > 0 && tassaNotti > 0) ? Math.round(tassaRaw * nPersone * tassaNotti * 100) / 100 : null;
+        const miaTassa   = (tassaRaw > 0 && tassaNotti > 0) ? Math.round(tassaRaw * (quota?.notti || tassaNotti) * 100) / 100 : null;
+        const mioTotPern = mioCosto + (miaTassa || 0);
+        const dateStr = cin && cout ? `${_fmtD(cin)} → ${_fmtD(cout)}${notti ? ` · ${notti}n` : ''}` : '—';
+        return { b, cin, cout, notti, costoTotale, mioCosto, tassaTotale, miaTassa, mioTotPern, dateStr, ris, tassaRaw,
+            stelle: _compGetStelle(b.id), punteggio: _compGetPunteggio(b.id), recMode: _compGetRecMode(b.id),
+            servizi: _compGetServizi(b.id), serviziExtra: _compGetServiziExtra(b.id), postiLetto: _compGetPostiLetto(b.id), bagni: _compGetBagni(b.id),
+            poi: _caricaBudgetPoiLocale(b.id) };
+    });
+
+    const N = rows.length;
+    const sCols = `grid-template-columns:140px repeat(${N},minmax(100px,1fr))`;
+    const pLbl = (txt, bold) => `<div style="padding:9px 10px;font-size:11px;font-weight:800;color:${bold?'#5856d6':'#777'};text-transform:uppercase;letter-spacing:.3px;background:#f7f7fb;border-right:1px solid #e5e5f0;word-break:break-word">${txt}</div>`;
+    const pTd  = (html, hi) => `<div style="padding:9px 12px;border-right:1px solid #f0f0f8;${hi?'background:#f5f4ff':''}border-bottom:1px solid #f0f0f8">${html}</div>`;
+    const pSep = () => `<div style="grid-column:1/-1;height:2px;background:#e2e8f0"></div>`;
+    const pHd  = txt => `<div style="padding:10px 12px;background:#5856d6;color:#fff;font-weight:900;font-size:13px;border-right:1px solid #7b78e0">${txt}</div>`;
+    const pVal = (v, hi, big) => v != null ? `<span style="font-size:${big?'18':'14'}px;font-weight:900;color:${hi?'#5856d6':'#222'}">${v}</span>` : `<span style="color:#ccc">—</span>`;
+
+    const serviziPresenti = COMP_SERVIZI.filter(s => rows.some(r => r.servizi.includes(s.id)));
+    const extraPresenti = [...new Set(rows.flatMap(r => r.serviziExtra))];
+    const allPoiKeys = (() => {
+        const m = new Map();
+        rows.flatMap(r => r.poi.map(p => p.nome)).forEach(n => { const k = n.trim().toLowerCase(); if (!m.has(k)) m.set(k, n); });
+        return [...m.keys()].sort((a, b) => a.localeCompare(b, 'it'));
+    })();
+    const allPartNames = [...new Set(rows.flatMap(r => r.ris.map(p => p.nome)))].sort((a, b) => a.localeCompare(b, 'it'));
+    const anyTassa = rows.some(r => r.tassaRaw > 0);
+
+    let html = `<div style="font-family:system-ui,sans-serif;padding:0 0 20px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;border-bottom:2px solid #e2e8f0;padding-bottom:10px">
+            <div style="font-size:20px;font-weight:900">Confronta alloggi</div>
+            <div style="font-size:12px;color:#888;font-weight:600">${_esc(titolo)}</div>
+        </div>
+        <div style="display:grid;${sCols};border:1px solid #e2e8f0;border-radius:10px;overflow:hidden">`;
+
+    // Header
+    html += `<div style="padding:10px;background:#5856d6;border-right:1px solid #7b78e0"></div>`;
+    rows.forEach(r => html += pHd(_esc(r.b.titolo || '—')));
+
+    // Date e prenotazione
+    if (opt('date')) {
+        html += pSep();
+        html += pLbl('Date');
+        rows.forEach(r => html += pTd(pVal(r.dateStr !== '—' ? r.dateStr : null)));
+        html += pLbl('Prenota');
+        rows.forEach(r => html += pTd(r.b.link_prenotazione ? `<a href="${_esc(r.b.link_prenotazione)}" style="color:#5856d6;font-weight:700;font-size:12px">Link</a>` : pVal(null)));
+    }
+
+    // Costi
+    html += pSep();
+    if (opt('costoTotale')) {
+        html += pLbl('Totale alloggio');
+        rows.forEach(r => html += pTd(pVal(`${vs}${r.costoTotale.toFixed(2)}`, false, true)));
+    }
+    if (opt('mioCosto')) {
+        html += pLbl('Mio costo', true);
+        rows.forEach(r => html += pTd(pVal(`${vs}${r.mioCosto.toFixed(2)}`, true, true), true));
+    }
+    if (opt('tassa') && anyTassa) {
+        html += pLbl('Tassa totale');
+        rows.forEach(r => html += pTd(pVal(r.tassaTotale !== null ? `${vs}${r.tassaTotale.toFixed(2)}` : null)));
+        html += pLbl('Mia tassa', true);
+        rows.forEach(r => html += pTd(pVal(r.miaTassa !== null ? `${vs}${r.miaTassa.toFixed(2)}` : null, true), true));
+    }
+    if (opt('mioTotPern') && anyTassa) {
+        html += pLbl('Mio tot. pernottamento', true);
+        rows.forEach(r => html += pTd(`<span style="font-size:16px;font-weight:900;color:#5856d6;background:#eef2ff;padding:2px 7px;border-radius:7px">${vs}${r.mioTotPern.toFixed(2)}</span>`, true));
+    }
+
+    // Partecipanti
+    if (opt('partecipanti') && allPartNames.length) {
+        html += pSep();
+        allPartNames.forEach(nome => {
+            const isMe = nome === meNome;
+            html += pLbl((isMe ? '★ ' : '') + _esc(nome) + ' — alloggio', isMe);
+            rows.forEach(r => {
+                const pData = r.ris.find(p => p.nome === nome);
+                const pAlloggio = pData ? Number(pData.quota_alloggio || pData.totale) : null;
+                html += pTd(pVal(pAlloggio !== null ? `${vs}${pAlloggio.toFixed(2)}` : null, isMe), isMe);
+            });
+            if (anyTassa) {
+                html += pLbl(_esc(nome) + ' — tassa', isMe);
+                rows.forEach(r => {
+                    const pData = r.ris.find(p => p.nome === nome);
+                    const pTassa = (pData && r.tassaRaw > 0) ? Math.round(r.tassaRaw * (pData.notti || 0) * 100) / 100 : null;
+                    html += pTd(pVal(pTassa ? `${vs}${pTassa.toFixed(2)}` : null, isMe), isMe);
+                });
+            }
+            html += pLbl(_esc(nome) + ' — tot. pernottamento', isMe);
+            rows.forEach(r => {
+                const pData = r.ris.find(p => p.nome === nome);
+                const pAlloggio = pData ? Number(pData.quota_alloggio || pData.totale) : null;
+                const pTassa = (pData && r.tassaRaw > 0) ? Math.round(r.tassaRaw * (pData.notti || 0) * 100) / 100 : 0;
+                const pTot = pAlloggio !== null ? pAlloggio + pTassa : null;
+                html += pTd(pVal(pTot !== null ? `${vs}${pTot.toFixed(2)}` : null, isMe, true), isMe);
+            });
+        });
+    }
+
+    // Recensione
+    if (opt('recensione')) {
+        html += pSep();
+        html += pLbl('Recensione');
+        rows.forEach(r => {
+            const rec = r.recMode === 'punteggio' && r.punteggio
+                ? `<span style="font-size:16px;font-weight:900;color:#5856d6">${r.punteggio.toFixed(1)}<span style="font-size:10px;color:#aaa">/10</span></span>`
+                : [1,2,3,4,5].map(i => `<span>${i <= r.stelle ? '⭐' : '☆'}</span>`).join('');
+            html += pTd(rec);
+        });
+    }
+
+    // Struttura
+    if (opt('struttura')) {
+        html += pSep();
+        if (rows.some(r => r.postiLetto > 0)) {
+            html += pLbl('Posti letto');
+            rows.forEach(r => html += pTd(pVal(r.postiLetto > 0 ? r.postiLetto : null, false, true)));
+        }
+        if (rows.some(r => r.bagni > 0)) {
+            html += pLbl('Bagni');
+            rows.forEach(r => html += pTd(pVal(r.bagni > 0 ? r.bagni : null, false, true)));
+        }
+    }
+
+    // Servizi
+    if (opt('servizi') && (serviziPresenti.length || extraPresenti.length)) {
+        html += pSep();
+        serviziPresenti.forEach(s => {
+            html += pLbl(s.label);
+            rows.forEach(r => html += pTd(r.servizi.includes(s.id)
+                ? `<span style="color:#0fba8d;font-size:16px;font-weight:900">✓</span>`
+                : `<span style="color:#ddd">—</span>`));
+        });
+        extraPresenti.forEach(label => {
+            html += pLbl(_esc(label));
+            rows.forEach(r => html += pTd(r.serviziExtra.includes(label)
+                ? `<span style="color:#0fba8d;font-size:16px;font-weight:900">✓</span>`
+                : `<span style="color:#ddd">—</span>`));
+        });
+    }
+
+    // POI
+    if (opt('poi') && allPoiKeys.length) {
+        html += pSep();
+        const poiMap = new Map();
+        rows.flatMap(r => r.poi.map(p => p.nome)).forEach(n => { const k = n.trim().toLowerCase(); if (!poiMap.has(k)) poiMap.set(k, n); });
+        allPoiKeys.forEach(key => {
+            html += pLbl(_esc(poiMap.get(key)));
+            rows.forEach(r => {
+                const p = r.poi.find(pp => pp.nome.trim().toLowerCase() === key);
+                if (p) {
+                    const kmV = p.km ?? (p.unita === 'km' ? p.distanza : null);
+                    const minV = p.min ?? (p.unita === 'min' ? p.distanza : null);
+                    const m = POI_MEZZI.find(x => x.id === p.mezzo);
+                    html += pTd([kmV != null ? `<b>${kmV}km</b>` : '', m ? m.emoji : '', minV != null ? `${minV}min` : ''].filter(Boolean).join(' ') || '·');
+                } else { html += pTd(pVal(null)); }
+            });
+        });
+    }
+
+    html += `</div></div>`;
+
     let el = document.getElementById('printComparatore');
     if (!el) { el = document.createElement('div'); el.id = 'printComparatore'; document.body.appendChild(el); }
-    el.innerHTML = `
-        <div style="font-family:system-ui,sans-serif;padding:0">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;border-bottom:2px solid #e2e8f0;padding-bottom:12px">
-                <div style="font-size:22px;font-weight:900">Confronta alloggi</div>
-                <div style="font-size:13px;color:#888;font-weight:600">${titolo}</div>
-            </div>
-            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">${filtro}</div>
-            ${tabella}
-        </div>`;
+    el.innerHTML = html;
     window.print();
 }
 
