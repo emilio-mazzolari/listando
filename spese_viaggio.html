@@ -5264,12 +5264,15 @@ function renderComparatore() {
         const nPersone = ris.length || partecipantiAttuali.length || 1;
         const costoAlloggio = rip?.costo || parseFloat(b.importo_previsto) || 0;
         const costoTotale = ris.length
-            ? ris.reduce((s, r) => s + (Number(r.totale) || 0), 0)
+            ? ris.reduce((s, r) => s + (Number(r.quota_alloggio) || Number(r.totale) || 0), 0)
             : costoAlloggio;
-        const mioCosto = quota ? quota.totale : parseFloat(b.importo_previsto) || 0;
+        const mioCosto = quota ? (Number(quota.quota_alloggio) || Number(quota.totale) || 0) : parseFloat(b.importo_previsto) || 0;
+        const tassaNotti = notti || 0;
+        const tassaTotale = (tassaRaw > 0 && tassaNotti > 0) ? Math.round(tassaRaw * nPersone * tassaNotti * 100) / 100 : null;
+        const miaTassa   = (tassaRaw > 0 && tassaNotti > 0) ? Math.round(tassaRaw * (quota?.notti || tassaNotti) * 100) / 100 : null;
         const dateStr = cin && cout ? `${_fmtD(cin)} → ${_fmtD(cout)}${notti ? ` · ${notti}n` : ''}` : '—';
         return {
-            b, cin, cout, notti, costoTotale, mioCosto, dateStr,
+            b, cin, cout, notti, costoTotale, mioCosto, tassaTotale, miaTassa, dateStr,
             stelle: _compGetStelle(b.id), punteggio: _compGetPunteggio(b.id), recMode: _compGetRecMode(b.id),
             servizi: _compGetServizi(b.id), serviziExtra: _compGetServiziExtra(b.id), postiLetto: _compGetPostiLetto(b.id), bagni: _compGetBagni(b.id),
             poi: _caricaBudgetPoiLocale(b.id),
@@ -5314,6 +5317,16 @@ function renderComparatore() {
     rows.forEach(r => html += td(`<div style="font-size:20px;font-weight:900;color:#333">${vs}${r.costoTotale.toFixed(2)}</div>`));
     html += lbl('Mio costo');
     rows.forEach(r => html += td(`<div style="font-size:20px;font-weight:900;color:#5856d6">${vs}${r.mioCosto.toFixed(2)}</div>`));
+    if (rows.some(r => r.tassaTotale !== null)) {
+        html += lbl('Tassa totale');
+        rows.forEach(r => html += td(r.tassaTotale !== null
+            ? `<div style="font-size:18px;font-weight:900;color:#333">${vs}${r.tassaTotale.toFixed(2)}</div>`
+            : `<span class="cmp-srv-n">—</span>`));
+        html += lbl('Mia tassa');
+        rows.forEach(r => html += td(r.miaTassa !== null
+            ? `<div style="font-size:18px;font-weight:900;color:#5856d6">${vs}${r.miaTassa.toFixed(2)}</div>`
+            : `<span class="cmp-srv-n">—</span>`));
+    }
 
     // ── Recensione ───────────────────────────────────────────
     html += sep();
@@ -6448,7 +6461,6 @@ async function apriRipartizione(preFillCosto, itemId) {
     const cinSalvato  = itemId ? (localStorage.getItem(`sv_cin_${viaggioCorrenteId}_${itemId}`)  || defInizio) : defInizio;
     const coutSalvato = itemId ? (localStorage.getItem(`sv_cout_${viaggioCorrenteId}_${itemId}`) || defFine)   : defFine;
     document.getElementById('ripCosto').value = preFillCosto != null ? preFillCosto : '';
-    document.getElementById('ripTassa').value = itemId ? (_caricaTassaLocale(itemId) || '') : '';
     document.getElementById('ripDataInizio').value = cinSalvato;
     document.getElementById('ripDataFine').value   = coutSalvato;
     const totN = defInizio && defFine && defInizio < defFine ? _enumeraNotti(defInizio, defFine).length : 1;
@@ -6458,7 +6470,6 @@ async function apriRipartizione(preFillCosto, itemId) {
     if (saved?.persone?.length) {
         _ripPersone = saved.persone;
         if (saved.costo)     document.getElementById('ripCosto').value     = saved.costo;
-        if (saved.tassa)     document.getElementById('ripTassa').value     = saved.tassa;
         if (saved.check_in)  document.getElementById('ripDataInizio').value = saved.check_in;
         if (saved.check_out) document.getElementById('ripDataFine').value   = saved.check_out;
     } else if (partecipantiAttuali && partecipantiAttuali.length) {
