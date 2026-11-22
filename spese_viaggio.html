@@ -5695,6 +5695,7 @@ function _renderRipPreviewInModal(itemId) {
     } else {
         html += ris.map(r => `<div style="display:flex;justify-content:space-between;font-size:13px;font-weight:700;padding:3px 0"><span>${_esc(r.nome)} <span style="color:#aaa;font-size:11px">(${r.notti}n)</span></span><span style="font-weight:900">${vs}${Number(r.totale).toFixed(2)}</span></div>`).join('');
         _hideQuotaFields();
+        _hideExtra();
     }
     prev.style.display = '';
     prev.innerHTML = html;
@@ -5968,13 +5969,16 @@ function setBudgetAlloggioMode(mode) {
     const r1 = document.getElementById('bMioCostoRow');
     const r2 = document.getElementById('bMiaQuotaTassaRow');
     const r3 = document.getElementById('bCostoRipartitoRow');
+    const r4 = document.getElementById('bTotalePernottamentoRow');
     if (mode === 'fisso') {
         if (valutaCol) valutaCol.style.display = '';
         if (r1) r1.style.display = 'none';
         if (r2) r2.style.display = 'none';
         if (r3) r3.style.display = 'none';
+        if (r4) r4.style.display = 'none';
     } else {
         if (valutaCol) valutaCol.style.display = 'none';
+        if (budgetItemEditId) _renderRipPreviewInModal(budgetItemEditId);
     }
     if (budgetItemEditId && viaggioCorrenteId) {
         localStorage.setItem(`sv_allomode_${viaggioCorrenteId}_${budgetItemEditId}`, mode);
