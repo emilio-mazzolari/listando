@@ -5438,22 +5438,17 @@ function stampaComparatore() {
     const alloggi = budgetAttuale.filter(b => b.categoria === 'alloggio' && b.stato !== 'annullata');
     const meP = partecipantiAttuali.find(p => (p.email_collegata || '').toLowerCase() === _me());
     const meNome = meP?.nome || '';
-    const hasRip = alloggi.some(b => {
-        const rip = ripartizioniCache[b.id];
-        const ris = rip ? (Array.isArray(rip.risultati) ? rip.risultati : (() => { try { return JSON.parse(rip.risultati); } catch { return []; } })()) : [];
-        return ris.length > 0;
-    });
     const hasTassa = alloggi.some(b => parseFloat(localStorage.getItem(`sv_tassa_${viaggioCorrenteId}_${b.id}`)) > 0);
 
     const opts = [
-        { id: 'date',         label: 'Date e prenotazione',              checked: true },
-        { id: 'costoTotale',  label: 'Totale alloggio',                  checked: true },
-        { id: 'mioCosto',     label: 'Mio costo',                        checked: true },
+        { id: 'date',          label: 'Date e prenotazione',              checked: true },
+        { id: 'costoTotale',   label: 'Totale alloggio',                  checked: true },
+        { id: 'mioCosto',      label: 'Mio costo',                        checked: true },
         ...(hasTassa ? [
-            { id: 'tassa',      label: 'Tassa soggiorno (totale e mia)', checked: true },
-            { id: 'mioTotPern', label: 'Mio totale pernottamento',       checked: true },
+            { id: 'tassa',       label: 'Tassa soggiorno (totale e mia)', checked: true },
+            { id: 'mioTotPern',  label: 'Mio totale pernottamento',       checked: true },
         ] : []),
-        ...(hasRip ? [{ id: 'partecipanti', label: 'Costi per partecipante', checked: true }] : []),
+        { id: 'partecipanti',  label: 'Costi per partecipante',           checked: true },
         { id: 'recensione',   label: 'Recensione',                       checked: true },
         { id: 'struttura',    label: 'Posti letto / Bagni',              checked: true },
         { id: 'servizi',      label: 'Servizi',                          checked: true },
