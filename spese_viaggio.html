@@ -1208,8 +1208,12 @@
         <div id="bRipPreview" style="display:none;background:#eef2ff;border-radius:12px;padding:10px 12px;margin-top:10px"></div>
         <button id="bBtnRipartisci" class="btn-save-modal" style="background:#5856d6;margin-top:10px;display:none" onclick="salvaBudgetEApriRipartisci()">RIPARTISCI</button>
         <div id="bCostoRipartitoRow" style="display:none;margin-top:12px">
-            <label class="form-label">Costo alloggio ripartito</label>
+            <label class="form-label">Mio costo alloggio ripartito</label>
             <input class="form-input" id="bCostoRipartito" readonly style="margin:0;padding:10px 12px;background:#eef2ff;color:#5856d6;font-weight:900;cursor:default;font-size:17px">
+        </div>
+        <div id="bTotalePernottamentoRow" style="display:none;margin-top:8px">
+            <label class="form-label">Totale mio pernottamento</label>
+            <input class="form-input" id="bTotalePernottamento" readonly style="margin:0;padding:10px 12px;background:#e8f5e9;color:#15803d;font-weight:900;cursor:default;font-size:17px">
         </div>
 
         <label class="form-label" style="margin-top:12px">Stato</label>
@@ -5641,11 +5645,14 @@ function _renderRipPreviewInModal(itemId) {
     };
     if (!prev) return;
     const rip = ripartizioniCache[itemId];
-    const costoRipartitoRow = document.getElementById('bCostoRipartitoRow');
-    const costoRipartitoInp = document.getElementById('bCostoRipartito');
-    if (!rip) { prev.style.display = 'none'; _hideQuotaFields(); if (costoRipartitoRow) costoRipartitoRow.style.display = 'none'; return; }
+    const costoRipartitoRow  = document.getElementById('bCostoRipartitoRow');
+    const costoRipartitoInp  = document.getElementById('bCostoRipartito');
+    const totalePernRow      = document.getElementById('bTotalePernottamentoRow');
+    const totalePernInp      = document.getElementById('bTotalePernottamento');
+    const _hideExtra = () => { if (costoRipartitoRow) costoRipartitoRow.style.display = 'none'; if (totalePernRow) totalePernRow.style.display = 'none'; };
+    if (!rip) { prev.style.display = 'none'; _hideQuotaFields(); _hideExtra(); return; }
     const ris = Array.isArray(rip.risultati) ? rip.risultati : (rip.risultati ? JSON.parse(rip.risultati) : []);
-    if (!ris.length) { prev.style.display = 'none'; _hideQuotaFields(); if (costoRipartitoRow) costoRipartitoRow.style.display = 'none'; return; }
+    if (!ris.length) { prev.style.display = 'none'; _hideQuotaFields(); _hideExtra(); return; }
     const vs = symb(rip.valuta || viaggioCorrenteValuta);
     const meP = partecipantiAttuali.find(p => (p.email_collegata || '').toLowerCase() === _me());
     const meNome = meP?.nome || '';
@@ -5661,8 +5668,17 @@ function _renderRipPreviewInModal(itemId) {
         html += `<div style="display:flex;justify-content:space-between;padding:7px 0 2px;font-size:15px;font-weight:900;border-top:1.5px solid rgba(88,86,214,.2);margin-top:6px"><span style="color:#5856d6">Totale mia quota</span><span style="color:#5856d6">${vs}${Number(quota.totale).toFixed(2)}</span></div>`;
         // popola i campi read-only dedicati
         if (costoRipartitoRow && costoRipartitoInp) {
-            costoRipartitoInp.value = `${vs}${Number(quota.totale).toFixed(2)}`;
+            const qAlloggio = Number(quota.quota_alloggio || quota.totale);
+            costoRipartitoInp.value = `${vs}${qAlloggio.toFixed(2)}`;
             costoRipartitoRow.style.display = budgetAlloggioMode === 'ripartire' ? '' : 'none';
+            // Totale pernottamento = alloggio ripartito + mia tassa
+            const tassaRaw = parseFloat(localStorage.getItem(`sv_tassa_${viaggioCorrenteId}_${itemId}`)) || 0;
+            const miaTassa = tassaRaw > 0 && quota.notti ? Math.round(tassaRaw * quota.notti * 100) / 100 : 0;
+            if (totalePernRow && totalePernInp) {
+                const totPern = qAlloggio + miaTassa;
+                totalePernInp.value = `${vs}${totPern.toFixed(2)}`;
+                totalePernRow.style.display = budgetAlloggioMode === 'ripartire' ? '' : 'none';
+            }
         }
         if (miaCostoRow) {
             document.getElementById('bMioCostoAlloggio').value = `${vs}${Number(quota.quota_alloggio).toFixed(2)}`;
