@@ -661,6 +661,15 @@ let songPlaylistMap = {}; // canzone_id → [playlist_id, ...]
 fetch('/api/run-sql?solo=canzoni_bpm').catch(() => {});
 fetch('/api/run-sql?solo=canzoni_in_playlist').catch(() => {});
 
+// BPM: localStorage come storage primario, DB come best-effort
+function bpmGet(id) { return Number(localStorage.getItem('bpm_' + id)) || null; }
+function bpmSet(id, val) { if (val) localStorage.setItem('bpm_' + id, val); else localStorage.removeItem('bpm_' + id); }
+function patchSongsWithLocalBpm() {
+    for (const s of songs) {
+        if (!s.bpm) { const v = bpmGet(s.id); if (v) s.bpm = v; }
+    }
+}
+
 // ── Data ───────────────────────────────────────────────────────────────
 async function carica() {
     // Query playlists and songs in parallel; condivisioni is optional (table may not exist)
@@ -701,6 +710,7 @@ async function carica() {
         }
     } catch (_) { songPlaylistMap = {}; }
 
+    patchSongsWithLocalBpm();
     renderMain();
 }
 
@@ -1519,7 +1529,7 @@ function apriEditSong(s) {
     editSongId = s.id;
     document.getElementById('sTitolo').value = s.titolo || '';
     document.getElementById('sArtista').value = s.artista || '';
-    document.getElementById('sBpm').value = s.bpm || bpmDaNome(s.titolo) || '';
+    document.getElementById('sBpm').value = s.bpm || bpmGet(s.id) || bpmDaNome(s.titolo) || '';
     document.getElementById('sNote').value = s.note || '';
     const currentPids = new Set([
         ...(songPlaylistMap[s.id] || []),
@@ -1559,22 +1569,16 @@ async function salvaSong() {
     if (error) { toast('Errore: ' + error.message); return; }
 
     // 2) BPM — via endpoint server-side (bypassa cache PostgREST, usa service key)
+    // BPM: salva su localStorage (immediato e affidabile) + best-effort su DB
     if (bpmVal) {
-        const bpmResp = await fetch(`/api/run-sql?action=save-bpm&id=${saveId}&bpm=${bpmVal}`).catch(() => null);
-        if (!bpmResp || !bpmResp.ok) {
-            // Fallback: prova comunque via JS client
-            await sb.from('canzoni').update({ bpm: bpmVal }).eq('id', saveId).catch(() => {});
-        }
+        bpmSet(saveId, bpmVal);
+        fetch(`/api/run-sql?action=save-bpm&id=${saveId}&bpm=${bpmVal}`).catch(() => {});
+        sb.from('canzoni').update({ bpm: bpmVal }).eq('id', saveId).catch(() => {});
     }
 
     document.getElementById('modaleSong').classList.remove('open');
     toast('✓ Salvato');
-    await carica();
-    // Se PostgREST non ha ancora il cache aggiornato, patcha l'array locale
-    if (bpmVal) {
-        const song = songs.find(x => x.id === saveId);
-        if (song && !song.bpm) { song.bpm = bpmVal; renderMain(); }
-    }
+    await carica(); // patchSongsWithLocalBpm() è già chiamata dentro carica()
     if (currentPlaylistId) renderPlaylistView();
 
     // Junction table in background
