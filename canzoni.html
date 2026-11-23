@@ -287,7 +287,7 @@
         }
         .btn-tap-bpm:active { transform: scale(0.93); background: var(--music-dark); }
         .btn-tap-bpm:disabled { opacity: 0.6; pointer-events: none; }
-        .song-bpm { font-size: 12px; color: var(--music); font-weight: 800; margin-top: 2px; }
+        .song-bpm { display: inline-block; background: rgba(15,186,141,0.13); color: var(--music); border: 1.5px solid rgba(15,186,141,0.35); border-radius: 8px; padding: 2px 8px; font-size: 12px; font-weight: 800; margin-top: 5px; letter-spacing: 0.2px; }
 
         /* ── BPM filter chips ── */
         .bpm-filters { display: flex; gap: 8px; overflow-x: auto; padding: 2px 16px 10px; scrollbar-width: none; }
@@ -859,7 +859,7 @@ function songItemHtml(s, i) {
         <div class="song-info">
             <div class="song-title${isPlay ? ' playing' : ''}">${s.titolo}</div>
             ${s.artista ? `<div class="song-artist">${s.artista}</div>` : ''}
-            ${s.bpm ? `<div class="song-bpm">${s.bpm} BPM</div>` : ''}
+            ${s.bpm ? `<div class="song-bpm">♩ ${s.bpm} BPM</div>` : ''}
             ${s.note ? `<div class="song-artist" style="font-style:italic;color:#aaa">${s.note}</div>` : ''}
         </div>
         <div class="song-dur">${dur}</div>
@@ -1199,7 +1199,7 @@ async function handleFiles(fileList) {
             const [artista, titolo] = baseName.includes(' - ')
                 ? baseName.split(' - ', 2).map(s => s.trim())
                 : [null, baseName];
-            const { error: dbErr } = await sb.from('canzoni').insert({
+            const insertData = {
                 email_utente: userEmail,
                 playlist_id: currentPlaylistId || null,
                 titolo: titolo || baseName,
@@ -1210,7 +1210,13 @@ async function handleFiles(fileList) {
                 durata_sec,
                 bpm: bpm || null,
                 sort_order: Date.now() + i
-            });
+            };
+            let { error: dbErr } = await sb.from('canzoni').insert(insertData);
+            if (dbErr) {
+                // Fallback: colonna bpm non ancora in schema cache, salva senza
+                const { bpm: _b, ...safeInsert } = insertData;
+                ({ error: dbErr } = await sb.from('canzoni').insert(safeInsert));
+            }
             if (dbErr) throw dbErr;
             ok++;
         } catch(e) {
