@@ -286,7 +286,7 @@
             user-select: none; -webkit-user-select: none;
         }
         .btn-tap-bpm:active { transform: scale(0.93); background: var(--music-dark); }
-        .btn-tap-bpm .tap-label { font-size: 11px; opacity: 0.8; font-weight: 700; }
+        .btn-tap-bpm:disabled { opacity: 0.6; pointer-events: none; }
         .bpm-badge { display: inline-block; background: rgba(29,185,84,0.12); color: var(--music); border-radius: 6px; padding: 1px 6px; font-size: 11px; font-weight: 800; margin-left: 4px; }
 
         .toast { position: fixed; bottom: 120px; left: 50%; transform: translateX(-50%) translateY(20px); background: rgba(0,0,0,0.85); color: white; padding: 12px 20px; border-radius: 14px; font-weight: 700; font-size: 14px; opacity: 0; transition: all 0.25s; white-space: nowrap; z-index: 9999; pointer-events: none; }
@@ -518,9 +518,8 @@
                 <div class="bpm-input-wrap">
                     <input class="form-input" id="sBpm" type="number" min="20" max="300" placeholder="—">
                 </div>
-                <button class="btn-tap-bpm" id="btnTapBpm" onclick="tapBpm()" ontouchstart="tapBpm();event.preventDefault()">
-                    <span>♩ TAP</span>
-                    <span class="tap-label" id="tapBpmLabel"></span>
+                <button class="btn-tap-bpm" id="btnRilevaBpm" onclick="rilevaBpm()">
+                    <span id="btnRilevaLabel">🎵 Rileva</span>
                 </button>
             </div>
         </div>
@@ -636,7 +635,6 @@ let plLongPressTimer = null, plLongPressTriggered = false;
 let condividiTargetId = null, condividiPlTargetId = null;
 let currentSpeed = 1.0;
 let repeatMode = 0;   // 0=off 1=all 2=one
-let bpmTaps = [], bpmResetTimer = null;
 let isShuffleOn = false;
 let origQueue = [];
 let isExpanded = false;
@@ -1149,8 +1147,10 @@ async function handleFiles(fileList) {
             const { error: upErr } = await sb.storage.from('canzoni').upload(path, file, { contentType: file.type || 'audio/mpeg' });
             if (upErr) throw upErr;
             const { data: { publicUrl } } = sb.storage.from('canzoni').getPublicUrl(path);
-            let durata_sec = null;
-            try { durata_sec = await getAudioDuration(file); } catch {}
+            const [durata_sec, bpm] = await Promise.all([
+                getAudioDuration(file).catch(() => null),
+                detectBpmFromFile(file).catch(() => null)
+            ]);
             const baseName = file.name.replace(/\.[^.]+$/, '');
             const [artista, titolo] = baseName.includes(' - ')
                 ? baseName.split(' - ', 2).map(s => s.trim())
@@ -1164,6 +1164,7 @@ async function handleFiles(fileList) {
                 url: publicUrl,
                 size_bytes: file.size,
                 durata_sec,
+                bpm: bpm || null,
                 sort_order: Date.now() + i
             });
             if (dbErr) throw dbErr;
@@ -1340,22 +1341,85 @@ async function ctxAction(action) {
     else if (action === 'elimina') await eliminaSongById(ctxTargetId);
 }
 
-function tapBpm() {
-    const now = Date.now();
-    if (bpmTaps.length > 0 && now - bpmTaps[bpmTaps.length - 1] > 2500) bpmTaps = [];
-    bpmTaps.push(now);
-    clearTimeout(bpmResetTimer);
-    bpmResetTimer = setTimeout(() => {
-        bpmTaps = [];
-        document.getElementById('tapBpmLabel').textContent = '';
-    }, 2500);
-    if (bpmTaps.length >= 2) {
-        let total = 0;
-        for (let i = 1; i < bpmTaps.length; i++) total += bpmTaps[i] - bpmTaps[i - 1];
-        const bpm = Math.round(60000 / (total / (bpmTaps.length - 1)));
-        document.getElementById('sBpm').value = bpm;
-    }
-    document.getElementById('tapBpmLabel').textContent = bpmTaps.length < 2 ? 'batti il ritmo' : `${bpmTaps.length} tocchi`;
+
+// ── BPM auto-detection ────────────────────────────────────────────────
+async function detectBpmFromBuffer(arrayBuffer) {
+    try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        let buffer;
+        try { buffer = await ctx.decodeAudioData(arrayBuffer); }
+        catch { ctx.close().catch(() => {}); return null; }
+        ctx.close().catch(() => {});
+
+        const sr = buffer.sampleRate;
+        const maxLen = Math.min(buffer.length, sr * 60);
+        const ch = buffer.getChannelData(0);
+
+        // Downsample to ~11025 Hz
+        const factor = Math.max(1, Math.round(sr / 11025));
+        const tsr = sr / factor;
+        const len = Math.floor(maxLen / factor);
+        const signal = new Float32Array(len);
+        for (let i = 0; i < len; i++) signal[i] = ch[i * factor];
+
+        // Energy envelope with 23ms window, 11.6ms hop
+        const W = Math.round(tsr * 0.023);
+        const H = Math.round(tsr * 0.0116);
+        const nF = Math.floor((len - W) / H);
+        const env = new Float32Array(nF);
+        for (let i = 0; i < nF; i++) {
+            let s = 0, base = i * H;
+            for (let j = 0; j < W; j++) s += signal[base + j] ** 2;
+            env[i] = Math.sqrt(s / W);
+        }
+
+        // Onset: positive first-difference of log energy
+        const EPS = 1e-8;
+        const onset = new Float32Array(nF);
+        for (let i = 1; i < nF; i++) {
+            const d = Math.log(env[i] + EPS) - Math.log(env[i - 1] + EPS);
+            onset[i] = d > 0 ? d : 0;
+        }
+
+        // Normalize
+        const maxO = Math.max(...onset);
+        if (maxO < 1e-6) return null;
+        for (let i = 0; i < nF; i++) onset[i] /= maxO;
+
+        // Autocorrelation over BPM range 60–200
+        const hopSec = H / tsr;
+        const minLag = Math.round(60 / (200 * hopSec));
+        const maxLag = Math.round(60 / (60 * hopSec));
+        let bestLag = minLag, bestCorr = -1;
+        for (let lag = minLag; lag <= maxLag; lag++) {
+            let c = 0;
+            for (let i = 0; i < nF - lag; i++) c += onset[i] * onset[i + lag];
+            if (c > bestCorr) { bestCorr = c; bestLag = lag; }
+        }
+
+        const bpm = Math.round(60 / (bestLag * hopSec));
+        return (bpm >= 60 && bpm <= 200) ? bpm : null;
+    } catch { return null; }
+}
+
+async function detectBpmFromFile(file) {
+    const slice = file.size > 3 * 1024 * 1024 ? file.slice(0, 3 * 1024 * 1024) : file;
+    return detectBpmFromBuffer(await slice.arrayBuffer());
+}
+
+async function rilevaBpm() {
+    const s = songs.find(x => x.id === editSongId);
+    if (!s?.url) { toast('URL audio non disponibile'); return; }
+    const btn = document.getElementById('btnRilevaBpm');
+    const lbl = document.getElementById('btnRilevaLabel');
+    btn.disabled = true; lbl.textContent = '⏳…';
+    try {
+        const resp = await fetch(s.url, { headers: { Range: 'bytes=0-3145727' } });
+        const bpm = await detectBpmFromBuffer(await resp.arrayBuffer());
+        if (bpm) { document.getElementById('sBpm').value = bpm; toast(`♩ ${bpm} BPM rilevati`); }
+        else toast('Ritmo non rilevato — inserisci manualmente');
+    } catch { toast('Errore analisi audio'); }
+    finally { btn.disabled = false; lbl.textContent = '🎵 Rileva'; }
 }
 
 function apriEditSong(s) {
@@ -1364,9 +1428,6 @@ function apriEditSong(s) {
     document.getElementById('sArtista').value = s.artista || '';
     document.getElementById('sBpm').value = s.bpm || '';
     document.getElementById('sNote').value = s.note || '';
-    bpmTaps = [];
-    clearTimeout(bpmResetTimer);
-    document.getElementById('tapBpmLabel').textContent = '';
     const sel = document.getElementById('sPlaylist');
     sel.innerHTML = '<option value="">— Nessuna raccolta —</option>' +
         playlists.map(p => `<option value="${p.id}"${p.id === s.playlist_id ? ' selected' : ''}>${p.nome}</option>`).join('');
