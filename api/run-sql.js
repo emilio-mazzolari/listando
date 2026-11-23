@@ -121,6 +121,15 @@ const STATEMENTS = [
         unique(playlist_id, email_destinatario)
     )`,
     `ALTER TABLE IF EXISTS canzoni_pl_condivisioni DISABLE ROW LEVEL SECURITY`,
+    `CREATE TABLE IF NOT EXISTS canzoni_in_playlist (
+        id bigint generated always as identity primary key,
+        canzone_id bigint not null references canzoni(id) on delete cascade,
+        playlist_id bigint not null references canzoni_playlist(id) on delete cascade,
+        email_utente text not null,
+        created_at timestamptz default now(),
+        unique(canzone_id, playlist_id)
+    )`,
+    `ALTER TABLE IF EXISTS canzoni_in_playlist DISABLE ROW LEVEL SECURITY`,
     `CREATE TABLE IF NOT EXISTS documenti_condivisioni (
         id bigint generated always as identity primary key,
         documento_id bigint not null references documenti(id) on delete cascade,

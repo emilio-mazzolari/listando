@@ -476,7 +476,11 @@
             <input class="form-input" id="condividiEmailInput" type="email" placeholder="utente@email.com"
                    onkeydown="if(event.key==='Enter') aggiungiCondivisione()">
         </div>
-        <button class="btn-save-modal" onclick="aggiungiCondivisione()">CONDIVIDI</button>
+        <button class="btn-save-modal" onclick="aggiungiCondivisione()">CONDIVIDI CON UTENTE LISTANDO</button>
+        <button onclick="condividiWhatsapp()" style="width:100%;padding:14px;border-radius:18px;border:none;background:#25D366;color:white;font-weight:900;font-size:15px;cursor:pointer;font-family:inherit;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:8px">
+            <svg width="20" height="20" fill="white" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+            Condividi su WhatsApp
+        </button>
         <div id="condividiListaWrap" style="margin-top:18px;display:none">
             <div class="form-label" style="margin-bottom:8px">Già condivisa con</div>
             <div id="condividiLista"></div>
@@ -517,10 +521,8 @@
             <input class="form-input" id="sArtista" type="text" placeholder="Artista / Band">
         </div>
         <div class="form-group">
-            <label class="form-label">Raccolta</label>
-            <select class="form-input" id="sPlaylist">
-                <option value="">— Nessuna —</option>
-            </select>
+            <label class="form-label">Raccolte</label>
+            <div id="sPlaylistCheckboxes" style="border:2.5px solid var(--grey);border-radius:14px;padding:4px 14px;max-height:130px;overflow-y:auto"></div>
         </div>
         <div class="form-group">
             <label class="form-label">BPM</label>
@@ -650,9 +652,11 @@ let origQueue = [];
 let isExpanded = false;
 let sharedPlaylists = [], currentSharedPl = null, sharedPlaylistSongs = [];
 let bpmFilter = null; // null = no filter, [min, max]
+let songPlaylistMap = {}; // canzone_id → [playlist_id, ...]
 
-// Trigger BPM column migration proactively (non-blocking)
+// Proactive migrations (non-blocking)
 fetch('/api/run-sql?solo=canzoni_bpm').catch(() => {});
+fetch('/api/run-sql?solo=canzoni_in_playlist').catch(() => {});
 
 // ── Data ───────────────────────────────────────────────────────────────
 async function carica() {
@@ -682,6 +686,17 @@ async function carica() {
         sharedPlaylists = (spData || []).filter(c => c.canzoni_playlist)
             .map(c => ({ ...c.canzoni_playlist, _mittente: c.email_mittente, _condPl_id: c.id }));
     } catch (_) { sharedPlaylists = []; }
+
+    // junction table (canzoni in più raccolte)
+    try {
+        const { data: cipData } = await sb.from('canzoni_in_playlist')
+            .select('canzone_id, playlist_id').eq('email_utente', userEmail);
+        songPlaylistMap = {};
+        for (const row of cipData || []) {
+            if (!songPlaylistMap[row.canzone_id]) songPlaylistMap[row.canzone_id] = [];
+            songPlaylistMap[row.canzone_id].push(row.playlist_id);
+        }
+    } catch (_) { songPlaylistMap = {}; }
 
     renderMain();
 }
@@ -741,7 +756,7 @@ function onSearchPl() {
     searchPlQ = (document.getElementById('searchPl').value || '').toLowerCase().trim();
     document.getElementById('searchPlClear').style.display = searchPlQ ? '' : 'none';
     const id = currentPlaylistId;
-    const plSongs = songs.filter(s => s.playlist_id === id);
+    const plSongs = songsInPlaylist(id);
     const filtered = searchPlQ
         ? plSongs.filter(s => (s.titolo||'').toLowerCase().includes(searchPlQ) || (s.artista||'').toLowerCase().includes(searchPlQ))
         : plSongs;
@@ -751,8 +766,7 @@ function clearSearchPl() {
     document.getElementById('searchPl').value = '';
     searchPlQ = '';
     document.getElementById('searchPlClear').style.display = 'none';
-    const plSongs = songs.filter(s => s.playlist_id === currentPlaylistId);
-    renderSongList('playlistSongsList', plSongs);
+    renderSongList('playlistSongsList', songsInPlaylist(currentPlaylistId));
 }
 
 function renderMain() {
@@ -788,9 +802,14 @@ function renderSharedSection() {
     }).join('');
 }
 
+function songsInPlaylist(plId) {
+    return [...new Map(
+        songs.filter(s => s.playlist_id === plId || (songPlaylistMap[s.id] || []).includes(plId))
+        .map(s => [s.id, s])
+    ).values()];
+}
 function countSongsDeep(plId) {
-    const direct = songs.filter(s => s.playlist_id === plId).length;
-    return direct + playlists.filter(p => p.parent_id === plId)
+    return songsInPlaylist(plId).length + playlists.filter(p => p.parent_id === plId)
         .reduce((sum, sub) => sum + countSongsDeep(sub.id), 0);
 }
 
@@ -1211,13 +1230,19 @@ async function handleFiles(fileList) {
                 bpm: bpm || null,
                 sort_order: Date.now() + i
             };
-            let { error: dbErr } = await sb.from('canzoni').insert(insertData);
+            let { data: inserted, error: dbErr } = await sb.from('canzoni').insert(insertData).select('id').single();
             if (dbErr) {
                 // Fallback: colonna bpm non ancora in schema cache, salva senza
                 const { bpm: _b, ...safeInsert } = insertData;
-                ({ error: dbErr } = await sb.from('canzoni').insert(safeInsert));
+                ({ data: inserted, error: dbErr } = await sb.from('canzoni').insert(safeInsert).select('id').single());
             }
             if (dbErr) throw dbErr;
+            // Aggiungi alla junction table se stiamo caricando dentro una raccolta
+            if (currentPlaylistId && inserted?.id) {
+                await sb.from('canzoni_in_playlist').insert({
+                    canzone_id: inserted.id, playlist_id: currentPlaylistId, email_utente: userEmail
+                }).catch(() => {});
+            }
             ok++;
         } catch(e) {
             console.error(e);
@@ -1472,48 +1497,74 @@ async function rilevaBpm() {
     finally { btn.disabled = false; lbl.textContent = '🎵 Rileva'; }
 }
 
+function bpmDaNome(titolo) {
+    const m = (titolo || '').match(/[_\s-](\d{2,3})\s*bpm$/i);
+    return m ? Number(m[1]) : null;
+}
+
 function apriEditSong(s) {
     editSongId = s.id;
     document.getElementById('sTitolo').value = s.titolo || '';
     document.getElementById('sArtista').value = s.artista || '';
-    document.getElementById('sBpm').value = s.bpm || '';
+    document.getElementById('sBpm').value = s.bpm || bpmDaNome(s.titolo) || '';
     document.getElementById('sNote').value = s.note || '';
-    const sel = document.getElementById('sPlaylist');
-    sel.innerHTML = '<option value="">— Nessuna raccolta —</option>' +
-        playlists.map(p => `<option value="${p.id}"${p.id === s.playlist_id ? ' selected' : ''}>${p.nome}</option>`).join('');
+    const currentPids = new Set([
+        ...(songPlaylistMap[s.id] || []),
+        ...(s.playlist_id ? [s.playlist_id] : [])
+    ]);
+    document.getElementById('sPlaylistCheckboxes').innerHTML = playlists.length
+        ? playlists.map(p => `<label style="display:flex;align-items:center;gap:10px;padding:8px 0;cursor:pointer;border-bottom:1px solid var(--grey-light)">
+            <input type="checkbox" value="${p.id}" ${currentPids.has(p.id) ? 'checked' : ''} style="width:18px;height:18px;accent-color:var(--music);flex-shrink:0;cursor:pointer">
+            <span style="font-size:14px;font-weight:700">${p.nome}</span>
+          </label>`).join('')
+        : '<div style="color:#aaa;font-size:13px;padding:8px 0">Nessuna raccolta</div>';
     document.getElementById('modaleSong').classList.add('open');
 }
 
 async function salvaSong() {
-    const s = songs.find(x => x.id === editSongId);
-    if (!s) return;
+    if (!editSongId) return;
     const titolo = document.getElementById('sTitolo').value.trim();
     if (!titolo) { toast('Inserisci il titolo'); return; }
+
+    const btn = document.querySelector('#modaleSong .btn-save-modal');
+    btn.disabled = true; btn.textContent = 'SALVO…';
+
     const plVal = document.getElementById('sPlaylist').value;
     const bpmRaw = document.getElementById('sBpm').value;
-    const updateData = {
+    const bpmVal = bpmRaw ? Number(bpmRaw) : null;
+
+    // 1) Salva i campi base — non include bpm, funziona sempre
+    const coreData = {
         titolo,
         artista: document.getElementById('sArtista').value.trim() || null,
         playlist_id: plVal ? Number(plVal) : null,
         note: document.getElementById('sNote').value.trim() || null,
-        bpm: bpmRaw ? Number(bpmRaw) : null,
     };
-    let { error } = await sb.from('canzoni').update(updateData).eq('id', editSongId);
-    if (error) {
-        // Run any pending column migrations and retry once
-        await Promise.all([
-            fetch('/api/run-sql?solo=canzoni_note').catch(() => {}),
-            fetch('/api/run-sql?solo=canzoni_bpm').catch(() => {}),
-        ]);
-        await new Promise(r => setTimeout(r, 2000));
-        ({ error } = await sb.from('canzoni').update(updateData).eq('id', editSongId));
+    const { error } = await sb.from('canzoni').update(coreData).eq('id', editSongId);
+    btn.disabled = false; btn.textContent = 'SALVA';
+    if (error) { toast('Errore: ' + error.message); return; }
+
+    // 2) Salva raccolte via junction table
+    const checkedPids = [...document.querySelectorAll('#sPlaylistCheckboxes input:checked')].map(cb => Number(cb.value));
+    await sb.from('canzoni_in_playlist').delete().eq('canzone_id', editSongId).eq('email_utente', userEmail).catch(() => {});
+    if (checkedPids.length) {
+        await sb.from('canzoni_in_playlist').insert(
+            checkedPids.map(pid => ({ canzone_id: editSongId, playlist_id: pid, email_utente: userEmail }))
+        ).catch(() => {});
     }
-    if (error) {
-        // Final fallback: save without bpm (column may not exist yet)
-        const { bpm: _b, ...safeData } = updateData;
-        const { error: e2 } = await sb.from('canzoni').update(safeData).eq('id', editSongId);
-        if (e2) { toast('Errore: ' + e2.message); return; }
+    // Aggiorna anche playlist_id per backward compat
+    await sb.from('canzoni').update({ playlist_id: checkedPids[0] || null }).eq('id', editSongId).catch(() => {});
+
+    // 3) Salva BPM separatamente (non bloccante se la colonna manca)
+    if (bpmVal) {
+        let { error: bErr } = await sb.from('canzoni').update({ bpm: bpmVal }).eq('id', editSongId);
+        if (bErr) {
+            await fetch('/api/run-sql?solo=canzoni_bpm').catch(() => {});
+            await new Promise(r => setTimeout(r, 2500));
+            await sb.from('canzoni').update({ bpm: bpmVal }).eq('id', editSongId).catch(() => {});
+        }
     }
+
     document.getElementById('modaleSong').classList.remove('open');
     toast('✓ Salvato');
     await carica();
@@ -1527,6 +1578,17 @@ async function eliminaSong() {
 }
 
 // ── Condivisione ────────────────────────────────────────────────────────
+function condividiWhatsapp() {
+    const s = songs.find(x => x.id === condividiTargetId);
+    if (!s) { toast('Canzone non trovata'); return; }
+    let text = `🎵 *${s.titolo}*`;
+    if (s.artista) text += `\n🎤 ${s.artista}`;
+    if (s.bpm) text += `\n♩ ${s.bpm} BPM`;
+    if (s.durata_sec) text += ` · ${fmtTime(s.durata_sec)}`;
+    if (s.url) text += `\n\nAscolta: ${s.url}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+}
+
 async function apriCondividi(songId) {
     condividiTargetId = songId;
     const s = songs.find(x => x.id === songId);
