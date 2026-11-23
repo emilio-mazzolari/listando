@@ -511,7 +511,10 @@
 <div class="modal-overlay" id="modaleSong">
     <div class="modal-box">
         <div class="modal-handle"></div>
-        <div class="modal-title">Modifica canzone</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+            <div class="modal-title" style="margin-bottom:0">Modifica canzone</div>
+            <button onclick="document.getElementById('modaleSong').classList.remove('open')" style="background:none;border:none;font-size:22px;color:#999;cursor:pointer;line-height:1;padding:0 2px">✕</button>
+        </div>
         <div class="form-group">
             <label class="form-label">Titolo *</label>
             <input class="form-input" id="sTitolo" type="text">
@@ -877,8 +880,7 @@ function songItemHtml(s, i) {
         <div class="song-num">${numEl}</div>
         <div class="song-info">
             <div class="song-title${isPlay ? ' playing' : ''}">${s.titolo}</div>
-            ${s.artista ? `<div class="song-artist">${s.artista}</div>` : ''}
-            ${s.bpm ? `<div class="song-bpm">♩ ${s.bpm} BPM</div>` : ''}
+            ${(s.artista || s.bpm) ? `<div class="song-artist">${[s.artista, s.bpm ? `♩ ${s.bpm} BPM` : ''].filter(Boolean).join(' · ')}</div>` : ''}
             ${s.note ? `<div class="song-artist" style="font-style:italic;color:#aaa">${s.note}</div>` : ''}
         </div>
         <div class="song-dur">${dur}</div>
@@ -1556,36 +1558,23 @@ async function salvaSong() {
     btn.disabled = false; btn.textContent = 'SALVA';
     if (error) { toast('Errore: ' + error.message); return; }
 
-    // 2) BPM — prova JS client, poi fetch REST diretto come fallback
+    // 2) BPM — via endpoint server-side (bypassa cache PostgREST, usa service key)
     if (bpmVal) {
-        const { error: bErr } = await sb.from('canzoni').update({ bpm: bpmVal }).eq('id', saveId);
-        if (bErr) {
-            // Triggera migrazione + notify PostgREST, poi fetch REST diretto
-            await fetch('/api/run-sql?solo=canzoni_bpm').catch(() => {});
-            await new Promise(r => setTimeout(r, 1200));
-            const pResp = await fetch(`${SUPABASE_URL}/rest/v1/canzoni?id=eq.${saveId}`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'apikey': SUPABASE_KEY,
-                    'Authorization': `Bearer ${SUPABASE_KEY}`,
-                    'Prefer': 'return=minimal'
-                },
-                body: JSON.stringify({ bpm: bpmVal })
-            });
-            if (!pResp.ok) {
-                const errTxt = await pResp.text().catch(() => '');
-                toast(`⚠ BPM non salvato — ${errTxt.slice(0, 120)}`);
-            }
+        const bpmResp = await fetch(`/api/run-sql?action=save-bpm&id=${saveId}&bpm=${bpmVal}`).catch(() => null);
+        if (!bpmResp || !bpmResp.ok) {
+            // Fallback: prova comunque via JS client
+            await sb.from('canzoni').update({ bpm: bpmVal }).eq('id', saveId).catch(() => {});
         }
-        // Aggiorna subito l'array locale per coerenza UI
-        const idx = songs.findIndex(x => x.id === saveId);
-        if (idx !== -1) songs[idx] = { ...songs[idx], bpm: bpmVal };
     }
 
     document.getElementById('modaleSong').classList.remove('open');
     toast('✓ Salvato');
     await carica();
+    // Se PostgREST non ha ancora il cache aggiornato, patcha l'array locale
+    if (bpmVal) {
+        const song = songs.find(x => x.id === saveId);
+        if (song && !song.bpm) { song.bpm = bpmVal; renderMain(); }
+    }
     if (currentPlaylistId) renderPlaylistView();
 
     // Junction table in background
