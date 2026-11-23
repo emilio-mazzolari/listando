@@ -304,12 +304,19 @@
         .btn-tap-bpm:disabled { opacity: 0.6; pointer-events: none; }
         .song-bpm { display: inline-block; background: rgba(15,186,141,0.13); color: var(--music); border: 1.5px solid rgba(15,186,141,0.35); border-radius: 8px; padding: 2px 8px; font-size: 12px; font-weight: 800; margin-top: 5px; letter-spacing: 0.2px; }
 
-        /* ── BPM filter chips ── */
-        .bpm-filters { display: flex; gap: 8px; overflow-x: auto; padding: 2px 16px 10px; scrollbar-width: none; }
+        /* ── BPM histogram filter ── */
+        .bpm-filters { display: flex; gap: 3px; overflow-x: auto; padding: 4px 16px 12px; scrollbar-width: none; align-items: flex-end; }
         .bpm-filters::-webkit-scrollbar { display: none; }
-        .bpm-chip { flex-shrink: 0; padding: 6px 14px; border-radius: 20px; border: 2px solid var(--grey); background: var(--white); font-size: 12px; font-weight: 800; cursor: pointer; color: #666; white-space: nowrap; transition: border-color 0.15s, background 0.15s, color 0.15s; }
-        .bpm-chip.active { border-color: var(--music); background: var(--music); color: white; }
-        .bpm-chip.reset { border-color: #ddd; color: #aaa; }
+        .bpm-bar-wrap { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; padding: 4px 2px 0; border-radius: 8px; transition: opacity 0.15s; min-width: 32px; }
+        .bpm-bar-wrap:active { opacity: 0.7; }
+        .bpm-bar { width: 24px; border-radius: 5px 5px 0 0; background: #e0e0e0; transition: background 0.15s, height 0.2s; }
+        .bpm-bar-wrap.active .bpm-bar { background: var(--music); }
+        .bpm-bar-lbl { font-size: 9px; font-weight: 800; color: #bbb; letter-spacing: -0.2px; transition: color 0.15s; white-space: nowrap; }
+        .bpm-bar-wrap.active .bpm-bar-lbl { color: var(--music); }
+        .bpm-bar-count { font-size: 9px; font-weight: 900; color: #ccc; transition: color 0.15s; }
+        .bpm-bar-wrap.active .bpm-bar-count { color: var(--music); }
+        .bpm-all-btn { flex-shrink: 0; align-self: center; padding: 5px 12px; border-radius: 20px; border: 2px solid #ddd; background: white; font-size: 11px; font-weight: 800; cursor: pointer; color: #aaa; font-family: inherit; margin-right: 6px; transition: all 0.15s; }
+        .bpm-all-btn.active { border-color: var(--music); background: var(--music); color: white; }
 
         .toast { position: fixed; bottom: 120px; left: 50%; transform: translateX(-50%) translateY(20px); background: rgba(0,0,0,0.85); color: white; padding: 12px 20px; border-radius: 14px; font-weight: 700; font-size: 14px; opacity: 0; transition: all 0.25s; white-space: nowrap; z-index: 9999; pointer-events: none; }
         .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
@@ -779,9 +786,18 @@ function renderBpmFilters() {
     if (ranges.length < 2) { wrap.style.display = 'none'; bpmFilter = null; return; }
     wrap.style.display = '';
     const isActive = (r) => bpmFilter && bpmFilter[0] === r[0] && bpmFilter[1] === r[1];
+    const maxCount = Math.max(...ranges.map(r => r[2]));
+    const BAR_MAX = 36, BAR_MIN = 6;
     container.innerHTML =
-        `<button class="bpm-chip reset${!bpmFilter ? ' active' : ''}" onclick="setBpmFilter(null)">Tutti</button>` +
-        ranges.map(r => `<button class="bpm-chip${isActive(r) ? ' active' : ''}" onclick="setBpmFilter(${r[0]},${r[1]})">${r[0]}–${r[1]}<span style="opacity:.65;font-weight:600;margin-left:4px">${r[2]}</span></button>`).join('');
+        `<button class="bpm-all-btn${!bpmFilter ? ' active' : ''}" onclick="setBpmFilter(null)">Tutti</button>` +
+        ranges.map(r => {
+            const h = BAR_MIN + Math.round((r[2] / maxCount) * (BAR_MAX - BAR_MIN));
+            return `<div class="bpm-bar-wrap${isActive(r) ? ' active' : ''}" onclick="setBpmFilter(${r[0]},${r[1]})">
+                <div class="bpm-bar-count">${r[2]}</div>
+                <div class="bpm-bar" style="height:${h}px"></div>
+                <div class="bpm-bar-lbl">${r[0]}</div>
+            </div>`;
+        }).join('');
 }
 
 function setBpmFilter(min, max) {
