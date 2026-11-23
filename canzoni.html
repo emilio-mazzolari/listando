@@ -271,6 +271,24 @@
         .btn-save-modal { width: 100%; padding: 16px; border-radius: 18px; border: none; background: var(--music); color: white; font-weight: 900; font-size: 16px; cursor: pointer; font-family: inherit; margin-top: 8px; }
         .btn-delete-modal { width: 100%; padding: 14px; border-radius: 18px; border: none; background: #fff0f0; color: var(--red); font-weight: 800; font-size: 14px; cursor: pointer; font-family: inherit; margin-top: 8px; }
 
+        /* ── BPM tap ── */
+        .bpm-row { display: flex; gap: 8px; align-items: stretch; }
+        .bpm-input-wrap { flex: 1; }
+        .bpm-input-wrap .form-input { text-align: center; font-weight: 900; font-size: 18px; }
+        .btn-tap-bpm {
+            flex-shrink: 0; min-width: 90px; padding: 0 16px;
+            border-radius: 14px; border: 2.5px solid var(--music);
+            background: var(--music); color: white;
+            font-weight: 900; font-size: 13px; cursor: pointer;
+            font-family: inherit; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; gap: 1px;
+            transition: transform 0.08s, background 0.08s;
+            user-select: none; -webkit-user-select: none;
+        }
+        .btn-tap-bpm:active { transform: scale(0.93); background: var(--music-dark); }
+        .btn-tap-bpm .tap-label { font-size: 11px; opacity: 0.8; font-weight: 700; }
+        .bpm-badge { display: inline-block; background: rgba(29,185,84,0.12); color: var(--music); border-radius: 6px; padding: 1px 6px; font-size: 11px; font-weight: 800; margin-left: 4px; }
+
         .toast { position: fixed; bottom: 120px; left: 50%; transform: translateX(-50%) translateY(20px); background: rgba(0,0,0,0.85); color: white; padding: 12px 20px; border-radius: 14px; font-weight: 700; font-size: 14px; opacity: 0; transition: all 0.25s; white-space: nowrap; z-index: 9999; pointer-events: none; }
         .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
@@ -495,8 +513,20 @@
             </select>
         </div>
         <div class="form-group">
+            <label class="form-label">BPM</label>
+            <div class="bpm-row">
+                <div class="bpm-input-wrap">
+                    <input class="form-input" id="sBpm" type="number" min="20" max="300" placeholder="—">
+                </div>
+                <button class="btn-tap-bpm" id="btnTapBpm" onclick="tapBpm()" ontouchstart="tapBpm();event.preventDefault()">
+                    <span>♩ TAP</span>
+                    <span class="tap-label" id="tapBpmLabel"></span>
+                </button>
+            </div>
+        </div>
+        <div class="form-group">
             <label class="form-label">Note</label>
-            <textarea class="form-input" id="sNote" rows="3" placeholder="Es. parte della routine Swing 1, BPM 180…" style="resize:vertical;min-height:72px"></textarea>
+            <textarea class="form-input" id="sNote" rows="3" placeholder="Es. parte della routine Swing 1…" style="resize:vertical;min-height:72px"></textarea>
         </div>
         <button class="btn-save-modal" onclick="salvaSong()">SALVA</button>
         <button class="btn-delete-modal" onclick="eliminaSong()">ELIMINA</button>
@@ -606,6 +636,7 @@ let plLongPressTimer = null, plLongPressTriggered = false;
 let condividiTargetId = null, condividiPlTargetId = null;
 let currentSpeed = 1.0;
 let repeatMode = 0;   // 0=off 1=all 2=one
+let bpmTaps = [], bpmResetTimer = null;
 let isShuffleOn = false;
 let origQueue = [];
 let isExpanded = false;
@@ -785,7 +816,7 @@ function songItemHtml(s, i) {
     return `<div class="song-item${isPlay ? ' playing' : ''}" onclick="playSong(${s.id})" data-song-id="${s.id}">
         <div class="song-num">${numEl}</div>
         <div class="song-info">
-            <div class="song-title${isPlay ? ' playing' : ''}">${s.titolo}</div>
+            <div class="song-title${isPlay ? ' playing' : ''}">${s.titolo}${s.bpm ? `<span class="bpm-badge">${s.bpm} BPM</span>` : ''}</div>
             ${s.artista ? `<div class="song-artist">${s.artista}</div>` : ''}
             ${s.note ? `<div class="song-artist" style="font-style:italic;color:#aaa">${s.note}</div>` : ''}
         </div>
@@ -1309,11 +1340,33 @@ async function ctxAction(action) {
     else if (action === 'elimina') await eliminaSongById(ctxTargetId);
 }
 
+function tapBpm() {
+    const now = Date.now();
+    if (bpmTaps.length > 0 && now - bpmTaps[bpmTaps.length - 1] > 2500) bpmTaps = [];
+    bpmTaps.push(now);
+    clearTimeout(bpmResetTimer);
+    bpmResetTimer = setTimeout(() => {
+        bpmTaps = [];
+        document.getElementById('tapBpmLabel').textContent = '';
+    }, 2500);
+    if (bpmTaps.length >= 2) {
+        let total = 0;
+        for (let i = 1; i < bpmTaps.length; i++) total += bpmTaps[i] - bpmTaps[i - 1];
+        const bpm = Math.round(60000 / (total / (bpmTaps.length - 1)));
+        document.getElementById('sBpm').value = bpm;
+    }
+    document.getElementById('tapBpmLabel').textContent = bpmTaps.length < 2 ? 'batti il ritmo' : `${bpmTaps.length} tocchi`;
+}
+
 function apriEditSong(s) {
     editSongId = s.id;
     document.getElementById('sTitolo').value = s.titolo || '';
     document.getElementById('sArtista').value = s.artista || '';
+    document.getElementById('sBpm').value = s.bpm || '';
     document.getElementById('sNote').value = s.note || '';
+    bpmTaps = [];
+    clearTimeout(bpmResetTimer);
+    document.getElementById('tapBpmLabel').textContent = '';
     const sel = document.getElementById('sPlaylist');
     sel.innerHTML = '<option value="">— Nessuna raccolta —</option>' +
         playlists.map(p => `<option value="${p.id}"${p.id === s.playlist_id ? ' selected' : ''}>${p.nome}</option>`).join('');
@@ -1326,15 +1379,22 @@ async function salvaSong() {
     const titolo = document.getElementById('sTitolo').value.trim();
     if (!titolo) { toast('Inserisci il titolo'); return; }
     const plVal = document.getElementById('sPlaylist').value;
+    const bpmRaw = document.getElementById('sBpm').value;
     const updateData = {
         titolo,
         artista: document.getElementById('sArtista').value.trim() || null,
         playlist_id: plVal ? Number(plVal) : null,
         note: document.getElementById('sNote').value.trim() || null,
+        bpm: bpmRaw ? Number(bpmRaw) : null,
     };
     let { error } = await sb.from('canzoni').update(updateData).eq('id', editSongId);
     if (error?.message?.includes('note')) {
         await fetch('/api/run-sql?solo=canzoni_note').catch(() => {});
+        await new Promise(r => setTimeout(r, 1500));
+        ({ error } = await sb.from('canzoni').update(updateData).eq('id', editSongId));
+    }
+    if (error?.message?.includes('bpm')) {
+        await fetch('/api/run-sql?solo=canzoni_bpm').catch(() => {});
         await new Promise(r => setTimeout(r, 1500));
         ({ error } = await sb.from('canzoni').update(updateData).eq('id', editSongId));
     }
