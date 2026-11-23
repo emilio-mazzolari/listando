@@ -564,10 +564,10 @@
             </div>
         </div>
 
-        <!-- Raccolte come chip -->
+        <!-- Raccolte come lista in finestra -->
         <div class="form-group">
             <label class="form-label">Raccolte</label>
-            <div class="pl-chips-wrap" id="sPlaylistChips"></div>
+            <div id="sPlaylistChips" style="border:2.5px solid var(--grey);border-radius:14px;overflow:hidden;max-height:140px;overflow-y:auto"></div>
         </div>
 
         <!-- Note -->
@@ -1590,8 +1590,11 @@ function apriEditSong(s) {
         ...(s.playlist_id ? [s.playlist_id] : [])
     ]);
     document.getElementById('sPlaylistChips').innerHTML = playlists.length
-        ? playlists.map(p => `<button type="button" class="pl-chip${currentPids.has(p.id) ? ' sel' : ''}" data-pid="${p.id}" onclick="togglePlaylistChip(this)">${p.nome}</button>`).join('')
-        : '<span style="color:#aaa;font-size:13px">Nessuna raccolta</span>';
+        ? playlists.map((p, i) => `<label style="display:flex;align-items:center;gap:11px;padding:10px 14px;cursor:pointer;${i < playlists.length-1 ? 'border-bottom:1.5px solid var(--grey-light)' : ''}">
+            <input type="checkbox" value="${p.id}" ${currentPids.has(p.id) ? 'checked' : ''} style="width:18px;height:18px;accent-color:var(--music);flex-shrink:0;cursor:pointer">
+            <span style="font-size:14px;font-weight:700">${p.nome}</span>
+          </label>`).join('')
+        : '<div style="color:#aaa;font-size:13px;padding:12px 14px">Nessuna raccolta</div>';
     document.getElementById('modaleSong').classList.add('open');
 }
 
@@ -1606,7 +1609,7 @@ async function salvaSong() {
     const saveId = editSongId;
     const bpmRaw = document.getElementById('sBpm').value;
     const bpmVal = bpmRaw ? Number(bpmRaw) : null;
-    const checkedPids = [...document.querySelectorAll('#sPlaylistChips .pl-chip.sel')].map(b => Number(b.dataset.pid));
+    const checkedPids = [...document.querySelectorAll('#sPlaylistChips input:checked')].map(cb => Number(cb.value));
 
     // 1) Dati base senza BPM — sempre funziona
     const coreData = {
