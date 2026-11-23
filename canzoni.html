@@ -1529,46 +1529,39 @@ async function salvaSong() {
     const btn = document.querySelector('#modaleSong .btn-save-modal');
     btn.disabled = true; btn.textContent = 'SALVO…';
 
-    const plVal = document.getElementById('sPlaylist').value;
+    const saveId = editSongId;
     const bpmRaw = document.getElementById('sBpm').value;
     const bpmVal = bpmRaw ? Number(bpmRaw) : null;
+    const checkedPids = [...document.querySelectorAll('#sPlaylistCheckboxes input:checked')].map(cb => Number(cb.value));
 
-    // 1) Salva i campi base — non include bpm, funziona sempre
     const coreData = {
         titolo,
         artista: document.getElementById('sArtista').value.trim() || null,
-        playlist_id: plVal ? Number(plVal) : null,
+        playlist_id: checkedPids[0] || null,
         note: document.getElementById('sNote').value.trim() || null,
     };
-    const { error } = await sb.from('canzoni').update(coreData).eq('id', editSongId);
+    const { error } = await sb.from('canzoni').update(coreData).eq('id', saveId);
     btn.disabled = false; btn.textContent = 'SALVA';
     if (error) { toast('Errore: ' + error.message); return; }
-
-    // 2) Salva raccolte via junction table
-    const checkedPids = [...document.querySelectorAll('#sPlaylistCheckboxes input:checked')].map(cb => Number(cb.value));
-    await sb.from('canzoni_in_playlist').delete().eq('canzone_id', editSongId).eq('email_utente', userEmail).catch(() => {});
-    if (checkedPids.length) {
-        await sb.from('canzoni_in_playlist').insert(
-            checkedPids.map(pid => ({ canzone_id: editSongId, playlist_id: pid, email_utente: userEmail }))
-        ).catch(() => {});
-    }
-    // Aggiorna anche playlist_id per backward compat
-    await sb.from('canzoni').update({ playlist_id: checkedPids[0] || null }).eq('id', editSongId).catch(() => {});
-
-    // 3) Salva BPM separatamente (non bloccante se la colonna manca)
-    if (bpmVal) {
-        let { error: bErr } = await sb.from('canzoni').update({ bpm: bpmVal }).eq('id', editSongId);
-        if (bErr) {
-            await fetch('/api/run-sql?solo=canzoni_bpm').catch(() => {});
-            await new Promise(r => setTimeout(r, 2500));
-            await sb.from('canzoni').update({ bpm: bpmVal }).eq('id', editSongId).catch(() => {});
-        }
-    }
 
     document.getElementById('modaleSong').classList.remove('open');
     toast('✓ Salvato');
     await carica();
     if (currentPlaylistId) renderPlaylistView();
+
+    // Junction table in background
+    sb.from('canzoni_in_playlist').delete().eq('canzone_id', saveId).eq('email_utente', userEmail)
+        .then(() => checkedPids.length ? sb.from('canzoni_in_playlist').insert(
+            checkedPids.map(pid => ({ canzone_id: saveId, playlist_id: pid, email_utente: userEmail }))
+        ) : null).catch(() => {});
+
+    // BPM in background, nessun ritardo bloccante
+    if (bpmVal) {
+        sb.from('canzoni').update({ bpm: bpmVal }).eq('id', saveId)
+            .then(({ error: bErr }) => {
+                if (bErr) fetch('/api/run-sql?solo=canzoni_bpm').catch(() => {});
+            }).catch(() => {});
+    }
 }
 
 async function eliminaSong() {
