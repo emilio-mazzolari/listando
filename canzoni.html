@@ -304,19 +304,15 @@
         .btn-tap-bpm:disabled { opacity: 0.6; pointer-events: none; }
         .song-bpm { display: inline-block; background: rgba(15,186,141,0.13); color: var(--music); border: 1.5px solid rgba(15,186,141,0.35); border-radius: 8px; padding: 2px 8px; font-size: 12px; font-weight: 800; margin-top: 5px; letter-spacing: 0.2px; }
 
-        /* ── BPM histogram filter ── */
-        .bpm-filters { display: flex; gap: 3px; overflow-x: auto; padding: 4px 16px 12px; scrollbar-width: none; align-items: flex-end; }
-        .bpm-filters::-webkit-scrollbar { display: none; }
-        .bpm-bar-wrap { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; padding: 4px 2px 0; border-radius: 8px; transition: opacity 0.15s; min-width: 32px; }
-        .bpm-bar-wrap:active { opacity: 0.7; }
-        .bpm-bar { width: 24px; border-radius: 5px 5px 0 0; background: #e0e0e0; transition: background 0.15s, height 0.2s; }
-        .bpm-bar-wrap.active .bpm-bar { background: var(--music); }
-        .bpm-bar-lbl { font-size: 9px; font-weight: 800; color: #bbb; letter-spacing: -0.2px; transition: color 0.15s; white-space: nowrap; }
-        .bpm-bar-wrap.active .bpm-bar-lbl { color: var(--music); }
-        .bpm-bar-count { font-size: 9px; font-weight: 900; color: #ccc; transition: color 0.15s; }
-        .bpm-bar-wrap.active .bpm-bar-count { color: var(--music); }
-        .bpm-all-btn { flex-shrink: 0; align-self: center; padding: 5px 12px; border-radius: 20px; border: 2px solid #ddd; background: white; font-size: 11px; font-weight: 800; cursor: pointer; color: #aaa; font-family: inherit; margin-right: 6px; transition: all 0.15s; }
-        .bpm-all-btn.active { border-color: var(--music); background: var(--music); color: white; }
+        /* ── Filtri ── */
+        .filter-panel { padding-bottom: 4px; }
+        .filter-row { margin-bottom: 2px; }
+        .filter-row-label { padding: 8px 16px 4px; font-size: 10px; font-weight: 900; color: #c0c0c0; text-transform: uppercase; letter-spacing: 0.8px; }
+        .filter-chips { display: flex; gap: 6px; overflow-x: auto; padding: 0 16px 8px; scrollbar-width: none; }
+        .filter-chips::-webkit-scrollbar { display: none; }
+        .f-chip { flex-shrink: 0; padding: 7px 14px; border-radius: 8px; border: none; background: #f0f0f0; font-size: 12px; font-weight: 700; color: #666; cursor: pointer; font-family: inherit; transition: background 0.12s, color 0.12s; }
+        .f-chip:active { opacity: 0.72; }
+        .f-chip.active { background: var(--music); color: #fff; }
 
         .toast { position: fixed; bottom: 120px; left: 50%; transform: translateX(-50%) translateY(20px); background: rgba(0,0,0,0.85); color: white; padding: 12px 20px; border-radius: 14px; font-weight: 700; font-size: 14px; opacity: 0; transition: all 0.25s; white-space: nowrap; z-index: 9999; pointer-events: none; }
         .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
@@ -403,8 +399,19 @@
             <button class="btn-search-clear" id="searchMainClear" onclick="clearSearchMain()" style="display:none">✕</button>
         </div>
     </div>
-    <div id="bpmFiltersWrap" style="display:none">
-        <div class="bpm-filters" id="bpmFilters"></div>
+    <div class="filter-panel" id="filterPanel" style="display:none">
+        <div class="filter-row" id="filterBpmRow">
+            <div class="filter-row-label">BPM</div>
+            <div class="filter-chips" id="filterBpmChips"></div>
+        </div>
+        <div class="filter-row" id="filterArtistaRow" style="display:none">
+            <div class="filter-row-label">Artista</div>
+            <div class="filter-chips" id="filterArtistaChips"></div>
+        </div>
+        <div class="filter-row" id="filterAlbumRow" style="display:none">
+            <div class="filter-row-label">Album</div>
+            <div class="filter-chips" id="filterAlbumChips"></div>
+        </div>
     </div>
     <div id="allSongsList"></div>
 </div>
@@ -556,6 +563,10 @@
             <input class="form-input" id="sArtista" type="text" placeholder="Artista / Band"
                 oninput="aggiornaHeaderMeta()">
         </div>
+        <div class="form-group">
+            <label class="form-label">Album</label>
+            <input class="form-input" id="sAlbum" type="text" placeholder="Nome album o EP">
+        </div>
 
         <!-- BPM -->
         <div class="form-group">
@@ -698,12 +709,13 @@ let isShuffleOn = false;
 let origQueue = [];
 let isExpanded = false;
 let sharedPlaylists = [], currentSharedPl = null, sharedPlaylistSongs = [];
-let bpmFilter = null; // null = no filter, [min, max]
+let activeFilters = { bpm: null, artista: null, album: null };
 let songPlaylistMap = {}; // canzone_id → [playlist_id, ...]
 
 // Proactive migrations (non-blocking)
 fetch('/api/run-sql?solo=canzoni_bpm').catch(() => {});
 fetch('/api/run-sql?solo=canzoni_in_playlist').catch(() => {});
+fetch('/api/run-sql?solo=canzoni_album').catch(() => {});
 
 // BPM: localStorage come storage primario, DB come best-effort
 function bpmGet(id) { return Number(localStorage.getItem('bpm_' + id)) || null; }
@@ -765,44 +777,70 @@ let searchPlQ = '';
 function getFilteredSongs() {
     let list = songs;
     if (searchMainQ) list = list.filter(s => (s.titolo||'').toLowerCase().includes(searchMainQ) || (s.artista||'').toLowerCase().includes(searchMainQ));
-    if (bpmFilter) list = list.filter(s => s.bpm >= bpmFilter[0] && s.bpm < bpmFilter[1]);
+    if (activeFilters.bpm === 'no') list = list.filter(s => !s.bpm);
+    else if (Array.isArray(activeFilters.bpm)) list = list.filter(s => s.bpm >= activeFilters.bpm[0] && s.bpm < activeFilters.bpm[1]);
+    if (activeFilters.artista) list = list.filter(s => s.artista === activeFilters.artista);
+    if (activeFilters.album) list = list.filter(s => s.album === activeFilters.album);
     return list;
 }
 
-function renderBpmFilters() {
+function renderFilters() {
+    const panel = document.getElementById('filterPanel');
+
+    // BPM
     const bpms = songs.map(s => s.bpm).filter(Boolean);
-    const wrap = document.getElementById('bpmFiltersWrap');
-    const container = document.getElementById('bpmFilters');
-    if (bpms.length < 2) { wrap.style.display = 'none'; bpmFilter = null; return; }
-    const minBpm = Math.min(...bpms);
-    const maxBpm = Math.max(...bpms);
-    const start = Math.floor(minBpm / 10) * 10;
-    const end   = Math.ceil(maxBpm / 10) * 10;
-    const ranges = [];
-    for (let b = start; b < end; b += 10) {
-        const count = songs.filter(s => s.bpm >= b && s.bpm < b + 10).length;
-        if (count > 0) ranges.push([b, b + 10, count]);
+    const noBpm = songs.filter(s => !s.bpm).length;
+    const hasBpmData = bpms.length > 0 || noBpm > 0;
+    document.getElementById('filterBpmRow').style.display = hasBpmData ? '' : 'none';
+    if (hasBpmData) {
+        let html = `<button class="f-chip${!activeFilters.bpm ? ' active' : ''}" onclick="setFilter('bpm',null)">Tutti</button>`;
+        if (noBpm > 0) html += `<button class="f-chip${activeFilters.bpm==='no' ? ' active' : ''}" onclick="setFilter('bpm','no')">Senza BPM</button>`;
+        if (bpms.length > 0) {
+            const minB = Math.min(...bpms), maxB = Math.max(...bpms);
+            const step = (maxB - minB) > 80 ? 20 : 10;
+            const start = Math.floor(minB / step) * step, end = Math.ceil(maxB / step) * step;
+            for (let b = start; b < end; b += step) {
+                if (songs.some(s => s.bpm >= b && s.bpm < b + step)) {
+                    const isAct = Array.isArray(activeFilters.bpm) && activeFilters.bpm[0] === b;
+                    html += `<button class="f-chip${isAct ? ' active' : ''}" onclick="setFilter('bpm',[${b},${b+step}])">${b}–${b+step}</button>`;
+                }
+            }
+        }
+        document.getElementById('filterBpmChips').innerHTML = html;
     }
-    if (ranges.length < 2) { wrap.style.display = 'none'; bpmFilter = null; return; }
-    wrap.style.display = '';
-    const isActive = (r) => bpmFilter && bpmFilter[0] === r[0] && bpmFilter[1] === r[1];
-    const maxCount = Math.max(...ranges.map(r => r[2]));
-    const BAR_MAX = 36, BAR_MIN = 6;
-    container.innerHTML =
-        `<button class="bpm-all-btn${!bpmFilter ? ' active' : ''}" onclick="setBpmFilter(null)">Tutti</button>` +
-        ranges.map(r => {
-            const h = BAR_MIN + Math.round((r[2] / maxCount) * (BAR_MAX - BAR_MIN));
-            return `<div class="bpm-bar-wrap${isActive(r) ? ' active' : ''}" onclick="setBpmFilter(${r[0]},${r[1]})">
-                <div class="bpm-bar-count">${r[2]}</div>
-                <div class="bpm-bar" style="height:${h}px"></div>
-                <div class="bpm-bar-lbl">${r[0]}</div>
-            </div>`;
-        }).join('');
+
+    // Artista
+    const artisti = [...new Set(songs.map(s => s.artista).filter(Boolean))].sort((a,b) => a.localeCompare(b));
+    const artistaRow = document.getElementById('filterArtistaRow');
+    artistaRow.style.display = artisti.length >= 2 ? '' : 'none';
+    if (artisti.length >= 2) {
+        document.getElementById('filterArtistaChips').innerHTML =
+            `<button class="f-chip${!activeFilters.artista ? ' active' : ''}" onclick="setFilter('artista',null)">Tutti</button>` +
+            artisti.map((a, i) => {
+                const esc = a.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+                return `<button class="f-chip${activeFilters.artista===a ? ' active' : ''}" onclick="setFilter('artista','${esc}')">${a}</button>`;
+            }).join('');
+    }
+
+    // Album
+    const albums = [...new Set(songs.map(s => s.album).filter(Boolean))].sort((a,b) => a.localeCompare(b));
+    const albumRow = document.getElementById('filterAlbumRow');
+    albumRow.style.display = albums.length >= 2 ? '' : 'none';
+    if (albums.length >= 2) {
+        document.getElementById('filterAlbumChips').innerHTML =
+            `<button class="f-chip${!activeFilters.album ? ' active' : ''}" onclick="setFilter('album',null)">Tutti</button>` +
+            albums.map(a => {
+                const esc = a.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+                return `<button class="f-chip${activeFilters.album===a ? ' active' : ''}" onclick="setFilter('album','${esc}')">${a}</button>`;
+            }).join('');
+    }
+
+    panel.style.display = (hasBpmData || artisti.length >= 2 || albums.length >= 2) ? '' : 'none';
 }
 
-function setBpmFilter(min, max) {
-    bpmFilter = (min === null) ? null : [min, max];
-    renderBpmFilters();
+function setFilter(type, value) {
+    activeFilters[type] = value;
+    renderFilters();
     renderSongList('allSongsList', getFilteredSongs());
 }
 
@@ -839,7 +877,7 @@ function renderMain() {
     renderPlaylists();
     renderSharedPlaylists();
     renderSharedSection();
-    renderBpmFilters();
+    renderFilters();
     renderSongList('allSongsList', getFilteredSongs());
 }
 
@@ -1594,6 +1632,7 @@ function apriEditSong(s) {
     const bpmVal = s.bpm || bpmGet(s.id) || bpmDaNome(s.titolo) || '';
     document.getElementById('sTitolo').value = s.titolo || '';
     document.getElementById('sArtista').value = s.artista || '';
+    document.getElementById('sAlbum').value = s.album || '';
     document.getElementById('sBpm').value = bpmVal;
     document.getElementById('sNote').value = s.note || '';
     // Header preview
@@ -1631,6 +1670,7 @@ async function salvaSong() {
     const coreData = {
         titolo,
         artista: document.getElementById('sArtista').value.trim() || null,
+        album: document.getElementById('sAlbum').value.trim() || null,
         playlist_id: checkedPids[0] || null,
         note: document.getElementById('sNote').value.trim() || null,
     };
