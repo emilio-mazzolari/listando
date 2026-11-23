@@ -287,7 +287,14 @@
         }
         .btn-tap-bpm:active { transform: scale(0.93); background: var(--music-dark); }
         .btn-tap-bpm:disabled { opacity: 0.6; pointer-events: none; }
-        .bpm-badge { display: inline-block; background: rgba(29,185,84,0.12); color: var(--music); border-radius: 6px; padding: 1px 6px; font-size: 11px; font-weight: 800; margin-left: 4px; }
+        .song-bpm { font-size: 12px; color: var(--music); font-weight: 800; margin-top: 2px; }
+
+        /* ── BPM filter chips ── */
+        .bpm-filters { display: flex; gap: 8px; overflow-x: auto; padding: 2px 16px 10px; scrollbar-width: none; }
+        .bpm-filters::-webkit-scrollbar { display: none; }
+        .bpm-chip { flex-shrink: 0; padding: 6px 14px; border-radius: 20px; border: 2px solid var(--grey); background: var(--white); font-size: 12px; font-weight: 800; cursor: pointer; color: #666; white-space: nowrap; transition: border-color 0.15s, background 0.15s, color 0.15s; }
+        .bpm-chip.active { border-color: var(--music); background: var(--music); color: white; }
+        .bpm-chip.reset { border-color: #ddd; color: #aaa; }
 
         .toast { position: fixed; bottom: 120px; left: 50%; transform: translateX(-50%) translateY(20px); background: rgba(0,0,0,0.85); color: white; padding: 12px 20px; border-radius: 14px; font-weight: 700; font-size: 14px; opacity: 0; transition: all 0.25s; white-space: nowrap; z-index: 9999; pointer-events: none; }
         .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
@@ -373,6 +380,9 @@
             <input type="search" id="searchMain" placeholder="Cerca canzone o artista…" oninput="onSearchMain()" autocomplete="off">
             <button class="btn-search-clear" id="searchMainClear" onclick="clearSearchMain()" style="display:none">✕</button>
         </div>
+    </div>
+    <div id="bpmFiltersWrap" style="display:none">
+        <div class="bpm-filters" id="bpmFilters"></div>
     </div>
     <div id="allSongsList"></div>
 </div>
@@ -639,6 +649,10 @@ let isShuffleOn = false;
 let origQueue = [];
 let isExpanded = false;
 let sharedPlaylists = [], currentSharedPl = null, sharedPlaylistSongs = [];
+let bpmFilter = null; // null = no filter, [min, max]
+
+// Trigger BPM column migration proactively (non-blocking)
+fetch('/api/run-sql?solo=canzoni_bpm').catch(() => {});
 
 // ── Data ───────────────────────────────────────────────────────────────
 async function carica() {
@@ -676,19 +690,51 @@ async function carica() {
 let searchMainQ = '';
 let searchPlQ = '';
 
+function getFilteredSongs() {
+    let list = songs;
+    if (searchMainQ) list = list.filter(s => (s.titolo||'').toLowerCase().includes(searchMainQ) || (s.artista||'').toLowerCase().includes(searchMainQ));
+    if (bpmFilter) list = list.filter(s => s.bpm >= bpmFilter[0] && s.bpm < bpmFilter[1]);
+    return list;
+}
+
+function renderBpmFilters() {
+    const bpms = songs.map(s => s.bpm).filter(Boolean);
+    const wrap = document.getElementById('bpmFiltersWrap');
+    const container = document.getElementById('bpmFilters');
+    if (bpms.length < 2) { wrap.style.display = 'none'; bpmFilter = null; return; }
+    const minBpm = Math.min(...bpms);
+    const maxBpm = Math.max(...bpms);
+    const start = Math.floor(minBpm / 10) * 10;
+    const end   = Math.ceil(maxBpm / 10) * 10;
+    const ranges = [];
+    for (let b = start; b < end; b += 10) {
+        const count = songs.filter(s => s.bpm >= b && s.bpm < b + 10).length;
+        if (count > 0) ranges.push([b, b + 10, count]);
+    }
+    if (ranges.length < 2) { wrap.style.display = 'none'; bpmFilter = null; return; }
+    wrap.style.display = '';
+    const isActive = (r) => bpmFilter && bpmFilter[0] === r[0] && bpmFilter[1] === r[1];
+    container.innerHTML =
+        `<button class="bpm-chip reset${!bpmFilter ? ' active' : ''}" onclick="setBpmFilter(null)">Tutti</button>` +
+        ranges.map(r => `<button class="bpm-chip${isActive(r) ? ' active' : ''}" onclick="setBpmFilter(${r[0]},${r[1]})">${r[0]}–${r[1]}<span style="opacity:.65;font-weight:600;margin-left:4px">${r[2]}</span></button>`).join('');
+}
+
+function setBpmFilter(min, max) {
+    bpmFilter = (min === null) ? null : [min, max];
+    renderBpmFilters();
+    renderSongList('allSongsList', getFilteredSongs());
+}
+
 function onSearchMain() {
     searchMainQ = (document.getElementById('searchMain').value || '').toLowerCase().trim();
     document.getElementById('searchMainClear').style.display = searchMainQ ? '' : 'none';
-    const filtered = searchMainQ
-        ? songs.filter(s => (s.titolo||'').toLowerCase().includes(searchMainQ) || (s.artista||'').toLowerCase().includes(searchMainQ))
-        : songs;
-    renderSongList('allSongsList', filtered);
+    renderSongList('allSongsList', getFilteredSongs());
 }
 function clearSearchMain() {
     document.getElementById('searchMain').value = '';
     searchMainQ = '';
     document.getElementById('searchMainClear').style.display = 'none';
-    renderSongList('allSongsList', songs);
+    renderSongList('allSongsList', getFilteredSongs());
 }
 
 function onSearchPl() {
@@ -713,11 +759,8 @@ function renderMain() {
     renderPlaylists();
     renderSharedPlaylists();
     renderSharedSection();
-    // rispetta eventuale ricerca attiva
-    const filtered = searchMainQ
-        ? songs.filter(s => (s.titolo||'').toLowerCase().includes(searchMainQ) || (s.artista||'').toLowerCase().includes(searchMainQ))
-        : songs;
-    renderSongList('allSongsList', filtered);
+    renderBpmFilters();
+    renderSongList('allSongsList', getFilteredSongs());
 }
 
 function renderSharedSection() {
@@ -814,8 +857,9 @@ function songItemHtml(s, i) {
     return `<div class="song-item${isPlay ? ' playing' : ''}" onclick="playSong(${s.id})" data-song-id="${s.id}">
         <div class="song-num">${numEl}</div>
         <div class="song-info">
-            <div class="song-title${isPlay ? ' playing' : ''}">${s.titolo}${s.bpm ? `<span class="bpm-badge">${s.bpm} BPM</span>` : ''}</div>
+            <div class="song-title${isPlay ? ' playing' : ''}">${s.titolo}</div>
             ${s.artista ? `<div class="song-artist">${s.artista}</div>` : ''}
+            ${s.bpm ? `<div class="song-bpm">${s.bpm} BPM</div>` : ''}
             ${s.note ? `<div class="song-artist" style="font-style:italic;color:#aaa">${s.note}</div>` : ''}
         </div>
         <div class="song-dur">${dur}</div>
@@ -1449,17 +1493,21 @@ async function salvaSong() {
         bpm: bpmRaw ? Number(bpmRaw) : null,
     };
     let { error } = await sb.from('canzoni').update(updateData).eq('id', editSongId);
-    if (error?.message?.includes('note')) {
-        await fetch('/api/run-sql?solo=canzoni_note').catch(() => {});
-        await new Promise(r => setTimeout(r, 1500));
+    if (error) {
+        // Run any pending column migrations and retry once
+        await Promise.all([
+            fetch('/api/run-sql?solo=canzoni_note').catch(() => {}),
+            fetch('/api/run-sql?solo=canzoni_bpm').catch(() => {}),
+        ]);
+        await new Promise(r => setTimeout(r, 2000));
         ({ error } = await sb.from('canzoni').update(updateData).eq('id', editSongId));
     }
-    if (error?.message?.includes('bpm')) {
-        await fetch('/api/run-sql?solo=canzoni_bpm').catch(() => {});
-        await new Promise(r => setTimeout(r, 1500));
-        ({ error } = await sb.from('canzoni').update(updateData).eq('id', editSongId));
+    if (error) {
+        // Final fallback: save without bpm (column may not exist yet)
+        const { bpm: _b, ...safeData } = updateData;
+        const { error: e2 } = await sb.from('canzoni').update(safeData).eq('id', editSongId);
+        if (e2) { toast('Errore: ' + e2.message); return; }
     }
-    if (error) { toast('Errore: ' + error.message); return; }
     document.getElementById('modaleSong').classList.remove('open');
     toast('✓ Salvato');
     await carica();
