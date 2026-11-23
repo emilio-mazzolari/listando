@@ -545,20 +545,30 @@ module.exports = async function handler(req, res) {
     if (req.query?.action === 'analizza-documento') return handleAnalizzaDocumento(req, res);
     if (req.query?.action === 'auth-claim') return handleAuthClaim(req, res);
 
+    const key = process.env.SUPABASE_SERVICE_KEY;
+    if (!key) return res.status(500).json({ error: 'SUPABASE_SERVICE_KEY non configurata' });
+
     if (req.query?.action === 'save-bpm') {
         const id = parseInt(req.query.id);
         const bpm = parseInt(req.query.bpm);
         if (!id || isNaN(id) || !bpm || isNaN(bpm) || bpm < 20 || bpm > 400)
             return res.status(400).json({ error: 'parametri non validi' });
-        // Garantisce che la colonna esista
         await runSql(key, `ALTER TABLE IF EXISTS canzoni ADD COLUMN IF NOT EXISTS bpm int`).catch(() => {});
         const r = await runSql(key, `UPDATE canzoni SET bpm = ${bpm} WHERE id = ${id}`);
         await runSql(key, `SELECT pg_notify('pgrst', 'reload schema')`).catch(() => {});
         return res.status(r.ok ? 200 : 500).json(r);
     }
 
-    const key = process.env.SUPABASE_SERVICE_KEY;
-    if (!key) return res.status(500).json({ error: 'SUPABASE_SERVICE_KEY non configurata' });
+    if (req.query?.action === 'save-album') {
+        const id = parseInt(req.query.id);
+        const album = (req.query.album || '').trim().slice(0, 200);
+        if (!id || isNaN(id)) return res.status(400).json({ error: 'id non valido' });
+        await runSql(key, `ALTER TABLE IF EXISTS canzoni ADD COLUMN IF NOT EXISTS album text`).catch(() => {});
+        const escaped = album.replace(/'/g, "''");
+        const r = await runSql(key, `UPDATE canzoni SET album = '${escaped}' WHERE id = ${id}`);
+        await runSql(key, `SELECT pg_notify('pgrst', 'reload schema')`).catch(() => {});
+        return res.status(r.ok ? 200 : 500).json(r);
+    }
 
     // ?solo=testo esegue soltanto le istruzioni che contengono quel testo
     const solo = req.query?.solo;
