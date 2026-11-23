@@ -1539,8 +1539,18 @@ async function salvaSong() {
         artista: document.getElementById('sArtista').value.trim() || null,
         playlist_id: checkedPids[0] || null,
         note: document.getElementById('sNote').value.trim() || null,
+        ...(bpmVal ? { bpm: bpmVal } : {}),
     };
-    const { error } = await sb.from('canzoni').update(coreData).eq('id', saveId);
+    let { error } = await sb.from('canzoni').update(coreData).eq('id', saveId);
+    // Se la colonna bpm non è ancora nel cache di PostgREST, ritenta senza
+    if (error && bpmVal && error.message && error.message.includes('bpm')) {
+        const { bpm: _b, ...coreNoBpm } = coreData;
+        ({ error } = await sb.from('canzoni').update(coreNoBpm).eq('id', saveId));
+        if (!error) {
+            fetch('/api/run-sql?solo=canzoni_bpm').catch(() => {});
+            setTimeout(() => sb.from('canzoni').update({ bpm: bpmVal }).eq('id', saveId).catch(() => {}), 3000);
+        }
+    }
     btn.disabled = false; btn.textContent = 'SALVA';
     if (error) { toast('Errore: ' + error.message); return; }
 
@@ -1554,14 +1564,6 @@ async function salvaSong() {
         .then(() => checkedPids.length ? sb.from('canzoni_in_playlist').insert(
             checkedPids.map(pid => ({ canzone_id: saveId, playlist_id: pid, email_utente: userEmail }))
         ) : null).catch(() => {});
-
-    // BPM in background, nessun ritardo bloccante
-    if (bpmVal) {
-        sb.from('canzoni').update({ bpm: bpmVal }).eq('id', saveId)
-            .then(({ error: bErr }) => {
-                if (bErr) fetch('/api/run-sql?solo=canzoni_bpm').catch(() => {});
-            }).catch(() => {});
-    }
 }
 
 async function eliminaSong() {
