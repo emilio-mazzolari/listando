@@ -1461,9 +1461,9 @@ async function detectBpmFromBuffer(arrayBuffer) {
         if (maxO < 1e-6) return null;
         for (let i = 0; i < nF; i++) onset[i] /= maxO;
 
-        // Autocorrelation over BPM range 60–200
+        // Autocorrelation over BPM range 60–300
         const hopSec = H / tsr;
-        const minLag = Math.round(60 / (200 * hopSec));
+        const minLag = Math.round(60 / (300 * hopSec));
         const maxLag = Math.round(60 / (60 * hopSec));
         let bestLag = minLag, bestCorr = -1;
         for (let lag = minLag; lag <= maxLag; lag++) {
@@ -1473,7 +1473,7 @@ async function detectBpmFromBuffer(arrayBuffer) {
         }
 
         const bpm = Math.round(60 / (bestLag * hopSec));
-        return (bpm >= 60 && bpm <= 200) ? bpm : null;
+        return (bpm >= 60 && bpm <= 300) ? bpm : null;
     } catch { return null; }
 }
 
@@ -1534,25 +1534,26 @@ async function salvaSong() {
     const bpmVal = bpmRaw ? Number(bpmRaw) : null;
     const checkedPids = [...document.querySelectorAll('#sPlaylistCheckboxes input:checked')].map(cb => Number(cb.value));
 
+    // 1) Dati base senza BPM — sempre funziona
     const coreData = {
         titolo,
         artista: document.getElementById('sArtista').value.trim() || null,
         playlist_id: checkedPids[0] || null,
         note: document.getElementById('sNote').value.trim() || null,
-        ...(bpmVal ? { bpm: bpmVal } : {}),
     };
     let { error } = await sb.from('canzoni').update(coreData).eq('id', saveId);
-    // Se la colonna bpm non è ancora nel cache di PostgREST, ritenta senza
-    if (error && bpmVal && error.message && error.message.includes('bpm')) {
-        const { bpm: _b, ...coreNoBpm } = coreData;
-        ({ error } = await sb.from('canzoni').update(coreNoBpm).eq('id', saveId));
-        if (!error) {
-            fetch('/api/run-sql?solo=canzoni_bpm').catch(() => {});
-            setTimeout(() => sb.from('canzoni').update({ bpm: bpmVal }).eq('id', saveId).catch(() => {}), 3000);
-        }
-    }
     btn.disabled = false; btn.textContent = 'SALVA';
     if (error) { toast('Errore: ' + error.message); return; }
+
+    // 2) BPM come chiamata separata — se fallisce per schema cache, triggera migrazione e riprova
+    if (bpmVal) {
+        let { error: bErr } = await sb.from('canzoni').update({ bpm: bpmVal }).eq('id', saveId);
+        if (bErr) {
+            await fetch('/api/run-sql?solo=canzoni_bpm').catch(() => {});
+            await new Promise(r => setTimeout(r, 1500));
+            await sb.from('canzoni').update({ bpm: bpmVal }).eq('id', saveId).catch(() => {});
+        }
+    }
 
     document.getElementById('modaleSong').classList.remove('open');
     toast('✓ Salvato');
