@@ -271,6 +271,21 @@
         .btn-save-modal { width: 100%; padding: 16px; border-radius: 18px; border: none; background: var(--music); color: white; font-weight: 900; font-size: 16px; cursor: pointer; font-family: inherit; margin-top: 8px; }
         .btn-delete-modal { width: 100%; padding: 14px; border-radius: 18px; border: none; background: #fff0f0; color: var(--red); font-weight: 800; font-size: 14px; cursor: pointer; font-family: inherit; margin-top: 8px; }
 
+        /* ── Song modal redesign ── */
+        .song-modal-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px; }
+        .song-modal-preview { flex: 1; min-width: 0; }
+        .song-modal-label { font-size: 11px; font-weight: 800; color: #aaa; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 3px; }
+        .song-modal-name { font-size: 16px; font-weight: 900; color: var(--dark); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.2; }
+        .song-modal-meta { font-size: 12px; color: #aaa; font-weight: 700; margin-top: 2px; }
+        .song-modal-close { flex-shrink: 0; margin-left: 10px; width: 30px; height: 30px; border-radius: 50%; border: none; background: rgba(0,0,0,0.07); color: #777; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .song-modal-close:active { background: rgba(0,0,0,0.13); }
+        .song-modal-divider { height: 1px; background: var(--grey-light); margin: 0 -20px 16px; }
+
+        /* ── Playlist chips ── */
+        .pl-chips-wrap { display: flex; flex-wrap: wrap; gap: 7px; }
+        .pl-chip { padding: 6px 13px; border-radius: 20px; border: 2px solid var(--grey); background: white; color: #666; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; transition: border-color 0.15s, background 0.15s, color 0.15s; white-space: nowrap; }
+        .pl-chip.sel { border-color: var(--music); background: var(--music); color: white; }
+
         /* ── BPM tap ── */
         .bpm-row { display: flex; gap: 8px; align-items: stretch; }
         .bpm-input-wrap { flex: 1; }
@@ -511,39 +526,61 @@
 <div class="modal-overlay" id="modaleSong">
     <div class="modal-box">
         <div class="modal-handle"></div>
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
-            <div class="modal-title" style="margin-bottom:0">Modifica canzone</div>
-            <button onclick="document.getElementById('modaleSong').classList.remove('open')" style="background:none;border:none;font-size:22px;color:#999;cursor:pointer;line-height:1;padding:0 2px">✕</button>
+
+        <!-- Header vivo: anteprima titolo + meta + X -->
+        <div class="song-modal-header">
+            <div class="song-modal-preview">
+                <div class="song-modal-label">Modifica canzone</div>
+                <div class="song-modal-name" id="sHeaderName">—</div>
+                <div class="song-modal-meta" id="sHeaderMeta"></div>
+            </div>
+            <button class="song-modal-close" onclick="document.getElementById('modaleSong').classList.remove('open')">✕</button>
         </div>
+        <div class="song-modal-divider"></div>
+
+        <!-- Titolo + Artista -->
         <div class="form-group">
             <label class="form-label">Titolo *</label>
-            <input class="form-input" id="sTitolo" type="text">
+            <input class="form-input" id="sTitolo" type="text"
+                oninput="document.getElementById('sHeaderName').textContent=this.value||'—'">
         </div>
         <div class="form-group">
             <label class="form-label">Artista</label>
-            <input class="form-input" id="sArtista" type="text" placeholder="Artista / Band">
+            <input class="form-input" id="sArtista" type="text" placeholder="Artista / Band"
+                oninput="aggiornaHeaderMeta()">
         </div>
-        <div class="form-group">
-            <label class="form-label">Raccolte</label>
-            <div id="sPlaylistCheckboxes" style="border:2.5px solid var(--grey);border-radius:14px;padding:4px 14px;max-height:130px;overflow-y:auto"></div>
-        </div>
+
+        <!-- BPM -->
         <div class="form-group">
             <label class="form-label">BPM</label>
             <div class="bpm-row">
                 <div class="bpm-input-wrap">
-                    <input class="form-input" id="sBpm" type="number" min="20" max="300" placeholder="—">
+                    <input class="form-input" id="sBpm" type="number" min="20" max="300" placeholder="—"
+                        oninput="aggiornaHeaderMeta()">
                 </div>
                 <button class="btn-tap-bpm" id="btnRilevaBpm" onclick="rilevaBpm()">
                     <span id="btnRilevaLabel">🎵 Rileva</span>
                 </button>
             </div>
         </div>
+
+        <!-- Raccolte come chip -->
+        <div class="form-group">
+            <label class="form-label">Raccolte</label>
+            <div class="pl-chips-wrap" id="sPlaylistChips"></div>
+        </div>
+
+        <!-- Note -->
         <div class="form-group">
             <label class="form-label">Note</label>
-            <textarea class="form-input" id="sNote" rows="3" placeholder="Es. parte della routine Swing 1…" style="resize:vertical;min-height:72px"></textarea>
+            <textarea class="form-input" id="sNote" rows="2" placeholder="Parti della routine, appunti…" style="resize:none;min-height:52px"></textarea>
         </div>
-        <button class="btn-save-modal" onclick="salvaSong()">SALVA</button>
-        <button class="btn-delete-modal" onclick="eliminaSong()">ELIMINA</button>
+
+        <!-- Footer: elimina icona + salva -->
+        <div style="display:flex;gap:8px;margin-top:6px;align-items:stretch">
+            <button onclick="eliminaSong()" title="Elimina" style="flex-shrink:0;width:48px;height:48px;border-radius:14px;border:2px solid #fce;background:#fff5f5;color:var(--red);font-size:18px;cursor:pointer">🗑</button>
+            <button class="btn-save-modal" onclick="salvaSong()" style="flex:1;margin-top:0;border-radius:14px;padding:0 16px;height:48px;font-size:15px">SALVA</button>
+        </div>
     </div>
 </div>
 
@@ -1525,22 +1562,36 @@ function bpmDaNome(titolo) {
     return m ? Number(m[1]) : null;
 }
 
+function aggiornaHeaderMeta() {
+    const artista = document.getElementById('sArtista').value.trim();
+    const bpm = document.getElementById('sBpm').value;
+    const parts = [artista, bpm ? `♩ ${bpm} BPM` : ''].filter(Boolean);
+    document.getElementById('sHeaderMeta').textContent = parts.join(' · ');
+}
+
+function togglePlaylistChip(btn) {
+    btn.classList.toggle('sel');
+}
+
 function apriEditSong(s) {
     editSongId = s.id;
+    const bpmVal = s.bpm || bpmGet(s.id) || bpmDaNome(s.titolo) || '';
     document.getElementById('sTitolo').value = s.titolo || '';
     document.getElementById('sArtista').value = s.artista || '';
-    document.getElementById('sBpm').value = s.bpm || bpmGet(s.id) || bpmDaNome(s.titolo) || '';
+    document.getElementById('sBpm').value = bpmVal;
     document.getElementById('sNote').value = s.note || '';
+    // Header preview
+    document.getElementById('sHeaderName').textContent = s.titolo || '—';
+    const metaParts = [s.artista, bpmVal ? `♩ ${bpmVal} BPM` : ''].filter(Boolean);
+    document.getElementById('sHeaderMeta').textContent = metaParts.join(' · ');
+    // Raccolte come chip
     const currentPids = new Set([
         ...(songPlaylistMap[s.id] || []),
         ...(s.playlist_id ? [s.playlist_id] : [])
     ]);
-    document.getElementById('sPlaylistCheckboxes').innerHTML = playlists.length
-        ? playlists.map(p => `<label style="display:flex;align-items:center;gap:10px;padding:8px 0;cursor:pointer;border-bottom:1px solid var(--grey-light)">
-            <input type="checkbox" value="${p.id}" ${currentPids.has(p.id) ? 'checked' : ''} style="width:18px;height:18px;accent-color:var(--music);flex-shrink:0;cursor:pointer">
-            <span style="font-size:14px;font-weight:700">${p.nome}</span>
-          </label>`).join('')
-        : '<div style="color:#aaa;font-size:13px;padding:8px 0">Nessuna raccolta</div>';
+    document.getElementById('sPlaylistChips').innerHTML = playlists.length
+        ? playlists.map(p => `<button type="button" class="pl-chip${currentPids.has(p.id) ? ' sel' : ''}" data-pid="${p.id}" onclick="togglePlaylistChip(this)">${p.nome}</button>`).join('')
+        : '<span style="color:#aaa;font-size:13px">Nessuna raccolta</span>';
     document.getElementById('modaleSong').classList.add('open');
 }
 
@@ -1555,7 +1606,7 @@ async function salvaSong() {
     const saveId = editSongId;
     const bpmRaw = document.getElementById('sBpm').value;
     const bpmVal = bpmRaw ? Number(bpmRaw) : null;
-    const checkedPids = [...document.querySelectorAll('#sPlaylistCheckboxes input:checked')].map(cb => Number(cb.value));
+    const checkedPids = [...document.querySelectorAll('#sPlaylistChips .pl-chip.sel')].map(b => Number(b.dataset.pid));
 
     // 1) Dati base senza BPM — sempre funziona
     const coreData = {
