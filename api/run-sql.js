@@ -37,6 +37,7 @@ const STATEMENTS = [
     `ALTER TABLE IF EXISTS canzoni ADD COLUMN IF NOT EXISTS note text -- canzoni_note`,
     `ALTER TABLE IF EXISTS canzoni ADD COLUMN IF NOT EXISTS bpm int -- canzoni_bpm`,
     `ALTER TABLE IF EXISTS canzoni ADD COLUMN IF NOT EXISTS album text -- canzoni_album`,
+    `ALTER TABLE IF EXISTS canzoni ADD COLUMN IF NOT EXISTS coreo jsonb -- canzoni_coreo`,
     `CREATE TABLE IF NOT EXISTS vendita_annunci (
         id bigint generated always as identity primary key,
         email_utente text not null,
@@ -555,6 +556,18 @@ module.exports = async function handler(req, res) {
             return res.status(400).json({ error: 'parametri non validi' });
         await runSql(key, `ALTER TABLE IF EXISTS canzoni ADD COLUMN IF NOT EXISTS bpm int`).catch(() => {});
         const r = await runSql(key, `UPDATE canzoni SET bpm = ${bpm} WHERE id = ${id}`);
+        await runSql(key, `SELECT pg_notify('pgrst', 'reload schema')`).catch(() => {});
+        return res.status(r.ok ? 200 : 500).json(r);
+    }
+
+    if (req.query?.action === 'save-coreo') {
+        const id = parseInt(req.query.id);
+        const coreo = req.body?.coreo;
+        if (!id || isNaN(id) || typeof coreo !== 'object')
+            return res.status(400).json({ error: 'parametri non validi' });
+        await runSql(key, `ALTER TABLE IF EXISTS canzoni ADD COLUMN IF NOT EXISTS coreo jsonb`).catch(() => {});
+        const json = JSON.stringify(coreo).replace(/'/g, "''");
+        const r = await runSql(key, `UPDATE canzoni SET coreo = '${json}'::jsonb WHERE id = ${id}`);
         await runSql(key, `SELECT pg_notify('pgrst', 'reload schema')`).catch(() => {});
         return res.status(r.ok ? 200 : 500).json(r);
     }

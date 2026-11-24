@@ -12,6 +12,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Listando">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         :root {
             color-scheme: light;
@@ -326,6 +327,40 @@
         .f-chip { flex-shrink: 0; padding: 7px 13px; border-radius: 8px; border: none; background: #f0f0f0; font-size: 12px; font-weight: 700; color: #666; cursor: pointer; font-family: inherit; transition: background 0.12s, color 0.12s; }
         .f-chip:active { opacity: 0.72; }
         .f-chip.active { background: var(--music); color: #fff; }
+
+        /* ── Coreografia panel ── */
+        .coreo-overlay { position: fixed; inset: 0; z-index: 350; background: #fff; display: none; flex-direction: column; }
+        .coreo-overlay.open { display: flex; }
+        .coreo-header { display: flex; align-items: center; gap: 10px; padding: 14px 16px 10px; border-bottom: 1.5px solid #f0f0f0; flex-shrink: 0; }
+        .coreo-header-info { flex: 1; min-width: 0; }
+        .coreo-header-label { font-size: 10px; font-weight: 900; color: #aaa; text-transform: uppercase; letter-spacing: 0.5px; }
+        .coreo-header-title { font-size: 15px; font-weight: 900; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .btn-coreo-close { width: 32px; height: 32px; border-radius: 50%; border: none; background: rgba(0,0,0,0.07); color: #666; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .btn-coreo-upload { flex-shrink: 0; padding: 8px 14px; border-radius: 10px; border: 2px solid var(--music); background: rgba(29,185,84,0.08); color: var(--music); font-size: 12px; font-weight: 800; cursor: pointer; font-family: inherit; }
+        .coreo-tabs { display: flex; border-bottom: 2px solid #f0f0f0; overflow-x: auto; flex-shrink: 0; scrollbar-width: none; }
+        .coreo-tabs::-webkit-scrollbar { display: none; }
+        .coreo-tab { padding: 10px 16px; font-size: 12px; font-weight: 800; color: #aaa; border: none; background: none; cursor: pointer; white-space: nowrap; border-bottom: 2.5px solid transparent; margin-bottom: -2px; font-family: inherit; flex-shrink: 0; }
+        .coreo-tab.active { color: var(--music); border-bottom-color: var(--music); }
+        .coreo-body { flex: 1; overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
+        .coreo-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #aaa; font-size: 15px; gap: 16px; }
+        .coreo-table-wrap { flex: 1; overflow: auto; }
+        .coreo-table { border-collapse: collapse; min-width: 100%; table-layout: fixed; }
+        .coreo-table thead th { background: #f8f8f8; padding: 8px 8px; text-align: left; font-size: 10px; font-weight: 900; color: #aaa; text-transform: uppercase; letter-spacing: 0.3px; position: sticky; top: 0; z-index: 2; border-bottom: 1.5px solid #eee; white-space: nowrap; }
+        .coreo-table td { padding: 7px 8px; border-bottom: 1px solid #f5f5f5; vertical-align: middle; font-size: 13px; outline: none; }
+        .coreo-table td[contenteditable]:focus { background: #f0fdf8; }
+        .coreo-table tr.coreo-section td { background: #f7fef9; font-weight: 800; color: var(--music-dark); }
+        .col-min { width: 80px; }
+        .col-count { width: 44px; text-align: center; }
+        .col-shapes { width: auto; min-width: 130px; }
+        .col-num { width: 38px; text-align: center; }
+        .col-lez { width: 36px; text-align: center; }
+        .col-del { width: 32px; }
+        .btn-coreo-del { width: 24px; height: 24px; border-radius: 50%; border: none; background: none; color: #ccc; font-size: 16px; cursor: pointer; padding: 0; line-height: 1; }
+        .btn-coreo-del:active { background: #fff0f0; color: #e55; }
+        .coreo-footer { flex-shrink: 0; padding: 10px 16px calc(env(safe-area-inset-bottom, 0px) + 10px); background: white; border-top: 1.5px solid #f0f0f0; display: flex; gap: 10px; align-items: center; }
+        .btn-add-coreo-row { padding: 10px 16px; border-radius: 10px; border: 2px solid #e0e0e0; background: white; color: #666; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; }
+        .btn-save-coreo { flex: 1; padding: 12px; border-radius: 12px; border: none; background: var(--music); color: white; font-size: 14px; font-weight: 900; cursor: pointer; font-family: inherit; }
+        .btn-open-coreo { width: 28px; height: 28px; border-radius: 8px; border: none; background: rgba(29,185,84,0.12); color: var(--music); font-size: 13px; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
 
         .toast { position: fixed; bottom: 120px; left: 50%; transform: translateX(-50%) translateY(20px); background: rgba(0,0,0,0.85); color: white; padding: 12px 20px; border-radius: 14px; font-weight: 700; font-size: 14px; opacity: 0; transition: all 0.25s; white-space: nowrap; z-index: 9999; pointer-events: none; }
         .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
@@ -645,11 +680,47 @@
             <textarea class="form-input" id="sNote" rows="2" placeholder="Parti della routine, appunti…" style="resize:none;min-height:52px"></textarea>
         </div>
 
+        <!-- Coreografia -->
+        <button onclick="apriCoreo(editSongId);document.getElementById('modaleSong').classList.remove('open')" style="width:100%;padding:11px;border-radius:12px;border:2px solid #e8e8e8;background:none;font-size:13px;font-weight:800;cursor:pointer;color:#666;font-family:inherit;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:6px">📋 Coreografia</button>
+
         <!-- Footer: elimina icona + salva -->
-        <div style="display:flex;gap:8px;margin-top:6px;align-items:stretch">
+        <div style="display:flex;gap:8px;margin-top:0;align-items:stretch">
             <button onclick="eliminaSong()" title="Elimina" style="flex-shrink:0;width:48px;height:48px;border-radius:14px;border:2px solid #fce;background:#fff5f5;color:var(--red);font-size:18px;cursor:pointer">🗑</button>
             <button class="btn-save-modal" onclick="salvaSong()" style="flex:1;margin-top:0;border-radius:14px;padding:0 16px;height:48px;font-size:15px">SALVA</button>
         </div>
+    </div>
+</div>
+
+<!-- Pannello coreografia -->
+<div class="coreo-overlay" id="coreoPanel">
+    <div class="coreo-header">
+        <button class="btn-coreo-close" onclick="chiudiCoreo()">✕</button>
+        <div class="coreo-header-info">
+            <div class="coreo-header-label">Coreografia</div>
+            <div class="coreo-header-title" id="coreoSongTitle"></div>
+        </div>
+        <label class="btn-coreo-upload">
+            📤 Carica Excel
+            <input type="file" accept=".xlsx,.xls" onchange="coreoCaricaExcel(event)" style="display:none">
+        </label>
+    </div>
+    <div class="coreo-tabs" id="coreoTabs"></div>
+    <div class="coreo-body">
+        <div class="coreo-empty" id="coreoEmpty">
+            <div style="font-size:32px">📋</div>
+            <div>Nessuna coreografia</div>
+            <label class="btn-coreo-upload" style="font-size:14px;padding:12px 22px;border-radius:12px">
+                📤 Carica file Excel
+                <input type="file" accept=".xlsx,.xls" onchange="coreoCaricaExcel(event)" style="display:none">
+            </label>
+        </div>
+        <div class="coreo-table-wrap" id="coreoTableWrap" style="display:none">
+            <table class="coreo-table" id="coreoTable"></table>
+        </div>
+    </div>
+    <div class="coreo-footer" id="coreoFooter" style="display:none">
+        <button class="btn-add-coreo-row" onclick="coreoAddRow()">+ Riga</button>
+        <button class="btn-save-coreo" id="btnSalvaCoreo" onclick="salvaCoreo()">💾 SALVA COREOGRAFIA</button>
     </div>
 </div>
 
@@ -769,6 +840,7 @@ let songPlaylistMap = {}; // canzone_id → [playlist_id, ...]
 fetch('/api/run-sql?solo=canzoni_bpm').catch(() => {});
 fetch('/api/run-sql?solo=canzoni_in_playlist').catch(() => {});
 fetch('/api/run-sql?solo=canzoni_album').catch(() => {});
+fetch('/api/run-sql?solo=canzoni_coreo').catch(() => {});
 
 // BPM: localStorage come storage primario, DB come best-effort
 function bpmGet(id) { return Number(localStorage.getItem('bpm_' + id)) || null; }
@@ -1082,6 +1154,7 @@ function songItemHtml(s, i) {
             ${s.note ? `<div class="song-artist" style="font-style:italic;color:#aaa">${s.note}</div>` : ''}
         </div>
         <div class="song-dur">${dur}</div>
+        ${s.coreo ? `<button class="btn-open-coreo" onclick="event.stopPropagation();apriCoreo(${s.id})" title="Coreografia">📋</button>` : ''}
         <button class="btn-song-more" onclick="event.stopPropagation(); apriCtxSong(${s.id}, event, false)">⋮</button>
     </div>`;
 }
@@ -2072,6 +2145,179 @@ carica().then(() => {
         } catch(e) {}
         finally { btn.disabled = false; btn.textContent = 'Invia'; }
     }
+
+// ── Coreografia ─────────────────────────────────────────────────────────
+let coreoData = null; // { sheets: [{name, rows:[{min,count,shapes,from,to,lezione}]}] }
+let coreoSongId = null;
+let coreoSheetIdx = 0;
+
+function apriCoreo(songId) {
+    coreoSongId = songId;
+    const song = songs.find(s => s.id === songId) || {};
+    document.getElementById('coreoSongTitle').textContent = song.titolo || '';
+    let raw = song.coreo;
+    if (typeof raw === 'string') { try { raw = JSON.parse(raw); } catch(e) { raw = null; } }
+    coreoData = (raw && raw.sheets) ? raw : { sheets: [] };
+    coreoSheetIdx = 0;
+    renderCoreoTabs();
+    renderCoreoContent();
+    document.getElementById('coreoPanel').classList.add('open');
+}
+
+function chiudiCoreo() {
+    document.getElementById('coreoPanel').classList.remove('open');
+}
+
+function renderCoreoTabs() {
+    const el = document.getElementById('coreoTabs');
+    el.innerHTML = coreoData.sheets.map((sh, i) =>
+        `<button class="coreo-tab${i === coreoSheetIdx ? ' active' : ''}" onclick="switchCoreoSheet(${i})">${cleanSheetName(sh.name)}</button>`
+    ).join('');
+}
+
+function cleanSheetName(name) {
+    const c = (name || '').replace(/^coreo[_\s]*/i, '').trim();
+    return c ? c.replace(/\b\w/g, l => l.toUpperCase()) : 'Coreografia';
+}
+
+function switchCoreoSheet(idx) {
+    coreoSheetIdx = idx;
+    renderCoreoTabs();
+    renderCoreoContent();
+}
+
+function renderCoreoContent() {
+    const empty = document.getElementById('coreoEmpty');
+    const tableWrap = document.getElementById('coreoTableWrap');
+    const footer = document.getElementById('coreoFooter');
+    if (!coreoData.sheets.length) {
+        empty.style.display = '';
+        tableWrap.style.display = 'none';
+        footer.style.display = 'none';
+        return;
+    }
+    empty.style.display = 'none';
+    tableWrap.style.display = '';
+    footer.style.display = '';
+    const sheet = coreoData.sheets[coreoSheetIdx] || coreoData.sheets[0];
+    if (!sheet) return;
+    const hasMins = sheet.rows.some(r => r.min);
+    const table = document.getElementById('coreoTable');
+    table.innerHTML = `<thead><tr>
+        ${hasMins ? `<th class="col-min">Minuto</th>` : ''}
+        <th class="col-count">Cont.</th>
+        <th class="col-shapes">Passo</th>
+        <th class="col-num">Da</th>
+        <th class="col-num">A</th>
+        <th class="col-lez">Lez.</th>
+        <th class="col-del"></th>
+    </tr></thead><tbody>${sheet.rows.map((row, i) => {
+        const isSec = !row.count && !row.from && !row.to && row.shapes;
+        return `<tr class="${isSec ? 'coreo-section' : ''}">
+            ${hasMins ? `<td contenteditable="true" onblur="coreoCell(${i},'min',this)">${row.min || ''}</td>` : ''}
+            <td contenteditable="true" onblur="coreoCell(${i},'count',this)" class="col-count">${row.count ?? ''}</td>
+            <td contenteditable="true" onblur="coreoCell(${i},'shapes',this)">${row.shapes || ''}</td>
+            <td contenteditable="true" onblur="coreoCell(${i},'from',this)" class="col-num">${row.from ?? ''}</td>
+            <td contenteditable="true" onblur="coreoCell(${i},'to',this)" class="col-num">${row.to ?? ''}</td>
+            <td contenteditable="true" onblur="coreoCell(${i},'lezione',this)" class="col-lez">${row.lezione || ''}</td>
+            <td class="col-del"><button class="btn-coreo-del" onclick="coreoDelRow(${i})">×</button></td>
+        </tr>`;
+    }).join('')}</tbody>`;
+}
+
+function coreoCell(rowIdx, col, el) {
+    const val = el.innerText.trim();
+    const sheet = coreoData.sheets[coreoSheetIdx];
+    if (!sheet?.rows[rowIdx]) return;
+    if (['count','from','to'].includes(col)) {
+        sheet.rows[rowIdx][col] = val ? parseFloat(val) : null;
+    } else {
+        sheet.rows[rowIdx][col] = val || null;
+    }
+}
+
+function coreoAddRow() {
+    if (!coreoData.sheets.length) {
+        coreoData.sheets.push({ name: 'Coreografia', rows: [] });
+        coreoSheetIdx = 0;
+        renderCoreoTabs();
+    }
+    coreoData.sheets[coreoSheetIdx].rows.push({ min:null, count:null, shapes:null, from:null, to:null, lezione:null });
+    renderCoreoContent();
+    document.getElementById('coreoTableWrap').scrollTop = 999999;
+}
+
+function coreoDelRow(rowIdx) {
+    const sheet = coreoData.sheets[coreoSheetIdx];
+    if (!sheet) return;
+    sheet.rows.splice(rowIdx, 1);
+    renderCoreoContent();
+}
+
+function coreoCaricaExcel(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+        try {
+            const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+            coreoData = parseExcelToCoreo(wb);
+            coreoSheetIdx = 0;
+            renderCoreoTabs();
+            renderCoreoContent();
+        } catch(err) {
+            toast('Errore lettura file: ' + err.message);
+        }
+    };
+    reader.readAsArrayBuffer(file);
+    event.target.value = '';
+}
+
+function parseExcelToCoreo(wb) {
+    const sheets = [];
+    for (const name of wb.SheetNames) {
+        const ws = wb.Sheets[name];
+        const rows2d = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+        if (rows2d.length < 3) continue;
+        const dataRows = [];
+        for (let i = 2; i < rows2d.length; i++) {
+            const r = rows2d[i];
+            if (!r || r.every(c => c === null)) continue;
+            dataRows.push({
+                min: r[0] != null ? String(r[0]) : null,
+                count: r[1] != null ? parseFloat(r[1]) : null,
+                shapes: r[2] != null ? String(r[2]) : null,
+                from: r[3] != null ? parseFloat(r[3]) : null,
+                to: r[4] != null ? parseFloat(r[4]) : null,
+                lezione: r[5] != null ? String(r[5]) : null,
+            });
+        }
+        if (dataRows.length > 0) sheets.push({ name, rows: dataRows });
+    }
+    return { sheets };
+}
+
+async function salvaCoreo() {
+    if (!coreoSongId || !coreoData) return;
+    const btn = document.getElementById('btnSalvaCoreo');
+    btn.disabled = true; btn.textContent = 'SALVO…';
+    try {
+        const res = await fetch(`/api/run-sql?action=save-coreo&id=${coreoSongId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ coreo: coreoData })
+        });
+        const data = await res.json();
+        if (res.ok && data.ok !== false) {
+            toast('✓ Coreografia salvata');
+            const song = songs.find(s => s.id === coreoSongId);
+            if (song) { song.coreo = coreoData; renderSongList('allSongsList', getFilteredSongs()); }
+        } else {
+            toast('Errore: ' + (data.error || res.status));
+        }
+    } catch(e) { toast('Errore: ' + e.message); }
+    btn.disabled = false; btn.textContent = '💾 SALVA COREOGRAFIA';
+}
 </script>
 
 <!-- feedback -->
