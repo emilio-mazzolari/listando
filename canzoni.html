@@ -775,7 +775,18 @@ function bpmGet(id) { return Number(localStorage.getItem('bpm_' + id)) || null; 
 function bpmSet(id, val) { if (val) localStorage.setItem('bpm_' + id, val); else localStorage.removeItem('bpm_' + id); }
 function patchSongsWithLocalBpm() {
     for (const s of songs) {
-        if (!s.bpm) { const v = bpmGet(s.id); if (v) s.bpm = v; }
+        if (!s.bpm) {
+            const v = bpmGet(s.id);
+            if (v) { s.bpm = v; s._bpmFromLocal = true; }
+        }
+    }
+}
+// Sincronizza i BPM in localStorage (salvati prima del fix) verso il DB in background
+function syncLocalBpmToDb() {
+    for (const s of songs) {
+        if (s._bpmFromLocal && s.bpm) {
+            fetch(`/api/run-sql?action=save-bpm&id=${s.id}&bpm=${s.bpm}`).catch(() => {});
+        }
     }
 }
 
@@ -820,6 +831,7 @@ async function carica() {
     } catch (_) { songPlaylistMap = {}; }
 
     patchSongsWithLocalBpm();
+    syncLocalBpmToDb(); // spinge al DB i BPM che erano solo in localStorage
     renderMain();
 }
 
