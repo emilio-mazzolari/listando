@@ -354,10 +354,30 @@
         .fb-textarea { width: 100%; padding: 12px 14px; border-radius: 14px; border: 2.5px solid #e0e0e0; font-size: 15px; font-family: inherit; resize: none; outline: none; box-sizing: border-box; }
         .fb-textarea:focus { border-color: var(--accent,#5856d6); }
         .fb-send { width: 100%; margin-top: 14px; padding: 14px; border-radius: 14px; background: var(--accent,#5856d6); color: #fff; font-size: 16px; font-weight: 700; border: none; cursor: pointer; }
+        /* ── Raccolte scroll box ── */
+        .playlist-scroll-box {
+            border: 2.5px solid var(--grey);
+            border-radius: 14px;
+            overflow-x: hidden;
+            overflow-y: auto;
+            max-height: 140px;
+            scrollbar-width: thin;
+            scrollbar-color: #d0d0d0 transparent;
+            position: relative;
+        }
+        .playlist-scroll-box::-webkit-scrollbar { width: 5px; }
+        .playlist-scroll-box::-webkit-scrollbar-track { background: transparent; }
+        .playlist-scroll-box::-webkit-scrollbar-thumb { background: #d0d0d0; border-radius: 3px; }
+
         @media (min-width: 1024px) {
-            .modal-overlay { align-items: center !important; padding: 20px !important; }
-            .modal-box { border-radius: 24px !important; padding-bottom: 24px !important; max-width: 520px !important; }
+            .modal-overlay { align-items: center !important; padding: 24px !important; }
+            .modal-box { border-radius: 20px !important; padding: 28px 28px 28px !important; max-width: 580px !important; max-height: 92vh !important; }
             .modal-handle { display: none !important; }
+            .song-modal-header { margin-bottom: 20px; }
+            .song-form-2col { display: flex; gap: 14px; }
+            .song-form-2col .form-group { flex: 1; }
+            .playlist-scroll-box { max-height: 180px; }
+            .btn-save-modal { padding: 14px !important; font-size: 15px !important; border-radius: 14px !important; }
         }
     </style>
 </head>
@@ -579,20 +599,24 @@
         </div>
         <div class="song-modal-divider"></div>
 
-        <!-- Titolo + Artista -->
+        <!-- Titolo -->
         <div class="form-group">
             <label class="form-label">Titolo *</label>
             <input class="form-input" id="sTitolo" type="text"
                 oninput="document.getElementById('sHeaderName').textContent=this.value||'—'">
         </div>
-        <div class="form-group">
-            <label class="form-label">Artista</label>
-            <input class="form-input" id="sArtista" type="text" placeholder="Artista / Band"
-                oninput="aggiornaHeaderMeta()">
-        </div>
-        <div class="form-group">
-            <label class="form-label">Album</label>
-            <input class="form-input" id="sAlbum" type="text" placeholder="Nome album o EP">
+
+        <!-- Artista + Album (2 colonne su desktop) -->
+        <div class="song-form-2col">
+            <div class="form-group">
+                <label class="form-label">Artista</label>
+                <input class="form-input" id="sArtista" type="text" placeholder="Artista / Band"
+                    oninput="aggiornaHeaderMeta()">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Album</label>
+                <input class="form-input" id="sAlbum" type="text" placeholder="Nome album o EP">
+            </div>
         </div>
 
         <!-- BPM -->
@@ -609,10 +633,10 @@
             </div>
         </div>
 
-        <!-- Raccolte come lista in finestra -->
+        <!-- Raccolte con scrollbar visibile -->
         <div class="form-group">
             <label class="form-label">Raccolte</label>
-            <div id="sPlaylistChips" style="border:2.5px solid var(--grey);border-radius:14px;overflow:hidden;max-height:140px;overflow-y:auto"></div>
+            <div id="sPlaylistChips" class="playlist-scroll-box"></div>
         </div>
 
         <!-- Note -->
