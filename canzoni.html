@@ -2492,7 +2492,7 @@ function renderCoreoContent() {
     const headCells = cols.map((col, ci) => {
         const c = getColColor(col, ci);
         const w = col.width ? `width:${col.width}px;` : 'min-width:120px;';
-        const align = col.type === 'number' ? 'text-align:center;' : '';
+        const align = (col.type === 'number' || col.type === 'time') ? 'text-align:center;' : '';
         const canLeft = ci > 0, canRight = ci < cols.length - 1;
         return `<th style="${w}${align}background:${c.th};color:${c.text}${col.type === 'time' ? ';font-size:16px' : ''}">
             <div class="coreo-th-inner">
@@ -2509,7 +2509,7 @@ function renderCoreoContent() {
         const isSec = isCoreoSection(row, cols);
         const cells = cols.map((col, ci) => {
             const c = getColColor(col, ci);
-            const align = col.type === 'number' ? 'text-align:center;' : '';
+            const align = (col.type === 'number' || col.type === 'time') ? 'text-align:center;' : '';
             const bg = isSec ? '' : `background:${c.td};`;
             return `<td contenteditable="true" onblur="coreoCell(${i},'${col.key}',this)" class="${col.type === 'time' ? 'col-time' : ''}" style="${align}${bg}">${escH(row[col.key] ?? '')}</td>`;
         }).join('');
