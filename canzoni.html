@@ -782,7 +782,7 @@
         </label>
     </div>
     <div class="coreo-player" id="coreoPlayer" style="display:none">
-        <button class="coreo-player-btn" id="coreoPlayBtn" onclick="togglePlay()">
+        <button class="coreo-player-btn" id="coreoPlayBtn" onclick="coreoTogglePlay()">
             <svg width="16" height="16" fill="white" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
         </button>
         <div class="coreo-player-info">
@@ -2757,6 +2757,14 @@ async function salvaCoreo() {
         }
     } catch(e) { toast('Errore: ' + e.message); }
     btn.disabled = false; btn.textContent = '💾 SALVA';
+}
+
+function coreoTogglePlay() {
+    if (queue[queueIdx]?.id === coreoSongId) {
+        togglePlay();
+    } else {
+        playSong(coreoSongId);
+    }
 }
 
 function ricalcolaTempi(sheet) {
