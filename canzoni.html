@@ -1548,8 +1548,13 @@ async function handleFiles(fileList) {
             let { data: inserted, error: dbErr } = await sb.from('canzoni').insert(insertData).select('id').single();
             if (dbErr) {
                 // Fallback: colonna bpm non ancora in schema cache, salva senza
-                const { bpm: _b, ...safeInsert } = insertData;
+                const { bpm: detectedBpm, ...safeInsert } = insertData;
                 ({ data: inserted, error: dbErr } = await sb.from('canzoni').insert(safeInsert).select('id').single());
+                // Salva il BPM separatamente via run-sql (bypassa schema cache)
+                if (!dbErr && inserted?.id && detectedBpm) {
+                    bpmSet(inserted.id, detectedBpm);
+                    fetch(`/api/run-sql?action=save-bpm&id=${inserted.id}&bpm=${detectedBpm}`).catch(() => {});
+                }
             }
             if (dbErr) throw dbErr;
             // Aggiungi alla junction table se stiamo caricando dentro una raccolta

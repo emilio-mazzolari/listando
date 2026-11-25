@@ -448,6 +448,21 @@ const STATEMENTS = [
 ];
 
 async function runSql(serviceKey, sql) {
+    // 0. Connessione diretta Postgres via DATABASE_URL (metodo più affidabile)
+    const dbUrl = process.env.DATABASE_URL;
+    if (dbUrl) {
+        try {
+            const { Client } = require('pg');
+            const client = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
+            await client.connect();
+            await client.query(sql);
+            await client.end();
+            return { ok: true, status: 200, body: 'pg direct OK' };
+        } catch (pgErr) {
+            return { ok: false, status: 500, body: pgErr.message };
+        }
+    }
+
     const headers = {
         'Content-Type': 'application/json',
         'apikey': serviceKey,
