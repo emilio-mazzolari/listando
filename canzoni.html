@@ -2799,6 +2799,13 @@ function updateCoreoBpmChip() {
     chip.classList.toggle('active', !!(sheet?.bpm));
 }
 
+function persistCoreoBpm(bpm) {
+    if (!coreoSongId || !bpm) return;
+    const song = songs.find(s => s.id === coreoSongId);
+    if (song) song.bpm = bpm;
+    fetch(`/api/run-sql?action=save-bpm&id=${coreoSongId}&bpm=${bpm}`).catch(() => {});
+}
+
 function editCoreoBpm() {
     const sheet = coreoData.sheets?.[coreoSheetIdx];
     if (!sheet) return;
@@ -2809,6 +2816,7 @@ function editCoreoBpm() {
     if (val.trim() === '') { delete sheet.bpm; updateCoreoBpmChip(); return; }
     if (!bpm || bpm < 20 || bpm > 400) { toast('BPM non valido'); return; }
     sheet.bpm = bpm;
+    persistCoreoBpm(bpm);
     updateCoreoBpmChip();
     ricalcolaTempi(sheet);
     renderCoreoContent();
@@ -2872,6 +2880,7 @@ function applicaTempiCoreo() {
     }
     sheet.bpm = bpm;
     sheet.startSec = startSec;
+    persistCoreoBpm(bpm);
     if (_tempiMode === 'replace') sheet.rows = newRows;
     else sheet.rows = [...sheet.rows, ...newRows];
     chiudiTempiSheet();
