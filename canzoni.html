@@ -126,6 +126,12 @@
         .btn-mini { width: 40px; height: 40px; border-radius: 50%; border: none; background: none; color: white; font-size: 22px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         .btn-mini.play-pause { width: 44px; height: 44px; background: var(--music); border-radius: 50%; font-size: 20px; }
         .btn-mini:active { opacity: 0.7; }
+        .player-speed-bar { display: flex; align-items: center; justify-content: center; padding: 3px 0; background: rgba(0,0,0,0.3); border-top: 1px solid rgba(255,255,255,0.07); }
+        .btn-speed-bar { width: 40px; height: 28px; border: none; background: none; color: rgba(255,255,255,0.6); font-size: 22px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; line-height: 1; font-family: inherit; }
+        .btn-speed-bar:active { color: white; }
+        .speed-bar-val { min-width: 72px; text-align: center; cursor: pointer; padding: 2px 4px; }
+        .speed-bar-num { font-size: 13px; font-weight: 900; color: white; display: block; }
+        .speed-bar-lbl { font-size: 9px; color: rgba(255,255,255,0.35); font-weight: 700; letter-spacing: 0.5px; display: block; margin-top: -1px; }
 
         /* ── Expanded player ── */
         .player-expanded {
@@ -749,6 +755,14 @@
 <div class="player-bar" id="playerBar">
     <div class="player-seek-top" id="miniSeekBg" onclick="miniSeekClick(event)">
         <div class="player-seek-fill" id="miniSeekFill" style="width:0%"></div>
+    </div>
+    <div class="player-speed-bar" onclick="event.stopPropagation()">
+        <button class="btn-speed-bar" onclick="changeSpeed(-1)" title="Rallenta">‹</button>
+        <div class="speed-bar-val" onclick="resetSpeed()" title="Ripristina 1×">
+            <span class="speed-bar-num" id="speedValMini">1.0×</span>
+            <span class="speed-bar-lbl">VELOCITÀ</span>
+        </div>
+        <button class="btn-speed-bar" onclick="changeSpeed(1)" title="Accelera">›</button>
     </div>
     <div class="player-mini" onclick="openExpanded()">
         <div class="player-art" id="playerArt">🎵</div>
@@ -1422,9 +1436,11 @@ function resetSpeed() {
 function applySpeed() {
     audio.playbackRate = currentSpeed;
     const label = currentSpeed.toFixed(2).replace(/0$/, '') + '×';
+    const color = currentSpeed !== 1.0 ? '#1db954' : 'white';
     document.getElementById('speedVal').textContent = label;
-    const disp = document.getElementById('speedDisplay');
-    disp.style.color = currentSpeed !== 1.0 ? '#1db954' : 'white';
+    document.getElementById('speedDisplay').style.color = color;
+    const mini = document.getElementById('speedValMini');
+    if (mini) { mini.textContent = label; mini.style.color = color; }
 }
 
 // ── Progress & seek ────────────────────────────────────────────────────
