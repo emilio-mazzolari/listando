@@ -377,6 +377,9 @@
         .coreo-table td[contenteditable]:focus { background: #f0fdf8 !important; }
         .coreo-table td.col-time:empty::before { content: "00:00 - 00:00"; color: #ccc; pointer-events: none; font-size: 11px; letter-spacing: 0.5px; }
         .coreo-table tr.coreo-section td { background: #f7fef9 !important; font-weight: 800; color: var(--music-dark); }
+        .coreo-table tr.coreo-free td { background: #fffbf0 !important; }
+        .coreo-table tr.coreo-free td.col-time { font-style: italic; color: #b06000; }
+        .coreo-table tr.coreo-free td.col-time::after { content: " ⌛"; font-size: 10px; opacity: 0.6; font-style: normal; }
         .coreo-th-resize { position: absolute; right: -3px; top: 0; bottom: 0; width: 7px; cursor: col-resize; z-index: 4; }
         .coreo-th-resize:hover { background: rgba(0,0,0,0.12); }
         .coreo-th-resize.active { background: var(--music); opacity: 0.5; }
@@ -817,6 +820,7 @@
     </div>
     <div class="coreo-footer" id="coreoFooter" style="display:none">
         <button class="btn-add-coreo-row" onclick="coreoAddRow()">+ Riga</button>
+        <button class="btn-add-coreo-row" onclick="coreoAddFreeRow()" title="Riga a timing libero (es. intro)">⌛</button>
         <button class="btn-tempi-coreo" onclick="apriTempiSheet()" title="Suddividi in battiti">⏱</button>
         <button class="btn-export-coreo" onclick="apriExportCoreo()" title="Esporta">📤</button>
         <button class="btn-wa-coreo" onclick="condividiCoreoWA()" title="Condividi su WhatsApp">
@@ -2512,15 +2516,17 @@ function renderCoreoContent() {
             <div class="coreo-th-resize" onmousedown="startColResize(event,${ci})" ontouchstart="startColResize(event,${ci})"></div>
         </th>`;
     }).join('');
+    const countKey = cols.find(c => c.key === 'count')?.key;
     const bodyRows = sheet.rows.map((row, i) => {
         const isSec = isCoreoSection(row, cols);
+        const isFree = !isSec && (row._free || (!parseFloat(row[countKey]) && !!row[cols.find(c => c.type === 'time')?.key]));
         const cells = cols.map((col, ci) => {
             const c = getColColor(col, ci);
             const align = (col.type === 'number' || col.type === 'time') ? 'text-align:center;' : '';
-            const bg = isSec ? '' : `background:${c.td};`;
+            const bg = (isSec || isFree) ? '' : `background:${c.td};`;
             return `<td contenteditable="true" onblur="coreoCell(${i},'${col.key}',this)" class="${col.type === 'time' ? 'col-time' : ''}" style="${align}${bg}">${escH(row[col.key] ?? '')}</td>`;
         }).join('');
-        return `<tr class="${isSec ? 'coreo-section' : ''}">
+        return `<tr class="${isSec ? 'coreo-section' : isFree ? 'coreo-free' : ''}">
             ${cells}
             <td class="col-del"><div class="col-del-inner">
                 <button class="btn-row-move" onclick="moveCoreoRow(${i},-1)"${i === 0 ? ' disabled' : ''}>↑</button>
@@ -2566,6 +2572,22 @@ function coreoAddRow() {
     const emptyRow = {};
     sheet.cols.forEach(c => { emptyRow[c.key] = null; });
     sheet.rows.push(emptyRow);
+    renderCoreoContent();
+    document.getElementById('coreoTableWrap').scrollTop = 999999;
+}
+
+function coreoAddFreeRow() {
+    if (!coreoData.sheets.length) {
+        coreoData.sheets.push({ name: 'Coreografia', rows: [] });
+        coreoSheetIdx = 0;
+        renderCoreoTabs();
+    }
+    const sheet = coreoData.sheets[coreoSheetIdx];
+    ensureCols(sheet);
+    const row = {};
+    sheet.cols.forEach(c => { row[c.key] = null; });
+    row._free = true;
+    sheet.rows.push(row);
     renderCoreoContent();
     document.getElementById('coreoTableWrap').scrollTop = 999999;
 }
@@ -2790,7 +2812,25 @@ function ricalcolaTempi(sheet) {
     let cur = sheet.startSec ?? 0;
     for (const row of sheet.rows) {
         const beats = parseFloat(row[countCol.key]);
-        if (!beats || beats <= 0) continue;
+        if (!beats || beats <= 0) {
+            // Riga a timing libero: legge la durata dal valore ⏱ esistente e avanza cur
+            const existing = row[minCol.key];
+            if (existing) {
+                const parts = String(existing).split('-');
+                if (parts.length === 2) {
+                    const prevStart = parseMMSS(parts[0].trim()) ?? cur;
+                    const prevEnd   = parseMMSS(parts[1].trim());
+                    if (prevEnd !== null) {
+                        const dur = prevEnd - prevStart;
+                        if (dur > 0) {
+                            row[minCol.key] = fmtMMSS(cur) + ' - ' + fmtMMSS(cur + dur);
+                            cur += dur;
+                        }
+                    }
+                }
+            }
+            continue;
+        }
         const rip = ripCol ? (parseFloat(row[ripCol.key]) || 1) : 1;
         const dur = (beats * rip / bpm) * 60;
         row[minCol.key] = fmtMMSS(cur) + ' - ' + fmtMMSS(cur + dur);
