@@ -2340,8 +2340,7 @@ function apriCoreo(songId) {
     coreoData = (raw && raw.sheets) ? raw : { sheets: [] };
     coreoSheetIdx = 0;
     renderCoreoTabs();
-    const _openSheet = coreoData.sheets[0];
-    if (_openSheet) ricalcolaTempi(_openSheet);
+    coreoData.sheets.forEach(sh => ricalcolaTempi(sh));
     renderCoreoContent();
     updateCoreoBpmChip();
     document.getElementById('coreoPanel').classList.add('open');
@@ -2403,6 +2402,7 @@ function duplicaCoreoSheet(idx) {
     copy.name = cleanSheetName(src.name) + ' (copia)';
     coreoData.sheets.splice(idx + 1, 0, copy);
     coreoSheetIdx = idx + 1;
+    ricalcolaTempi(copy);
     renderCoreoTabs();
     renderCoreoContent();
     updateCoreoBpmChip();
@@ -2548,9 +2548,8 @@ function coreoCell(rowIdx, col, el) {
     } else {
         sheet.rows[rowIdx][col] = val || null;
     }
-    const countCol = sheet.cols.find(c => c.key === 'count');
-    const ripCol = sheet.cols.find(c => c.key === 'rip') || sheet.cols.find(c => c.type === 'number' && /rip/i.test(c.label));
-    if (col === countCol?.key || col === ripCol?.key) {
+    // Ricalcola ⏱ quando cambia qualsiasi colonna numerica (count, rip, o rinominate)
+    if (colDef?.type === 'number') {
         const bpm = sheet.bpm || songs.find(s => s.id === coreoSongId)?.bpm;
         if (bpm) { ricalcolaTempi(sheet); renderCoreoContent(); }
     }
@@ -2749,6 +2748,9 @@ function parseExcelToCoreo(wb) {
 
 async function salvaCoreo() {
     if (!coreoSongId || !coreoData) return;
+    // Ricalcola ⏱ su tutti i fogli prima di salvare
+    coreoData.sheets.forEach(sh => ricalcolaTempi(sh));
+    renderCoreoContent();
     const btn = document.getElementById('btnSalvaCoreo');
     btn.disabled = true; btn.textContent = 'SALVO…';
     try {
@@ -2784,7 +2786,7 @@ function ricalcolaTempi(sheet) {
     const minCol = sheet.cols.find(c => c.type === 'time');
     const countCol = sheet.cols.find(c => c.key === 'count');
     if (!minCol || !countCol) return;
-    const ripCol = sheet.cols.find(c => c.key === 'rip') || sheet.cols.find(c => c.type === 'number' && /rip/i.test(c.label));
+    const ripCol = sheet.cols.find(c => c.key === 'rip') || sheet.cols.find(c => /rip/i.test(c.label));
     let cur = sheet.startSec ?? 0;
     for (const row of sheet.rows) {
         const beats = parseFloat(row[countCol.key]);
