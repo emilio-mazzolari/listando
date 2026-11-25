@@ -366,12 +366,24 @@
         th.col-del { background: #f8f8f8; }
         .col-add-th { width: 28px; padding: 2px !important; text-align: center; background: #f8f8f8; }
         .col-add-ph { width: 28px; }
-        .coreo-th-inner { display: flex; align-items: center; justify-content: space-between; gap: 4px; white-space: nowrap; }
+        .coreo-th-inner { display: flex; align-items: center; gap: 2px; }
+        .coreo-th-label { flex: 1; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; cursor: pointer; padding: 0 2px; }
+        .btn-col-move { width: 16px; height: 16px; border-radius: 4px; border: none; background: none; color: currentColor; opacity: 0.35; font-size: 13px; cursor: pointer; padding: 0; line-height: 1; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .btn-col-move:hover { opacity: 1; background: rgba(0,0,0,0.1); }
+        .btn-col-move:disabled { opacity: 0.1; cursor: default; }
+        .btn-col-color { width: 11px; height: 11px; border-radius: 50%; border: 1.5px solid rgba(0,0,0,0.25); cursor: pointer; padding: 0; flex-shrink: 0; display: none; }
+        th:hover .btn-col-color { display: block; }
+        .btn-col-color:hover { transform: scale(1.3); border-color: rgba(0,0,0,0.5); }
         .btn-col-del { width: 14px; height: 14px; border-radius: 50%; border: none; background: none; color: rgba(0,0,0,0.25); font-size: 12px; cursor: pointer; padding: 0; line-height: 1; display: none; align-items: center; justify-content: center; flex-shrink: 0; }
         th:hover .btn-col-del { display: flex; }
         .btn-col-del:hover { background: rgba(0,0,0,0.1); color: #e55; }
         .btn-add-coreo-col { width: 22px; height: 22px; border-radius: 50%; border: none; background: rgba(0,0,0,0.07); color: #666; font-size: 16px; font-weight: 900; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; }
         .btn-add-coreo-col:hover { background: var(--music); color: white; }
+        .coreo-col-picker { position: fixed; z-index: 10000; background: white; border: 1.5px solid #eee; border-radius: 14px; padding: 10px; box-shadow: 0 6px 24px rgba(0,0,0,0.18); display: none; flex-wrap: wrap; gap: 7px; width: 196px; }
+        .coreo-col-picker.open { display: flex; }
+        .coreo-col-swatch { width: 30px; height: 30px; border-radius: 8px; border: 2.5px solid transparent; cursor: pointer; transition: transform 0.1s; flex-shrink: 0; }
+        .coreo-col-swatch:hover { transform: scale(1.15); }
+        .coreo-col-swatch.active { border-color: rgba(0,0,0,0.5) !important; }
         .btn-coreo-del { width: 24px; height: 24px; border-radius: 50%; border: none; background: none; color: #ccc; font-size: 16px; cursor: pointer; padding: 0; line-height: 1; }
         .btn-coreo-del:active { background: #fff0f0; color: #e55; }
         .coreo-footer { flex-shrink: 0; padding: 10px 16px calc(env(safe-area-inset-bottom, 0px) + 10px); background: white; border-top: 1.5px solid #f0f0f0; display: flex; gap: 10px; align-items: center; }
@@ -743,6 +755,8 @@
         <button class="btn-save-coreo" id="btnSalvaCoreo" onclick="salvaCoreo()">💾 SALVA COREOGRAFIA</button>
     </div>
 </div>
+
+<div class="coreo-col-picker" id="coreoColPicker"></div>
 
 <!-- Mini player bar -->
 <div class="player-bar" id="playerBar">
@@ -2277,13 +2291,22 @@ const DEFAULT_COLS = [
     { key: 'lezione', label: 'Lezione', type: 'text',   width: 60  },
 ];
 const COL_COLORS = [
-    { th: '#f0ebff', text: '#7c5cbf', td: 'rgba(240,235,255,0.3)' },
-    { th: '#e8f4fd', text: '#2b7bd4', td: 'rgba(232,244,253,0.3)' },
-    { th: '#fff4e8', text: '#c56b1a', td: 'rgba(255,244,232,0.3)' },
-    { th: '#e3fdf9', text: '#0f8f75', td: 'rgba(227,253,249,0.3)' },
-    { th: '#e8fdf0', text: '#1a9f4a', td: 'rgba(232,253,240,0.3)' },
-    { th: '#fff9e0', text: '#c27a00', td: 'rgba(255,249,224,0.3)' },
+    { th: '#f0ebff', text: '#7c5cbf', td: 'rgba(240,235,255,0.3)' }, // viola
+    { th: '#e8f4fd', text: '#2b7bd4', td: 'rgba(232,244,253,0.3)' }, // blu
+    { th: '#fff4e8', text: '#c56b1a', td: 'rgba(255,244,232,0.3)' }, // arancio
+    { th: '#e3fdf9', text: '#0f8f75', td: 'rgba(227,253,249,0.3)' }, // teal
+    { th: '#e8fdf0', text: '#1a9f4a', td: 'rgba(232,253,240,0.3)' }, // verde
+    { th: '#fff9e0', text: '#c27a00', td: 'rgba(255,249,224,0.3)' }, // giallo
+    { th: '#fde8f0', text: '#c41a5e', td: 'rgba(253,232,240,0.3)' }, // rosa
+    { th: '#fde8e8', text: '#c41a1a', td: 'rgba(253,232,232,0.3)' }, // rosso
+    { th: '#e8e8fd', text: '#3b3bc4', td: 'rgba(232,232,253,0.3)' }, // indigo
+    { th: '#f0fde8', text: '#5a9f1a', td: 'rgba(240,253,232,0.3)' }, // lime
+    { th: '#fdf0e8', text: '#c47a1a', td: 'rgba(253,240,232,0.3)' }, // ambra
+    { th: '#f8f8f8', text: '#888888', td: 'rgba(248,248,248,0.3)' }, // grigio
 ];
+function getColColor(col, ci) {
+    return COL_COLORS[(col.colorIdx ?? ci) % COL_COLORS.length];
+}
 function escH(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function ensureCols(sheet) {
     if (!sheet.cols || !Array.isArray(sheet.cols) || !sheet.cols.length)
@@ -2314,20 +2337,24 @@ function renderCoreoContent() {
     const cols = sheet.cols;
     const table = document.getElementById('coreoTable');
     const headCells = cols.map((col, ci) => {
-        const c = COL_COLORS[ci % COL_COLORS.length];
+        const c = getColColor(col, ci);
         const w = col.width ? `width:${col.width}px;` : 'min-width:120px;';
         const align = col.type === 'number' ? 'text-align:center;' : '';
+        const canLeft = ci > 0, canRight = ci < cols.length - 1;
         return `<th style="${w}${align}background:${c.th};color:${c.text}">
             <div class="coreo-th-inner">
-                <span ondblclick="renameCoreoCol(${ci},this)" style="cursor:pointer">${escH(col.label)}</span>
-                <button class="btn-col-del" onclick="deleteCoreoCol(${ci})" title="Rimuovi colonna">×</button>
+                <button class="btn-col-move" onclick="moveCoreoCol(${ci},-1,event)" title="Sposta a sinistra"${canLeft ? '' : ' disabled'}>‹</button>
+                <span class="coreo-th-label" ondblclick="renameCoreoCol(${ci},this);event.stopPropagation()" onclick="event.stopPropagation()">${escH(col.label)}</span>
+                <button class="btn-col-move" onclick="moveCoreoCol(${ci},1,event)" title="Sposta a destra"${canRight ? '' : ' disabled'}>›</button>
+                <button class="btn-col-color" onclick="openColColorPicker(event,${ci})" title="Cambia colore" style="background:${c.th}"></button>
+                <button class="btn-col-del" onclick="deleteCoreoCol(${ci},event)" title="Rimuovi colonna">×</button>
             </div>
         </th>`;
     }).join('');
     const bodyRows = sheet.rows.map((row, i) => {
         const isSec = isCoreoSection(row, cols);
         const cells = cols.map((col, ci) => {
-            const c = COL_COLORS[ci % COL_COLORS.length];
+            const c = getColColor(col, ci);
             const align = col.type === 'number' ? 'text-align:center;' : '';
             const bg = isSec ? '' : `background:${c.td};`;
             return `<td contenteditable="true" onblur="coreoCell(${i},'${col.key}',this)" style="${align}${bg}">${escH(row[col.key] ?? '')}</td>`;
@@ -2391,7 +2418,8 @@ function addCoreoCol() {
     renderCoreoContent();
 }
 
-function deleteCoreoCol(ci) {
+function deleteCoreoCol(ci, e) {
+    if (e) e.stopPropagation();
     const sheet = coreoData.sheets[coreoSheetIdx];
     if (!sheet) return;
     ensureCols(sheet);
@@ -2410,6 +2438,51 @@ function renameCoreoCol(ci, el) {
     const name = prompt('Rinomina colonna:', col.label);
     if (!name || name.trim() === col.label) return;
     col.label = name.trim();
+    renderCoreoContent();
+}
+
+function moveCoreoCol(ci, dir, e) {
+    if (e) e.stopPropagation();
+    const sheet = coreoData.sheets[coreoSheetIdx];
+    if (!sheet) return;
+    ensureCols(sheet);
+    const target = ci + dir;
+    if (target < 0 || target >= sheet.cols.length) return;
+    [sheet.cols[ci], sheet.cols[target]] = [sheet.cols[target], sheet.cols[ci]];
+    renderCoreoContent();
+}
+
+let _colPickerIdx = -1;
+function openColColorPicker(e, ci) {
+    e.stopPropagation();
+    const picker = document.getElementById('coreoColPicker');
+    if (!picker) return;
+    _colPickerIdx = ci;
+    const sheet = coreoData.sheets[coreoSheetIdx];
+    if (!sheet) return;
+    ensureCols(sheet);
+    const col = sheet.cols[ci];
+    const curIdx = col.colorIdx ?? ci % COL_COLORS.length;
+    picker.innerHTML = COL_COLORS.map((c, idx) =>
+        `<div class="coreo-col-swatch${idx === curIdx ? ' active' : ''}" style="background:${c.th};border-color:${idx === curIdx ? 'rgba(0,0,0,0.5)' : 'transparent'}" onclick="setCoreoColColor(${ci},${idx})"></div>`
+    ).join('');
+    const rect = e.currentTarget.getBoundingClientRect();
+    picker.style.top = (rect.bottom + 6) + 'px';
+    picker.style.left = Math.min(rect.left, window.innerWidth - 206) + 'px';
+    picker.classList.add('open');
+    setTimeout(() => document.addEventListener('click', closeColPicker, { once: true }), 10);
+}
+
+function closeColPicker() {
+    document.getElementById('coreoColPicker')?.classList.remove('open');
+}
+
+function setCoreoColColor(ci, colorIdx) {
+    const sheet = coreoData.sheets[coreoSheetIdx];
+    if (!sheet) return;
+    ensureCols(sheet);
+    sheet.cols[ci].colorIdx = colorIdx;
+    closeColPicker();
     renderCoreoContent();
 }
 
