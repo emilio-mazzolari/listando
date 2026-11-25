@@ -878,7 +878,9 @@ function patchSongsWithLocalBpm() {
 function syncLocalBpmToDb() {
     for (const s of songs) {
         if (s._bpmFromLocal && s.bpm) {
-            fetch(`/api/run-sql?action=save-bpm&id=${s.id}&bpm=${s.bpm}`).catch(() => {});
+            fetch(`/api/run-sql?action=save-bpm&id=${s.id}&bpm=${s.bpm}`)
+                .then(r => { if (r.ok) s._bpmFromLocal = false; })
+                .catch(() => {});
         }
     }
 }
@@ -1870,10 +1872,13 @@ async function salvaSong() {
     btn.disabled = false; btn.textContent = 'SALVA';
     if (error) { toast('Errore: ' + error.message); return; }
 
-    // BPM: localStorage (primario) + DB via run-sql (bypassa schema cache)
+    // BPM: localStorage + DB (awaited — critico per sync multi-dispositivo)
     if (bpmVal) {
         bpmSet(saveId, bpmVal);
-        fetch(`/api/run-sql?action=save-bpm&id=${saveId}&bpm=${bpmVal}`).catch(() => {});
+        try {
+            const r = await fetch(`/api/run-sql?action=save-bpm&id=${saveId}&bpm=${bpmVal}`);
+            if (!r.ok) toast('⚠ BPM non salvato sul server');
+        } catch(e) { toast('⚠ BPM non salvato: ' + e.message); }
     }
 
     // Album: DB via run-sql (bypassa schema cache)

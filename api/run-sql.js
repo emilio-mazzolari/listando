@@ -554,6 +554,14 @@ module.exports = async function handler(req, res) {
         const bpm = parseInt(req.query.bpm);
         if (!id || isNaN(id) || !bpm || isNaN(bpm) || bpm < 20 || bpm > 400)
             return res.status(400).json({ error: 'parametri non validi' });
+        // PostgREST PATCH — più affidabile di SQL string embedding
+        const patchResp = await fetch(`${SUPABASE_URL}/rest/v1/canzoni?id=eq.${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', 'apikey': key, 'Authorization': `Bearer ${key}`, 'Prefer': 'return=minimal' },
+            body: JSON.stringify({ bpm })
+        });
+        if (patchResp.ok) return res.status(200).json({ ok: true });
+        // Fallback runSql
         await runSql(key, `ALTER TABLE IF EXISTS canzoni ADD COLUMN IF NOT EXISTS bpm int`).catch(() => {});
         const r = await runSql(key, `UPDATE canzoni SET bpm = ${bpm} WHERE id = ${id}`);
         await runSql(key, `SELECT pg_notify('pgrst', 'reload schema')`).catch(() => {});
@@ -563,13 +571,23 @@ module.exports = async function handler(req, res) {
     if (req.query?.action === 'save-coreo') {
         const id = parseInt(req.query.id);
         const coreo = req.body?.coreo;
-        if (!id || isNaN(id) || typeof coreo !== 'object')
+        if (!id || isNaN(id) || !coreo || typeof coreo !== 'object')
             return res.status(400).json({ error: 'parametri non validi' });
+        // PostgREST PATCH — gestisce JSON nativo, nessun rischio di SQL injection/escaping
+        const patchResp = await fetch(`${SUPABASE_URL}/rest/v1/canzoni?id=eq.${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', 'apikey': key, 'Authorization': `Bearer ${key}`, 'Prefer': 'return=minimal' },
+            body: JSON.stringify({ coreo })
+        });
+        if (patchResp.ok) return res.status(200).json({ ok: true });
+        const patchErr = await patchResp.text().catch(() => '');
+        // Fallback runSql
         await runSql(key, `ALTER TABLE IF EXISTS canzoni ADD COLUMN IF NOT EXISTS coreo jsonb`).catch(() => {});
         const json = JSON.stringify(coreo).replace(/'/g, "''");
         const r = await runSql(key, `UPDATE canzoni SET coreo = '${json}'::jsonb WHERE id = ${id}`);
         await runSql(key, `SELECT pg_notify('pgrst', 'reload schema')`).catch(() => {});
-        return res.status(r.ok ? 200 : 500).json(r);
+        if (!r.ok) return res.status(500).json({ ...r, patchErr: patchErr.slice(0, 200) });
+        return res.status(200).json(r);
     }
 
     if (req.query?.action === 'save-album') {
