@@ -736,10 +736,13 @@
         <div class="coreo-empty" id="coreoEmpty">
             <div style="font-size:32px">📋</div>
             <div>Nessuna coreografia</div>
-            <label class="btn-coreo-upload" style="font-size:14px;padding:12px 22px;border-radius:12px">
-                📤 Carica file Excel
-                <input type="file" accept=".xlsx,.xls" onchange="coreoCaricaExcel(event)" style="display:none">
-            </label>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+                <button onclick="coreoAddRow()" style="padding:12px 22px;border-radius:12px;border:2px solid var(--music);background:var(--music);color:white;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit">+ Crea da zero</button>
+                <label class="btn-coreo-upload" style="font-size:14px;padding:12px 22px;border-radius:12px">
+                    📤 Carica file Excel
+                    <input type="file" accept=".xlsx,.xls" onchange="coreoCaricaExcel(event)" style="display:none">
+                </label>
+            </div>
         </div>
         <div class="coreo-table-wrap" id="coreoTableWrap" style="display:none">
             <table class="coreo-table" id="coreoTable"></table>
