@@ -1921,10 +1921,13 @@ async function detectBpmFromBuffer(arrayBuffer) {
             if (c > bestCorr) { bestCorr = c; bestLag = lag; }
         }
 
-        // Evita mezzo-tempo: se lag/2 o lag/3 ha correlazione ≥ 80%, preferisce BPM doppio/triplo
+        // Evita mezzo-tempo: se lag/2 o lag/3 ha correlazione ≥ soglia, preferisce BPM doppio/triplo
+        // Soglia più bassa (60%) per BPM < 100, perché quasi nessun brano da ballo è sotto 100 BPM
+        const rawBpm = Math.round(60 / (bestLag * hopSec));
+        const halfTempoThreshold = rawBpm < 100 ? 0.60 : 0.80;
         for (const div of [2, 3]) {
             const candidateLag = Math.round(bestLag / div);
-            if (candidateLag >= minLag && corrs[candidateLag] >= bestCorr * 0.80) {
+            if (candidateLag >= minLag && corrs[candidateLag] >= bestCorr * halfTempoThreshold) {
                 bestLag = candidateLag;
                 break;
             }
