@@ -2541,7 +2541,7 @@ function coreoCell(rowIdx, col, el) {
     } else {
         sheet.rows[rowIdx][col] = val || null;
     }
-    if (col === 'count') {
+    if (col === 'count' || col === 'rip') {
         const bpm = sheet.bpm || songs.find(s => s.id === coreoSongId)?.bpm;
         if (bpm) { ricalcolaTempi(sheet); renderCoreoContent(); }
     }
@@ -2774,11 +2774,13 @@ function ricalcolaTempi(sheet) {
     const minCol = sheet.cols.find(c => c.type === 'time');
     const countCol = sheet.cols.find(c => c.key === 'count');
     if (!minCol || !countCol) return;
+    const ripCol = sheet.cols.find(c => c.key === 'rip');
     let cur = sheet.startSec ?? 0;
     for (const row of sheet.rows) {
         const beats = parseFloat(row[countCol.key]);
         if (!beats || beats <= 0) continue;
-        const dur = (beats / bpm) * 60;
+        const rip = ripCol ? (parseFloat(row[ripCol.key]) || 1) : 1;
+        const dur = (beats * rip / bpm) * 60;
         row[minCol.key] = fmtMMSS(cur) + ' - ' + fmtMMSS(cur + dur);
         cur += dur;
     }
