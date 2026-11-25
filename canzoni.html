@@ -380,8 +380,12 @@
         .coreo-th-resize { position: absolute; right: -3px; top: 0; bottom: 0; width: 7px; cursor: col-resize; z-index: 4; }
         .coreo-th-resize:hover { background: rgba(0,0,0,0.12); }
         .coreo-th-resize.active { background: var(--music); opacity: 0.5; }
-        .col-del { width: 32px; }
+        .col-del { width: 46px; }
         th.col-del { background: #f8f8f8; }
+        .col-del-inner { display: flex; align-items: center; justify-content: center; gap: 2px; }
+        .btn-row-move { width: 18px; height: 18px; border-radius: 4px; border: none; background: none; color: #ccc; font-size: 12px; cursor: pointer; padding: 0; line-height: 1; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .btn-row-move:hover { background: #f0f0f0; color: #555; }
+        .btn-row-move:disabled { opacity: 0.15; cursor: default; }
         .col-add-th { width: 28px; padding: 2px !important; text-align: center; background: #f8f8f8; }
         .col-add-ph { width: 28px; }
         .coreo-th-inner { display: flex; align-items: center; gap: 2px; }
@@ -2511,7 +2515,11 @@ function renderCoreoContent() {
         }).join('');
         return `<tr class="${isSec ? 'coreo-section' : ''}">
             ${cells}
-            <td class="col-del"><button class="btn-coreo-del" onclick="coreoDelRow(${i})">×</button></td>
+            <td class="col-del"><div class="col-del-inner">
+                <button class="btn-row-move" onclick="moveCoreoRow(${i},-1)"${i === 0 ? ' disabled' : ''}>↑</button>
+                <button class="btn-row-move" onclick="moveCoreoRow(${i},1)"${i === sheet.rows.length - 1 ? ' disabled' : ''}>↓</button>
+                <button class="btn-coreo-del" onclick="coreoDelRow(${i})">×</button>
+            </div></td>
             <td class="col-add-ph"></td>
         </tr>`;
     }).join('');
@@ -2552,6 +2560,15 @@ function coreoAddRow() {
     sheet.rows.push(emptyRow);
     renderCoreoContent();
     document.getElementById('coreoTableWrap').scrollTop = 999999;
+}
+
+function moveCoreoRow(idx, dir) {
+    const sheet = coreoData.sheets[coreoSheetIdx];
+    if (!sheet) return;
+    const target = idx + dir;
+    if (target < 0 || target >= sheet.rows.length) return;
+    [sheet.rows[idx], sheet.rows[target]] = [sheet.rows[target], sheet.rows[idx]];
+    renderCoreoContent();
 }
 
 function coreoDelRow(rowIdx) {
