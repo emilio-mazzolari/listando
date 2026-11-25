@@ -2337,6 +2337,8 @@ function apriCoreo(songId) {
     coreoData = (raw && raw.sheets) ? raw : { sheets: [] };
     coreoSheetIdx = 0;
     renderCoreoTabs();
+    const _openSheet = coreoData.sheets[0];
+    if (_openSheet) ricalcolaTempi(_openSheet);
     renderCoreoContent();
     updateCoreoBpmChip();
     document.getElementById('coreoPanel').classList.add('open');
@@ -2430,6 +2432,8 @@ function cleanSheetName(name) {
 function switchCoreoSheet(idx) {
     coreoSheetIdx = idx;
     renderCoreoTabs();
+    const _sw = coreoData.sheets[idx];
+    if (_sw) ricalcolaTempi(_sw);
     renderCoreoContent();
     updateCoreoBpmChip();
 }
