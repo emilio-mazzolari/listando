@@ -349,7 +349,10 @@
         .coreo-player-title { font-size: 12px; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #333; }
         .coreo-player-seek { height: 4px; background: #ddd; border-radius: 2px; cursor: pointer; position: relative; }
         .coreo-player-fill { height: 100%; background: var(--music); border-radius: 2px; pointer-events: none; transition: width 0.1s linear; }
-        .coreo-player-times { display: flex; justify-content: space-between; font-size: 10px; color: #999; font-weight: 700; font-variant-numeric: tabular-nums; }
+        .coreo-player-times { display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: #999; font-weight: 700; font-variant-numeric: tabular-nums; }
+        .coreo-bpm-chip { font-size: 10px; font-weight: 900; color: #bbb; cursor: pointer; padding: 2px 7px; border-radius: 6px; border: 1.5px solid #e0e0e0; white-space: nowrap; letter-spacing: 0.3px; }
+        .coreo-bpm-chip.active { color: var(--music); border-color: var(--music); background: rgba(29,185,84,0.07); }
+        .coreo-bpm-chip:hover { border-color: #aaa; color: #555; }
         .coreo-tabs { display: flex; align-items: stretch; border-bottom: 2px solid #f0f0f0; overflow-x: auto; flex-shrink: 0; scrollbar-width: none; gap: 2px; padding: 0 8px; }
         .coreo-tabs::-webkit-scrollbar { display: none; }
         .coreo-tab-wrap { display: flex; align-items: center; border-bottom: 2.5px solid transparent; margin-bottom: -2px; flex-shrink: 0; }
@@ -785,6 +788,7 @@
             </div>
             <div class="coreo-player-times">
                 <span id="coreoTimeCur">0:00</span>
+                <span class="coreo-bpm-chip" id="coreoBpmChip" onclick="editCoreoBpm()" title="BPM per calcolo ⏱ automatico">— BPM</span>
                 <span id="coreoTimeTot">0:00</span>
             </div>
         </div>
@@ -2330,6 +2334,7 @@ function apriCoreo(songId) {
     coreoSheetIdx = 0;
     renderCoreoTabs();
     renderCoreoContent();
+    updateCoreoBpmChip();
     document.getElementById('coreoPanel').classList.add('open');
     const cp = document.getElementById('coreoPlayer');
     if (cp) {
@@ -2356,6 +2361,7 @@ function renderCoreoTabs() {
         `<div class="coreo-tab-wrap${i === coreoSheetIdx ? ' active' : ''}">
             <span class="coreo-tab-name" onclick="switchCoreoSheet(${i})" ondblclick="renameCoreoSheet(${i}, this)">${cleanSheetName(sh.name)}</span>
             ${i === coreoSheetIdx ? `<button class="coreo-tab-rename" onclick="renameCoreoSheet(${i}, this.previousElementSibling)" title="Rinomina foglio">✎</button>` : ''}
+            ${i === coreoSheetIdx ? `<button class="coreo-tab-rename" onclick="duplicaCoreoSheet(${i})" title="Duplica foglio" style="font-size:11px">⧉</button>` : ''}
             <button class="coreo-tab-del" onclick="deleteCoreoSheet(${i})" title="Elimina foglio">×</button>
         </div>`
     ).join('') + `<button class="coreo-tab-add" onclick="addCoreoSheet()" title="Nuovo foglio">+</button>`;
@@ -2379,6 +2385,18 @@ function renameCoreoSheet(idx, nameEl) {
     };
     input.addEventListener('blur', commit);
     input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); commit(); } if (e.key === 'Escape') { sh.name = current; renderCoreoTabs(); } });
+}
+
+function duplicaCoreoSheet(idx) {
+    const src = coreoData.sheets[idx];
+    if (!src) return;
+    const copy = JSON.parse(JSON.stringify(src));
+    copy.name = cleanSheetName(src.name) + ' (copia)';
+    coreoData.sheets.splice(idx + 1, 0, copy);
+    coreoSheetIdx = idx + 1;
+    renderCoreoTabs();
+    renderCoreoContent();
+    updateCoreoBpmChip();
 }
 
 function deleteCoreoSheet(idx) {
@@ -2409,6 +2427,7 @@ function switchCoreoSheet(idx) {
     coreoSheetIdx = idx;
     renderCoreoTabs();
     renderCoreoContent();
+    updateCoreoBpmChip();
 }
 
 const DEFAULT_COLS = [
@@ -2513,6 +2532,10 @@ function coreoCell(rowIdx, col, el) {
         sheet.rows[rowIdx][col] = val ? parseFloat(val) : null;
     } else {
         sheet.rows[rowIdx][col] = val || null;
+    }
+    if (col === 'count') {
+        const bpm = sheet.bpm || songs.find(s => s.id === coreoSongId)?.bpm;
+        if (bpm) { ricalcolaTempi(sheet); renderCoreoContent(); }
     }
 }
 
@@ -2719,6 +2742,47 @@ async function salvaCoreo() {
     btn.disabled = false; btn.textContent = '💾 SALVA';
 }
 
+function ricalcolaTempi(sheet) {
+    const bpm = sheet.bpm || songs.find(s => s.id === coreoSongId)?.bpm;
+    if (!bpm || bpm < 20) return;
+    ensureCols(sheet);
+    const minCol = sheet.cols.find(c => c.type === 'time');
+    const countCol = sheet.cols.find(c => c.key === 'count');
+    if (!minCol || !countCol) return;
+    let cur = sheet.startSec ?? 0;
+    for (const row of sheet.rows) {
+        const beats = parseFloat(row[countCol.key]);
+        if (!beats || beats <= 0) continue;
+        const dur = (beats / bpm) * 60;
+        row[minCol.key] = fmtMMSS(cur) + ' - ' + fmtMMSS(cur + dur);
+        cur += dur;
+    }
+}
+
+function updateCoreoBpmChip() {
+    const sheet = coreoData.sheets?.[coreoSheetIdx];
+    const chip = document.getElementById('coreoBpmChip');
+    if (!chip) return;
+    const bpm = sheet?.bpm || songs.find(s => s.id === coreoSongId)?.bpm;
+    chip.textContent = bpm ? bpm + ' BPM' : '— BPM';
+    chip.classList.toggle('active', !!(sheet?.bpm));
+}
+
+function editCoreoBpm() {
+    const sheet = coreoData.sheets?.[coreoSheetIdx];
+    if (!sheet) return;
+    const fallback = songs.find(s => s.id === coreoSongId)?.bpm || '';
+    const val = prompt('BPM per il calcolo automatico ⏱:\n(lascia vuoto per rimuovere)', sheet.bpm || fallback);
+    if (val === null) return;
+    const bpm = parseFloat(val);
+    if (val.trim() === '') { delete sheet.bpm; updateCoreoBpmChip(); return; }
+    if (!bpm || bpm < 20 || bpm > 400) { toast('BPM non valido'); return; }
+    sheet.bpm = bpm;
+    updateCoreoBpmChip();
+    ricalcolaTempi(sheet);
+    renderCoreoContent();
+}
+
 function fmtMMSS(sec) {
     const m = Math.floor(sec / 60), s = Math.floor(sec % 60);
     return String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
@@ -2775,10 +2839,13 @@ function applicaTempiCoreo() {
         newRows.push(row);
         t += phraseDur;
     }
+    sheet.bpm = bpm;
+    sheet.startSec = startSec;
     if (_tempiMode === 'replace') sheet.rows = newRows;
     else sheet.rows = [...sheet.rows, ...newRows];
     chiudiTempiSheet();
     renderCoreoContent();
+    updateCoreoBpmChip();
     toast(`✓ ${newRows.length} frasi da ${beats} battiti inserite`);
 }
 
