@@ -362,26 +362,16 @@
         .coreo-table td { padding: 7px 8px; border-bottom: 1px solid #f5f5f5; vertical-align: middle; font-size: 13px; outline: none; }
         .coreo-table td[contenteditable]:focus { background: #f0fdf8 !important; }
         .coreo-table tr.coreo-section td { background: #f7fef9 !important; font-weight: 800; color: var(--music-dark); }
-        /* Per-column colors */
-        .col-min  { width: 72px; }
-        th.col-min  { background: #f0ebff; color: #7c5cbf; }
-        td.col-min  { background: #fbf9ff; }
-        .col-count { width: 44px; text-align: center; }
-        th.col-count { background: #e8f4fd; color: #2b7bd4; }
-        td.col-count { background: #f5faff; text-align: center; }
-        .col-shapes { width: auto; min-width: 130px; }
-        th.col-shapes { background: #fff4e8; color: #c56b1a; }
-        .col-from { width: 38px; text-align: center; }
-        th.col-from { background: #e3fdf9; color: #0f8f75; }
-        td.col-from { background: #f2fdf9; text-align: center; }
-        .col-to { width: 38px; text-align: center; }
-        th.col-to { background: #e8fdf0; color: #1a9f4a; }
-        td.col-to { background: #f2fef5; text-align: center; }
-        .col-lez { width: 40px; text-align: center; }
-        th.col-lez { background: #fff9e0; color: #c27a00; }
-        td.col-lez { background: #fffdf0; text-align: center; }
         .col-del { width: 32px; }
         th.col-del { background: #f8f8f8; }
+        .col-add-th { width: 28px; padding: 2px !important; text-align: center; background: #f8f8f8; }
+        .col-add-ph { width: 28px; }
+        .coreo-th-inner { display: flex; align-items: center; justify-content: space-between; gap: 4px; white-space: nowrap; }
+        .btn-col-del { width: 14px; height: 14px; border-radius: 50%; border: none; background: none; color: rgba(0,0,0,0.25); font-size: 12px; cursor: pointer; padding: 0; line-height: 1; display: none; align-items: center; justify-content: center; flex-shrink: 0; }
+        th:hover .btn-col-del { display: flex; }
+        .btn-col-del:hover { background: rgba(0,0,0,0.1); color: #e55; }
+        .btn-add-coreo-col { width: 22px; height: 22px; border-radius: 50%; border: none; background: rgba(0,0,0,0.07); color: #666; font-size: 16px; font-weight: 900; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; }
+        .btn-add-coreo-col:hover { background: var(--music); color: white; }
         .btn-coreo-del { width: 24px; height: 24px; border-radius: 50%; border: none; background: none; color: #ccc; font-size: 16px; cursor: pointer; padding: 0; line-height: 1; }
         .btn-coreo-del:active { background: #fff0f0; color: #e55; }
         .coreo-footer { flex-shrink: 0; padding: 10px 16px calc(env(safe-area-inset-bottom, 0px) + 10px); background: white; border-top: 1.5px solid #f0f0f0; display: flex; gap: 10px; align-items: center; }
@@ -2278,6 +2268,33 @@ function switchCoreoSheet(idx) {
     renderCoreoContent();
 }
 
+const DEFAULT_COLS = [
+    { key: 'min',     label: '⏱',      type: 'time',   width: 110 },
+    { key: 'count',   label: 'Conti',   type: 'number', width: 50  },
+    { key: 'shapes',  label: 'Figure',  type: 'text',   width: null },
+    { key: 'from',    label: 'Da',      type: 'number', width: 42  },
+    { key: 'to',      label: 'A',       type: 'number', width: 42  },
+    { key: 'lezione', label: 'Lezione', type: 'text',   width: 60  },
+];
+const COL_COLORS = [
+    { th: '#f0ebff', text: '#7c5cbf', td: 'rgba(240,235,255,0.3)' },
+    { th: '#e8f4fd', text: '#2b7bd4', td: 'rgba(232,244,253,0.3)' },
+    { th: '#fff4e8', text: '#c56b1a', td: 'rgba(255,244,232,0.3)' },
+    { th: '#e3fdf9', text: '#0f8f75', td: 'rgba(227,253,249,0.3)' },
+    { th: '#e8fdf0', text: '#1a9f4a', td: 'rgba(232,253,240,0.3)' },
+    { th: '#fff9e0', text: '#c27a00', td: 'rgba(255,249,224,0.3)' },
+];
+function escH(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function ensureCols(sheet) {
+    if (!sheet.cols || !Array.isArray(sheet.cols) || !sheet.cols.length)
+        sheet.cols = DEFAULT_COLS.map(c => ({ ...c }));
+}
+function isCoreoSection(row, cols) {
+    const numCols = cols.filter(c => c.type === 'number');
+    const txtCols = cols.filter(c => c.type !== 'number');
+    return numCols.length && txtCols.length && numCols.every(c => !row[c.key]) && txtCols.some(c => row[c.key]);
+}
+
 function renderCoreoContent() {
     const empty = document.getElementById('coreoEmpty');
     const tableWrap = document.getElementById('coreoTableWrap');
@@ -2293,35 +2310,48 @@ function renderCoreoContent() {
     footer.style.display = '';
     const sheet = coreoData.sheets[coreoSheetIdx] || coreoData.sheets[0];
     if (!sheet) return;
-    const hasMins = sheet.rows.some(r => r.min);
+    ensureCols(sheet);
+    const cols = sheet.cols;
     const table = document.getElementById('coreoTable');
-    table.innerHTML = `<thead><tr>
-        ${hasMins ? `<th class="col-min">Minuto</th>` : ''}
-        <th class="col-count">Cont.</th>
-        <th class="col-shapes">Passo</th>
-        <th class="col-from">Da</th>
-        <th class="col-to">A</th>
-        <th class="col-lez">Lez.</th>
-        <th class="col-del"></th>
-    </tr></thead><tbody>${sheet.rows.map((row, i) => {
-        const isSec = !row.count && !row.from && !row.to && row.shapes;
+    const headCells = cols.map((col, ci) => {
+        const c = COL_COLORS[ci % COL_COLORS.length];
+        const w = col.width ? `width:${col.width}px;` : 'min-width:120px;';
+        const align = col.type === 'number' ? 'text-align:center;' : '';
+        return `<th style="${w}${align}background:${c.th};color:${c.text}">
+            <div class="coreo-th-inner">
+                <span ondblclick="renameCoreoCol(${ci},this)" style="cursor:pointer">${escH(col.label)}</span>
+                <button class="btn-col-del" onclick="deleteCoreoCol(${ci})" title="Rimuovi colonna">×</button>
+            </div>
+        </th>`;
+    }).join('');
+    const bodyRows = sheet.rows.map((row, i) => {
+        const isSec = isCoreoSection(row, cols);
+        const cells = cols.map((col, ci) => {
+            const c = COL_COLORS[ci % COL_COLORS.length];
+            const align = col.type === 'number' ? 'text-align:center;' : '';
+            const bg = isSec ? '' : `background:${c.td};`;
+            return `<td contenteditable="true" onblur="coreoCell(${i},'${col.key}',this)" style="${align}${bg}">${escH(row[col.key] ?? '')}</td>`;
+        }).join('');
         return `<tr class="${isSec ? 'coreo-section' : ''}">
-            ${hasMins ? `<td contenteditable="true" onblur="coreoCell(${i},'min',this)" class="col-min">${row.min || ''}</td>` : ''}
-            <td contenteditable="true" onblur="coreoCell(${i},'count',this)" class="col-count">${row.count ?? ''}</td>
-            <td contenteditable="true" onblur="coreoCell(${i},'shapes',this)" class="col-shapes">${row.shapes || ''}</td>
-            <td contenteditable="true" onblur="coreoCell(${i},'from',this)" class="col-from">${row.from ?? ''}</td>
-            <td contenteditable="true" onblur="coreoCell(${i},'to',this)" class="col-to">${row.to ?? ''}</td>
-            <td contenteditable="true" onblur="coreoCell(${i},'lezione',this)" class="col-lez">${row.lezione || ''}</td>
+            ${cells}
             <td class="col-del"><button class="btn-coreo-del" onclick="coreoDelRow(${i})">×</button></td>
+            <td class="col-add-ph"></td>
         </tr>`;
-    }).join('')}</tbody>`;
+    }).join('');
+    table.innerHTML = `<thead><tr>
+        ${headCells}
+        <th class="col-del"></th>
+        <th class="col-add-th"><button class="btn-add-coreo-col" onclick="addCoreoCol()" title="Aggiungi colonna">+</button></th>
+    </tr></thead><tbody>${bodyRows}</tbody>`;
 }
 
 function coreoCell(rowIdx, col, el) {
     const val = el.innerText.trim();
     const sheet = coreoData.sheets[coreoSheetIdx];
     if (!sheet?.rows[rowIdx]) return;
-    if (['count','from','to'].includes(col)) {
+    ensureCols(sheet);
+    const colDef = sheet.cols.find(c => c.key === col);
+    if (colDef?.type === 'number') {
         sheet.rows[rowIdx][col] = val ? parseFloat(val) : null;
     } else {
         sheet.rows[rowIdx][col] = val || null;
@@ -2334,7 +2364,11 @@ function coreoAddRow() {
         coreoSheetIdx = 0;
         renderCoreoTabs();
     }
-    coreoData.sheets[coreoSheetIdx].rows.push({ min:null, count:null, shapes:null, from:null, to:null, lezione:null });
+    const sheet = coreoData.sheets[coreoSheetIdx];
+    ensureCols(sheet);
+    const emptyRow = {};
+    sheet.cols.forEach(c => { emptyRow[c.key] = null; });
+    sheet.rows.push(emptyRow);
     renderCoreoContent();
     document.getElementById('coreoTableWrap').scrollTop = 999999;
 }
@@ -2343,6 +2377,39 @@ function coreoDelRow(rowIdx) {
     const sheet = coreoData.sheets[coreoSheetIdx];
     if (!sheet) return;
     sheet.rows.splice(rowIdx, 1);
+    renderCoreoContent();
+}
+
+function addCoreoCol() {
+    const sheet = coreoData.sheets[coreoSheetIdx];
+    if (!sheet) return;
+    ensureCols(sheet);
+    const name = prompt('Nome della nuova colonna:', 'Colonna ' + (sheet.cols.length + 1));
+    if (!name) return;
+    const key = 'col_' + Date.now();
+    sheet.cols.push({ key, label: name.trim(), type: 'text', width: null });
+    renderCoreoContent();
+}
+
+function deleteCoreoCol(ci) {
+    const sheet = coreoData.sheets[coreoSheetIdx];
+    if (!sheet) return;
+    ensureCols(sheet);
+    if (sheet.cols.length <= 1) { toast('Almeno una colonna richiesta'); return; }
+    const col = sheet.cols[ci];
+    if (!confirm(`Eliminare la colonna "${col.label}"?`)) return;
+    sheet.cols.splice(ci, 1);
+    renderCoreoContent();
+}
+
+function renameCoreoCol(ci, el) {
+    const sheet = coreoData.sheets[coreoSheetIdx];
+    if (!sheet) return;
+    ensureCols(sheet);
+    const col = sheet.cols[ci];
+    const name = prompt('Rinomina colonna:', col.label);
+    if (!name || name.trim() === col.label) return;
+    col.label = name.trim();
     renderCoreoContent();
 }
 
@@ -2384,7 +2451,7 @@ function parseExcelToCoreo(wb) {
                 lezione: r[5] != null ? String(r[5]) : null,
             });
         }
-        if (dataRows.length > 0) sheets.push({ name, rows: dataRows });
+        if (dataRows.length > 0) sheets.push({ name, rows: dataRows, cols: DEFAULT_COLS.map(c => ({ ...c })) });
     }
     return { sheets };
 }
