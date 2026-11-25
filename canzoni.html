@@ -416,6 +416,21 @@
         .export-coreo-btn { padding: 14px 16px; border-radius: 12px; border: none; background: #f5f5f5; color: #111; font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit; text-align: left; }
         .export-coreo-btn:active { background: #eee; }
         .export-coreo-cancel { padding: 14px; border-radius: 12px; border: none; background: #f0f0f0; color: #999; font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit; text-align: center; margin-top: 4px; }
+        .tempi-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 500; display: none; align-items: flex-end; justify-content: center; }
+        .tempi-overlay.open { display: flex; }
+        .tempi-sheet { background: white; border-radius: 20px 20px 0 0; padding: 22px 20px calc(env(safe-area-inset-bottom,0px) + 20px); width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 12px; }
+        .tempi-title { font-size: 12px; font-weight: 900; color: #aaa; text-transform: uppercase; letter-spacing: 0.5px; text-align: center; }
+        .tempi-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+        .tempi-row label { font-size: 14px; font-weight: 700; color: #333; }
+        .tempi-input { width: 90px; padding: 10px 12px; border-radius: 10px; border: 1.5px solid #ddd; font-size: 15px; font-family: inherit; text-align: center; outline: none; }
+        .tempi-input:focus { border-color: var(--music); }
+        .tempi-modes { display: flex; gap: 8px; }
+        .tempi-mode-btn { flex: 1; padding: 10px; border-radius: 10px; border: 2px solid #e0e0e0; background: white; color: #666; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; }
+        .tempi-mode-btn.active { border-color: var(--music); color: var(--music); background: rgba(29,185,84,0.07); }
+        .tempi-calc-btn { padding: 15px; border-radius: 13px; border: none; background: var(--music); color: white; font-size: 15px; font-weight: 900; cursor: pointer; font-family: inherit; }
+        .tempi-cancel-btn { padding: 13px; border-radius: 12px; border: none; background: #f0f0f0; color: #999; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; }
+        .btn-tempi-coreo { width: 44px; height: 44px; border-radius: 12px; border: 2px solid #e0e0e0; background: white; color: #555; font-size: 17px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .btn-tempi-coreo:active { background: #f5f5f5; }
 
         .toast { position: fixed; bottom: 120px; left: 50%; transform: translateX(-50%) translateY(20px); background: rgba(0,0,0,0.85); color: white; padding: 12px 20px; border-radius: 14px; font-weight: 700; font-size: 14px; opacity: 0; transition: all 0.25s; white-space: nowrap; z-index: 9999; pointer-events: none; }
         .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
@@ -781,6 +796,7 @@
             <div>Nessuna coreografia</div>
             <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
                 <button onclick="coreoAddRow()" style="padding:12px 22px;border-radius:12px;border:2px solid var(--music);background:var(--music);color:white;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit">+ Crea da zero</button>
+                <button onclick="apriTempiSheet()" style="padding:12px 22px;border-radius:12px;border:2px solid #e0e0e0;background:white;color:#555;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit">⏱ Suddividi in 8 tempi</button>
                 <label class="btn-coreo-upload" style="font-size:14px;padding:12px 22px;border-radius:12px">
                     📤 Carica file Excel
                     <input type="file" accept=".xlsx,.xls" onchange="coreoCaricaExcel(event)" style="display:none">
@@ -793,6 +809,7 @@
     </div>
     <div class="coreo-footer" id="coreoFooter" style="display:none">
         <button class="btn-add-coreo-row" onclick="coreoAddRow()">+ Riga</button>
+        <button class="btn-tempi-coreo" onclick="apriTempiSheet()" title="Suddividi in battiti">⏱</button>
         <button class="btn-export-coreo" onclick="apriExportCoreo()" title="Esporta">📤</button>
         <button class="btn-wa-coreo" onclick="condividiCoreoWA()" title="Condividi su WhatsApp">
             <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
@@ -802,6 +819,34 @@
 </div>
 
 <div class="coreo-col-picker" id="coreoColPicker"></div>
+
+<div class="tempi-overlay" id="tempiSheet" onclick="chiudiTempiSheet()">
+    <div class="tempi-sheet" onclick="event.stopPropagation()">
+        <div class="tempi-title">Suddividi brano in battiti</div>
+        <div class="tempi-row">
+            <label>BPM</label>
+            <input class="tempi-input" type="number" id="tempiBpm" min="20" max="400" placeholder="120">
+        </div>
+        <div class="tempi-row">
+            <label>Battiti per frase</label>
+            <input class="tempi-input" type="number" id="tempiBattiti" min="1" max="64" value="8">
+        </div>
+        <div class="tempi-row">
+            <label>Inizio (MM:SS)</label>
+            <input class="tempi-input" type="text" id="tempiStart" value="00:00">
+        </div>
+        <div class="tempi-row">
+            <label>Fine brano (MM:SS)</label>
+            <input class="tempi-input" type="text" id="tempiEnd" placeholder="es. 03:30">
+        </div>
+        <div class="tempi-modes">
+            <button class="tempi-mode-btn active" id="tempiModeReplace" onclick="setTempiMode('replace')">Sostituisci righe</button>
+            <button class="tempi-mode-btn" id="tempiModeAppend" onclick="setTempiMode('append')">Aggiungi in fondo</button>
+        </div>
+        <button class="tempi-calc-btn" onclick="applicaTempiCoreo()">Calcola e inserisci</button>
+        <button class="tempi-cancel-btn" onclick="chiudiTempiSheet()">Annulla</button>
+    </div>
+</div>
 
 <div class="export-coreo-overlay" id="exportCoreoSheet" onclick="chiudiExportCoreo()">
     <div class="export-coreo-sheet" onclick="event.stopPropagation()">
@@ -2672,6 +2717,69 @@ async function salvaCoreo() {
         }
     } catch(e) { toast('Errore: ' + e.message); }
     btn.disabled = false; btn.textContent = '💾 SALVA';
+}
+
+function fmtMMSS(sec) {
+    const m = Math.floor(sec / 60), s = Math.floor(sec % 60);
+    return String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+}
+function parseMMSS(str) {
+    const p = String(str).trim().split(':');
+    if (p.length !== 2) return null;
+    const v = parseInt(p[0]) * 60 + parseFloat(p[1]);
+    return isFinite(v) ? v : null;
+}
+
+let _tempiMode = 'replace';
+function setTempiMode(mode) {
+    _tempiMode = mode;
+    document.getElementById('tempiModeReplace').classList.toggle('active', mode === 'replace');
+    document.getElementById('tempiModeAppend').classList.toggle('active', mode === 'append');
+}
+
+function apriTempiSheet() {
+    const song = songs.find(s => s.id === coreoSongId);
+    if (song?.bpm) document.getElementById('tempiBpm').value = song.bpm;
+    // Pre-fill duration if the same song is playing
+    if (audio.duration && queue[queueIdx]?.id === coreoSongId) {
+        document.getElementById('tempiEnd').value = fmtMMSS(audio.duration);
+    } else {
+        document.getElementById('tempiEnd').value = '';
+    }
+    setTempiMode('replace');
+    document.getElementById('tempiSheet').classList.add('open');
+}
+function chiudiTempiSheet() { document.getElementById('tempiSheet').classList.remove('open'); }
+
+function applicaTempiCoreo() {
+    const bpm = parseFloat(document.getElementById('tempiBpm').value);
+    const beats = parseInt(document.getElementById('tempiBattiti').value);
+    const startSec = parseMMSS(document.getElementById('tempiStart').value) ?? 0;
+    const endSec = parseMMSS(document.getElementById('tempiEnd').value);
+    if (!bpm || bpm < 20 || bpm > 400) { toast('BPM non valido'); return; }
+    if (!beats || beats < 1) { toast('Battiti non validi'); return; }
+    if (endSec === null || endSec <= startSec) { toast('Durata non valida (MM:SS)'); return; }
+    const sheet = coreoData.sheets[coreoSheetIdx];
+    if (!sheet) return;
+    ensureCols(sheet);
+    const phraseDur = (beats / bpm) * 60;
+    const newRows = [];
+    let t = startSec;
+    while (t < endSec - 0.05) {
+        const end = Math.min(t + phraseDur, endSec);
+        const row = {};
+        sheet.cols.forEach(c => { row[c.key] = null; });
+        row.min = fmtMMSS(t) + ' - ' + fmtMMSS(end);
+        const countCol = sheet.cols.find(c => c.key === 'count');
+        if (countCol) row.count = beats;
+        newRows.push(row);
+        t += phraseDur;
+    }
+    if (_tempiMode === 'replace') sheet.rows = newRows;
+    else sheet.rows = [...sheet.rows, ...newRows];
+    chiudiTempiSheet();
+    renderCoreoContent();
+    toast(`✓ ${newRows.length} frasi da ${beats} battiti inserite`);
 }
 
 function apriExportCoreo() { document.getElementById('exportCoreoSheet').classList.add('open'); }
