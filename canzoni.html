@@ -2287,12 +2287,17 @@ function apriCoreo(songId) {
     renderCoreoContent();
     document.getElementById('coreoPanel').classList.add('open');
     const cp = document.getElementById('coreoPlayer');
-    if (cp && audio.src) {
+    if (cp) {
         cp.style.display = '';
-        document.getElementById('coreoPlayerTitle').textContent =
-            (document.getElementById('playerTitle').textContent || '—') +
-            (document.getElementById('playerArtist').textContent ? ' — ' + document.getElementById('playerArtist').textContent : '');
+        const s = songs.find(s => s.id === songId) || {};
+        document.getElementById('coreoPlayerTitle').textContent = s.titolo + (s.artista ? ' — ' + s.artista : '');
         updatePlayBtn(audio.paused);
+        if (audio.duration) {
+            const pct = (audio.currentTime / audio.duration) * 100;
+            document.getElementById('coreoSeekFill').style.width = pct + '%';
+            document.getElementById('coreoTimeCur').textContent = fmtTime(audio.currentTime);
+            document.getElementById('coreoTimeTot').textContent = fmtTime(audio.duration);
+        }
     }
 }
 
