@@ -681,11 +681,17 @@
         <div id="condividiCoreoToggleWrap" style="display:none;margin-bottom:14px">
             <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid #f0f0f0">
                 <span style="font-size:13px;font-weight:800;color:#444">📋 Includi coreografia</span>
-                <button id="btnIncludiCoreo" onclick="toggleCondCoreo()" style="padding:5px 14px;border-radius:20px;border:2px solid #e0e0e0;background:white;font-size:12px;font-weight:900;cursor:pointer;font-family:inherit;color:#aaa;min-width:50px">No</button>
+                <div style="display:flex;border:2px solid #e0e0e0;border-radius:20px;overflow:hidden">
+                    <button id="btnIncludiCoreoNo" onclick="setCondCoreo(false)" style="padding:5px 14px;border:none;background:white;font-size:12px;font-weight:900;cursor:pointer;font-family:inherit;color:#aaa">No</button>
+                    <button id="btnIncludiCoreoSi" onclick="setCondCoreo(true)" style="padding:5px 14px;border:none;background:white;font-size:12px;font-weight:900;cursor:pointer;font-family:inherit;color:#aaa">Sì</button>
+                </div>
             </div>
-            <div id="condividiCoreoModRow" style="display:none;display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid #f0f0f0">
+            <div id="condividiCoreoModRow" style="display:none;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid #f0f0f0">
                 <span style="font-size:13px;font-weight:800;color:#444">✏️ Modificabile dagli altri</span>
-                <button id="btnCoreoMod" onclick="toggleCondCoreoMod()" style="padding:5px 14px;border-radius:20px;border:2px solid #e0e0e0;background:white;font-size:12px;font-weight:900;cursor:pointer;font-family:inherit;color:#aaa;min-width:50px">No</button>
+                <div style="display:flex;border:2px solid #e0e0e0;border-radius:20px;overflow:hidden">
+                    <button id="btnCoreoModNo" onclick="setCondCoreoMod(false)" style="padding:5px 14px;border:none;background:white;font-size:12px;font-weight:900;cursor:pointer;font-family:inherit;color:#aaa">No</button>
+                    <button id="btnCoreoModSi" onclick="setCondCoreoMod(true)" style="padding:5px 14px;border:none;background:white;font-size:12px;font-weight:900;cursor:pointer;font-family:inherit;color:#aaa">Sì</button>
+                </div>
             </div>
         </div>
         <button class="btn-save-modal" onclick="aggiungiCondivisione()">CONDIVIDI CON UTENTE LISTANDO</button>
@@ -2136,26 +2142,27 @@ function condividiWhatsapp() {
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
 }
 
-function toggleCondCoreo() {
-    _condCoreo = !_condCoreo;
-    _condCoreoMod = false;
-    const btn = document.getElementById('btnIncludiCoreo');
-    btn.textContent = _condCoreo ? 'Sì' : 'No';
-    btn.style.borderColor = _condCoreo ? 'var(--music)' : '#e0e0e0';
-    btn.style.color = _condCoreo ? 'var(--music)' : '#aaa';
-    const modRow = document.getElementById('condividiCoreoModRow');
-    modRow.style.display = _condCoreo ? 'flex' : 'none';
-    document.getElementById('btnCoreoMod').textContent = 'No';
-    document.getElementById('btnCoreoMod').style.borderColor = '#e0e0e0';
-    document.getElementById('btnCoreoMod').style.color = '#aaa';
+function _applySegBtn(noId, siId, active) {
+    const music = getComputedStyle(document.documentElement).getPropertyValue('--music').trim() || '#1db954';
+    const no = document.getElementById(noId), si = document.getElementById(siId);
+    if (!no || !si) return;
+    no.style.background = active ? 'white' : music;
+    no.style.color = active ? '#aaa' : 'white';
+    si.style.background = active ? music : 'white';
+    si.style.color = active ? 'white' : '#aaa';
 }
 
-function toggleCondCoreoMod() {
-    _condCoreoMod = !_condCoreoMod;
-    const btn = document.getElementById('btnCoreoMod');
-    btn.textContent = _condCoreoMod ? 'Sì' : 'No';
-    btn.style.borderColor = _condCoreoMod ? 'var(--music)' : '#e0e0e0';
-    btn.style.color = _condCoreoMod ? 'var(--music)' : '#aaa';
+function setCondCoreo(val) {
+    _condCoreo = val;
+    _condCoreoMod = false;
+    _applySegBtn('btnIncludiCoreoNo', 'btnIncludiCoreoSi', val);
+    document.getElementById('condividiCoreoModRow').style.display = val ? 'flex' : 'none';
+    _applySegBtn('btnCoreoModNo', 'btnCoreoModSi', false);
+}
+
+function setCondCoreoMod(val) {
+    _condCoreoMod = val;
+    _applySegBtn('btnCoreoModNo', 'btnCoreoModSi', val);
 }
 
 async function apriCondividi(songId) {
@@ -2167,10 +2174,9 @@ async function apriCondividi(songId) {
     _condCoreo = false; _condCoreoMod = false;
     const wrap = document.getElementById('condividiCoreoToggleWrap');
     wrap.style.display = s?.coreo ? '' : 'none';
-    document.getElementById('btnIncludiCoreo').textContent = 'No';
-    document.getElementById('btnIncludiCoreo').style.borderColor = '#e0e0e0';
-    document.getElementById('btnIncludiCoreo').style.color = '#aaa';
+    _applySegBtn('btnIncludiCoreoNo', 'btnIncludiCoreoSi', false);
     document.getElementById('condividiCoreoModRow').style.display = 'none';
+    _applySegBtn('btnCoreoModNo', 'btnCoreoModSi', false);
     await refreshCondividiLista();
     document.getElementById('modaleCondividi').classList.add('open');
 }
