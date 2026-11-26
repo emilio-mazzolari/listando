@@ -2426,7 +2426,8 @@ function renderCoreoTabs() {
             ${i === coreoSheetIdx ? `<button class="coreo-tab-rename" onclick="duplicaCoreoSheet(${i})" title="Duplica foglio" style="font-size:11px">⧉</button>` : ''}
             <button class="coreo-tab-del" onclick="deleteCoreoSheet(${i})" title="Elimina foglio">×</button>
         </div>`
-    ).join('') + `<button class="coreo-tab-add" onclick="addCoreoSheet()" title="Nuovo foglio">+</button>`;
+    ).join('') + `<button class="coreo-tab-add" onclick="addCoreoSheet()" title="Nuovo foglio vuoto">+</button>` +
+        `<label class="coreo-tab-add" title="Importa foglio da Excel" style="cursor:pointer">📤<input type="file" accept=".xlsx,.xls" onchange="coreoImportaFoglioExcel(event)" style="display:none"></label>`;
 }
 
 function renameCoreoSheet(idx, nameEl) {
@@ -2805,6 +2806,35 @@ function setCoreoColColor(ci, colorIdx) {
     sheet.cols[ci].colorIdx = colorIdx;
     closeColPicker();
     renderCoreoContent();
+}
+
+function coreoImportaFoglioExcel(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+        try {
+            const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+            const imported = parseExcelToCoreo(wb);
+            if (!imported.sheets.length) { toast('Nessun foglio valido trovato'); return; }
+            if (!coreoData.sheets.length) {
+                coreoData.sheets.push({ name: 'Coreografia', rows: [] });
+            }
+            for (const sh of imported.sheets) {
+                coreoData.sheets.push(sh);
+            }
+            coreoSheetIdx = coreoData.sheets.length - imported.sheets.length;
+            renderCoreoTabs();
+            renderCoreoContent();
+            updateCoreoBpmChip();
+            updateCoreoSheetYt();
+            toast(`${imported.sheets.length} foglio/i importato/i`);
+        } catch(err) {
+            toast('Errore lettura file: ' + err.message);
+        }
+    };
+    reader.readAsArrayBuffer(file);
+    event.target.value = '';
 }
 
 function coreoCaricaExcel(event) {
