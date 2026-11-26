@@ -38,6 +38,7 @@ const STATEMENTS = [
     `ALTER TABLE IF EXISTS canzoni ADD COLUMN IF NOT EXISTS bpm int -- canzoni_bpm`,
     `ALTER TABLE IF EXISTS canzoni ADD COLUMN IF NOT EXISTS album text -- canzoni_album`,
     `ALTER TABLE IF EXISTS canzoni ADD COLUMN IF NOT EXISTS coreo jsonb -- canzoni_coreo`,
+    `ALTER TABLE IF EXISTS canzoni ADD COLUMN IF NOT EXISTS youtube_url text -- canzoni_youtube`,
     `CREATE TABLE IF NOT EXISTS vendita_annunci (
         id bigint generated always as identity primary key,
         email_utente text not null,
@@ -603,6 +604,17 @@ module.exports = async function handler(req, res) {
         await runSql(key, `SELECT pg_notify('pgrst', 'reload schema')`).catch(() => {});
         if (!r.ok) return res.status(500).json({ ...r, patchErr: patchErr.slice(0, 200) });
         return res.status(200).json(r);
+    }
+
+    if (req.query?.action === 'save-youtube') {
+        const id = parseInt(req.query.id);
+        const url = (req.query.url || '').trim().slice(0, 500);
+        if (!id || isNaN(id)) return res.status(400).json({ error: 'id non valido' });
+        await runSql(key, `ALTER TABLE IF EXISTS canzoni ADD COLUMN IF NOT EXISTS youtube_url text`).catch(() => {});
+        const escaped = url.replace(/'/g, "''");
+        const val = url ? `'${escaped}'` : 'NULL';
+        const r = await runSql(key, `UPDATE canzoni SET youtube_url = ${val} WHERE id = ${id}`);
+        return res.status(r.ok ? 200 : 500).json(r);
     }
 
     if (req.query?.action === 'save-album') {
