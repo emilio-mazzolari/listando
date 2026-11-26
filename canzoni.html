@@ -819,6 +819,7 @@
             <div class="coreo-player-times">
                 <span id="coreoTimeCur">0:00</span>
                 <span class="coreo-bpm-chip" id="coreoBpmChip" onclick="editCoreoBpm()" title="BPM per calcolo ⏱ automatico">— BPM</span>
+                <span class="coreo-bpm-chip" id="coreoSheetYtChip" onclick="handleCoreoSheetYtClick()" onpointerdown="coreoSheetYtPointerDown()" onpointerup="coreoSheetYtPointerUp()" onpointerleave="coreoSheetYtPointerUp()" title="Aggiungi link YouTube per questo foglio">🎬</span>
                 <span id="coreoTimeTot">0:00</span>
             </div>
         </div>
@@ -2376,6 +2377,7 @@ function apriCoreo(songId) {
     coreoData.sheets.forEach(sh => ricalcolaTempi(sh));
     renderCoreoContent();
     updateCoreoBpmChip();
+    updateCoreoSheetYt();
     document.getElementById('coreoPanel').classList.add('open');
     const cp = document.getElementById('coreoPlayer');
     if (cp) {
@@ -2402,7 +2404,7 @@ function renderCoreoTabs() {
     const el = document.getElementById('coreoTabs');
     el.innerHTML = coreoData.sheets.map((sh, i) =>
         `<div class="coreo-tab-wrap${i === coreoSheetIdx ? ' active' : ''}">
-            <span class="coreo-tab-name" onclick="switchCoreoSheet(${i})" ondblclick="renameCoreoSheet(${i}, this)">${cleanSheetName(sh.name)}</span>
+            <span class="coreo-tab-name" onclick="switchCoreoSheet(${i})" ondblclick="renameCoreoSheet(${i}, this)">${cleanSheetName(sh.name)}${sh.youtube_url ? ' 🎬' : ''}</span>
             ${i === coreoSheetIdx ? `<button class="coreo-tab-rename" onclick="renameCoreoSheet(${i}, this.previousElementSibling)" title="Rinomina foglio">✎</button>` : ''}
             ${i === coreoSheetIdx ? `<button class="coreo-tab-rename" onclick="duplicaCoreoSheet(${i})" title="Duplica foglio" style="font-size:11px">⧉</button>` : ''}
             <button class="coreo-tab-del" onclick="deleteCoreoSheet(${i})" title="Elimina foglio">×</button>
@@ -2474,6 +2476,7 @@ function switchCoreoSheet(idx) {
     if (_sw) ricalcolaTempi(_sw);
     renderCoreoContent();
     updateCoreoBpmChip();
+    updateCoreoSheetYt();
 }
 
 const DEFAULT_COLS = [
@@ -2886,6 +2889,50 @@ function updateCoreoBpmChip() {
     const bpm = sheet?.bpm || songs.find(s => s.id === coreoSongId)?.bpm;
     chip.textContent = bpm ? bpm + ' BPM' : '— BPM';
     chip.classList.toggle('active', !!(sheet?.bpm));
+}
+
+function updateCoreoSheetYt() {
+    const sheet = coreoData.sheets?.[coreoSheetIdx];
+    const chip = document.getElementById('coreoSheetYtChip');
+    if (!chip) return;
+    const hasUrl = !!(sheet?.youtube_url);
+    chip.classList.toggle('active', hasUrl);
+    chip.title = hasUrl ? 'Apri YouTube del foglio (tieni premuto per modificare)' : 'Aggiungi link YouTube per questo foglio';
+}
+
+function handleCoreoSheetYtClick() {
+    const sheet = coreoData.sheets?.[coreoSheetIdx];
+    if (!sheet) return;
+    if (sheet.youtube_url) {
+        window.open(sheet.youtube_url, '_blank', 'noopener');
+    } else {
+        const url = prompt('Link YouTube per questo foglio coreo:', '');
+        if (url === null) return;
+        const trimmed = url.trim();
+        if (trimmed) sheet.youtube_url = trimmed; else delete sheet.youtube_url;
+        updateCoreoSheetYt();
+        renderCoreoTabs();
+    }
+}
+
+let _coreoSheetYtHold = null;
+
+function coreoSheetYtPointerDown() {
+    _coreoSheetYtHold = setTimeout(() => {
+        _coreoSheetYtHold = null;
+        const sheet = coreoData.sheets?.[coreoSheetIdx];
+        if (!sheet) return;
+        const url = prompt('Modifica link YouTube del foglio coreo:', sheet.youtube_url || '');
+        if (url === null) return;
+        const trimmed = url.trim();
+        if (trimmed) sheet.youtube_url = trimmed; else delete sheet.youtube_url;
+        updateCoreoSheetYt();
+        renderCoreoTabs();
+    }, 600);
+}
+
+function coreoSheetYtPointerUp() {
+    if (_coreoSheetYtHold !== null) { clearTimeout(_coreoSheetYtHold); _coreoSheetYtHold = null; }
 }
 
 function persistCoreoBpm(bpm) {
