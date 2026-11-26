@@ -2614,22 +2614,41 @@ function coreoCell(rowIdx, col, el) {
 }
 
 function coreoCellKeydown(event, rowIdx, colIdx) {
-    if (event.key !== 'Tab' && event.key !== 'Enter') return;
-    event.preventDefault();
+    const k = event.key;
+    const isArrow = k === 'ArrowUp' || k === 'ArrowDown' || k === 'ArrowLeft' || k === 'ArrowRight';
+    if (k !== 'Tab' && k !== 'Enter' && !isArrow) return;
     const sheet = coreoData.sheets[coreoSheetIdx];
     if (!sheet) return;
     const cols = sheet.cols;
     const rows = sheet.rows;
     let nextRow = rowIdx, nextCol = colIdx;
-    if (event.key === 'Enter') {
-        nextRow = Math.min(rowIdx + 1, rows.length - 1);
-    } else if (event.shiftKey) {
+    if (k === 'ArrowUp')    { if (rowIdx === 0) return; nextRow--; }
+    else if (k === 'ArrowDown')  { if (rowIdx === rows.length - 1) return; nextRow++; }
+    else if (k === 'ArrowLeft')  {
+        // muovi cella solo se cursore è all'inizio del testo
+        const sel = window.getSelection();
+        if (sel && sel.focusOffset > 0) return;
+        if (nextCol === 0) return;
         nextCol--;
-        if (nextCol < 0) { nextCol = cols.length - 1; nextRow = Math.max(0, nextRow - 1); }
-    } else {
+    } else if (k === 'ArrowRight') {
+        // muovi cella solo se cursore è alla fine del testo
+        const sel = window.getSelection();
+        const len = event.target.innerText.length;
+        if (sel && sel.focusOffset < len) return;
+        if (nextCol === cols.length - 1) return;
         nextCol++;
-        if (nextCol >= cols.length) { nextCol = 0; nextRow = Math.min(rowIdx + 1, rows.length - 1); }
+    } else if (k === 'Enter') {
+        nextRow = Math.min(rowIdx + 1, rows.length - 1);
+    } else { // Tab
+        if (event.shiftKey) {
+            nextCol--;
+            if (nextCol < 0) { nextCol = cols.length - 1; nextRow = Math.max(0, nextRow - 1); }
+        } else {
+            nextCol++;
+            if (nextCol >= cols.length) { nextCol = 0; nextRow = Math.min(rowIdx + 1, rows.length - 1); }
+        }
     }
+    event.preventDefault();
     event.target.blur();
     const tbody = document.querySelector('#coreoTable tbody');
     if (!tbody) return;
@@ -2640,9 +2659,9 @@ function coreoCellKeydown(event, rowIdx, colIdx) {
     td.focus();
     const range = document.createRange();
     range.selectNodeContents(td);
-    const sel = window.getSelection();
-    sel.removeAllRanges();
-    sel.addRange(range);
+    const sel2 = window.getSelection();
+    sel2.removeAllRanges();
+    sel2.addRange(range);
 }
 
 function coreoAddRow() {
@@ -2868,11 +2887,11 @@ function parseExcelToCoreo(wb) {
             if (!r || r.every(c => c === null)) continue;
             dataRows.push({
                 min:     r[0] != null ? String(r[0]) : null,
-                count:   r[1] != null ? parseFloat(r[1]) : null,
+                count:   r[1] != null && !isNaN(parseFloat(r[1])) ? parseFloat(r[1]) : null,
                 shapes:  r[2] != null ? String(r[2]) : null,
-                rip:     r[3] != null ? parseFloat(r[3]) : null,
-                from:    r[4] != null ? parseFloat(r[4]) : null,
-                to:      r[5] != null ? parseFloat(r[5]) : null,
+                rip:     r[3] != null && !isNaN(parseFloat(r[3])) ? parseFloat(r[3]) : null,
+                from:    r[4] != null && !isNaN(parseFloat(r[4])) ? parseFloat(r[4]) : null,
+                to:      r[5] != null && !isNaN(parseFloat(r[5])) ? parseFloat(r[5]) : null,
                 lezione: r[6] != null ? String(r[6]) : null,
             });
         }
