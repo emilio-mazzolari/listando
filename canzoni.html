@@ -854,8 +854,9 @@
         <div class="tempi-modes">
             <button class="tempi-mode-btn active" id="tempiModeReplace" onclick="setTempiMode('replace')">Sostituisci righe</button>
             <button class="tempi-mode-btn" id="tempiModeAppend" onclick="setTempiMode('append')">Aggiungi in fondo</button>
+            <button class="tempi-mode-btn" id="tempiModeUpdate" onclick="setTempiMode('update')">Aggiorna ⏱ esistenti</button>
         </div>
-        <button class="tempi-calc-btn" onclick="applicaTempiCoreo()">Calcola e inserisci</button>
+        <button class="tempi-calc-btn" id="tempiCalcBtn" onclick="applicaTempiCoreo()">Calcola e inserisci</button>
         <button class="tempi-cancel-btn" onclick="chiudiTempiSheet()">Annulla</button>
     </div>
 </div>
@@ -2886,6 +2887,12 @@ function setTempiMode(mode) {
     _tempiMode = mode;
     document.getElementById('tempiModeReplace').classList.toggle('active', mode === 'replace');
     document.getElementById('tempiModeAppend').classList.toggle('active', mode === 'append');
+    document.getElementById('tempiModeUpdate').classList.toggle('active', mode === 'update');
+    // In modalità "aggiorna": nasconde battiti e fine brano (non servono)
+    const isUpdate = mode === 'update';
+    document.getElementById('tempiBattiti').closest('.tempi-row').style.display = isUpdate ? 'none' : '';
+    document.getElementById('tempiEnd').closest('.tempi-row').style.display = isUpdate ? 'none' : '';
+    document.getElementById('tempiCalcBtn').textContent = isUpdate ? 'Aggiorna ⏱ righe esistenti' : 'Calcola e inserisci';
 }
 
 function apriTempiSheet() {
@@ -2904,14 +2911,28 @@ function chiudiTempiSheet() { document.getElementById('tempiSheet').classList.re
 
 function applicaTempiCoreo() {
     const bpm = parseFloat(document.getElementById('tempiBpm').value);
-    const beats = parseInt(document.getElementById('tempiBattiti').value);
     const startSec = parseMMSS(document.getElementById('tempiStart').value) ?? 0;
-    const endSec = parseMMSS(document.getElementById('tempiEnd').value);
     if (!bpm || bpm < 20 || bpm > 400) { toast('BPM non valido'); return; }
-    if (!beats || beats < 1) { toast('Battiti non validi'); return; }
-    if (endSec === null || endSec <= startSec) { toast('Durata non valida (MM:SS)'); return; }
     const sheet = coreoData.sheets[coreoSheetIdx];
     if (!sheet) return;
+    sheet.bpm = bpm;
+    sheet.startSec = startSec;
+    persistCoreoBpm(bpm);
+
+    if (_tempiMode === 'update') {
+        // Aggiorna solo la colonna ⏱ sulle righe già presenti
+        ricalcolaTempi(sheet);
+        chiudiTempiSheet();
+        renderCoreoContent();
+        updateCoreoBpmChip();
+        toast('✓ Timing aggiornato sulle righe esistenti');
+        return;
+    }
+
+    const beats = parseInt(document.getElementById('tempiBattiti').value);
+    const endSec = parseMMSS(document.getElementById('tempiEnd').value);
+    if (!beats || beats < 1) { toast('Battiti non validi'); return; }
+    if (endSec === null || endSec <= startSec) { toast('Durata non valida (MM:SS)'); return; }
     ensureCols(sheet);
     const phraseDur = (beats / bpm) * 60;
     const newRows = [];
@@ -2926,9 +2947,6 @@ function applicaTempiCoreo() {
         newRows.push(row);
         t += phraseDur;
     }
-    sheet.bpm = bpm;
-    sheet.startSec = startSec;
-    persistCoreoBpm(bpm);
     if (_tempiMode === 'replace') sheet.rows = newRows;
     else sheet.rows = [...sheet.rows, ...newRows];
     chiudiTempiSheet();
