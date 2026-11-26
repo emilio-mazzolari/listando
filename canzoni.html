@@ -1026,6 +1026,10 @@ let ctxPlTargetId = null;
 let plLongPressTimer = null, plLongPressTriggered = false;
 let condividiTargetId = null, condividiPlTargetId = null;
 let _condCoreo = false, _condCoreoMod = false;
+
+function findSong(id) {
+    return songs.find(s => s.id === id) || (sharedSongs || []).find(s => s.id === id);
+}
 let currentSpeed = 1.0;
 let repeatMode = 0;   // 0=off 1=all 2=one
 let isShuffleOn = false;
@@ -2440,7 +2444,7 @@ let coreoSheetIdx = 0;
 
 function apriCoreo(songId) {
     coreoSongId = songId;
-    const song = songs.find(s => s.id === songId) || {};
+    const song = findSong(songId) || {};
     document.getElementById('coreoSongTitle').textContent = song.titolo || '';
     let raw = song.coreo;
     if (typeof raw === 'string') { try { raw = JSON.parse(raw); } catch(e) { raw = null; } }
@@ -2460,7 +2464,7 @@ function apriCoreo(songId) {
     const cp = document.getElementById('coreoPlayer');
     if (cp) {
         cp.style.display = '';
-        const s = songs.find(s => s.id === songId) || {};
+        const s = findSong(songId) || {};
         document.getElementById('coreoPlayerTitle').textContent = s.titolo + (s.artista ? ' — ' + s.artista : '');
         const ytLink = document.getElementById('coreoYtLink');
         if (ytLink) { ytLink.href = s.youtube_url || '#'; ytLink.style.display = s.youtube_url ? '' : 'none'; }
@@ -2669,7 +2673,7 @@ function coreoCell(rowIdx, col, el) {
     }
     // Ricalcola ⏱ quando cambia qualsiasi colonna numerica (count, rip, o rinominate)
     if (colDef?.type === 'number') {
-        const bpm = sheet.bpm || songs.find(s => s.id === coreoSongId)?.bpm;
+        const bpm = sheet.bpm || findSong(coreoSongId)?.bpm;
         if (bpm) { ricalcolaTempi(sheet); renderCoreoContent(); }
     }
 }
@@ -2977,7 +2981,7 @@ async function salvaCoreo() {
         const data = await res.json();
         if (res.ok && data.ok !== false) {
             toast('✓ Coreografia salvata');
-            const song = songs.find(s => s.id === coreoSongId);
+            const song = findSong(coreoSongId);
             if (song) { song.coreo = coreoData; renderSongList('allSongsList', getFilteredSongs()); }
         } else {
             toast('Errore: ' + (data.error || res.status));
@@ -3005,7 +3009,7 @@ function coreoStop() {
 }
 
 function ricalcolaTempi(sheet) {
-    const bpm = sheet.bpm || songs.find(s => s.id === coreoSongId)?.bpm;
+    const bpm = sheet.bpm || findSong(coreoSongId)?.bpm;
     if (!bpm || bpm < 20) return;
     ensureCols(sheet);
     const minCol = sheet.cols.find(c => c.type === 'time');
@@ -3045,7 +3049,7 @@ function updateCoreoBpmChip() {
     const sheet = coreoData.sheets?.[coreoSheetIdx];
     const chip = document.getElementById('coreoBpmChip');
     if (!chip) return;
-    const bpm = sheet?.bpm || songs.find(s => s.id === coreoSongId)?.bpm;
+    const bpm = sheet?.bpm || findSong(coreoSongId)?.bpm;
     chip.textContent = bpm ? bpm + ' BPM' : '— BPM';
     chip.classList.toggle('active', !!(sheet?.bpm));
 }
@@ -3081,7 +3085,7 @@ function viewCoreoSheetYt() {
 
 function persistCoreoBpm(bpm) {
     if (!coreoSongId || !bpm) return;
-    const song = songs.find(s => s.id === coreoSongId);
+    const song = findSong(coreoSongId);
     if (song) song.bpm = bpm;
     fetch(`/api/run-sql?action=save-bpm&id=${coreoSongId}&bpm=${bpm}`).catch(() => {});
 }
@@ -3089,7 +3093,7 @@ function persistCoreoBpm(bpm) {
 function editCoreoBpm() {
     const sheet = coreoData.sheets?.[coreoSheetIdx];
     if (!sheet) return;
-    const fallback = songs.find(s => s.id === coreoSongId)?.bpm || '';
+    const fallback = findSong(coreoSongId)?.bpm || '';
     const val = prompt('BPM per il calcolo automatico ⏱:\n(lascia vuoto per rimuovere)', sheet.bpm || fallback);
     if (val === null) return;
     const bpm = parseFloat(val);
@@ -3127,7 +3131,7 @@ function setTempiMode(mode) {
 }
 
 function apriTempiSheet() {
-    const song = songs.find(s => s.id === coreoSongId);
+    const song = findSong(coreoSongId);
     if (song?.bpm) document.getElementById('tempiBpm').value = song.bpm;
     // Pre-fill duration if the same song is playing
     if (audio.duration && queue[queueIdx]?.id === coreoSongId) {
