@@ -115,6 +115,8 @@ const STATEMENTS = [
     `ALTER TABLE IF EXISTS canzoni DISABLE ROW LEVEL SECURITY`,
     `ALTER TABLE IF EXISTS canzoni_playlist DISABLE ROW LEVEL SECURITY`,
     `ALTER TABLE IF EXISTS canzoni_condivisioni DISABLE ROW LEVEL SECURITY`,
+    `ALTER TABLE IF EXISTS canzoni_condivisioni ADD COLUMN IF NOT EXISTS includi_coreo boolean DEFAULT false -- cond_coreo_cols`,
+    `ALTER TABLE IF EXISTS canzoni_condivisioni ADD COLUMN IF NOT EXISTS coreo_modificabile boolean DEFAULT false -- cond_coreo_cols`,
     `CREATE TABLE IF NOT EXISTS canzoni_pl_condivisioni (
         id bigint generated always as identity primary key,
         playlist_id bigint not null references canzoni_playlist(id) on delete cascade,

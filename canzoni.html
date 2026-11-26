@@ -678,6 +678,16 @@
             <input class="form-input" id="condividiEmailInput" type="email" placeholder="utente@email.com"
                    onkeydown="if(event.key==='Enter') aggiungiCondivisione()">
         </div>
+        <div id="condividiCoreoToggleWrap" style="display:none;margin-bottom:14px">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid #f0f0f0">
+                <span style="font-size:13px;font-weight:800;color:#444">📋 Includi coreografia</span>
+                <button id="btnIncludiCoreo" onclick="toggleCondCoreo()" style="padding:5px 14px;border-radius:20px;border:2px solid #e0e0e0;background:white;font-size:12px;font-weight:900;cursor:pointer;font-family:inherit;color:#aaa;min-width:50px">No</button>
+            </div>
+            <div id="condividiCoreoModRow" style="display:none;display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid #f0f0f0">
+                <span style="font-size:13px;font-weight:800;color:#444">✏️ Modificabile dagli altri</span>
+                <button id="btnCoreoMod" onclick="toggleCondCoreoMod()" style="padding:5px 14px;border-radius:20px;border:2px solid #e0e0e0;background:white;font-size:12px;font-weight:900;cursor:pointer;font-family:inherit;color:#aaa;min-width:50px">No</button>
+            </div>
+        </div>
         <button class="btn-save-modal" onclick="aggiungiCondivisione()">CONDIVIDI CON UTENTE LISTANDO</button>
         <button onclick="condividiWhatsapp()" style="width:100%;padding:14px;border-radius:18px;border:none;background:#25D366;color:white;font-weight:900;font-size:15px;cursor:pointer;font-family:inherit;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:8px">
             <svg width="20" height="20" fill="white" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
@@ -1009,6 +1019,7 @@ let ctxTargetId = null, ctxIsShared = false;
 let ctxPlTargetId = null;
 let plLongPressTimer = null, plLongPressTriggered = false;
 let condividiTargetId = null, condividiPlTargetId = null;
+let _condCoreo = false, _condCoreoMod = false;
 let currentSpeed = 1.0;
 let repeatMode = 0;   // 0=off 1=all 2=one
 let isShuffleOn = false;
@@ -1025,6 +1036,7 @@ fetch('/api/run-sql?solo=canzoni_bpm').catch(() => {});
 fetch('/api/run-sql?solo=canzoni_in_playlist').catch(() => {});
 fetch('/api/run-sql?solo=canzoni_album').catch(() => {});
 fetch('/api/run-sql?solo=canzoni_coreo').catch(() => {});
+fetch('/api/run-sql?solo=cond_coreo_cols').catch(() => {});
 
 // BPM: localStorage come storage primario, DB come best-effort
 function bpmGet(id) { return Number(localStorage.getItem('bpm_' + id)) || null; }
@@ -1065,7 +1077,8 @@ async function carica() {
             .eq('email_destinatario', userEmail);
         sharedSongs = (condDiv || [])
             .filter(c => c.canzoni)
-            .map(c => ({ ...c.canzoni, _mittente: c.email_mittente, _condDiv_id: c.id }));
+            .map(c => ({ ...c.canzoni, _mittente: c.email_mittente, _condDiv_id: c.id,
+                _includiCoreo: !!c.includi_coreo, _coreoMod: !!c.coreo_modificabile }));
     } catch (_) { sharedSongs = []; }
 
     // raccolte condivise con me da altri utenti
@@ -1353,7 +1366,7 @@ function songItemHtml(s, i) {
             ${s.note ? `<div class="song-artist" style="font-style:italic;color:#aaa">${s.note}</div>` : ''}
         </div>
         <div class="song-dur">${dur}</div>
-        ${s.coreo ? `<button class="btn-open-coreo" onclick="event.stopPropagation();apriCoreo(${s.id})" title="Coreografia">📋</button>` : ''}
+        ${(s.coreo && (!s._mittente || s._includiCoreo)) ? `<button class="btn-open-coreo" onclick="event.stopPropagation();apriCoreo(${s.id})" title="Coreografia${s._mittente && !s._coreoMod ? ' (sola lettura)' : ''}">📋</button>` : ''}
         <button class="btn-song-more" onclick="event.stopPropagation(); apriCtxSong(${s.id}, event, false)">⋮</button>
     </div>`;
 }
@@ -2123,11 +2136,41 @@ function condividiWhatsapp() {
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
 }
 
+function toggleCondCoreo() {
+    _condCoreo = !_condCoreo;
+    _condCoreoMod = false;
+    const btn = document.getElementById('btnIncludiCoreo');
+    btn.textContent = _condCoreo ? 'Sì' : 'No';
+    btn.style.borderColor = _condCoreo ? 'var(--music)' : '#e0e0e0';
+    btn.style.color = _condCoreo ? 'var(--music)' : '#aaa';
+    const modRow = document.getElementById('condividiCoreoModRow');
+    modRow.style.display = _condCoreo ? 'flex' : 'none';
+    document.getElementById('btnCoreoMod').textContent = 'No';
+    document.getElementById('btnCoreoMod').style.borderColor = '#e0e0e0';
+    document.getElementById('btnCoreoMod').style.color = '#aaa';
+}
+
+function toggleCondCoreoMod() {
+    _condCoreoMod = !_condCoreoMod;
+    const btn = document.getElementById('btnCoreoMod');
+    btn.textContent = _condCoreoMod ? 'Sì' : 'No';
+    btn.style.borderColor = _condCoreoMod ? 'var(--music)' : '#e0e0e0';
+    btn.style.color = _condCoreoMod ? 'var(--music)' : '#aaa';
+}
+
 async function apriCondividi(songId) {
     condividiTargetId = songId;
     const s = songs.find(x => x.id === songId);
     document.getElementById('condividiSongName').textContent = s?.titolo || '';
     document.getElementById('condividiEmailInput').value = '';
+    // Reset toggle stato
+    _condCoreo = false; _condCoreoMod = false;
+    const wrap = document.getElementById('condividiCoreoToggleWrap');
+    wrap.style.display = s?.coreo ? '' : 'none';
+    document.getElementById('btnIncludiCoreo').textContent = 'No';
+    document.getElementById('btnIncludiCoreo').style.borderColor = '#e0e0e0';
+    document.getElementById('btnIncludiCoreo').style.color = '#aaa';
+    document.getElementById('condividiCoreoModRow').style.display = 'none';
     await refreshCondividiLista();
     document.getElementById('modaleCondividi').classList.add('open');
 }
@@ -2139,12 +2182,16 @@ async function refreshCondividiLista() {
     const lista = document.getElementById('condividiLista');
     if (!shares?.length) { wrap.style.display = 'none'; return; }
     wrap.style.display = '';
-    lista.innerHTML = shares.map(sh =>
-        `<div class="share-row">
+    lista.innerHTML = shares.map(sh => {
+        const badges = sh.includi_coreo
+            ? `<span title="Coreografia inclusa${sh.coreo_modificabile ? ', modificabile' : ', sola lettura'}" style="font-size:13px">${sh.coreo_modificabile ? '📋✏️' : '📋👁️'}</span>`
+            : '';
+        return `<div class="share-row">
             <span class="share-email">${sh.email_destinatario}</span>
+            ${badges}
             <button class="btn-share-del" onclick="eliminaCondivisione(${sh.id})">Rimuovi</button>
-        </div>`
-    ).join('');
+        </div>`;
+    }).join('');
 }
 
 async function aggiungiCondivisione() {
@@ -2154,7 +2201,9 @@ async function aggiungiCondivisione() {
     const { error } = await sb.from('canzoni_condivisioni').insert({
         canzone_id: condividiTargetId,
         email_mittente: userEmail,
-        email_destinatario: email
+        email_destinatario: email,
+        includi_coreo: _condCoreo,
+        coreo_modificabile: _condCoreoMod
     });
     if (error) {
         toast(error.code === '23505' ? 'Già condivisa con questo utente' : 'Errore: ' + error.message);
@@ -2396,6 +2445,11 @@ function apriCoreo(songId) {
     renderCoreoContent();
     updateCoreoBpmChip();
     updateCoreoSheetYt();
+    // Sola lettura se la canzone è condivisa con coreo non modificabile
+    const sharedSong = [...(sharedSongs || [])].find(s => s.id === songId);
+    const readOnly = !!(sharedSong && sharedSong._mittente && !sharedSong._coreoMod);
+    const salvaBtn = document.getElementById('btnSalvaCoreo');
+    if (salvaBtn) { salvaBtn.style.display = readOnly ? 'none' : ''; }
     document.getElementById('coreoPanel').classList.add('open');
     const cp = document.getElementById('coreoPlayer');
     if (cp) {
