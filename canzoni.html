@@ -2558,7 +2558,7 @@ function renderCoreoContent() {
             const c = getColColor(col, ci);
             const align = (col.type === 'number' || col.type === 'time') ? 'text-align:center;' : '';
             const bg = (isSec || isFree) ? '' : `background:${c.td};`;
-            return `<td contenteditable="true" onblur="coreoCell(${i},'${col.key}',this)" class="${col.type === 'time' ? 'col-time' : ''}" style="${align}${bg}">${escH(row[col.key] ?? '')}</td>`;
+            return `<td contenteditable="true" onblur="coreoCell(${i},'${col.key}',this)" onkeydown="coreoCellKeydown(event,${i},${ci})" class="${col.type === 'time' ? 'col-time' : ''}" style="${align}${bg}">${escH(row[col.key] ?? '')}</td>`;
         }).join('');
         return `<tr class="${isSec ? 'coreo-section' : isFree ? 'coreo-free' : ''}">
             ${cells}
@@ -2593,6 +2593,38 @@ function coreoCell(rowIdx, col, el) {
         const bpm = sheet.bpm || songs.find(s => s.id === coreoSongId)?.bpm;
         if (bpm) { ricalcolaTempi(sheet); renderCoreoContent(); }
     }
+}
+
+function coreoCellKeydown(event, rowIdx, colIdx) {
+    if (event.key !== 'Tab' && event.key !== 'Enter') return;
+    event.preventDefault();
+    const sheet = coreoData.sheets[coreoSheetIdx];
+    if (!sheet) return;
+    const cols = sheet.cols;
+    const rows = sheet.rows;
+    let nextRow = rowIdx, nextCol = colIdx;
+    if (event.key === 'Enter') {
+        nextRow = Math.min(rowIdx + 1, rows.length - 1);
+    } else if (event.shiftKey) {
+        nextCol--;
+        if (nextCol < 0) { nextCol = cols.length - 1; nextRow = Math.max(0, nextRow - 1); }
+    } else {
+        nextCol++;
+        if (nextCol >= cols.length) { nextCol = 0; nextRow = Math.min(rowIdx + 1, rows.length - 1); }
+    }
+    event.target.blur();
+    const tbody = document.querySelector('#coreoTable tbody');
+    if (!tbody) return;
+    const tr = tbody.rows[nextRow];
+    if (!tr) return;
+    const td = tr.cells[nextCol];
+    if (!td || !td.isContentEditable) return;
+    td.focus();
+    const range = document.createRange();
+    range.selectNodeContents(td);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
 }
 
 function coreoAddRow() {
