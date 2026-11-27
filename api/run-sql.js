@@ -117,6 +117,18 @@ const STATEMENTS = [
     `ALTER TABLE IF EXISTS canzoni_condivisioni DISABLE ROW LEVEL SECURITY`,
     `ALTER TABLE IF EXISTS canzoni_condivisioni ADD COLUMN IF NOT EXISTS includi_coreo boolean DEFAULT false -- cond_coreo_cols`,
     `ALTER TABLE IF EXISTS canzoni_condivisioni ADD COLUMN IF NOT EXISTS coreo_modificabile boolean DEFAULT false -- cond_coreo_cols`,
+    `CREATE TABLE IF NOT EXISTS coreo_links (
+        id bigint generated always as identity primary key,
+        token text unique not null,
+        coreo_snapshot jsonb,
+        canzone_titolo text,
+        canzone_artista text,
+        canzone_bpm int,
+        modificabile boolean default false,
+        email_mittente text,
+        created_at timestamptz default now()
+    ) -- coreo_links_table`,
+    `ALTER TABLE IF EXISTS coreo_links DISABLE ROW LEVEL SECURITY -- coreo_links_table`,
     `CREATE TABLE IF NOT EXISTS canzoni_pl_condivisioni (
         id bigint generated always as identity primary key,
         playlist_id bigint not null references canzoni_playlist(id) on delete cascade,

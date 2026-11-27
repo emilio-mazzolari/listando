@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Coreografia — Listando</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--music:#1db954;--dark:#111;--grey:#f5f5f5}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#fafafa;color:var(--dark);min-height:100vh}
+#header{padding:18px 16px 10px;background:white;border-bottom:1.5px solid #f0f0f0;position:sticky;top:0;z-index:10}
+#songTitle{font-size:18px;font-weight:900;margin-bottom:3px}
+#songInfo{font-size:12px;color:#888;font-weight:700}
+#roTag{display:inline-block;margin-top:6px;font-size:10px;font-weight:900;color:#888;background:#f0f0f0;border-radius:6px;padding:2px 8px}
+#tabs{display:flex;overflow-x:auto;border-bottom:2px solid #f0f0f0;background:white;padding:0 8px;gap:4px;scrollbar-width:none}
+#tabs::-webkit-scrollbar{display:none}
+.tab{padding:10px 14px;font-size:12px;font-weight:800;color:#aaa;cursor:pointer;border-bottom:2.5px solid transparent;margin-bottom:-2px;white-space:nowrap;user-select:none}
+.tab.active{color:var(--music);border-bottom-color:var(--music)}
+#tableWrap{overflow:auto;scrollbar-width:thin;scrollbar-color:#ccc #f5f5f5;flex:1}
+table{width:100%;border-collapse:collapse;min-width:500px}
+thead th{padding:8px;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.3px;position:sticky;top:0;z-index:2;border-bottom:2px solid #ccc;border-right:1px solid rgba(0,0,0,.09);white-space:nowrap;background:#f8f8f8;color:#555}
+td{padding:7px 8px;border-bottom:1px solid #f0f0f0;border-right:1px solid rgba(0,0,0,.05);font-size:13px;vertical-align:middle}
+td[contenteditable=true]:focus{background:#f0fdf8!important;outline:none}
+td[contenteditable=true]{cursor:text}
+tr.coreo-section td{font-weight:900;color:var(--music);background:#f0fdf8}
+tr.coreo-free td{background:#fffbf0}
+tr.coreo-free td.col-time{font-style:italic;color:#b06000}
+td.col-time{font-size:12px;font-weight:800;font-variant-numeric:tabular-nums;text-align:center;color:#1db954;white-space:nowrap}
+td.col-num{text-align:center}
+#footer{position:sticky;bottom:0;background:white;border-top:1.5px solid #f0f0f0;padding:10px 16px calc(env(safe-area-inset-bottom,0px)+10px);display:flex;gap:10px;align-items:center}
+#btnSalva{flex:1;padding:14px;border-radius:14px;border:none;background:var(--music);color:white;font-size:15px;font-weight:900;cursor:pointer;font-family:inherit}
+#btnSalva:disabled{opacity:.6;cursor:default}
+#savedMsg{font-size:12px;font-weight:800;color:var(--music);display:none}
+#errMsg{padding:40px 24px;text-align:center;color:#888;font-weight:700;font-size:15px}
+</style>
+</head>
+<body>
+<div id="header">
+  <div id="songTitle">Caricamento…</div>
+  <div id="songInfo"></div>
+</div>
+<div id="tabs"></div>
+<div id="tableWrap"><div id="errMsg" style="display:none"></div><table id="coreoTable"><tbody></tbody></table></div>
+<div id="footer" style="display:none">
+  <span id="roLabel" style="font-size:12px;font-weight:800;color:#aaa;display:none">👁️ Sola lettura</span>
+  <button id="btnSalva" onclick="salva()" style="display:none">💾 SALVA MODIFICHE</button>
+  <span id="savedMsg">✓ Salvato</span>
+</div>
+
+<script>
+const params = new URLSearchParams(location.search);
+const TOKEN = params.get('t');
+let coreoData = null;
+let currentSheetIdx = 0;
+let isModificabile = false;
+
+function escH(s) {
+    return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function fmtMMSS(sec) {
+    if (sec == null || isNaN(sec)) return '0:00';
+    const m = Math.floor(sec / 60), s = Math.round(sec % 60);
+    return m + ':' + String(s).padStart(2,'0');
+}
+
+function isSection(row, cols) {
+    const timeCol = cols.find(c => c.type === 'time');
+    const countCol = cols.find(c => c.key === 'count');
+    if (!timeCol) return false;
+    const hasTime = !!row[timeCol.key];
+    const hasCount = !!row[countCol?.key];
+    const hasShapes = !!row[cols.find(c => c.type === 'text')?.key];
+    return hasShapes && !hasCount && !hasTime;
+}
+
+const DEFAULT_COLS = [
+    {key:'min',    label:'⏱',      type:'time',   width:110},
+    {key:'count',  label:'Conti',  type:'number', width:50},
+    {key:'shapes', label:'Figure', type:'text',   width:null},
+    {key:'rip',    label:'Rip',    type:'number', width:42},
+    {key:'from',   label:'Da',     type:'number', width:42},
+    {key:'to',     label:'A',      type:'number', width:42},
+    {key:'lezione',label:'Lezione',type:'text',   width:60}
+];
+
+function renderSheet(idx) {
+    currentSheetIdx = idx;
+    const sheet = coreoData.sheets[idx];
+    if (!sheet) return;
+    const cols = sheet.cols || DEFAULT_COLS;
+    const countKey = cols.find(c => c.key === 'count')?.key;
+    const timeKey  = cols.find(c => c.type === 'time')?.key;
+
+    const thead = cols.map(c => {
+        const w = c.width ? `width:${c.width}px` : 'min-width:120px';
+        return `<th style="${w}">${escH(c.label)}</th>`;
+    }).join('');
+
+    const tbody = (sheet.rows || []).map((row, ri) => {
+        const isSec = isSection(row, cols);
+        const isFree = !isSec && (row._free || (!parseFloat(row[countKey]) && !!row[timeKey]));
+        const cls = isSec ? 'coreo-section' : isFree ? 'coreo-free' : '';
+        const cells = cols.map((col, ci) => {
+            const align = (col.type === 'number' || col.type === 'time') ? 'text-align:center' : '';
+            const cls2 = col.type === 'time' ? 'col-time' : col.type === 'number' ? 'col-num' : '';
+            const ce = isModificabile ? 'true' : 'false';
+            const handler = isModificabile ? `onblur="cellBlur(${ri},${ci},this)"` : '';
+            return `<td contenteditable="${ce}" ${handler} class="${cls2}" style="${align}">${escH(row[col.key] ?? '')}</td>`;
+        }).join('');
+        return `<tr class="${cls}">${cells}</tr>`;
+    }).join('');
+
+    document.getElementById('coreoTable').innerHTML =
+        `<thead><tr>${thead}</tr></thead><tbody>${tbody}</tbody>`;
+
+    document.querySelectorAll('#tabs .tab').forEach((t, i) => t.classList.toggle('active', i === idx));
+}
+
+function renderTabs() {
+    const el = document.getElementById('tabs');
+    el.innerHTML = coreoData.sheets.map((sh, i) => {
+        const name = (sh.name || '').replace(/^coreo[_\s]*/i,'').trim() || 'Coreografia';
+        return `<div class="tab${i===0?' active':''}" onclick="renderSheet(${i})">${escH(name)}</div>`;
+    }).join('');
+}
+
+function cellBlur(ri, ci, el) {
+    const sheet = coreoData.sheets[currentSheetIdx];
+    if (!sheet) return;
+    const cols = sheet.cols || DEFAULT_COLS;
+    const col = cols[ci];
+    if (!col) return;
+    const val = el.innerText.trim();
+    if (col.type === 'number') {
+        sheet.rows[ri][col.key] = val ? parseFloat(val) : null;
+    } else {
+        sheet.rows[ri][col.key] = val || null;
+    }
+}
+
+async function salva() {
+    const btn = document.getElementById('btnSalva');
+    btn.disabled = true; btn.textContent = 'Salvo…';
+    try {
+        const r = await fetch(`/api/coreo-share?token=${TOKEN}`, {
+            method: 'PUT',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ coreo: coreoData })
+        });
+        if (!r.ok) { const e = await r.json(); throw new Error(e.error); }
+        const msg = document.getElementById('savedMsg');
+        msg.style.display = '';
+        setTimeout(() => msg.style.display = 'none', 2000);
+    } catch(e) {
+        alert('Errore: ' + e.message);
+    }
+    btn.disabled = false; btn.textContent = '💾 SALVA MODIFICHE';
+}
+
+async function init() {
+    if (!TOKEN) {
+        document.getElementById('songTitle').textContent = 'Link non valido';
+        return;
+    }
+    try {
+        const r = await fetch(`/api/coreo-share?token=${TOKEN}`);
+        if (!r.ok) throw new Error((await r.json()).error || 'errore');
+        const data = await r.json();
+        coreoData = data.coreo_snapshot;
+        isModificabile = !!data.modificabile;
+
+        document.getElementById('songTitle').textContent = data.canzone_titolo || 'Coreografia';
+        const info = [data.canzone_artista, data.canzone_bpm ? `♩ ${data.canzone_bpm} BPM` : ''].filter(Boolean).join(' · ');
+        document.getElementById('songInfo').textContent = info;
+
+        const footer = document.getElementById('footer');
+        footer.style.display = '';
+        if (isModificabile) {
+            document.getElementById('btnSalva').style.display = '';
+        } else {
+            document.getElementById('roLabel').style.display = '';
+        }
+
+        if (!coreoData?.sheets?.length) {
+            document.getElementById('errMsg').textContent = 'Coreografia vuota';
+            document.getElementById('errMsg').style.display = '';
+            return;
+        }
+        renderTabs();
+        renderSheet(0);
+    } catch(e) {
+        document.getElementById('songTitle').textContent = 'Link non trovato';
+        document.getElementById('errMsg').textContent = e.message;
+        document.getElementById('errMsg').style.display = '';
+    }
+}
+
+init();
+</script>
+</body>
+</html>
