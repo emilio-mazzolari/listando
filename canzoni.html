@@ -1143,9 +1143,19 @@ async function carica() {
 let searchMainQ = '';
 let searchPlQ = '';
 
+function coreoNomi(s) {
+    if (!s.coreo) return [];
+    let c = s.coreo;
+    if (typeof c === 'string') { try { c = JSON.parse(c); } catch(e) { return []; } }
+    return (c.sheets || []).map(sh => (sh.name || '').replace(/^coreo[_\s]*/i,'').trim()).filter(Boolean);
+}
+
 function getFilteredSongs() {
     let list = songs;
-    if (searchMainQ) list = list.filter(s => (s.titolo||'').toLowerCase().includes(searchMainQ) || (s.artista||'').toLowerCase().includes(searchMainQ));
+    if (searchMainQ) list = list.filter(s => {
+        const nomi = coreoNomi(s).join(' ').toLowerCase();
+        return (s.titolo||'').toLowerCase().includes(searchMainQ) || (s.artista||'').toLowerCase().includes(searchMainQ) || nomi.includes(searchMainQ);
+    });
     if (activeFilters.bpm === 'no') list = list.filter(s => !s.bpm);
     else if (Array.isArray(activeFilters.bpm)) list = list.filter(s => s.bpm >= activeFilters.bpm[0] && s.bpm < activeFilters.bpm[1]);
     if (activeFilters.artista) list = list.filter(s => s.artista === activeFilters.artista);
@@ -1276,7 +1286,7 @@ function onSearchPl() {
     const id = currentPlaylistId;
     const plSongs = songsInPlaylist(id);
     const filtered = searchPlQ
-        ? plSongs.filter(s => (s.titolo||'').toLowerCase().includes(searchPlQ) || (s.artista||'').toLowerCase().includes(searchPlQ))
+        ? plSongs.filter(s => { const n = coreoNomi(s).join(' ').toLowerCase(); return (s.titolo||'').toLowerCase().includes(searchPlQ) || (s.artista||'').toLowerCase().includes(searchPlQ) || n.includes(searchPlQ); })
         : plSongs;
     renderSongList('playlistSongsList', filtered);
 }
@@ -1399,6 +1409,7 @@ function songItemHtml(s, i) {
             <div class="song-title${isPlay ? ' playing' : ''}">${s.titolo}</div>
             ${(s.artista || s.bpm) ? `<div class="song-artist">${[s.artista, s.bpm ? `♩ ${s.bpm} BPM` : ''].filter(Boolean).join(' · ')}</div>` : ''}
             ${s.note ? `<div class="song-artist" style="font-style:italic;color:#aaa">${s.note}</div>` : ''}
+            ${(()=>{ const nomi=coreoNomi(s); return nomi.length ? `<div class="song-artist" style="color:#1db954;font-size:11px">📋 ${nomi.join(' · ')}</div>` : ''; })()}
         </div>
         <div class="song-dur">${dur}</div>
         ${(s.coreo && (!s._mittente || s._includiCoreo)) ? `<button class="btn-open-coreo" onclick="event.stopPropagation();apriCoreo(${s.id})" title="Coreografia${s._mittente && !s._coreoMod ? ' (sola lettura)' : ''}">📋</button>` : ''}
@@ -1441,7 +1452,7 @@ function renderPlaylistView() {
     document.getElementById('btnRimuoviSharedPl').style.display = 'none';
     renderSubFolders(subPls);
     const plFiltered = searchPlQ
-        ? plSongs.filter(s => (s.titolo||'').toLowerCase().includes(searchPlQ) || (s.artista||'').toLowerCase().includes(searchPlQ))
+        ? plSongs.filter(s => { const n = coreoNomi(s).join(' ').toLowerCase(); return (s.titolo||'').toLowerCase().includes(searchPlQ) || (s.artista||'').toLowerCase().includes(searchPlQ) || n.includes(searchPlQ); })
         : plSongs;
     renderSongList('playlistSongsList', plFiltered);
     // reset input UI
