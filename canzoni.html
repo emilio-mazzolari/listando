@@ -2139,13 +2139,31 @@ async function eliminaSong() {
 
 // ── Condivisione ────────────────────────────────────────────────────────
 function condividiWhatsapp() {
-    const s = songs.find(x => x.id === condividiTargetId);
+    const s = findSong(condividiTargetId);
     if (!s) { toast('Canzone non trovata'); return; }
     let text = `🎵 *${s.titolo}*`;
     if (s.artista) text += `\n🎤 ${s.artista}`;
     if (s.bpm) text += `\n♩ ${s.bpm} BPM`;
     if (s.durata_sec) text += ` · ${fmtTime(s.durata_sec)}`;
     if (s.url) text += `\n\nAscolta: ${s.url}`;
+    if (_condCoreo && s.coreo) {
+        let coreoObj = s.coreo;
+        if (typeof coreoObj === 'string') { try { coreoObj = JSON.parse(coreoObj); } catch(e) { coreoObj = null; } }
+        if (coreoObj?.sheets?.length) {
+            for (const sh of coreoObj.sheets) {
+                const shName = (sh.name || '').replace(/^coreo[_\s]*/i, '').trim() || 'Coreografia';
+                text += `\n\n📋 *${shName}*`;
+                for (const row of (sh.rows || [])) {
+                    const time = row.min ? row.min + ' ' : '';
+                    const counts = row.count ? `${row.count}t` : '';
+                    const rip = row.rip > 1 ? `×${row.rip}` : '';
+                    const fig = row.shapes || '';
+                    const line = [time + counts + rip, fig].filter(Boolean).join(' | ');
+                    if (line.trim()) text += `\n${line}`;
+                }
+            }
+        }
+    }
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
 }
 
