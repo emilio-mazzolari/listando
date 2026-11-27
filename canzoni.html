@@ -862,7 +862,8 @@
         </div>
     </div>
     <div class="coreo-footer" id="coreoFooter" style="display:none">
-        <button class="btn-add-coreo-row" onclick="coreoAddRow()" title="Aggiungi riga">+ Riga</button>
+        <span id="coreoReadOnlyBadge" style="display:none;font-size:11px;font-weight:900;color:#888;background:#f5f5f5;border-radius:8px;padding:4px 10px;flex-shrink:0">👁️ Sola lettura</span>
+        <button class="btn-add-coreo-row" id="btnCoreoAddRow" onclick="coreoAddRow()" title="Aggiungi riga">+ Riga</button>
         <button class="btn-add-coreo-row" onclick="coreoAddFreeRow()" title="Riga a timing libero — scrivi ⏱ a mano, le righe successive si cascadano da lì">⌛</button>
         <button class="btn-tempi-coreo" onclick="apriTempiSheet()" title="Suddividi la canzone in frasi da N battiti">⏱</button>
         <button class="btn-export-coreo" onclick="apriExportCoreo()" title="Esporta in Excel o PDF">📤</button>
@@ -1285,6 +1286,7 @@ function renderSharedSection() {
         const numEl = isPlay
             ? `<div class="eq-bars${isPlaying ? '' : ' paused'}"><div class="eq-bar"></div><div class="eq-bar"></div><div class="eq-bar"></div></div>`
             : `<span style="color:#3384d4;font-size:13px;font-weight:700">${i + 1}</span>`;
+        const coreoTitle = s._coreoMod ? 'Coreografia (modificabile)' : 'Coreografia (sola lettura)';
         return `<div class="song-item shared-item${isPlay ? ' playing' : ''}" onclick="playFromShared(${s.id})">
             <div class="song-num">${numEl}</div>
             <div class="song-info">
@@ -1292,6 +1294,7 @@ function renderSharedSection() {
                 <div class="song-artist">da ${mittente}${s.artista ? ' · ' + s.artista : ''}</div>
             </div>
             <div class="song-dur">${dur}</div>
+            ${(s.coreo && s._includiCoreo) ? `<button class="btn-open-coreo" onclick="event.stopPropagation();apriCoreo(${s.id})" title="${coreoTitle}">📋</button>` : ''}
             <button class="btn-share-remove" onclick="event.stopPropagation(); rimuoviSharedSong(${s._condDiv_id})" title="Rimuovi">✕</button>
         </div>`;
     }).join('');
@@ -2441,6 +2444,7 @@ carica().then(() => {
 let coreoData = null; // { sheets: [{name, rows:[{min,count,shapes,from,to,lezione}]}] }
 let coreoSongId = null;
 let coreoSheetIdx = 0;
+let coreoReadOnly = false;
 
 function apriCoreo(songId) {
     coreoSongId = songId;
@@ -2456,10 +2460,16 @@ function apriCoreo(songId) {
     updateCoreoBpmChip();
     updateCoreoSheetYt();
     // Sola lettura se la canzone è condivisa con coreo non modificabile
-    const sharedSong = [...(sharedSongs || [])].find(s => s.id === songId);
-    const readOnly = !!(sharedSong && sharedSong._mittente && !sharedSong._coreoMod);
+    const sharedSong = (sharedSongs || []).find(s => s.id === songId);
+    coreoReadOnly = !!(sharedSong && sharedSong._mittente && !sharedSong._coreoMod);
     const salvaBtn = document.getElementById('btnSalvaCoreo');
-    if (salvaBtn) { salvaBtn.style.display = readOnly ? 'none' : ''; }
+    if (salvaBtn) { salvaBtn.style.display = coreoReadOnly ? 'none' : ''; }
+    const ro = coreoReadOnly;
+    ['btnSalvaCoreo','coreoSheetYtEdit','btnCoreoAddRow'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.style.display = ro ? 'none' : '';
+    });
+    const badge = document.getElementById('coreoReadOnlyBadge');
+    if (badge) badge.style.display = ro ? '' : 'none';
     document.getElementById('coreoPanel').classList.add('open');
     const cp = document.getElementById('coreoPlayer');
     if (cp) {
@@ -2641,7 +2651,7 @@ function renderCoreoContent() {
             const c = getColColor(col, ci);
             const align = (col.type === 'number' || col.type === 'time') ? 'text-align:center;' : '';
             const bg = (isSec || isFree) ? '' : `background:${c.td};`;
-            return `<td contenteditable="true" onblur="coreoCell(${i},'${col.key}',this)" onkeydown="coreoCellKeydown(event,${i},${ci})" class="${col.type === 'time' ? 'col-time' : ''}" style="${align}${bg}">${escH(row[col.key] ?? '')}</td>`;
+            return `<td contenteditable="${coreoReadOnly ? 'false' : 'true'}" ${coreoReadOnly ? '' : `onblur="coreoCell(${i},'${col.key}',this)" onkeydown="coreoCellKeydown(event,${i},${ci})"`} class="${col.type === 'time' ? 'col-time' : ''}" style="${align}${bg}${coreoReadOnly ? 'cursor:default;' : ''}">${escH(row[col.key] ?? '')}</td>`;
         }).join('');
         return `<tr class="${isSec ? 'coreo-section' : isFree ? 'coreo-free' : ''}">
             ${cells}
