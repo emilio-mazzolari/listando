@@ -579,6 +579,48 @@ module.exports = async function handler(req, res) {
     const key = process.env.SUPABASE_SERVICE_KEY;
     if (!key) return res.status(500).json({ error: 'SUPABASE_SERVICE_KEY non configurata' });
 
+    // ── coreo-share: GET/POST/PUT ?coreo=share ──────────────────────────────
+    if (req.query?.coreo === 'share') {
+        const sb = createClient(SUPABASE_URL, key);
+        if (req.method === 'POST') {
+            const body = req.body;
+            if (!body?.coreo) return res.status(400).json({ error: 'coreo mancante' });
+            const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+            let token = ''; for (let i = 0; i < 14; i++) token += chars[Math.floor(Math.random() * chars.length)];
+            const { error } = await sb.from('coreo_links').insert({
+                token, coreo_snapshot: body.coreo,
+                canzone_titolo: (body.titolo || '').slice(0, 300),
+                canzone_artista: (body.artista || '').slice(0, 300),
+                canzone_bpm: body.bpm || null,
+                modificabile: !!body.modificabile,
+                email_mittente: (body.email || '').slice(0, 300)
+            });
+            if (error) return res.status(500).json({ error: error.message });
+            return res.json({ token });
+        }
+        if (req.method === 'GET') {
+            const { token } = req.query;
+            if (!token) return res.status(400).json({ error: 'token mancante' });
+            const { data, error } = await sb.from('coreo_links')
+                .select('token,coreo_snapshot,canzone_titolo,canzone_artista,canzone_bpm,modificabile')
+                .eq('token', token).single();
+            if (error || !data) return res.status(404).json({ error: 'link non trovato' });
+            return res.json(data);
+        }
+        if (req.method === 'PUT') {
+            const { token } = req.query;
+            if (!token) return res.status(400).json({ error: 'token mancante' });
+            const { data: row } = await sb.from('coreo_links').select('modificabile').eq('token', token).single();
+            if (!row?.modificabile) return res.status(403).json({ error: 'link in sola lettura' });
+            const body = req.body;
+            if (!body?.coreo) return res.status(400).json({ error: 'coreo mancante' });
+            const { error } = await sb.from('coreo_links').update({ coreo_snapshot: body.coreo }).eq('token', token);
+            if (error) return res.status(500).json({ error: error.message });
+            return res.json({ ok: true });
+        }
+        return res.status(405).end();
+    }
+
     if (req.query?.action === 'save-bpm') {
         const id = parseInt(req.query.id);
         const bpm = parseInt(req.query.bpm);

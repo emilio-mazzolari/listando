@@ -2229,7 +2229,7 @@ async function generaCoreoLink() {
     btn.disabled = true; btn.textContent = 'Generazione…';
     try {
         const song = findSong(coreoSongId) || {};
-        const r = await fetch('/api/coreo-share', {
+        const r = await fetch('/api/run-sql?coreo=share', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({
